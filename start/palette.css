@@ -1,12 +1,13 @@
+/* Kitsune 0.5 «Tinta»: los tokens de InkShadow. Archivo fijo, no se regenera. */
 :root {
-  --kb-bg: #00101c;
-  --kb-surface: #001c2d;
-  --kb-surface-high: #00283f;
-  --kb-text: #d1e8ff;
-  --kb-muted: #8aafcf;
-  --kb-outline: #557997;
-  --kb-primary: #65ccff;
-  --kb-primary-container: #0cc0ff;
-  --kb-secondary: #39b4ff;
-  --kb-tertiary: #989dff;
+  --kb-bg: #f6f5f1;
+  --kb-surface: #fbfaf7;
+  --kb-surface-high: #e8ece4;
+  --kb-text: #252d2b;
+  --kb-muted: #59625c;
+  --kb-outline: #c7cdc4;
+  --kb-primary: #963d32;
+  --kb-primary-container: #eadfda;
+  --kb-secondary: #496b60;
+  --kb-tertiary: #73786f;
 }

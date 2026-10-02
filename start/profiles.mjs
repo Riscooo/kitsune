@@ -203,6 +203,7 @@ export async function initializeProfiles({ announce = () => {} } = {}) {
     if (current) {
       avatar($('#current-profile-avatar'), current)
       $('#current-profile-name').textContent = current.name
+      $('#welcome-line').textContent = `Bienvenido, ${current.name}`
       trigger.setAttribute('aria-label', `Gestionar perfiles. Perfil de esta ventana: ${current.name}`)
       trigger.title = `Perfil de esta ventana: ${current.name}`
     }

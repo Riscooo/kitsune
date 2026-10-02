@@ -1,11 +1,11 @@
 <!doctype html>
 <html lang="es">
 <head>
-  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="referrer" content="no-referrer"><meta name="theme-color" content="#0b101a">
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="referrer" content="no-referrer"><meta name="theme-color" content="#f6f5f1">
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; font-src 'self'; object-src 'none'; frame-src 'none'; base-uri 'none'; form-action https://www.google.com">
   <title>Kitsune · Inicio</title><link rel="icon" href="favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="palette.css"><link rel="stylesheet" href="app.css"><script src="app.bundle.js" defer></script>
 </head>
-<body data-art="on" data-motion="on" data-wallpaper="night" data-clock="on" data-shortcuts="on">
+<body data-motion="on" data-clock="on" data-shortcuts="on">
   <svg class="icon-library" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
     <symbol id="i-search" viewBox="0 0 24 24"><circle cx="10.8" cy="10.8" r="6.8"/><path d="m16 16 4.5 4.5"/></symbol>
     <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M5 12h14m-6-6 6 6-6 6"/></symbol>
@@ -27,9 +27,7 @@
     <symbol id="i-sync" viewBox="0 0 24 24"><path d="M20 8a8 8 0 0 0-14-3L3 8m0-5v5h5M4 16a8 8 0 0 0 14 3l3-3m0 5v-5h-5"/></symbol>
     <symbol id="i-key" viewBox="0 0 24 24"><circle cx="8" cy="9" r="5"/><path d="m12 13 8 8m-4-4 3-3m-6 0 3-3"/></symbol>
   </svg>
-  <div class="scene" aria-hidden="true"></div><div class="scene-shade" aria-hidden="true"></div>
   <header class="topbar">
-    <a class="brand" href="index.html" aria-label="Kitsune, inicio"><img src="favicon.svg" width="38" height="38" alt=""><span>kitsune<span class="brand-dot">.</span></span></a>
     <div class="topbar-right">
       <button class="icon-button" id="settings-open" type="button" aria-label="Personalizar inicio" title="Personalizar inicio"><svg><use href="#i-settings"/></svg></button>
       <button type="button" id="profiles-open" class="profile-trigger" aria-label="Gestionar perfiles" aria-haspopup="dialog"><span class="profile-avatar" id="current-profile-avatar" data-profile-color="blue" aria-hidden="true"><svg><use href="#i-user"/></svg></span><span class="profile-trigger-copy"><span id="current-profile-name">Perfiles</span></span><svg class="profile-trigger-chevron" aria-hidden="true"><use href="#i-chevron"/></svg></button>
@@ -37,7 +35,11 @@
   </header>
   <main id="main" class="dashboard">
     <h1 class="sr-only" id="welcome-title">Kitsune, inicio</h1>
-    <section class="clock-module" aria-label="Hora y fecha"><time id="clock-time"></time><time id="date"></time></section>
+    <section class="greeting" aria-label="Bienvenida">
+      <a class="brand" href="index.html" aria-label="Kitsune, inicio"><img src="logo.svg" width="120" height="120" alt=""></a>
+      <p class="welcome-line" id="welcome-line">Bienvenido</p>
+      <p class="clock-module" aria-label="Fecha y hora"><time id="date"></time><span class="clock-dot" aria-hidden="true">·</span><time id="clock-time"></time></p>
+    </section>
     <section class="welcome" aria-label="Buscar">
       <form id="search-form" action="https://www.google.com/search" method="get" role="search"><label class="sr-only" for="query">Buscar en Google o escribir una dirección</label><span class="google-mark" aria-hidden="true">G</span><input id="query" type="search" name="q" placeholder="Buscar en Google o escribir una URL" autocomplete="off" autocapitalize="off" spellcheck="false" maxlength="4096" enterkeyhint="go" aria-describedby="search-error"><kbd class="search-hint">/</kbd><button class="search-submit" type="submit" aria-label="Buscar"><svg><use href="#i-arrow"/></svg></button></form>
       <p id="search-error" class="field-error" role="alert" hidden></p>
@@ -46,7 +48,7 @@
     <section class="favorites" aria-labelledby="favorites-title"><div class="section-head"><h2 id="favorites-title">Accesos</h2><button type="button" id="edit-links" disabled><svg><use href="#i-edit"/></svg><span>Editar</span></button></div><nav id="quick-links" aria-label="Accesos rápidos"></nav></section>
     <p id="offline-home" class="offline-home" hidden><a href="http://127.0.0.1:49721/">Abrir el inicio completo de Kitsune →</a></p>
   </main>
-  <footer class="footer"><span class="footer-note">Kitsune / Nightfall</span><div><button id="focus-toggle" type="button" aria-pressed="false" disabled>Enfoque</button><button id="help-open" type="button"><svg><use href="#i-keyboard"/></svg>Atajos</button></div></footer>
+  <footer class="footer"><span class="footer-note">Kitsune · Tinta</span><div><button id="focus-toggle" type="button" aria-pressed="false" disabled>Enfoque</button><button id="help-open" type="button"><svg><use href="#i-keyboard"/></svg>Atajos</button></div></footer>
 
   <dialog id="link-dialog" aria-labelledby="link-title"><form id="link-form" novalidate><header class="dialog-head"><h2 id="link-title">Nuevo acceso</h2><button class="icon-button" type="button" data-close="link-dialog" aria-label="Cerrar"><svg><use href="#i-close"/></svg></button></header><label for="link-name">Nombre<input id="link-name" maxlength="36" placeholder="Mi sitio" required></label><label for="link-url">Dirección<input id="link-url" placeholder="https://example.com" maxlength="4096" required spellcheck="false" autocomplete="url"></label><p class="field-error" id="link-error" role="alert" hidden></p><div class="dialog-actions"><button type="button" class="danger-button" id="delete-link" hidden>Eliminar</button><button class="primary-button" type="submit">Guardar<svg><use href="#i-check"/></svg></button></div></form></dialog>
 
@@ -55,12 +57,10 @@
     <div class="settings-tabs" role="tablist" aria-label="Ajustes del inicio"><button id="settings-tab-appearance" type="button" role="tab" data-settings-tab="appearance" aria-controls="settings-panel-appearance" aria-selected="true">Apariencia</button><button id="settings-tab-modules" type="button" role="tab" data-settings-tab="modules" aria-controls="settings-panel-modules" aria-selected="false" tabindex="-1">Módulos</button><button id="settings-tab-navigation" type="button" role="tab" data-settings-tab="navigation" aria-controls="settings-panel-navigation" aria-selected="false" tabindex="-1">Navegación</button></div>
     <div id="settings-notice" class="settings-notice" role="status" hidden><p id="settings-message"></p><button type="button" id="settings-retry" class="text-button" hidden>Reintentar conexión</button></div>
     <section id="settings-panel-appearance" role="tabpanel" aria-labelledby="settings-tab-appearance" data-settings-panel="appearance">
-      <h3 class="setting-label">Fondo</h3><div class="wallpaper-grid" role="group" aria-label="Fondo de pantalla"><button type="button" data-wallpaper="night" aria-pressed="true" disabled><span class="wallpaper-preview preview-night"></span>Noche</button><button type="button" data-wallpaper="veil" aria-pressed="false" disabled><span class="wallpaper-preview preview-veil"></span>Bruma</button><button type="button" data-wallpaper="dusk" aria-pressed="false" disabled><span class="wallpaper-preview preview-dusk"></span>Crepúsculo</button><button type="button" data-wallpaper="ember" aria-pressed="false" disabled><span class="wallpaper-preview preview-ember"></span>Ascua</button></div>
-      <label class="setting-row" for="art-toggle"><span>Mostrar fondo</span><input id="art-toggle" type="checkbox" checked disabled></label>
-      <label class="setting-row" for="theme-sync-toggle"><span><b>Combinar tema y fondo</b><small>También las pestañas y la barra del navegador.</small></span><input id="theme-sync-toggle" type="checkbox" disabled></label>
-      <div class="accent-row"><span>Color</span><div role="group" aria-label="Color de acento"><button class="swatch swatch-blue" type="button" data-accent="blue" aria-label="Azul luna" aria-pressed="true" disabled></button><button class="swatch swatch-pink" type="button" data-accent="pink" aria-label="Rosa sakura" aria-pressed="false" disabled></button><button class="swatch swatch-system" type="button" data-accent="system" aria-label="Seguir escritorio" aria-pressed="false" disabled><svg><use href="#i-sync"/></svg></button></div></div>
-      <p id="theme-status" class="fineprint" aria-live="polite">Color de este inicio.</p>
-      <label class="setting-row" for="motion-toggle"><span>Animaciones suaves</span><input id="motion-toggle" type="checkbox" checked disabled></label>
+      <h3 class="setting-label">Movimiento</h3>
+      <label class="setting-row" for="motion-toggle"><span><b>Animaciones suaves</b><small>La tinta se posa al abrir el inicio y el ensō gira mientras carga una pestaña.</small></span><input id="motion-toggle" type="checkbox" checked disabled></label>
+      <p class="fineprint">Kitsune viste la estética de tu escritorio: papel, tinta y óxido.</p>
+      <p id="theme-status" class="fineprint" aria-live="polite"></p>
     </section>
     <section id="settings-panel-modules" role="tabpanel" aria-labelledby="settings-tab-modules" data-settings-panel="modules" hidden><h3 class="setting-label">Mostrar en el inicio</h3><label class="setting-row" for="module-clock"><span>Reloj y fecha</span><input id="module-clock" type="checkbox" checked disabled></label><label class="setting-row" for="module-shortcuts"><span>Accesos rápidos</span><input id="module-shortcuts" type="checkbox" checked disabled></label></section>
     <section id="settings-panel-navigation" role="tabpanel" aria-labelledby="settings-tab-navigation" data-settings-panel="navigation" hidden><label class="setting-row" for="newtab-toggle"><span>Abrir accesos en otra pestaña</span><input id="newtab-toggle" type="checkbox" disabled></label><h3 class="setting-label">Ajustes del navegador</h3><div class="native-grid"><button type="button" data-native-action="search">Búsqueda<svg><use href="#i-arrow"/></svg></button><button type="button" data-native-action="privacy">Privacidad<svg><use href="#i-arrow"/></svg></button><button type="button" data-native-action="downloads">Descargas<svg><use href="#i-arrow"/></svg></button><button type="button" data-native-action="extensions">Extensiones<svg><use href="#i-arrow"/></svg></button><button type="button" data-native-action="passwords">Contraseñas<svg><use href="#i-arrow"/></svg></button><button type="button" data-native-action="sync">Sincronización<svg><use href="#i-arrow"/></svg></button><button type="button" data-native-action="settings">Todos los ajustes<svg><use href="#i-arrow"/></svg></button></div></section>

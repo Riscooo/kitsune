@@ -15,14 +15,12 @@ const announce = message => {
   $('#status').textContent = message; $('#status').hidden = !message
   toastTimer = setTimeout(() => { $('#status').hidden = true }, 4000)
 }
-const toggles = { 'art-toggle': 'art', 'motion-toggle': 'motion', 'newtab-toggle': 'newTab', 'theme-sync-toggle': 'themeSync' }
+const toggles = { 'motion-toggle': 'motion', 'newtab-toggle': 'newTab' }
 const store = createSettingsStore({
   onChange(settings, state) {
     appearance?.applySettings(settings); shortcuts?.render(settings)
     for (const [id, key] of Object.entries(toggles)) { $(`#${id}`).checked = settings[key]; $(`#${id}`).disabled = !state.ready }
     for (const key of ['clock', 'shortcuts']) { $(`#module-${key}`).checked = settings.modules[key]; $(`#module-${key}`).disabled = !state.ready }
-    document.querySelectorAll('button[data-accent]').forEach(button => { button.setAttribute('aria-pressed', String(button.dataset.accent === settings.accent)); button.disabled = !state.ready || settings.themeSync })
-    document.querySelectorAll('button[data-wallpaper]').forEach(button => { button.setAttribute('aria-pressed', String(button.dataset.wallpaper === settings.wallpaper)); button.disabled = !state.ready })
     $('#focus-toggle').setAttribute('aria-pressed', String(settings.focus)); $('#focus-toggle').disabled = !state.ready
     $('#focus-toggle').textContent = settings.focus ? 'Salir de enfoque' : 'Enfoque'
     $('#save-state').textContent = state.pending ? 'Guardando…' : state.ready ? 'Guardado en este perfil' : 'Sin conexión'
@@ -41,8 +39,6 @@ initializeDialogs(); initializeNativeActions({ announce })
 async function save(patch) { if (await store.save(patch)) await appearance.refresh() }
 for (const [id, key] of Object.entries(toggles)) $(`#${id}`).addEventListener('change', event => void save({ [key]: event.target.checked }))
 for (const key of ['clock', 'shortcuts']) $(`#module-${key}`).addEventListener('change', event => void save({ modules: { [key]: event.target.checked } }))
-document.querySelectorAll('button[data-accent]').forEach(button => button.addEventListener('click', () => void save({ accent: button.dataset.accent })))
-document.querySelectorAll('button[data-wallpaper]').forEach(button => button.addEventListener('click', () => void save({ wallpaper: button.dataset.wallpaper })))
 $('#focus-toggle').addEventListener('click', () => void save({ focus: !store.data.focus }))
 $('#settings-retry').addEventListener('click', async () => {
   $('#settings-retry').disabled = true

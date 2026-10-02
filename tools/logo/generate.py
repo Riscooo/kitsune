@@ -95,6 +95,41 @@ def _stroke() -> bytes:
             f'<path fill="{RUST}" d="{d}"/></svg>\n').encode()
 
 
+def _seal() -> bytes:
+    """Sello hanko (40×40) de los accesos de la portada: cuadrado de esquinas suaves
+    con el borde mordido y unos poros donde la tinta no agarró. Se usa como máscara."""
+    side, radius, steps = 36.0, 5.0, 36
+    # Contorno de un cuadrado redondeado (2..38) recorrido en sentido horario.
+    corners = [(38 - radius, 2 + radius, -90), (38 - radius, 38 - radius, 0),
+               (2 + radius, 38 - radius, 90), (2 + radius, 2 + radius, 180)]
+    outline = []
+    for cx, cy, start in corners:
+        for i in range(steps):
+            angle = math.radians(start + 90 * i / steps)
+            nx, ny = math.cos(angle), math.sin(angle)
+            x, y = cx + radius * nx, cy + radius * ny
+            bite = _fractal(x * 6, y * 6, 61) * 2.0 + _fractal(x * 19, y * 19, 67) * 0.35
+            outline.append((x + nx * bite, y + ny * bite))
+        # Lado recto hasta la esquina siguiente, con el mismo pincel.
+        ex, ey = math.cos(math.radians(start + 90)), math.sin(math.radians(start + 90))
+        sx, sy = cx + radius * ex, cy + radius * ey
+        tx, ty = -ey, ex
+        for i in range(1, steps):
+            x, y = sx + tx * (side - 2 * radius) * i / steps, sy + ty * (side - 2 * radius) * i / steps
+            bite = _fractal(x * 6, y * 6, 61) * 2.0 + _fractal(x * 19, y * 19, 67) * 0.35
+            outline.append((x + ex * bite, y + ey * bite))
+    rings = ["M" + " L".join(f"{x:.2f} {y:.2f}" for x, y in outline) + " Z"]
+    for px, py, size, seed in ((7.5, 31.0, 1.1, 71), (33.0, 9.0, 0.8, 73), (29.5, 34.0, 0.6, 79), (5.5, 12.5, 0.7, 83)):
+        pore = []
+        for i in range(10):
+            angle = 2 * math.pi * i / 10
+            r = size * (1 + _fractal(px * 9 + i * 7, py * 9, seed) * 0.9)
+            pore.append((px + r * math.cos(angle), py + r * math.sin(angle)))
+        rings.append("M" + " L".join(f"{x:.2f} {y:.2f}" for x, y in pore) + " Z")
+    return ('<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 40 40">'
+            f'<path fill="{INK}" fill-rule="evenodd" d="{" ".join(rings)}"/></svg>\n').encode()
+
+
 WORDMARK = ('<svg xmlns="http://www.w3.org/2000/svg" width="336" height="72" viewBox="0 0 336 72">'
             f'<text x="2" y="54" fill="{INK}" font-family="Noto Serif, serif" font-size="56" letter-spacing="3">kitsune</text>'
             f'<rect x="226" y="42" width="11" height="11" rx="1" fill="{RUST}"/></svg>\n')
@@ -118,6 +153,7 @@ def build() -> dict[str, bytes]:
         "chrome/assets/kitsune-throbber-ring.svg": _svg(SMALL_RING_SVG),
         "chrome/assets/kitsune-throbber-mask.svg": _svg(SMALL_MASK_SVG),
         "chrome/assets/kitsune-stroke.svg": _stroke(),
+        "start/seal.svg": _seal(),
     }
 
 

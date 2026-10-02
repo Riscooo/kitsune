@@ -60,6 +60,16 @@ class LogoTests(unittest.TestCase):
         self.assertEqual(list(root.iter(f"{SVG}filter")), [])
         self.assertEqual({path.get("fill") for path in root.iter(f"{SVG}path")}, {"#963d32"})
 
+    def test_hanko_seal_is_a_filter_free_brushed_square_with_pores(self):
+        root = ET.fromstring((ROOT / "start/seal.svg").read_text(encoding="utf-8"))
+        self.assertEqual(root.get("viewBox"), "0 0 40 40")
+        self.assertEqual(list(root.iter(f"{SVG}filter")), [])
+        paths = list(root.iter(f"{SVG}path"))
+        self.assertEqual(len(paths), 1)
+        self.assertEqual(paths[0].get("fill-rule"), "evenodd")
+        self.assertGreaterEqual(paths[0].get("d").count("M"), 4, "borde y al menos tres poros")
+        self.assertIn("start/seal.svg", logo.build())
+
     def test_tab_favicon_is_the_small_icon(self):
         self.assertEqual((ROOT / "start/favicon.svg").read_bytes(), (ROOT / "install/branding/icon-small.svg").read_bytes())
 

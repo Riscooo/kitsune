@@ -42,8 +42,8 @@ ASSETS = {
     "/app.css": ("app.css", "text/css; charset=utf-8"),
     "/palette.css": ("palette.css", "text/css; charset=utf-8"),
     "/favicon.svg": ("favicon.svg", "image/svg+xml"),
-    "/kitsune-night.png": ("kitsune-night.png", "image/png"),
-    "/anime-veil.webp": ("anime-veil.webp", "image/webp"),
+    "/logo.svg": ("logo.svg", "image/svg+xml"),
+    "/seal.svg": ("seal.svg", "image/svg+xml"),
 }
 CSP = ("default-src 'self'; script-src 'self'; style-src 'self'; "
        "img-src 'self' data:; font-src 'self'; connect-src 'self'; "
