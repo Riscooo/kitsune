@@ -1,0 +1,19 @@
+[Unit]
+Description=Kitsune private home page for profile %i
+After=network.target
+
+[Service]
+Type=notify
+NotifyAccess=main
+ExecStart=/usr/bin/python3 %h/.local/share/kitsune-browser/home-server.py --root %h/.local/share/kitsune-browser/start --state %h/.local/state/kitsune-browser/profiles/%i/home.json --profile-id %i
+Restart=on-failure
+RestartSec=2
+UMask=0077
+NoNewPrivileges=true
+RestrictSUIDSGID=true
+LockPersonality=true
+RestrictAddressFamilies=AF_INET AF_UNIX
+TimeoutStopSec=10
+
+[Install]
+WantedBy=default.target

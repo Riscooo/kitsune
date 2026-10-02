@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="referrer" content="no-referrer"><meta name="theme-color" content="#0b101a">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; font-src 'self'; object-src 'none'; frame-src 'none'; base-uri 'none'; form-action https://www.google.com">
+  <title>Kitsune · Inicio</title><link rel="icon" href="favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="palette.css"><link rel="stylesheet" href="app.css"><script src="app.bundle.js" defer></script>
+</head>
+<body data-art="on" data-motion="on" data-wallpaper="night" data-clock="on" data-shortcuts="on">
+  <svg class="icon-library" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+    <symbol id="i-search" viewBox="0 0 24 24"><circle cx="10.8" cy="10.8" r="6.8"/><path d="m16 16 4.5 4.5"/></symbol>
+    <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M5 12h14m-6-6 6 6-6 6"/></symbol>
+    <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+    <symbol id="i-settings" viewBox="0 0 24 24"><path d="M4 7h16M4 17h16"/><circle cx="9" cy="7" r="3"/><circle cx="16" cy="17" r="3"/></symbol>
+    <symbol id="i-close" viewBox="0 0 24 24"><path d="m6 6 12 12M6 18 18 6"/></symbol>
+    <symbol id="i-edit" viewBox="0 0 24 24"><path d="m15 5 4 4M4 20l5-1L20 8a3 3 0 0 0-4-4L5 15z"/></symbol>
+    <symbol id="i-play" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="5"/><path d="m10 9 5 3-5 3z"/></symbol>
+    <symbol id="i-mail" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="m3 7 9 6 9-6"/></symbol>
+    <symbol id="i-code" viewBox="0 0 24 24"><path d="m8 7-5 5 5 5m8-10 5 5-5 5m-3-13-2 20"/></symbol>
+    <symbol id="i-sparkles" viewBox="0 0 24 24"><path d="m12 3 2.5 6.5L21 12l-6.5 2.5L12 21l-2.5-6.5L3 12l6.5-2.5zM20 2v4m-2-2h4"/></symbol>
+    <symbol id="i-book" viewBox="0 0 24 24"><path d="M12 5v15M3 4c4-1 7 0 9 2 2-2 5-3 9-2v15c-4-1-7 0-9 2-2-2-5-3-9-2z"/></symbol>
+    <symbol id="i-keyboard" viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="3"/><path d="M6 9h.1M10 9h.1M14 9h.1M18 9h.1M6 12h.1M10 12h.1M14 12h.1M18 12h.1M7 15h10"/></symbol>
+    <symbol id="i-moon" viewBox="0 0 24 24"><path d="M20.8 14a9 9 0 0 1-10.9-10.8A9 9 0 1 0 20.8 14Z"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></symbol>
+    <symbol id="i-user" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21v-2a8 8 0 0 1 16 0v2"/></symbol>
+    <symbol id="i-chevron" viewBox="0 0 24 24"><path d="m8 5 7 7-7 7"/></symbol>
+    <symbol id="i-shield" viewBox="0 0 24 24"><path d="m12 3 8 3v6c0 5-8 9-8 9s-8-4-8-9V6z"/><path d="m8 12 3 3 5-6"/></symbol>
+    <symbol id="i-sync" viewBox="0 0 24 24"><path d="M20 8a8 8 0 0 0-14-3L3 8m0-5v5h5M4 16a8 8 0 0 0 14 3l3-3m0 5v-5h-5"/></symbol>
+    <symbol id="i-key" viewBox="0 0 24 24"><circle cx="8" cy="9" r="5"/><path d="m12 13 8 8m-4-4 3-3m-6 0 3-3"/></symbol>
+  </svg>
+  <div class="scene" aria-hidden="true"></div><div class="scene-shade" aria-hidden="true"></div>
+  <header class="topbar">
+    <a class="brand" href="index.html" aria-label="Kitsune, inicio"><img src="favicon.svg" width="38" height="38" alt=""><span>kitsune<span class="brand-dot">.</span></span></a>
+    <div class="topbar-right">
+      <button class="icon-button" id="settings-open" type="button" aria-label="Personalizar inicio" title="Personalizar inicio"><svg><use href="#i-settings"/></svg></button>
+      <button type="button" id="profiles-open" class="profile-trigger" aria-label="Gestionar perfiles" aria-haspopup="dialog"><span class="profile-avatar" id="current-profile-avatar" data-profile-color="blue" aria-hidden="true"><svg><use href="#i-user"/></svg></span><span class="profile-trigger-copy"><span id="current-profile-name">Perfiles</span></span><svg class="profile-trigger-chevron" aria-hidden="true"><use href="#i-chevron"/></svg></button>
+    </div>
+  </header>
+  <main id="main" class="dashboard">
+    <h1 class="sr-only" id="welcome-title">Kitsune, inicio</h1>
+    <section class="clock-module" aria-label="Hora y fecha"><time id="clock-time"></time><time id="date"></time></section>
+    <section class="welcome" aria-label="Buscar">
+      <form id="search-form" action="https://www.google.com/search" method="get" role="search"><label class="sr-only" for="query">Buscar en Google o escribir una dirección</label><span class="google-mark" aria-hidden="true">G</span><input id="query" type="search" name="q" placeholder="Buscar en Google o escribir una URL" autocomplete="off" autocapitalize="off" spellcheck="false" maxlength="4096" enterkeyhint="go" aria-describedby="search-error"><kbd class="search-hint">/</kbd><button class="search-submit" type="submit" aria-label="Buscar"><svg><use href="#i-arrow"/></svg></button></form>
+      <p id="search-error" class="field-error" role="alert" hidden></p>
+      <div class="search-modes" role="group" aria-label="Tipo de búsqueda"><button type="button" data-mode="all" aria-pressed="true">Todo</button><button type="button" data-mode="images" aria-pressed="false">Imágenes</button><button type="button" data-mode="videos" aria-pressed="false">Vídeos</button><button type="button" data-mode="maps" aria-pressed="false">Mapas</button></div>
+    </section>
+    <section class="favorites" aria-labelledby="favorites-title"><div class="section-head"><h2 id="favorites-title">Accesos</h2><button type="button" id="edit-links" disabled><svg><use href="#i-edit"/></svg><span>Editar</span></button></div><nav id="quick-links" aria-label="Accesos rápidos"></nav></section>
+    <p id="offline-home" class="offline-home" hidden><a href="http://127.0.0.1:49721/">Abrir el inicio completo de Kitsune →</a></p>
+  </main>
+  <footer class="footer"><span class="footer-note">Kitsune / Nightfall</span><div><button id="focus-toggle" type="button" aria-pressed="false" disabled>Enfoque</button><button id="help-open" type="button"><svg><use href="#i-keyboard"/></svg>Atajos</button></div></footer>
+
+  <dialog id="link-dialog" aria-labelledby="link-title"><form id="link-form" novalidate><header class="dialog-head"><h2 id="link-title">Nuevo acceso</h2><button class="icon-button" type="button" data-close="link-dialog" aria-label="Cerrar"><svg><use href="#i-close"/></svg></button></header><label for="link-name">Nombre<input id="link-name" maxlength="36" placeholder="Mi sitio" required></label><label for="link-url">Dirección<input id="link-url" placeholder="https://example.com" maxlength="4096" required spellcheck="false" autocomplete="url"></label><p class="field-error" id="link-error" role="alert" hidden></p><div class="dialog-actions"><button type="button" class="danger-button" id="delete-link" hidden>Eliminar</button><button class="primary-button" type="submit">Guardar<svg><use href="#i-check"/></svg></button></div></form></dialog>
+
+  <dialog id="settings-dialog" aria-labelledby="settings-title">
+    <header class="dialog-head"><h2 id="settings-title">Tu inicio</h2><button class="icon-button" type="button" data-close="settings-dialog" aria-label="Cerrar ajustes"><svg><use href="#i-close"/></svg></button></header>
+    <div class="settings-tabs" role="tablist" aria-label="Ajustes del inicio"><button id="settings-tab-appearance" type="button" role="tab" data-settings-tab="appearance" aria-controls="settings-panel-appearance" aria-selected="true">Apariencia</button><button id="settings-tab-modules" type="button" role="tab" data-settings-tab="modules" aria-controls="settings-panel-modules" aria-selected="false" tabindex="-1">Módulos</button><button id="settings-tab-navigation" type="button" role="tab" data-settings-tab="navigation" aria-controls="settings-panel-navigation" aria-selected="false" tabindex="-1">Navegación</button></div>
+    <div id="settings-notice" class="settings-notice" role="status" hidden><p id="settings-message"></p><button type="button" id="settings-retry" class="text-button" hidden>Reintentar conexión</button></div>
+    <section id="settings-panel-appearance" role="tabpanel" aria-labelledby="settings-tab-appearance" data-settings-panel="appearance">
+      <h3 class="setting-label">Fondo</h3><div class="wallpaper-grid" role="group" aria-label="Fondo de pantalla"><button type="button" data-wallpaper="night" aria-pressed="true" disabled><span class="wallpaper-preview preview-night"></span>Noche</button><button type="button" data-wallpaper="veil" aria-pressed="false" disabled><span class="wallpaper-preview preview-veil"></span>Bruma</button><button type="button" data-wallpaper="dusk" aria-pressed="false" disabled><span class="wallpaper-preview preview-dusk"></span>Crepúsculo</button><button type="button" data-wallpaper="ember" aria-pressed="false" disabled><span class="wallpaper-preview preview-ember"></span>Ascua</button></div>
+      <label class="setting-row" for="art-toggle"><span>Mostrar fondo</span><input id="art-toggle" type="checkbox" checked disabled></label>
+      <label class="setting-row" for="theme-sync-toggle"><span><b>Combinar tema y fondo</b><small>También las pestañas y la barra del navegador.</small></span><input id="theme-sync-toggle" type="checkbox" disabled></label>
+      <div class="accent-row"><span>Color</span><div role="group" aria-label="Color de acento"><button class="swatch swatch-blue" type="button" data-accent="blue" aria-label="Azul luna" aria-pressed="true" disabled></button><button class="swatch swatch-pink" type="button" data-accent="pink" aria-label="Rosa sakura" aria-pressed="false" disabled></button><button class="swatch swatch-system" type="button" data-accent="system" aria-label="Seguir escritorio" aria-pressed="false" disabled><svg><use href="#i-sync"/></svg></button></div></div>
+      <p id="theme-status" class="fineprint" aria-live="polite">Color de este inicio.</p>
+      <label class="setting-row" for="motion-toggle"><span>Animaciones suaves</span><input id="motion-toggle" type="checkbox" checked disabled></label>
+    </section>
+    <section id="settings-panel-modules" role="tabpanel" aria-labelledby="settings-tab-modules" data-settings-panel="modules" hidden><h3 class="setting-label">Mostrar en el inicio</h3><label class="setting-row" for="module-clock"><span>Reloj y fecha</span><input id="module-clock" type="checkbox" checked disabled></label><label class="setting-row" for="module-shortcuts"><span>Accesos rápidos</span><input id="module-shortcuts" type="checkbox" checked disabled></label></section>
+    <section id="settings-panel-navigation" role="tabpanel" aria-labelledby="settings-tab-navigation" data-settings-panel="navigation" hidden><label class="setting-row" for="newtab-toggle"><span>Abrir accesos en otra pestaña</span><input id="newtab-toggle" type="checkbox" disabled></label><h3 class="setting-label">Ajustes del navegador</h3><div class="native-grid"><button type="button" data-native-action="search">Búsqueda<svg><use href="#i-arrow"/></svg></button><button type="button" data-native-action="privacy">Privacidad<svg><use href="#i-arrow"/></svg></button><button type="button" data-native-action="downloads">Descargas<svg><use href="#i-arrow"/></svg></button><button type="button" data-native-action="extensions">Extensiones<svg><use href="#i-arrow"/></svg></button><button type="button" data-native-action="passwords">Contraseñas<svg><use href="#i-arrow"/></svg></button><button type="button" data-native-action="sync">Sincronización<svg><use href="#i-arrow"/></svg></button><button type="button" data-native-action="settings">Todos los ajustes<svg><use href="#i-arrow"/></svg></button></div></section>
+    <footer class="settings-footer"><span id="save-state" aria-live="polite">Cargando…</span></footer>
+  </dialog>
+
+  <dialog id="help-dialog" aria-labelledby="help-title"><header class="dialog-head"><h2 id="help-title">Atajos</h2><button class="icon-button" type="button" data-close="help-dialog" aria-label="Cerrar"><svg><use href="#i-close"/></svg></button></header><dl class="shortcut-list"><div><dt>Direcciones</dt><dd><kbd>Ctrl</kbd><kbd>L</kbd></dd></div><div><dt>Buscar aquí</dt><dd><kbd>/</kbd></dd></div><div><dt>Nueva pestaña</dt><dd><kbd>Ctrl</kbd><kbd>T</kbd></dd></div><div><dt>Recuperar pestaña</dt><dd><kbd>Ctrl</kbd><kbd>Mayús</kbd><kbd>T</kbd></dd></div><div><dt>Descargas</dt><dd><kbd>Ctrl</kbd><kbd>J</kbd></dd></div><div><dt>Ventana privada</dt><dd><kbd>Ctrl</kbd><kbd>Mayús</kbd><kbd>P</kbd></dd></div></dl></dialog>
+
+  <dialog id="profiles-dialog" aria-labelledby="profiles-title" aria-describedby="profiles-description">
+    <header class="dialog-head"><h2 id="profiles-title" tabindex="-1">Perfiles</h2><button type="button" class="icon-button" data-close="profiles-dialog" aria-label="Cerrar perfiles"><svg><use href="#i-close"/></svg></button></header>
+    <p class="dialog-copy" id="profiles-description">Sesiones independientes en este equipo.</p>
+    <div id="profiles-notice" class="profiles-notice" role="status" aria-live="polite" hidden><p id="profiles-message"></p><button type="button" id="profiles-reload" class="text-button" hidden>Actualizar lista</button></div>
+    <div class="profiles-layout">
+      <aside class="profiles-sidebar" aria-label="Tus perfiles"><div class="profiles-list-heading"><span>PERFILES</span><span id="profiles-count"></span></div><div id="profiles-list" role="group" aria-label="Seleccionar perfil"></div><button type="button" id="profile-create" class="profile-create" disabled><svg><use href="#i-plus"/></svg>Nuevo perfil</button></aside>
+      <section class="profiles-content" aria-label="Detalles del perfil"><div id="profiles-empty" class="profiles-empty"><span class="profile-avatar" data-profile-color="blue" aria-hidden="true"><svg><use href="#i-user"/></svg></span><p id="profiles-empty-copy">Cargando perfiles…</p></div>
+        <div id="profile-detail" hidden>
+          <div class="profile-identity"><span id="profile-detail-avatar" class="profile-avatar profile-avatar-large" aria-hidden="true"></span><div><h3 id="profile-detail-name" tabindex="-1"></h3><p id="profile-detail-email" hidden></p><div class="profile-badges"><span id="profile-current-badge" class="profile-badge" hidden>Esta ventana</span><span id="profile-default-badge" class="profile-badge" hidden>Predeterminado</span></div></div></div>
+          <div class="profile-primary-actions"><button type="button" id="profile-open" class="primary-button"><span>Abrir perfil</span><svg><use href="#i-arrow"/></svg></button><button type="button" id="profile-edit" class="secondary-button"><svg><use href="#i-edit"/></svg>Editar</button></div>
+          <button type="button" id="profile-make-default" class="text-button">Usar al abrir Kitsune</button><p id="profile-default-copy" class="profile-fineprint"></p>
+          <div class="profile-connections">
+            <button type="button" class="profile-action" data-profile-action="google"><span class="connection-icon google-mark" aria-hidden="true">G</span><span><b>Cuenta de Google</b><small>Entrar en Google</small></span><svg aria-hidden="true"><use href="#i-arrow"/></svg></button><p id="profile-google-status" class="profile-fineprint" aria-live="polite"></p><p class="profile-fineprint">Si la sesión ya se borró, vuelve a entrar en Google.</p>
+            <details class="profile-sync-guide"><summary><span class="connection-icon" aria-hidden="true"><svg><use href="#i-sync"/></svg></span><span><b>Sincronizar dispositivos</b><small>Con Firefox Sync y una cuenta de Mozilla</small></span><svg class="guide-chevron" aria-hidden="true"><use href="#i-chevron"/></svg></summary><div class="compact-guide"><p>Activa Sync y conecta tu cuenta. Google puede identificarte ante Mozilla; no sincroniza con Chrome. Sync puede pedirte una contraseña de Mozilla para cifrar tus datos.</p><div class="guide-actions"><button type="button" class="text-button" data-profile-action="sync">Activar Sync</button><button type="button" class="text-button" data-profile-action="sync-settings">Conectar cuenta</button><button type="button" class="text-button" data-profile-action="sync-google">Continuar con Google</button></div><p class="profile-fineprint">El inicio y los perfiles de Kitsune son locales.</p></div></details>
+            <button type="button" class="profile-action" data-profile-action="passwords"><span class="connection-icon" aria-hidden="true"><svg><use href="#i-key"/></svg></span><span><b>Contraseñas</b></span><svg aria-hidden="true"><use href="#i-arrow"/></svg></button>
+          </div>
+          <p class="profile-fineprint profile-isolation-note">Los perfiles no bloquean a quien use tu misma sesión del sistema.</p>
+        </div>
+        <form id="profile-form" novalidate hidden>
+          <div class="profile-form-heading"><span id="profile-preview-avatar" class="profile-avatar profile-avatar-large" data-profile-color="blue" aria-hidden="true">N</span><h3 id="profile-form-title">Nuevo perfil</h3></div>
+          <div class="photo-field"><label class="secondary-button" for="profile-photo">Elegir foto<input id="profile-photo" type="file" accept="image/png,image/jpeg,image/webp" aria-describedby="profile-photo-status profile-photo-error"></label><button type="button" id="profile-photo-remove" class="text-button">Quitar foto</button></div><p id="profile-photo-status" class="profile-fineprint" aria-live="polite">PNG, JPG o WebP · hasta 8 MB</p><p id="profile-photo-error" class="field-error" role="alert" hidden></p>
+          <label for="profile-name">Nombre<input id="profile-name" name="profile-name" maxlength="48" placeholder="Personal o trabajo" autocomplete="off" required aria-describedby="profile-form-error"></label>
+          <label for="profile-email">Correo <span class="optional-label">opcional</span><input id="profile-email" name="profile-email" type="email" maxlength="254" placeholder="tu@correo.com" autocomplete="off" spellcheck="false" aria-describedby="profile-email-help profile-form-error"></label><p id="profile-email-help" class="profile-fineprint">Correo del perfil; no inicia sesión.</p>
+          <label class="setting-row" for="profile-remember-google"><span><b>Recordar sesión de Google</b><small>Conservar Google al cerrar; no inicia sesión.</small></span><input id="profile-remember-google" type="checkbox"></label>
+          <fieldset class="profile-colors"><legend>Color del perfil</legend><div role="group" aria-label="Color del perfil"><button type="button" data-profile-swatch="blue" class="profile-swatch" aria-label="Azul luna" aria-pressed="true"><svg><use href="#i-check"/></svg></button><button type="button" data-profile-swatch="pink" class="profile-swatch" aria-label="Rosa sakura" aria-pressed="false"><svg><use href="#i-check"/></svg></button><button type="button" data-profile-swatch="violet" class="profile-swatch" aria-label="Violeta nocturno" aria-pressed="false"><svg><use href="#i-check"/></svg></button><button type="button" data-profile-swatch="teal" class="profile-swatch" aria-label="Verde jade" aria-pressed="false"><svg><use href="#i-check"/></svg></button><button type="button" data-profile-swatch="amber" class="profile-swatch" aria-label="Ámbar" aria-pressed="false"><svg><use href="#i-check"/></svg></button><button type="button" data-profile-swatch="red" class="profile-swatch" aria-label="Rojo torii" aria-pressed="false"><svg><use href="#i-check"/></svg></button></div></fieldset>
+          <p class="field-error" id="profile-form-error" role="alert" hidden></p><div class="dialog-actions"><button type="button" id="profile-cancel" class="secondary-button">Cancelar</button><button type="submit" id="profile-save" class="primary-button"><span>Crear perfil</span><svg><use href="#i-check"/></svg></button></div><p id="profile-form-note" class="profile-fineprint">Se guarda en este equipo.</p>
+        </form>
+      </section>
+    </div><p id="profiles-operation" class="profiles-operation" role="status" aria-live="polite"></p>
+  </dialog>
+  <div id="status" role="status" aria-live="polite" class="toast" hidden></div><noscript><p class="noscript-note">La búsqueda funciona sin JavaScript. Actívalo para personalizar el inicio.</p></noscript>
+</body>
+</html>

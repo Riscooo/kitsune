@@ -1,0 +1,27 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Kitsune Browser
+GenericName=Navegador web
+Comment=Tu rincón de Internet · navegador Kitsune
+Exec=/home/risco/.local/bin/kitsune-browser %U
+Icon=kitsune-browser
+Terminal=false
+StartupNotify=true
+StartupWMClass=kitsune-browser
+Categories=Network;WebBrowser;
+Keywords=web;browser;internet;google;anime;secure;
+MimeType=text/html;application/xhtml+xml;x-scheme-handler/http;x-scheme-handler/https;
+Actions=new-window;private-window;control-deck;
+
+[Desktop Action new-window]
+Name=Nueva ventana
+Exec=/home/risco/.local/bin/kitsune-browser --new-window
+
+[Desktop Action private-window]
+Name=Nueva ventana privada
+Exec=/home/risco/.local/bin/kitsune-browser --private-window
+
+[Desktop Action control-deck]
+Name=Abrir Kitsune Home
+Exec=/home/risco/.local/bin/kitsune-browser --home

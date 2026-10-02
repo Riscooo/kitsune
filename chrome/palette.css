@@ -1,0 +1,12 @@
+:root {
+  --kb-bg: #00101c;
+  --kb-surface: #001c2d;
+  --kb-surface-high: #00283f;
+  --kb-text: #d1e8ff;
+  --kb-muted: #8aafcf;
+  --kb-outline: #557997;
+  --kb-primary: #65ccff;
+  --kb-primary-container: #0cc0ff;
+  --kb-secondary: #39b4ff;
+  --kb-tertiary: #989dff;
+}

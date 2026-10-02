@@ -1,0 +1,85 @@
+/* Kitsune native window chrome / InkShadow.
+ * These are Gecko's actual command buttons, never an overlay or web content.
+ * Keep upstream visibility/state rules: menu, vertical tabs, fullscreen, GTK.
+ * Niri has no minimize state, so do not advertise that unsupported action.
+ * Gecko's normal cluster has no fullscreen command; F11 remains native.
+ */
+@-moz-document url("chrome://browser/content/browser.xhtml") {
+  :root {
+    --ink-window-close: #ba786c;
+    --ink-window-maximize: #b3afa5;
+    --ink-window-dot: 12px;
+    --ink-window-hit-width: 26px;
+    --ink-window-hit-height: 28px;
+  }
+
+  .titlebar-buttonbox-container {
+    order: -1 !important;
+    align-items: center !important;
+    padding-inline: 2px 8px !important;
+  }
+
+  :root[customtitlebar] .titlebar-spacer[type="pre-tabs"] {
+    width: 8px !important;
+  }
+
+  .titlebar-buttonbox {
+    appearance: none !important;
+    align-items: center !important;
+    gap: 0 !important;
+    padding: 0 !important;
+  }
+
+  .titlebar-button {
+    appearance: none !important;
+    align-items: center !important;
+    justify-content: center !important;
+    box-sizing: border-box !important;
+    min-width: var(--ink-window-hit-width) !important;
+    max-width: var(--ink-window-hit-width) !important;
+    width: var(--ink-window-hit-width) !important;
+    min-height: var(--ink-window-hit-height) !important;
+    max-height: var(--ink-window-hit-height) !important;
+    height: var(--ink-window-hit-height) !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    border: 0 !important;
+    border-radius: 5px !important;
+    background: transparent !important;
+    -moz-window-dragging: no-drag !important;
+    color: #282824 !important;
+  }
+
+  .titlebar-button > .toolbarbutton-icon {
+    box-sizing: border-box !important;
+    min-width: var(--ink-window-dot) !important;
+    width: var(--ink-window-dot) !important;
+    height: var(--ink-window-dot) !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    border: 0 !important;
+    border-radius: 50% !important;
+    background-color: var(--ink-window-maximize) !important;
+    /* The native symbolic glyph remains present, revealed on hover/focus. */
+    background-size: 0 !important;
+    stroke: currentColor !important;
+    box-shadow: inset 0 0 0 1px #00000016 !important;
+    transition: filter 130ms ease-out !important;
+  }
+
+  .titlebar-close { order: 0 !important; }
+  .titlebar-close > .toolbarbutton-icon { background-color: var(--ink-window-close) !important; }
+  .titlebar-max, .titlebar-restore { order: 1 !important; }
+  .titlebar-min { display: none !important; }
+
+  .titlebar-button:is(:hover, :focus-visible) > .toolbarbutton-icon {
+    background-size: 9px !important;
+    filter: brightness(1.12);
+  }
+  .titlebar-button:active > .toolbarbutton-icon { filter: brightness(0.86); }
+  .titlebar-button:focus-visible { outline: 1px solid var(--kb-text, #eeeee8) !important; outline-offset: -2px !important; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .titlebar-button > .toolbarbutton-icon { transition: none !important; }
+  }
+}

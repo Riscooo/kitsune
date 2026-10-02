@@ -1,0 +1,177 @@
+#!/bin/sh
+# Kitsune launches a real, isolated Gecko profile. URLs and flags remain
+# separate arguments: never evaluate content supplied by a desktop URL handler.
+set -u
+
+browser_root="${XDG_DATA_HOME:-${HOME}/.local/share}/kitsune-browser"
+state_root="${XDG_STATE_HOME:-${HOME}/.local/state}/kitsune-browser"
+profile_id=""
+profile_service="kitsune-home.service"
+profile_home="http://127.0.0.1:49721/"
+profile_remoting="kitsune-browser"
+profile_action=""
+if [ "${1:-}" = "--kitsune-profile" ]; then
+    [ "$#" -ge 2 ] || { printf '%s\n' 'Falta el identificador del perfil.' >&2; exit 1; }
+    profile_id="$2"
+    shift 2
+fi
+if [ "${1:-}" = "--kitsune-action" ]; then
+    [ "$#" -ge 2 ] || { printf '%s\n' 'Falta la acción del perfil.' >&2; exit 1; }
+    profile_action="$2"
+    shift 2
+    case "${profile_action}" in
+        home|google|privacy|sync|sync-settings|sync-google|passwords|settings|general|search|downloads|extensions) ;;
+        *) printf '%s\n' 'La acción del perfil no es válida.' >&2; exit 1 ;;
+    esac
+fi
+profile_dir="${browser_root}/profile"
+profile_manager="${browser_root}/profiles.py"
+if [ -f "${profile_manager}" ]; then
+    if [ -n "${profile_id}" ]; then
+        profile_json="$(python3 "${profile_manager}" --browser-root "${browser_root}" --state-root "${state_root}" resolve --id "${profile_id}")" || exit 1
+    else
+        profile_json="$(python3 "${profile_manager}" --browser-root "${browser_root}" --state-root "${state_root}" resolve)" || exit 1
+    fi
+    profile_field() {
+        printf '%s' "${profile_json}" | python3 -c 'import json,sys; print(json.load(sys.stdin)[sys.argv[1]])' "$1"
+    }
+    profile_id="$(profile_field id)" || exit 1
+    profile_dir="$(profile_field profile)" || exit 1
+    profile_home="$(profile_field home)" || exit 1
+    profile_service="$(profile_field service)" || exit 1
+    profile_remoting="$(profile_field remoting)" || exit 1
+elif [ -n "${profile_id}" ] && [ "${profile_id}" != "default" ]; then
+    printf '%s\n' 'La gestión de perfiles aún no está instalada.' >&2
+    exit 1
+fi
+chrome_dir="${profile_dir}/chrome"
+start_dir="${browser_root}/start"
+scheme_file="${KITSUNE_SCHEME_FILE:-${XDG_STATE_HOME:-${HOME}/.local/state}/caelestia/scheme.json}"
+chrome_palette="${chrome_dir}/palette.css"
+start_palette="${start_dir}/palette.css"
+lock_file="${state_root}/palette.lock"
+
+mkdir -p "${chrome_dir}" "${start_dir}" "${state_root}" || exit 1
+chmod 700 "${profile_dir}" "${chrome_dir}" "${state_root}" 2>/dev/null || :
+
+write_palette() {
+    palette_target="$1"
+    # Avoid modifying the file when the wallpaper palette has not changed.
+    if [ -f "${palette_target}" ] &&
+       [ "$(cat "${palette_target}")" = "${palette_css}" ]; then
+        return 0
+    fi
+    palette_temp="$(mktemp "${palette_target}.tmp.XXXXXX")" || return 1
+    if ! printf '%s\n' "${palette_css}" > "${palette_temp}" ||
+       ! chmod 644 "${palette_temp}" ||
+       ! mv -f -- "${palette_temp}" "${palette_target}"; then
+        rm -f -- "${palette_temp}"
+        return 1
+    fi
+}
+
+sync_palette() {
+    command -v jq >/dev/null 2>&1 || return 0
+    [ -r "${scheme_file}" ] || return 0
+    # Parse one snapshot, not one read per color or per destination. Wallpaper
+    # changes during startup cannot mix two schemes within a generated palette.
+    palette_css="$(jq -er '
+        def color($name; $fallback):
+            .colours[$name] as $value
+            | if ($value | type) == "string" then
+                ($value | ltrimstr("#")) as $hex
+                | if ($hex | test("^[a-fA-F0-9]{6}$")) then $hex else $fallback end
+              else $fallback end;
+        if (.colours | type) != "object" then error("Invalid palette") else
+          [
+            ":root {",
+            "  --kb-bg: #" + color("background"; "00101c") + ";",
+            "  --kb-surface: #" + color("surfaceContainer"; "001c2d") + ";",
+            "  --kb-surface-high: #" + color("surfaceContainerHighest"; "00283f") + ";",
+            "  --kb-text: #" + color("onSurface"; "d1e8ff") + ";",
+            "  --kb-muted: #" + color("onSurfaceVariant"; "8aafcf") + ";",
+            "  --kb-outline: #" + color("outline"; "557997") + ";",
+            "  --kb-primary: #" + color("primary"; "65ccff") + ";",
+            "  --kb-primary-container: #" + color("primaryContainer"; "0cc0ff") + ";",
+            "  --kb-secondary: #" + color("secondary"; "39b4ff") + ";",
+            "  --kb-tertiary: #" + color("tertiary"; "989dff") + ";",
+            "}"
+          ] | join("\n")
+        end' "${scheme_file}" 2>/dev/null)" || return 0
+    write_palette "${chrome_palette}" || return 0
+    write_palette "${start_palette}" || return 0
+}
+
+if [ -f "${browser_root}/appearance.py" ]; then
+    # Kitsune 0.4's local service owns the chosen appearance and updates it
+    # live. Do not overwrite a manual/wallpaper theme with the desktop palette.
+    :
+elif command -v flock >/dev/null 2>&1; then
+    (
+        exec 9>"${lock_file}" || exit 0
+        flock -n 9 || exit 0
+        sync_palette
+    ) || :
+else
+    sync_palette || :
+fi
+
+if [ "${1:-}" = "--sync-palette-only" ]; then
+    exit 0
+fi
+
+# Start the user-local home service before restoring tabs that refer to it.
+# No network listener beyond loopback and no changes to browser sanitization.
+case "${profile_service}" in
+    kitsune-home@*) home_service="${XDG_CONFIG_HOME:-${HOME}/.config}/systemd/user/kitsune-home@.service" ;;
+    *) home_service="${XDG_CONFIG_HOME:-${HOME}/.config}/systemd/user/kitsune-home.service" ;;
+esac
+home_available=false
+if [ -f "${home_service}" ] && command -v systemctl >/dev/null 2>&1; then
+    if systemctl --user start "${profile_service}"; then
+        home_available=true
+    fi
+fi
+if [ -f "${profile_manager}" ] && [ "${home_available}" != true ]; then
+    printf '%s\n' 'No se ha podido iniciar el inicio privado de este perfil. No se ha abierto otro perfil.' >&2
+    exit 1
+fi
+
+if [ "${1:-}" = "--home" ] || [ "${profile_action}" = home ]; then
+    if [ "${1:-}" = "--home" ]; then shift; fi
+    # Path.as_uri correctly handles spaces, #, Unicode and other reserved
+    # characters in XDG_DATA_HOME; a raw file:// concatenation does not.
+    if [ "${home_available}" = true ]; then
+        start_url="${profile_home}"
+    else
+        start_url="$(python3 -c 'from pathlib import Path; import sys; print(Path(sys.argv[1]).resolve().as_uri())' "${start_dir}/index.html")" || exit 1
+    fi
+    set -- --new-tab "${start_url}" "$@"
+fi
+case "${profile_action}" in
+    google) set -- --new-tab 'https://accounts.google.com/ServiceLogin' "$@" ;;
+    privacy) set -- --new-tab 'about:preferences#privacy' "$@" ;;
+    sync) set -- --new-tab 'about:preferences#librewolf' "$@" ;;
+    sync-settings) set -- --new-tab 'about:preferences#sync' "$@" ;;
+    passwords) set -- --new-tab 'about:logins' "$@" ;;
+    settings) set -- --new-tab 'about:preferences' "$@" ;;
+    general) set -- --new-tab 'about:preferences#general' "$@" ;;
+    search) set -- --new-tab 'about:preferences#search' "$@" ;;
+    downloads) set -- --new-tab 'about:downloads' "$@" ;;
+    extensions) set -- --new-tab 'about:addons' "$@" ;;
+    sync-google) set -- --new-tab 'https://accounts.firefox.com/' "$@" ;;
+esac
+
+export MOZ_ENABLE_WAYLAND=1
+export MOZ_APP_REMOTINGNAME="${profile_remoting}"
+
+# A current, privately branded runtime keeps the upstream engine's updates and
+# trust settings. A preparation failure must never silently launch an old copy.
+runtime_preparer="${browser_root}/prepare-runtime.py"
+if [ -f "${runtime_preparer}" ]; then
+    runtime_binary="$(python3 "${runtime_preparer}" --source /usr/lib/librewolf --runtime-root "${browser_root}/runtime")" || exit 1
+    [ -x "${runtime_binary}" ] || { printf '%s\n' 'El motor de Kitsune no está disponible.' >&2; exit 1; }
+    exec "${runtime_binary}" --profile "${profile_dir}" "$@"
+fi
+
+exec /usr/bin/librewolf --profile "${profile_dir}" "$@"

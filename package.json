@@ -1,0 +1,22 @@
+{
+  "name": "kitsune-browser",
+  "version": "0.4.0",
+  "private": true,
+  "type": "module",
+  "description": "Kitsune Nightfall: branded Gecko browser, isolated profiles and a personal home",
+  "scripts": {
+    "build": "rolldown start/app.js --format iife --file start/app.bundle.js",
+    "test": "node --test tests/*.test.mjs",
+    "check": "node --check start/app.js && node --check start/navigation.mjs && sh -n install/kitsune-browser && desktop-file-validate install/kitsune-browser.desktop && npm test && npm run build",
+    "test:browser": "python3 tests/browser_smoke.py",
+    "test:logo-motion": "python3 tests/logo_motion.py",
+    "test:profiles-ui": "python3 tests/profiles_ui.py",
+    "test:profiles-native": "python3 tests/profiles_native.py --headed",
+    "test:accounts": "python3 tests/accounts_native.py",
+    "test:python": "python3 -m unittest discover -s tests -p '*_test.py'",
+    "test:appearance-native": "python3 tests/appearance_native.py",
+    "test:profile-photos": "python3 tests/profile_photos.py",
+    "test:settings-ui": "python3 tests/settings_panels.py"
+  },
+  "devDependencies": { "rolldown": "1.2.8" }
+}

@@ -1,0 +1,347 @@
+@import url("palette.css");
+@import url("window-controls.css");
+@import url("kitsune-header.css");
+
+/* Kitsune / Nightfall. Cosmetic chrome only: native navigation, security
+   indicators, tab sizing and menu behavior remain under Gecko's control. */
+:root {
+  color-scheme: dark !important;
+  --kb-accent: var(--kb-primary, #8dbaff);
+  --kb-line: color-mix(in srgb, var(--kb-outline) 64%, transparent);
+  --kb-hover: color-mix(in srgb, var(--kb-accent) 11%, var(--kb-surface));
+  --kb-selected: color-mix(in srgb, var(--kb-accent) 13%, var(--kb-surface));
+  --toolbar-bgcolor: var(--kb-bg) !important;
+  --toolbar-background-color: var(--kb-bg) !important;
+  --toolbar-color: var(--kb-text) !important;
+  --toolbox-background-color: var(--kb-bg) !important;
+  --toolbox-background-color-inactive: var(--kb-bg) !important;
+  --toolbox-text-color: var(--kb-text) !important;
+  --lwt-accent-color: var(--kb-bg) !important;
+  --lwt-text-color: var(--kb-text) !important;
+  --toolbar-field-background-color: var(--kb-surface) !important;
+  --toolbar-field-color: var(--kb-text) !important;
+  --toolbar-field-border-color: var(--kb-line) !important;
+  --toolbar-field-focus-background-color: var(--kb-surface) !important;
+  --toolbar-field-focus-color: var(--kb-text) !important;
+  --toolbar-field-focus-border-color: var(--kb-accent) !important;
+  --toolbarbutton-hover-background: var(--kb-hover) !important;
+  --toolbarbutton-active-background: var(--kb-selected) !important;
+  --toolbarbutton-background-color-hover: var(--kb-hover) !important;
+  --toolbarbutton-background-color-active: var(--kb-selected) !important;
+  --toolbarbutton-border-radius: 12px !important;
+  --tab-border-radius: 14px !important;
+  --tab-selected-bgcolor: var(--kb-selected) !important;
+  --tab-selected-textcolor: var(--kb-text) !important;
+  --tab-box-shadow-selected: none !important;
+  --arrowpanel-background: var(--kb-surface) !important;
+  --arrowpanel-color: var(--kb-text) !important;
+  --arrowpanel-border-color: var(--kb-line) !important;
+  --arrowpanel-border-radius: 16px !important;
+  --panel-separator-color: var(--kb-line) !important;
+  --panel-item-hover-bgcolor: var(--kb-hover) !important;
+  --panel-item-active-bgcolor: var(--kb-selected) !important;
+  --urlbarView-highlight-background: var(--kb-selected) !important;
+  --urlbarView-highlight-color: var(--kb-text) !important;
+  --urlbar-background-color: var(--kb-surface) !important;
+  --urlbar-background-color-focus: var(--kb-surface) !important;
+  --urlbar-background-border-radius: 14px !important;
+  --sidebar-background-color: var(--kb-surface) !important;
+  --sidebar-text-color: var(--kb-text) !important;
+  --sidebar-border-color: var(--kb-line) !important;
+  --focus-outline-color: var(--kb-accent) !important;
+  --chrome-content-separator-color: var(--kb-line) !important;
+  font-family: "Inter", "Noto Sans", system-ui, sans-serif !important;
+}
+
+/* A quiet, unified frame. No pseudo-element overlays or running effects. */
+#navigator-toolbox {
+  border: 0 !important;
+  border-bottom: 1px solid var(--kb-line) !important;
+  background: var(--kb-bg) !important;
+  box-shadow: none !important;
+}
+
+#TabsToolbar {
+  padding-inline: 8px !important;
+  padding-block-start: 5px !important;
+  background: transparent !important;
+}
+
+#tabbrowser-tabs[orient="horizontal"] {
+  --tab-min-height: 36px !important;
+  --tab-margin-block: 4px !important;
+  --tab-width-transition: min-width 160ms ease-out, max-width 160ms ease-out;
+}
+
+.tab-background {
+  border: 1px solid transparent !important;
+  border-radius: var(--tab-border-radius) !important;
+  box-shadow: none !important;
+}
+
+.tabbrowser-tab:hover > .tab-stack > .tab-background:not([selected], [multiselected]) {
+  background: var(--kb-hover) !important;
+}
+
+.tabbrowser-tab:is([selected], [visually-selected]) > .tab-stack > .tab-background {
+  border-color: color-mix(in srgb, var(--kb-accent) 34%, var(--kb-outline)) !important;
+  background: var(--kb-selected) !important;
+}
+
+.tabbrowser-tab[multiselected]:not([selected]) > .tab-stack > .tab-background {
+  border-color: color-mix(in srgb, var(--kb-accent) 58%, transparent) !important;
+  background: var(--kb-hover) !important;
+}
+
+.tab-label { font-size: 12px !important; font-weight: 500 !important; }
+.tabbrowser-tab[selected] .tab-label { font-weight: 600 !important; }
+
+/* Do not force close buttons to appear when native narrow/pinned tabs hide
+   them. Favicons, mute/sharing badges and group colors are also left intact. */
+.tab-close-button { border-radius: 9px !important; }
+.tab-close-button:hover {
+  background-color: color-mix(in srgb, #ff9fbb 18%, var(--kb-surface)) !important;
+  color: #ffc3d5 !important;
+}
+
+#tabs-newtab-button > .toolbarbutton-icon,
+#new-tab-button > .toolbarbutton-icon,
+#alltabs-button > .toolbarbutton-badge-stack { border-radius: 12px !important; }
+
+tab-group > .tab-group-label-container > label { border-radius: 8px !important; }
+
+/* Omnibox: one readable surface; real padlock, protection and permission
+   indicators keep their original colors and states. */
+#nav-bar {
+  padding: 4px 8px 8px !important;
+  border: 0 !important;
+  background: var(--kb-bg) !important;
+  box-shadow: none !important;
+}
+
+#urlbar-container { margin-inline: 5px !important; }
+#urlbar { --urlbar-min-height: 38px !important; }
+#urlbar .urlbar-background {
+  border: 1px solid var(--kb-line) !important;
+  border-radius: 14px !important;
+  background: var(--kb-surface) !important;
+  box-shadow: none !important;
+}
+
+#urlbar[focused]:not([suppress-focus-border]) > .urlbar-background {
+  border-color: var(--kb-accent) !important;
+  outline: 2px solid color-mix(in srgb, var(--kb-accent) 20%, transparent) !important;
+  outline-offset: 1px !important;
+}
+
+#urlbar[open] > .urlbar-background {
+  border-color: color-mix(in srgb, var(--kb-accent) 62%, var(--kb-outline)) !important;
+  border-radius: 16px !important;
+  box-shadow: 0 14px 40px #0006 !important;
+}
+
+#urlbar-input {
+  font-family: "Inter", "Noto Sans", system-ui, sans-serif !important;
+  font-size: 13px !important;
+  letter-spacing: normal !important;
+}
+
+.urlbarView {
+  border-top-color: var(--kb-line) !important;
+  color: var(--kb-text) !important;
+}
+.urlbarView-row-inner { border-radius: 10px !important; }
+.urlbarView-row[selected] .urlbarView-row-inner { background-color: var(--kb-selected) !important; }
+.urlbarView-url { color: var(--kb-accent) !important; }
+
+/* Keep native button hit targets/overflow logic and disabled-state contrast. */
+#nav-bar .toolbarbutton-1 > .toolbarbutton-icon,
+#nav-bar .toolbarbutton-1 > .toolbarbutton-badge-stack,
+#nav-bar .toolbarbutton-1 > .toolbarbutton-text { border-radius: 12px !important; }
+
+#PersonalToolbar {
+  padding: 0 10px 6px !important;
+  color: var(--kb-muted) !important;
+  background: var(--kb-bg) !important;
+}
+#PlacesToolbarItems > .bookmark-item { border-radius: 8px !important; }
+#PlacesToolbarItems > .bookmark-item:hover { background-color: var(--kb-hover) !important; }
+
+/* Panels have a single outer surface; avoid adding a nested border/shadow to
+   every panelview or forcing a minimum width larger than the window. */
+menupopup {
+  --panel-background: var(--kb-surface) !important;
+  --panel-color: var(--kb-text) !important;
+  --panel-background-color: var(--kb-surface) !important;
+  --panel-text-color: var(--kb-text) !important;
+  --panel-border-color: var(--kb-line) !important;
+  --panel-border-radius: 12px !important;
+  --menuitem-border-radius: 8px !important;
+}
+/* Gecko 154 replaced the old --arrowpanel-background token. Style the native
+   popup surface, not an extra rectangle layered over its content. */
+panel[type="arrow"] {
+  --panel-background-color: var(--kb-surface) !important;
+  --panel-text-color: var(--kb-text) !important;
+  --panel-border-color: var(--kb-line) !important;
+  --panel-border-radius: 16px !important;
+}
+panelview { color: var(--kb-text) !important; }
+.panel-subview-body .subviewbutton,
+.panel-subview-body .subviewbutton-nav,
+.unified-extensions-item { border-radius: 10px !important; }
+
+/* Extensions use modern shadow-DOM buttons as well as XUL menu rows. Theme
+   their supported tokens too: the old arrowpanel colors alone leave a bright,
+   square discovery button inside an otherwise rounded dark panel. Security
+   warning/message bars keep their native warning colors and action semantics. */
+#unified-extensions-panel {
+  --panel-background: var(--kb-surface) !important;
+  --panel-color: var(--kb-text) !important;
+  --panel-background-color: var(--kb-surface) !important;
+  --panel-text-color: var(--kb-text) !important;
+  --panel-border-color: var(--kb-line) !important;
+  --panel-border-radius: 16px !important;
+  --panel-menuitem-border-radius: 10px !important;
+  --button-border-radius: 12px !important;
+  --button-background-color-primary: var(--kb-accent) !important;
+  --button-background-color-primary-hover: color-mix(in srgb, var(--kb-accent) 84%, white) !important;
+  --button-background-color-primary-active: color-mix(in srgb, var(--kb-accent) 80%, var(--kb-bg)) !important;
+  --button-text-color-primary: var(--kb-bg) !important;
+  --button-text-color-primary-hover: var(--kb-bg) !important;
+  --button-text-color-primary-active: var(--kb-bg) !important;
+  --button-border-color-primary: transparent !important;
+  --button-border-color-primary-hover: transparent !important;
+  --button-border-color-primary-active: transparent !important;
+  --uei-button-color: var(--kb-text) !important;
+  --uei-button-bgcolor: transparent !important;
+  --uei-button-hover-color: var(--kb-text) !important;
+  --uei-button-hover-bgcolor: var(--kb-hover) !important;
+  --uei-button-active-color: var(--kb-text) !important;
+  --uei-button-active-bgcolor: var(--kb-selected) !important;
+  --text-color-deemphasized: var(--kb-muted) !important;
+}
+#unified-extensions-view {
+  max-width: calc(100vw - 24px) !important;
+}
+#unified-extensions-empty-state > img {
+  border-radius: 12px !important;
+  margin: 8px 12px 4px !important;
+  max-width: calc(100% - 24px) !important;
+}
+#unified-extensions-discover-extensions {
+  margin: 8px 12px 12px !important;
+  --button-min-height: 38px !important;
+  --button-font-weight: 600 !important;
+}
+#unified-extensions-discover-extensions::part(button) {
+  border-radius: 12px !important;
+}
+#unified-extensions-manage-extensions {
+  margin: 6px 8px 8px !important;
+  border-radius: 10px !important;
+}
+
+.download-state {
+  margin-block: 3px !important;
+  border-radius: 12px !important;
+}
+.download-state:hover { background-color: var(--kb-hover) !important; }
+.downloadProgress {
+  accent-color: var(--kb-accent) !important;
+  border-radius: 999px !important;
+}
+.downloadProgress::-moz-progress-bar {
+  border-radius: 999px !important;
+  background-color: var(--kb-accent) !important;
+}
+
+/* Sidebar layout/resize/vertical-tabs stay native. Clip only the browser's
+   own surface, never the outer container or its accessible resize splitter. */
+#sidebar-header {
+  border-bottom-color: var(--kb-line) !important;
+  color: var(--kb-text) !important;
+  background: var(--kb-surface) !important;
+}
+#sidebar { border-radius: 14px !important; }
+#sidebar-search-container textbox,
+#sidebar-search-container input { border-radius: 10px !important; }
+
+findbar {
+  padding: 6px 8px !important;
+  border-top: 1px solid var(--kb-line) !important;
+  color: var(--kb-text) !important;
+  background: var(--kb-bg) !important;
+}
+findbar .findbar-textbox {
+  border: 1px solid var(--kb-line) !important;
+  border-radius: 10px !important;
+  color: var(--kb-text) !important;
+  background-color: var(--kb-surface) !important;
+}
+findbar .findbar-textbox:focus { border-color: var(--kb-accent) !important; }
+/* Preserve the native not-found/error state rather than painting it blue. */
+findbar .findbar-textbox[status="notfound"] {
+  border-color: #ef8b9d !important;
+  background-color: #39232e !important;
+}
+
+#statuspanel-label {
+  padding: 5px 9px !important;
+  border: 1px solid var(--kb-line) !important;
+  border-radius: 0 10px 0 0 !important;
+  color: var(--kb-text) !important;
+  background-color: var(--kb-bg) !important;
+  font: 11px "Noto Sans", sans-serif !important;
+}
+
+#browser { background-color: var(--kb-bg) !important; }
+
+/* Private mode is visibly distinct; the native mask + label stay visible. */
+:root[privatebrowsingmode="temporary"] {
+  --kb-accent: var(--kb-tertiary, #c6a8ff);
+  --kb-bg: #13101f;
+  --kb-surface: #201a30;
+  --kb-surface-high: #2a2240;
+  --kb-outline: #4c3d66;
+}
+.private-browsing-indicator-with-label {
+  padding-inline: 10px !important;
+  border: 1px solid color-mix(in srgb, var(--kb-tertiary) 38%, transparent) !important;
+  border-radius: 12px !important;
+  color: var(--kb-tertiary) !important;
+  background: color-mix(in srgb, var(--kb-tertiary) 10%, var(--kb-surface)) !important;
+}
+
+/* Animate only cosmetic descendants, not draggable tab geometry. Gecko's
+   own fadein lifecycle provides real open/close transitions. */
+@media (prefers-reduced-motion: no-preference) {
+  .tab-background { transition: background-color 140ms ease, border-color 140ms ease !important; }
+  #tabbrowser-tabs[orient="horizontal"]:not([movingtab]) .tabbrowser-tab > .tab-stack {
+    transition: opacity 140ms ease, translate 140ms ease;
+  }
+  #tabbrowser-tabs[orient="horizontal"]:not([movingtab]) .tabbrowser-tab:not([fadein]) > .tab-stack {
+    opacity: 0;
+    translate: 0 3px;
+  }
+  #urlbar .urlbar-background { transition: border-color 140ms ease, outline-color 140ms ease !important; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #tabbrowser-tabs[orient="horizontal"] { --tab-width-transition: none !important; }
+  .tab-background,
+  .tabbrowser-tab > .tab-stack,
+  #urlbar .urlbar-background { transition: none !important; }
+}
+
+@media (max-width: 680px) {
+  #TabsToolbar { padding-inline: 3px !important; }
+  #nav-bar { padding-inline: 3px !important; }
+  #urlbar-container { margin-inline: 2px !important; }
+  #PersonalToolbar { padding-inline: 5px !important; }
+}
+
+:root[uidensity="compact"] #tabbrowser-tabs[orient="horizontal"] { --tab-min-height: 30px !important; }
+:root[uidensity="compact"] #nav-bar { padding-block: 2px 5px !important; }
+:root[uidensity="touch"] #tabbrowser-tabs[orient="horizontal"] { --tab-min-height: 42px !important; }
+:root[inFullscreen] #nav-bar { padding-block: 3px !important; }
