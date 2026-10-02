@@ -1,49 +1,46 @@
-/* Internal fallback only: do not publish Kitsune color variables to websites.
-   The native appearance module replaces these tokens live in Kitsune 0.4. */
-@-moz-document url("about:newtab"), url("about:home"), url("about:privatebrowsing"), url("about:downloads"), url-prefix("about:preferences"), url-prefix("about:addons"), url("about:protections"), url("about:logins") {
+/* Kitsune 0.5 «Tinta». Solo páginas internas del navegador: nunca se publican
+   variables ni estilos de Kitsune a webs normales. El módulo nativo reemplaza
+   estos tokens en directo; aquí quedan como respaldo (los de InkShadow). */
+@-moz-document url("about:newtab"), url("about:home"), url("about:privatebrowsing"), url("about:downloads"), url-prefix("about:preferences"), url-prefix("about:addons"), url("about:protections"), url("about:logins"), url-prefix("about:reader") {
   :root {
-    --kb-bg: #00101c;
-    --kb-surface: #001c2d;
-    --kb-surface-high: #00283f;
-    --kb-text: #d1e8ff;
-    --kb-muted: #8aafcf;
-    --kb-outline: #557997;
-    --kb-primary: #65ccff;
-    --kb-primary-container: #0cc0ff;
-    --kb-secondary: #39b4ff;
-    --kb-tertiary: #989dff;
+    --kb-bg: #f6f5f1;
+    --kb-surface: #fbfaf7;
+    --kb-surface-high: #e8ece4;
+    --kb-text: #252d2b;
+    --kb-muted: #59625c;
+    --kb-outline: #c7cdc4;
+    --kb-primary: #963d32;
+    --kb-primary-container: #eadfda;
+    --kb-secondary: #496b60;
+    --kb-tertiary: #73786f;
   }
 }
 
-/* Native internal pages only. No website styles, scripts, security-warning
-   suppression, or imitation of the browser's trusted address bar. */
+/* Nueva pestaña de Gecko con la identidad de Kitsune: papel liso, logo y
+   «kitsune» en Noto Serif. Sin avisos de seguridad ni barra de direcciones falsa. */
 @-moz-document url("about:newtab"), url("about:home") {
   :root {
-    color-scheme: dark !important;
+    color-scheme: light !important;
     --newtab-background-color: var(--kb-bg) !important;
     --newtab-background-color-secondary: var(--kb-surface) !important;
     --newtab-background-card: var(--kb-surface) !important;
     --newtab-text-primary-color: var(--kb-text) !important;
     --newtab-text-secondary-color: var(--kb-muted) !important;
     --newtab-primary-action-background: var(--kb-primary) !important;
-    --newtab-primary-element-text-color: var(--kb-bg) !important;
-    --newtab-element-hover-color: color-mix(in srgb, var(--kb-primary) 12%, var(--kb-surface)) !important;
-    --newtab-border-color: color-mix(in srgb, var(--kb-outline) 65%, transparent) !important;
+    --newtab-primary-element-text-color: var(--kb-surface) !important;
+    --newtab-element-hover-color: var(--kb-surface-high) !important;
+    --newtab-border-color: var(--kb-outline) !important;
     --newtab-contextmenu-background-color: var(--kb-surface) !important;
     --newtab-contextmenu-button-color: var(--kb-text) !important;
     --newtab-contextmenu-button-hover-color: var(--kb-surface-high) !important;
     --newtab-modal-color: var(--kb-surface) !important;
-    font-family: "Inter", "Noto Sans", system-ui, sans-serif !important;
+    font-family: "Noto Sans", system-ui, sans-serif !important;
   }
 
   body {
     min-height: 100vh !important;
     color: var(--kb-text) !important;
-    background:
-      linear-gradient(90deg, color-mix(in srgb, var(--kb-bg) 95%, transparent) 0%, color-mix(in srgb, var(--kb-bg) 75%, transparent) 43%, color-mix(in srgb, var(--kb-bg) 24%, transparent) 100%),
-      linear-gradient(0deg, var(--kb-bg), transparent 70%),
-      url("assets/kitsune-night.png") center / cover no-repeat fixed,
-      var(--kb-bg) !important;
+    background: var(--kb-bg) !important;
   }
 
   .outer-wrapper {
@@ -58,81 +55,79 @@
     margin-block-end: 34px !important;
   }
   .logo-and-wordmark .logo {
-    width: 58px !important;
-    height: 58px !important;
+    width: 64px !important;
+    height: 64px !important;
     background: url("assets/kitsune.svg") center / contain no-repeat !important;
   }
   .logo-and-wordmark .wordmark {
     display: flex !important;
     align-items: center !important;
     width: auto !important;
-    height: 58px !important;
-    margin-inline-start: 15px !important;
+    height: 64px !important;
+    margin-inline-start: 16px !important;
     background: none !important;
   }
   .logo-and-wordmark .wordmark::after {
-    content: "Kitsune";
+    content: "kitsune";
     color: var(--kb-text);
-    font: 650 clamp(32px, 4vw, 42px)/1 "Inter", "Noto Sans", sans-serif;
-    letter-spacing: -.055em;
+    font: 400 clamp(32px, 4vw, 42px)/1 "Noto Serif", serif;
+    letter-spacing: .06em;
   }
 
   .search-wrapper { padding-block: 0 28px !important; }
   .search-wrapper .search-inner-wrapper {
     width: min(100%, 640px) !important;
-    min-height: 58px !important;
+    min-height: 56px !important;
   }
 
-  /* Firefox 154 uses a shadow-root content-search-handoff-ui; its public
-     custom properties style the real search input, not a fake HTML form. */
+  /* Firefox 154: content-search-handoff-ui con sombra; sus propiedades
+     públicas pintan el buscador real, no un formulario falso. */
   .search-wrapper content-search-handoff-ui {
     --content-search-handoff-ui-background-color: var(--kb-surface) !important;
     --content-search-handoff-ui-color: var(--kb-text) !important;
     --content-search-handoff-ui-fill: var(--kb-muted) !important;
-    --content-search-handoff-ui-caret-color: var(--kb-text) !important;
-    --content-search-handoff-ui-border-radius: 16px !important;
+    --content-search-handoff-ui-caret-color: var(--kb-primary) !important;
+    --content-search-handoff-ui-border-radius: 12px !important;
     --content-search-handoff-ui-unfocused-border-color: var(--kb-outline) !important;
     --content-search-handoff-ui-fakefocus-border-color: var(--kb-primary) !important;
-    --content-search-handoff-ui-fakefocus-box-shadow-inner: color-mix(in srgb, var(--kb-primary) 25%, transparent) !important;
+    --content-search-handoff-ui-fakefocus-box-shadow-inner: color-mix(in srgb, var(--kb-primary) 20%, transparent) !important;
     --content-search-handoff-ui-fakefocus-box-shadow-outer: transparent !important;
     --font-size-root: 14px;
-    --box-shadow-level-3: 0 12px 36px #0003;
-    border-radius: 16px !important;
-    box-shadow: 0 12px 36px #0003 !important;
+    --box-shadow-level-3: 0 8px 24px color-mix(in srgb, var(--kb-text) 10%, transparent);
+    border-radius: 12px !important;
+    box-shadow: 0 8px 24px color-mix(in srgb, var(--kb-text) 10%, transparent) !important;
   }
 
-  /* Compatibility with the still-supported non-shadow search layout. */
+  /* Compatibilidad con el buscador sin sombra, todavía soportado. */
   .search-handoff-button,
   .search-wrapper input {
-    border: 1px solid color-mix(in srgb, var(--kb-outline) 72%, transparent) !important;
-    border-radius: 16px !important;
+    border: 1px solid var(--kb-outline) !important;
+    border-radius: 12px !important;
     color: var(--kb-text) !important;
     background-color: var(--kb-surface) !important;
-    font: 14px "Inter", "Noto Sans", sans-serif !important;
+    font: 14px "Noto Sans", sans-serif !important;
   }
   .search-handoff-button:focus-visible,
   .search-wrapper input:focus-visible {
     outline: 2px solid var(--kb-primary) !important;
     outline-offset: 3px !important;
   }
-  /* The native label already uses our muted color. Do not also apply Gecko's
-     54% text opacity; that double attenuation makes the prompt hard to read. */
   .search-handoff-button .fake-textbox {
     color: var(--kb-muted) !important;
     opacity: 1 !important;
   }
 
   .top-sites-list { margin-inline: auto !important; }
-  .top-site-outer { border-radius: 16px !important; }
+  .top-site-outer { border-radius: 10px !important; }
   .top-site-outer .tile {
-    border: 1px solid color-mix(in srgb, var(--kb-outline) 54%, transparent) !important;
-    border-radius: 18px !important;
-    background-color: color-mix(in srgb, var(--kb-surface) 94%, transparent) !important;
-    box-shadow: 0 4px 16px #0002 !important;
+    border: 1px solid var(--kb-outline) !important;
+    border-radius: 10px !important;
+    background-color: var(--kb-surface) !important;
+    box-shadow: none !important;
   }
   .top-site-outer:hover .tile,
   .top-site-outer:focus-within .tile {
-    border-color: color-mix(in srgb, var(--kb-primary) 58%, var(--kb-outline)) !important;
+    border-color: var(--kb-primary) !important;
     background-color: var(--kb-surface-high) !important;
   }
   .top-site-outer .title {
@@ -142,38 +137,22 @@
   }
   .context-menu,
   .card-outer {
-    border: 1px solid var(--newtab-border-color) !important;
-    border-radius: 14px !important;
+    border: 1px solid var(--kb-outline) !important;
+    border-radius: 10px !important;
     background-color: var(--kb-surface) !important;
-    box-shadow: 0 12px 32px #0004 !important;
+    box-shadow: 0 8px 24px color-mix(in srgb, var(--kb-text) 12%, transparent) !important;
   }
-  .personalize-button { border-radius: 12px !important; }
+  .personalize-button { border-radius: 8px !important; }
 
   @media (prefers-reduced-motion: no-preference) {
+    /* La tinta se posa: aparición corta, sin movimiento continuo. */
     .logo-and-wordmark,
-    .search-wrapper .search-inner-wrapper { animation: kb-welcome 260ms ease-out both; }
-    .search-wrapper .search-inner-wrapper { animation-delay: 40ms; }
+    .search-wrapper .search-inner-wrapper { animation: kb-ink-settle 360ms ease-out both; }
+    .search-wrapper .search-inner-wrapper { animation-delay: 60ms; }
     .top-site-outer .tile { transition: background-color 140ms ease, border-color 140ms ease; }
-    /* The mark floats within its reserved box; the wordmark and search field
-       stay still. No script, changing favicon or additional image requests. */
-    .logo-and-wordmark .logo {
-      transform-origin: 50% 70%;
-      animation: kb-logo-float 6s ease-in-out infinite;
-      filter: drop-shadow(0 3px 7px #65ccff35);
-      transition: scale 220ms ease, filter 220ms ease;
-    }
-    .logo-and-wordmark:hover .logo {
-      scale: 1.08;
-      filter: drop-shadow(0 3px 11px #65ccff70);
-    }
-    @keyframes kb-logo-float {
-      0%, 100% { transform: translateY(0) rotate(0deg); }
-      38% { transform: translateY(-5px) rotate(-4deg); }
-      70% { transform: translateY(-2px) rotate(2deg); }
-    }
-    @keyframes kb-welcome {
-      from { opacity: 0; translate: 0 6px; }
-      to { opacity: 1; translate: 0 0; }
+    @keyframes kb-ink-settle {
+      from { opacity: 0; filter: blur(3px); }
+      to { opacity: 1; filter: blur(0); }
     }
   }
   @media (prefers-reduced-motion: reduce) {
@@ -184,9 +163,8 @@
   }
   @media (max-width: 520px) {
     .outer-wrapper { padding-inline: 16px !important; }
-    /* Gecko 154's Nova layout uses a three-column grid, not .outer-wrapper.
-       At narrow widths its reserved side columns push the mark off-screen.
-       Keep every child in the normal flow instead of hiding sidebar content. */
+    /* Gecko 154 (Nova): la rejilla de tres columnas empuja el logo fuera en
+       pantallas estrechas; todo vuelve al flujo normal sin ocultar nada. */
     .nova-outer-wrapper .container.nova-enabled {
       display: block !important;
       padding-inline: 16px !important;
@@ -205,52 +183,91 @@
   }
 }
 
+/* Navegación privada: se distingue con jade, sobre papel. */
 @-moz-document url("about:privatebrowsing") {
   :root {
-    color-scheme: dark !important;
-    --in-content-page-background: #13101f !important;
+    color-scheme: light !important;
+    --in-content-page-background: var(--kb-bg) !important;
     --in-content-page-color: var(--kb-text) !important;
-    --in-content-box-background: #201a30 !important;
-    --in-content-primary-button-background: var(--kb-tertiary) !important;
-    --in-content-primary-button-text-color: #13101f !important;
-    --in-content-focus-outline-color: var(--kb-tertiary) !important;
+    --in-content-box-background: var(--kb-surface) !important;
+    --in-content-primary-button-background: var(--kb-secondary) !important;
+    --in-content-primary-button-text-color: var(--kb-surface) !important;
+    --in-content-focus-outline-color: var(--kb-secondary) !important;
   }
   body {
     color: var(--kb-text) !important;
-    background: radial-gradient(ellipse at 50% 0, #302344 0, #13101f 68%) !important;
-    font-family: "Inter", "Noto Sans", system-ui, sans-serif !important;
+    background: var(--kb-bg) !important;
+    border-top: 4px solid var(--kb-secondary) !important;
+    font-family: "Noto Sans", system-ui, sans-serif !important;
   }
   .search-inner-wrapper,
   .info,
-  .promo { border-radius: 16px !important; }
-  /* Keep the private mask, explanatory copy, warnings and links native. */
+  .promo { border-radius: 10px !important; }
+  /* La máscara privada, los textos, avisos y enlaces siguen siendo los nativos. */
 }
 
-@-moz-document url("about:downloads"), url-prefix("about:preferences"), url-prefix("about:addons"), url("about:protections") {
+@-moz-document url("about:downloads"), url-prefix("about:preferences"), url-prefix("about:addons"), url("about:protections"), url("about:logins") {
   :root {
-    color-scheme: dark !important;
+    color-scheme: light !important;
     --in-content-page-background: var(--kb-bg) !important;
     --in-content-page-color: var(--kb-text) !important;
     --in-content-box-background: var(--kb-surface) !important;
     --in-content-box-border-color: var(--kb-outline) !important;
     --in-content-button-background: var(--kb-surface-high) !important;
-    --in-content-button-background-hover: color-mix(in srgb, var(--kb-primary) 16%, var(--kb-surface-high)) !important;
+    --in-content-button-background-hover: color-mix(in srgb, var(--kb-text) 8%, var(--kb-surface-high)) !important;
     --in-content-primary-button-background: var(--kb-primary) !important;
-    --in-content-primary-button-text-color: var(--kb-bg) !important;
+    --in-content-primary-button-text-color: var(--kb-surface) !important;
     --in-content-focus-outline-color: var(--kb-primary) !important;
     --background-color-canvas: var(--kb-bg) !important;
     --background-color-box: var(--kb-surface) !important;
     --text-color: var(--kb-text) !important;
-    font-family: "Inter", "Noto Sans", system-ui, sans-serif !important;
+    /* Tokens de diseño de Gecko 154: acento óxido en lugar del azul del sistema. */
+    --color-accent-primary: var(--kb-primary) !important;
+    --color-accent-primary-hover: color-mix(in srgb, var(--kb-primary) 86%, var(--kb-text)) !important;
+    --color-accent-primary-active: color-mix(in srgb, var(--kb-primary) 76%, var(--kb-text)) !important;
+    --button-background-color-primary: var(--kb-primary) !important;
+    --button-background-color-primary-hover: color-mix(in srgb, var(--kb-primary) 86%, var(--kb-text)) !important;
+    --button-background-color-primary-active: color-mix(in srgb, var(--kb-primary) 76%, var(--kb-text)) !important;
+    --button-text-color-primary: var(--kb-surface) !important;
+    --focus-outline-color: var(--kb-primary) !important;
+    --link-color: var(--kb-secondary) !important;
+    --link-color-hover: color-mix(in srgb, var(--kb-secondary) 80%, var(--kb-text)) !important;
+    --border-color-interactive: var(--kb-outline) !important;
+    font-family: "Noto Sans", system-ui, sans-serif !important;
   }
   body { color: var(--kb-text) !important; background-color: var(--kb-bg) !important; }
   button,
   input,
   moz-input-search,
-  #searchInput { border-radius: 10px !important; }
+  #searchInput { border-radius: 8px !important; }
   .card,
-  .addon-card { border-radius: 16px !important; }
+  .addon-card { border-radius: 10px !important; }
 }
 
-/* about:certerror, about:neterror and about:blocked deliberately use Gecko's
-   unchanged security UX. A theme must never soften or obscure those states. */
+/* Modo lectura: papel, tinta y cuerpo en serif. */
+@-moz-document url-prefix("about:reader") {
+  :root, body.light, body.sepia, body.dark, body.contrast, body.custom {
+    color-scheme: light !important;
+    --main-background: var(--kb-bg) !important;
+    --main-foreground: var(--kb-text) !important;
+    --link-foreground: var(--kb-secondary) !important;
+    --visited-link-foreground: var(--kb-tertiary) !important;
+    --selection-background: var(--kb-primary-container) !important;
+    --selection-foreground: var(--kb-text) !important;
+  }
+  body {
+    color: var(--kb-text) !important;
+    background-color: var(--kb-bg) !important;
+  }
+  .moz-reader-content, .moz-reader-content p, .moz-reader-content li {
+    font-family: "Noto Serif", Georgia, serif !important;
+  }
+  .reader-title, .moz-reader-content h1, .moz-reader-content h2, .moz-reader-content h3 {
+    font-family: "Noto Serif", Georgia, serif !important;
+    color: var(--kb-text) !important;
+  }
+  .moz-reader-content a { color: var(--kb-secondary) !important; }
+}
+
+/* about:certerror, about:neterror y about:blocked usan a propósito la UX de
+   seguridad nativa sin cambios: un tema nunca debe suavizarla ni taparla. */

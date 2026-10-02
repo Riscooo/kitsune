@@ -54,3 +54,36 @@ test('loading tabs spin only the ensō around a still mask, and only pulse with 
   assert.match(css, /@keyframes kitsune-enso-pulse \{[^}]*opacity/s);
   assert.doesNotMatch(css.match(/@keyframes kitsune-enso-pulse \{[\s\S]*?\n\}/)?.[0] ?? '', /rotate/);
 });
+
+test('internal pages are paper: light scheme, paper fallback tokens, no Nightfall art', async () => {
+  const css = (await read('userContent.css')).replace(/\/\*[\s\S]*?\*\//g, '');
+  assert.doesNotMatch(css, /color-scheme:\s*dark/);
+  assert.doesNotMatch(css, /kitsune-night|anime-veil/);
+  assert.doesNotMatch(css, /rgba?\(|hsla?\(/);
+  for (const [hex] of css.matchAll(/#[0-9a-fA-F]{3,8}\b/g)) {
+    const base = hex.length === 9 ? hex.slice(0, 7) : hex;
+    assert.ok(ALLOWED.has(base.toLowerCase()), `userContent.css: ${hex} no es un token de papel`);
+  }
+  const fallback = Object.fromEntries([...css.matchAll(/--kb-([a-z-]+):\s*(#[0-9a-f]{6});/g)].map(m => [m[1], m[2]]));
+  assert.deepEqual(fallback, PAPEL);
+});
+
+test('reader view is paper and ink with a serif body', async () => {
+  const css = await read('userContent.css');
+  const reader = css.match(/@-moz-document url-prefix\("about:reader"\) \{([\s\S]*?)\n\}/)?.[1] ?? '';
+  assert.match(reader, /--kb-bg|var\(--kb-bg\)|#f6f5f1/);
+  assert.match(reader, /"Noto Serif"/);
+});
+
+test('security error pages are never restyled', async () => {
+  const css = (await read('userContent.css')).replace(/\/\*[\s\S]*?\*\//g, '');
+  assert.doesNotMatch(css, /about:(certerror|neterror|blocked)/);
+});
+
+test('internal pages map Gecko 154 design tokens (accent, buttons, focus) to rust, not system blue', async () => {
+  const css = await read('userContent.css');
+  const block = css.match(/@-moz-document url\("about:downloads"\)[^{]*\{([\s\S]*?)\n\}/)?.[1] ?? '';
+  for (const token of ['--color-accent-primary', '--button-background-color-primary', '--focus-outline-color', '--link-color']) {
+    assert.match(block, new RegExp(`${token}:\\s*var\\(--kb-(primary|secondary)\\)`), `${token} sin mapear`);
+  }
+});
