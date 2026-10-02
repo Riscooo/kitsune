@@ -2,14 +2,16 @@
 @import url("window-controls.css");
 @import url("kitsune-header.css");
 
-/* Kitsune / Nightfall. Cosmetic chrome only: native navigation, security
-   indicators, tab sizing and menu behavior remain under Gecko's control. */
+/* Kitsune 0.5 «Tinta»: papel, tinta y óxido, como InkShadow. Cosmetic chrome
+   only: native navigation, security indicators, tab sizing and menu behavior
+   remain under Gecko's control. */
 :root {
-  color-scheme: dark !important;
-  --kb-accent: var(--kb-primary, #8dbaff);
-  --kb-line: color-mix(in srgb, var(--kb-outline) 64%, transparent);
-  --kb-hover: color-mix(in srgb, var(--kb-accent) 11%, var(--kb-surface));
-  --kb-selected: color-mix(in srgb, var(--kb-accent) 13%, var(--kb-surface));
+  color-scheme: light !important;
+  --kb-accent: var(--kb-primary);
+  --kb-line: var(--kb-outline);
+  --kb-hover: color-mix(in srgb, var(--kb-text) 6%, var(--kb-surface));
+  --kb-selected: var(--kb-primary-container);
+  --kb-shadow: color-mix(in srgb, var(--kb-text) 14%, transparent);
   --toolbar-bgcolor: var(--kb-bg) !important;
   --toolbar-background-color: var(--kb-bg) !important;
   --toolbar-color: var(--kb-text) !important;
@@ -28,29 +30,29 @@
   --toolbarbutton-active-background: var(--kb-selected) !important;
   --toolbarbutton-background-color-hover: var(--kb-hover) !important;
   --toolbarbutton-background-color-active: var(--kb-selected) !important;
-  --toolbarbutton-border-radius: 12px !important;
-  --tab-border-radius: 14px !important;
+  --toolbarbutton-border-radius: 8px !important;
+  --tab-border-radius: 9px !important;
   --tab-selected-bgcolor: var(--kb-selected) !important;
   --tab-selected-textcolor: var(--kb-text) !important;
   --tab-box-shadow-selected: none !important;
   --arrowpanel-background: var(--kb-surface) !important;
   --arrowpanel-color: var(--kb-text) !important;
   --arrowpanel-border-color: var(--kb-line) !important;
-  --arrowpanel-border-radius: 16px !important;
+  --arrowpanel-border-radius: 12px !important;
   --panel-separator-color: var(--kb-line) !important;
   --panel-item-hover-bgcolor: var(--kb-hover) !important;
   --panel-item-active-bgcolor: var(--kb-selected) !important;
   --urlbarView-highlight-background: var(--kb-selected) !important;
   --urlbarView-highlight-color: var(--kb-text) !important;
-  --urlbar-background-color: var(--kb-surface) !important;
-  --urlbar-background-color-focus: var(--kb-surface) !important;
-  --urlbar-background-border-radius: 14px !important;
+  --urlbar-background-color: var(--kb-bg) !important;
+  --urlbar-background-color-focus: var(--kb-bg) !important;
+  --urlbar-background-border-radius: 9px !important;
   --sidebar-background-color: var(--kb-surface) !important;
   --sidebar-text-color: var(--kb-text) !important;
   --sidebar-border-color: var(--kb-line) !important;
   --focus-outline-color: var(--kb-accent) !important;
   --chrome-content-separator-color: var(--kb-line) !important;
-  font-family: "Inter", "Noto Sans", system-ui, sans-serif !important;
+  font-family: "Noto Sans", system-ui, sans-serif !important;
 }
 
 /* A quiet, unified frame. No pseudo-element overlays or running effects. */
@@ -84,12 +86,12 @@
 }
 
 .tabbrowser-tab:is([selected], [visually-selected]) > .tab-stack > .tab-background {
-  border-color: color-mix(in srgb, var(--kb-accent) 34%, var(--kb-outline)) !important;
-  background: var(--kb-selected) !important;
+  border-color: var(--kb-line) !important;
+  background: var(--kb-surface) !important;
 }
 
 .tabbrowser-tab[multiselected]:not([selected]) > .tab-stack > .tab-background {
-  border-color: color-mix(in srgb, var(--kb-accent) 58%, transparent) !important;
+  border-color: color-mix(in srgb, var(--kb-accent) 58%, var(--kb-outline)) !important;
   background: var(--kb-hover) !important;
 }
 
@@ -100,8 +102,8 @@
    them. Favicons, mute/sharing badges and group colors are also left intact. */
 .tab-close-button { border-radius: 9px !important; }
 .tab-close-button:hover {
-  background-color: color-mix(in srgb, #ff9fbb 18%, var(--kb-surface)) !important;
-  color: #ffc3d5 !important;
+  background-color: var(--kb-primary-container) !important;
+  color: var(--kb-primary) !important;
 }
 
 #tabs-newtab-button > .toolbarbutton-icon,
@@ -123,8 +125,8 @@ tab-group > .tab-group-label-container > label { border-radius: 8px !important; 
 #urlbar { --urlbar-min-height: 38px !important; }
 #urlbar .urlbar-background {
   border: 1px solid var(--kb-line) !important;
-  border-radius: 14px !important;
-  background: var(--kb-surface) !important;
+  border-radius: 9px !important;
+  background: var(--kb-bg) !important;
   box-shadow: none !important;
 }
 
@@ -136,12 +138,13 @@ tab-group > .tab-group-label-container > label { border-radius: 8px !important; 
 
 #urlbar[open] > .urlbar-background {
   border-color: color-mix(in srgb, var(--kb-accent) 62%, var(--kb-outline)) !important;
-  border-radius: 16px !important;
-  box-shadow: 0 14px 40px #0006 !important;
+  border-radius: 11px !important;
+  background: var(--kb-surface) !important;
+  box-shadow: 0 10px 28px var(--kb-shadow) !important;
 }
 
 #urlbar-input {
-  font-family: "Inter", "Noto Sans", system-ui, sans-serif !important;
+  font-family: "Noto Sans", system-ui, sans-serif !important;
   font-size: 13px !important;
   letter-spacing: normal !important;
 }
@@ -193,7 +196,7 @@ panelview { color: var(--kb-text) !important; }
 
 /* Extensions use modern shadow-DOM buttons as well as XUL menu rows. Theme
    their supported tokens too: the old arrowpanel colors alone leave a bright,
-   square discovery button inside an otherwise rounded dark panel. Security
+   square discovery button inside an otherwise rounded panel. Security
    warning/message bars keep their native warning colors and action semantics. */
 #unified-extensions-panel {
   --panel-background: var(--kb-surface) !important;
@@ -205,11 +208,11 @@ panelview { color: var(--kb-text) !important; }
   --panel-menuitem-border-radius: 10px !important;
   --button-border-radius: 12px !important;
   --button-background-color-primary: var(--kb-accent) !important;
-  --button-background-color-primary-hover: color-mix(in srgb, var(--kb-accent) 84%, white) !important;
-  --button-background-color-primary-active: color-mix(in srgb, var(--kb-accent) 80%, var(--kb-bg)) !important;
-  --button-text-color-primary: var(--kb-bg) !important;
-  --button-text-color-primary-hover: var(--kb-bg) !important;
-  --button-text-color-primary-active: var(--kb-bg) !important;
+  --button-background-color-primary-hover: color-mix(in srgb, var(--kb-accent) 86%, var(--kb-text)) !important;
+  --button-background-color-primary-active: color-mix(in srgb, var(--kb-accent) 76%, var(--kb-text)) !important;
+  --button-text-color-primary: var(--kb-surface) !important;
+  --button-text-color-primary-hover: var(--kb-surface) !important;
+  --button-text-color-primary-active: var(--kb-surface) !important;
   --button-border-color-primary: transparent !important;
   --button-border-color-primary-hover: transparent !important;
   --button-border-color-primary-active: transparent !important;
@@ -282,8 +285,8 @@ findbar .findbar-textbox {
 findbar .findbar-textbox:focus { border-color: var(--kb-accent) !important; }
 /* Preserve the native not-found/error state rather than painting it blue. */
 findbar .findbar-textbox[status="notfound"] {
-  border-color: #ef8b9d !important;
-  background-color: #39232e !important;
+  border-color: var(--kb-primary) !important;
+  background-color: var(--kb-primary-container) !important;
 }
 
 #statuspanel-label {
@@ -297,21 +300,42 @@ findbar .findbar-textbox[status="notfound"] {
 
 #browser { background-color: var(--kb-bg) !important; }
 
-/* Private mode is visibly distinct; the native mask + label stay visible. */
+/* Private mode is visibly distinct (jade); the native mask + label stay visible. */
 :root[privatebrowsingmode="temporary"] {
-  --kb-accent: var(--kb-tertiary, #c6a8ff);
-  --kb-bg: #13101f;
-  --kb-surface: #201a30;
-  --kb-surface-high: #2a2240;
-  --kb-outline: #4c3d66;
+  --kb-accent: var(--kb-secondary);
+  --kb-selected: color-mix(in srgb, var(--kb-secondary) 14%, var(--kb-surface));
+}
+:root[privatebrowsingmode="temporary"] #navigator-toolbox {
+  border-bottom: 2px solid var(--kb-secondary) !important;
 }
 .private-browsing-indicator-with-label {
   padding-inline: 10px !important;
-  border: 1px solid color-mix(in srgb, var(--kb-tertiary) 38%, transparent) !important;
-  border-radius: 12px !important;
-  color: var(--kb-tertiary) !important;
-  background: color-mix(in srgb, var(--kb-tertiary) 10%, var(--kb-surface)) !important;
+  border: 1px solid color-mix(in srgb, var(--kb-secondary) 45%, transparent) !important;
+  border-radius: 8px !important;
+  color: var(--kb-secondary) !important;
+  background: color-mix(in srgb, var(--kb-secondary) 10%, var(--kb-surface)) !important;
 }
+
+/* Indicador de carga: el ensō gira alrededor de la máscara, que no se mueve.
+   Sustituye la tira de Gecko (::before de 480 px) por dos capas de 16 px. */
+.tab-throbber[busy] {
+  position: relative !important;
+  overflow: visible !important;
+  background: url("assets/kitsune-throbber-mask.svg") center / 16px 16px no-repeat !important;
+  opacity: 1 !important;
+}
+.tab-throbber[busy]::before {
+  content: "" !important;
+  position: absolute !important;
+  inset: 0 !important;
+  width: 16px !important;
+  height: 16px !important;
+  background: url("assets/kitsune-throbber-ring.svg") center / 16px 16px no-repeat !important;
+  opacity: 1 !important;
+  animation: kitsune-enso-spin 1.1s linear infinite !important;
+}
+@keyframes kitsune-enso-spin { to { transform: rotate(1turn); } }
+@keyframes kitsune-enso-pulse { 0%, 100% { opacity: 1; } 50% { opacity: .45; } }
 
 /* Animate only cosmetic descendants, not draggable tab geometry. Gecko's
    own fadein lifecycle provides real open/close transitions. */
@@ -328,6 +352,7 @@ findbar .findbar-textbox[status="notfound"] {
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .tab-throbber[busy]::before { animation: kitsune-enso-pulse 1.6s ease-in-out infinite !important; }
   #tabbrowser-tabs[orient="horizontal"] { --tab-width-transition: none !important; }
   .tab-background,
   .tabbrowser-tab > .tab-stack,

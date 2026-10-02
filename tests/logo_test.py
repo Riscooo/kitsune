@@ -13,6 +13,7 @@ spec.loader.exec_module(logo)
 
 SVG = "{http://www.w3.org/2000/svg}"
 ICONS = ("chrome/assets/kitsune.svg", "chrome/assets/kitsune-ring.svg", "chrome/assets/kitsune-mask.svg",
+         "chrome/assets/kitsune-throbber-ring.svg", "chrome/assets/kitsune-throbber-mask.svg",
          "install/branding/icon-small.svg", "start/favicon.svg", "start/logo.svg")
 
 
@@ -44,6 +45,20 @@ class LogoTests(unittest.TestCase):
         self.assertEqual(drawing("chrome/assets/kitsune.svg"),
                          drawing("chrome/assets/kitsune-ring.svg") + drawing("chrome/assets/kitsune-mask.svg"))
         self.assertEqual((ROOT / "start/logo.svg").read_bytes(), (ROOT / "chrome/assets/kitsune.svg").read_bytes())
+
+    def test_tab_throbber_layers_compose_the_small_icon(self):
+        def drawing(relative):
+            root = ET.fromstring((ROOT / relative).read_text(encoding="utf-8"))
+            return [ET.tostring(child) for child in root]
+        self.assertEqual(drawing("install/branding/icon-small.svg"),
+                         drawing("chrome/assets/kitsune-throbber-ring.svg") + drawing("chrome/assets/kitsune-throbber-mask.svg"))
+
+    def test_selected_tab_stroke_is_a_rust_brush_line(self):
+        root = ET.fromstring((ROOT / "chrome/assets/kitsune-stroke.svg").read_text(encoding="utf-8"))
+        self.assertEqual(root.get("viewBox"), "0 0 200 8")
+        self.assertEqual(root.get("preserveAspectRatio"), "none")
+        self.assertEqual(list(root.iter(f"{SVG}filter")), [])
+        self.assertEqual({path.get("fill") for path in root.iter(f"{SVG}path")}, {"#963d32"})
 
     def test_tab_favicon_is_the_small_icon(self):
         self.assertEqual((ROOT / "start/favicon.svg").read_bytes(), (ROOT / "install/branding/icon-small.svg").read_bytes())

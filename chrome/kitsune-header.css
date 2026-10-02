@@ -1,45 +1,45 @@
-/* Kitsune / Ink & paper. Cosmetic native chrome, never a page overlay.
- * Keep the chosen palette as a restrained undertone; do not rewrite it.
+/* Kitsune 0.5 «Tinta»: cabecera de papel, tinta y óxido, como InkShadow.
+ * Cosmetic native chrome, never a page overlay. Only paper tokens (--kb-*).
  * No new commands, generated controls, security-icon replacements or scripts.
  */
 @-moz-document url("chrome://browser/content/browser.xhtml") {
   #main-window {
-    --kitsune-ink: color-mix(in srgb, #171b1a 94%, var(--kb-bg));
-    --kitsune-ink-raised: color-mix(in srgb, #292e2c 94%, var(--kb-surface));
-    --kitsune-paper: color-mix(in srgb, #e9e6dc 96%, var(--kb-primary));
-    --kitsune-paper-raised: color-mix(in srgb, #f7f5ee 97%, var(--kb-primary));
-    --kitsune-text: #252b28;
-    --kitsune-quiet: #9fa79f;
-    --kitsune-rule: #717b7050;
-    --kitsune-focus: color-mix(in srgb, #526d5f 86%, var(--kb-primary));
+    --kitsune-wash: var(--kb-surface-high);
+    --kitsune-wash-hover: color-mix(in srgb, var(--kb-text) 7%, var(--kb-surface-high));
+    --kitsune-sheet: var(--kb-surface);
+    --kitsune-field: var(--kb-bg);
+    --kitsune-text: var(--kb-text);
+    --kitsune-quiet: var(--kb-muted);
+    --kitsune-rule: var(--kb-outline);
+    --kitsune-focus: var(--kb-primary);
+    --kitsune-hover: color-mix(in srgb, var(--kb-text) 6%, transparent);
+    --kitsune-press: color-mix(in srgb, var(--kb-text) 11%, transparent);
     --kitsune-corner: 9px;
     --kitsune-motion: 180ms;
-    --sidebar-background-color: var(--kitsune-ink) !important;
-    --sidebar-text-color: var(--kitsune-paper) !important;
-    --sidebar-border-color: #e9e6dc1c !important;
+    --sidebar-background-color: var(--kitsune-sheet) !important;
+    --sidebar-text-color: var(--kitsune-text) !important;
+    --sidebar-border-color: var(--kitsune-rule) !important;
   }
 
   #main-window #navigator-toolbox {
-    background: var(--kitsune-ink) !important;
+    background: var(--kitsune-wash) !important;
     border: 0 !important;
-    border-bottom: 1px solid #10171340 !important;
+    border-bottom: 1px solid var(--kitsune-rule) !important;
     box-shadow: none !important;
   }
 
   #main-window #TabsToolbar {
     padding: 4px 10px 0 !important;
-    background: linear-gradient(110deg, #ffffff04, transparent 42%), var(--kitsune-ink) !important;
-    color: var(--kitsune-paper) !important;
+    background: var(--kitsune-wash) !important;
+    color: var(--kitsune-quiet) !important;
     --tab-selected-textcolor: var(--kitsune-text) !important;
-    --tab-selected-bgcolor: var(--kitsune-paper) !important;
-    --toolbarbutton-hover-background: #ffffff0c !important;
-    --toolbarbutton-active-background: #ffffff16 !important;
+    --tab-selected-bgcolor: var(--kitsune-sheet) !important;
+    --toolbarbutton-hover-background: var(--kitsune-hover) !important;
+    --toolbarbutton-active-background: var(--kitsune-press) !important;
   }
 
-  /* A real product signature in the browser's own flex layout, not a fake
-   * control. It cannot capture clicks, cover a tab, or receive keyboard focus.
-   * Uses the existing Kitsune fox asset; the monochrome treatment is CSS only.
-   */
+  /* Firma del producto en el propio flujo de la barra: no captura clics, no
+   * tapa pestañas y no recibe foco. El logo va en color, sin filtros. */
   #main-window #TabsToolbar::before {
     content: "KITSUNE";
     display: flex;
@@ -52,12 +52,11 @@
     height: 30px;
     margin: 0 12px 4px 2px;
     padding-inline: 37px 12px;
-    border-inline-end: 1px solid #e9e6dc1c;
+    border-inline-end: 1px solid var(--kitsune-rule);
     background: url("assets/kitsune.svg") left center / 28px 28px no-repeat;
-    color: var(--kitsune-paper);
-    font: 650 10px "Inter", "Noto Sans", sans-serif;
+    color: var(--kitsune-quiet);
+    font: 600 10px "Noto Sans", sans-serif;
     letter-spacing: 1.75px;
-    filter: grayscale(1) brightness(1.35);
     pointer-events: none;
     -moz-window-dragging: drag;
   }
@@ -87,39 +86,40 @@
     color: var(--kitsune-quiet) !important;
   }
   #main-window #tabbrowser-tabs[orient="horizontal"] .tabbrowser-tab:hover .tab-background:not([selected], [multiselected]) {
-    background: var(--kitsune-ink-raised) !important;
+    background: var(--kitsune-wash-hover) !important;
   }
+  /* Pestaña activa: hoja de papel con un trazo óxido de pincel arriba. */
   #main-window #tabbrowser-tabs[orient="horizontal"] .tabbrowser-tab:is([selected], [visually-selected]) .tab-background {
-    background: var(--kitsune-paper) !important;
-    border-color: #ffffff30 !important;
+    background: url("assets/kitsune-stroke.svg") top 1px center / calc(100% - 16px) 4px no-repeat, var(--kitsune-sheet) !important;
+    border-color: var(--kitsune-rule) !important;
   }
   #main-window #tabbrowser-tabs[orient="horizontal"] .tabbrowser-tab:is([selected], [visually-selected]) {
     color: var(--kitsune-text) !important;
   }
   #main-window #tabbrowser-tabs[orient="horizontal"] .tabbrowser-tab[multiselected]:not([selected]) .tab-background {
-    background: var(--kitsune-ink-raised) !important;
+    background: var(--kitsune-wash-hover) !important;
     border-color: var(--kitsune-quiet) !important;
   }
   #main-window #tabbrowser-tabs[orient="horizontal"] .tabbrowser-tab:not([pinned]) .tab-content {
     padding-inline: 13px !important;
   }
-  #main-window .tab-label { font: 500 12px "Inter", "Noto Sans", sans-serif !important; }
-  #main-window .tabbrowser-tab[selected] .tab-label { font-weight: 650 !important; }
+  #main-window .tab-label { font: 500 12px "Noto Sans", sans-serif !important; }
+  #main-window .tabbrowser-tab[selected] .tab-label { font-weight: 600 !important; }
   #main-window .tab-close-button { border-radius: 50% !important; }
-  #main-window .tab-close-button:hover { background: #ad625b24 !important; color: #a2574d !important; }
+  #main-window .tab-close-button:hover { background: var(--kb-primary-container) !important; color: var(--kb-primary) !important; }
 
   #main-window #nav-bar {
     padding: 4px 12px 5px !important;
-    background: var(--kitsune-paper) !important;
+    background: var(--kitsune-sheet) !important;
     color: var(--kitsune-text) !important;
     border: 0 !important;
     --toolbar-color: var(--kitsune-text) !important;
     --toolbarbutton-icon-fill: var(--kitsune-text) !important;
-    --toolbarbutton-hover-background: #293b2d0d !important;
-    --toolbarbutton-active-background: #293b2d18 !important;
+    --toolbarbutton-hover-background: var(--kitsune-hover) !important;
+    --toolbarbutton-active-background: var(--kitsune-press) !important;
     /* Gecko 154 consumes these canonical variables for hover/checked state. */
-    --toolbarbutton-background-color-hover: #293b2d14 !important;
-    --toolbarbutton-background-color-active: #293b2d24 !important;
+    --toolbarbutton-background-color-hover: var(--kitsune-hover) !important;
+    --toolbarbutton-background-color-active: var(--kitsune-press) !important;
     --focus-outline-color: var(--kitsune-focus) !important;
     --toolbarbutton-border-radius: 7px !important;
   }
@@ -129,59 +129,58 @@
   #main-window #urlbar-container { margin-inline: 9px !important; }
   #main-window #urlbar {
     --urlbar-min-height: 34px !important;
-    --toolbar-field-background-color: var(--kitsune-paper-raised) !important;
-    --toolbar-field-focus-background-color: var(--kitsune-paper-raised) !important;
+    --toolbar-field-background-color: var(--kitsune-field) !important;
+    --toolbar-field-focus-background-color: var(--kitsune-field) !important;
     --toolbar-field-color: var(--kitsune-text) !important;
     --toolbar-field-focus-color: var(--kitsune-text) !important;
-    --urlbarView-highlight-background: #2a443519 !important;
+    --urlbarView-highlight-background: var(--kb-primary-container) !important;
     --urlbarView-highlight-color: var(--kitsune-text) !important;
-    --urlbarView-secondary-text-color: #697368 !important;
-    --urlbarView-action-color: #526d5f !important;
+    --urlbarView-secondary-text-color: var(--kitsune-quiet) !important;
+    --urlbarView-action-color: var(--kb-secondary) !important;
     color: var(--kitsune-text) !important;
   }
   #main-window #urlbar .urlbar-background {
     border: 1px solid var(--kitsune-rule) !important;
     border-radius: 8px !important;
-    background: var(--kitsune-paper-raised) !important;
-    box-shadow: inset 0 1px #fff7 !important;
+    background: var(--kitsune-field) !important;
+    box-shadow: none !important;
   }
   #main-window #urlbar[focused]:not([suppress-focus-border]) > .urlbar-background {
     border-color: var(--kitsune-focus) !important;
-    outline: 2px solid color-mix(in srgb, var(--kitsune-focus) 14%, transparent) !important;
+    outline: 2px solid color-mix(in srgb, var(--kitsune-focus) 16%, transparent) !important;
     outline-offset: 1px !important;
   }
   #main-window #urlbar[open] > .urlbar-background {
     border-color: var(--kitsune-focus) !important;
     border-radius: 10px !important;
-    box-shadow: 0 8px 24px #10171325 !important;
+    background: var(--kitsune-sheet) !important;
+    box-shadow: 0 8px 24px color-mix(in srgb, var(--kb-text) 14%, transparent) !important;
   }
   #main-window #urlbar-input {
-    font: 450 12px "Inter", "Noto Sans", sans-serif !important;
+    font: 450 12px "Noto Sans", sans-serif !important;
     color: var(--kitsune-text) !important;
-    caret-color: var(--kitsune-text) !important;
+    caret-color: var(--kb-primary) !important;
   }
-  #main-window #urlbar-input::placeholder { color: #697368 !important; opacity: 1 !important; }
+  #main-window #urlbar-input::placeholder { color: var(--kitsune-quiet) !important; opacity: 1 !important; }
   #main-window .urlbarView { color: var(--kitsune-text) !important; border-top-color: var(--kitsune-rule) !important; }
-  #main-window .urlbarView-url { color: var(--kitsune-focus) !important; }
-  #main-window .urlbarView-row[selected] .urlbarView-row-inner { background: #2a443519 !important; }
+  #main-window .urlbarView-url { color: var(--kb-secondary) !important; }
+  #main-window .urlbarView-row[selected] .urlbarView-row-inner { background: var(--kb-primary-container) !important; }
   #main-window .urlbarView-row-inner { border-radius: 6px !important; }
 
   #main-window #PersonalToolbar {
-    background: var(--kitsune-paper) !important;
+    background: var(--kitsune-sheet) !important;
     color: var(--kitsune-text) !important;
     padding: 0 13px 5px !important;
-    --toolbarbutton-background-color-hover: #293b2d14 !important;
-    --toolbarbutton-background-color-active: #293b2d24 !important;
+    --toolbarbutton-background-color-hover: var(--kitsune-hover) !important;
+    --toolbarbutton-background-color-active: var(--kitsune-press) !important;
     --focus-outline-color: var(--kitsune-focus) !important;
   }
-  #main-window #PlacesToolbarItems > .bookmark-item:hover { background: #293b2d12 !important; }
+  #main-window #PlacesToolbarItems > .bookmark-item:hover { background: var(--kitsune-hover) !important; }
 
-  /* Private browsing is visibly distinct, not disguised as a normal window. */
+  /* El modo privado se distingue (jade), no se disfraza de ventana normal. */
   #main-window[privatebrowsingmode="temporary"] {
-    --kitsune-ink: #211d29;
-    --kitsune-paper: #e6dfec;
-    --kitsune-paper-raised: #f6f0fa;
-    --kitsune-focus: #695777;
+    --kitsune-wash: color-mix(in srgb, var(--kb-secondary) 16%, var(--kb-surface-high));
+    --kitsune-focus: var(--kb-secondary);
   }
 
   @media (max-width: 850px) {
@@ -194,8 +193,8 @@
     #main-window #nav-bar { padding-inline: 5px !important; }
     #main-window #urlbar-container { margin-inline: 2px !important; }
   }
-  /* Native vertical tabs keep their layout; signature migrates to navigation
-   * via the toolbar's own pseudo-element only when the tab toolbar is hidden. */
+  /* Pestañas verticales nativas: la firma pasa a la barra de navegación solo
+   * cuando la tira de pestañas está oculta. */
   #main-window #navigator-toolbox[tabs-hidden] > #nav-bar::before {
     content: "";
     flex: 0 0 28px;
@@ -204,29 +203,24 @@
     height: 28px;
     margin-inline: 2px 9px;
     background: url("assets/kitsune.svg") center / 26px 26px no-repeat;
-    filter: grayscale(1);
     pointer-events: none;
   }
   #main-window #navigator-toolbox[tabs-hidden] > #nav-bar > .titlebar-buttonbox-container {
     order: -3 !important;
-    --ink-window-close: #9a5548;
-    --ink-window-maximize: #7d7a72;
   }
   #main-window #navigator-toolbox[tabs-hidden] > #nav-bar .titlebar-button:focus-visible {
     outline-color: var(--kitsune-focus) !important;
   }
-  #main-window #navigator-toolbox[tabs-hidden] > #nav-bar .titlebar-button { color: var(--kitsune-paper-raised) !important; }
-  #main-window #navigator-toolbox[tabs-hidden] > #nav-bar .titlebar-button:is(:hover, :focus-visible) > .toolbarbutton-icon { filter: brightness(0.9); }
   #main-window:-moz-locale-dir(rtl) #TabsToolbar::before { background-position: right center; }
-  #main-window #tabbrowser-tabs[orient="vertical"] .tabbrowser-tab { color: var(--kitsune-paper) !important; }
+  #main-window #tabbrowser-tabs[orient="vertical"] .tabbrowser-tab { color: var(--kitsune-text) !important; }
   #main-window #tabbrowser-tabs[orient="vertical"] .tab-background {
     border-radius: 6px !important;
     background: transparent !important;
     border-color: transparent !important;
   }
   #main-window #tabbrowser-tabs[orient="vertical"] .tabbrowser-tab:is(:hover, [selected], [visually-selected]) .tab-background {
-    background: var(--kitsune-ink-raised) !important;
-    border-color: #e9e6dc26 !important;
+    background: var(--kitsune-wash-hover) !important;
+    border-color: var(--kitsune-rule) !important;
   }
   #main-window[uidensity="compact"] #tabbrowser-tabs[orient="horizontal"] { --tab-min-height: 32px !important; }
   #main-window[uidensity="compact"] #nav-bar { padding-block: 3px !important; }

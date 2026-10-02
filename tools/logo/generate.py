@@ -71,10 +71,29 @@ MASK_SVG = (f'<g transform="translate(101 104) scale(0.4) translate(-100 -100)" 
             f'<circle cx="100" cy="160" r="10" fill="{INK}"/></g>')
 
 # A 16 y 32 px el contorno fino desaparece: máscara llena de tinta con las orejas óxido.
-SMALL_SVG = (f'<path fill="{INK}" d="{_brush(RING, 3)}"/><path fill="{RUST}" d="{_brush(TIP, 2)}"/>'
-             f'<g transform="translate(101 104) scale(0.46) translate(-100 -100)">'
-             f'<path d="M100 178 L62 132 C50 112 48 84 56 52 L66 24 L92 58 L108 58 L134 24 L144 52 C152 84 150 112 138 132 Z" fill="{INK}"/>'
-             f'<path d="M70 46 L82 64 M130 46 L118 64" stroke="{RUST}" stroke-width="14" stroke-linecap="round"/></g>')
+# Anillo y máscara van por separado para el indicador de carga de las pestañas.
+SMALL_RING_SVG = f'<path fill="{INK}" d="{_brush(RING, 3)}"/><path fill="{RUST}" d="{_brush(TIP, 2)}"/>'
+SMALL_MASK_SVG = (f'<g transform="translate(101 104) scale(0.46) translate(-100 -100)">'
+                  f'<path d="M100 178 L62 132 C50 112 48 84 56 52 L66 24 L92 58 L108 58 L134 24 L144 52 C152 84 150 112 138 132 Z" fill="{INK}"/>'
+                  f'<path d="M70 46 L82 64 M130 46 L118 64" stroke="{RUST}" stroke-width="14" stroke-linecap="round"/></g>')
+SMALL_SVG = SMALL_RING_SVG + SMALL_MASK_SVG
+
+
+def _stroke() -> bytes:
+    """Trazo óxido de pincel (200×8) para la pestaña activa: se afila en los extremos."""
+    top, bottom = [], []
+    for i in range(41):
+        x = i * 5
+        taper = min(1.0, x / 18, (200 - x) / 18)
+        half = 2.6 * taper + 0.4
+        wobble = _fractal(x * 3, 11, 31) * 1.6
+        top.append((x, 4 - half + wobble))
+        bottom.append((x, 4 + half + wobble + _fractal(x * 3, 29, 47) * 0.8))
+    points = top + bottom[::-1]
+    d = "M" + " L".join(f"{x:.1f} {min(8.0, max(0.0, y)):.2f}" for x, y in points) + " Z"
+    return ('<svg xmlns="http://www.w3.org/2000/svg" width="200" height="8" viewBox="0 0 200 8" preserveAspectRatio="none">'
+            f'<path fill="{RUST}" d="{d}"/></svg>\n').encode()
+
 
 WORDMARK = ('<svg xmlns="http://www.w3.org/2000/svg" width="336" height="72" viewBox="0 0 336 72">'
             f'<text x="2" y="54" fill="{INK}" font-family="Noto Serif, serif" font-size="56" letter-spacing="3">kitsune</text>'
@@ -96,6 +115,9 @@ def build() -> dict[str, bytes]:
         "install/branding/icon-small.svg": small,
         "start/favicon.svg": small,
         "install/branding/wordmark.svg": WORDMARK.encode(),
+        "chrome/assets/kitsune-throbber-ring.svg": _svg(SMALL_RING_SVG),
+        "chrome/assets/kitsune-throbber-mask.svg": _svg(SMALL_MASK_SVG),
+        "chrome/assets/kitsune-stroke.svg": _stroke(),
     }
 
 
