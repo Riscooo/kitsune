@@ -7,6 +7,9 @@ const userJs = await readFile(new URL('../install/user.js', import.meta.url), 'u
 test('the profile template uses the light browser theme, as paper needs', () => {
   assert.match(userJs, /user_pref\("browser\.theme\.toolbar-theme", 1\);/);
   assert.match(userJs, /user_pref\("browser\.theme\.content-theme", 1\);/);
+  // Tinta es solo clara: el sistema no puede forzar prefers-color-scheme: dark en las webs.
+  assert.match(userJs, /user_pref\("ui\.systemUsesDarkTheme", 0\);/);
+  assert.doesNotMatch(userJs, /user_pref\("ui\.systemUsesDarkTheme", 1\);/);
 });
 
 test('version 0.5.0 «Tinta» bumps the branding revision so the engine copy is rebuilt with the new logo', async () => {
