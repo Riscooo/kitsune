@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Defensive, temporary-file tests for Kitsune's fixed appearance protocol."""
+"""Defensive, temporary-file tests for Kitsune's fixed appearance protocol (0.5, papel)."""
 
 import copy
 import importlib.util
@@ -30,9 +30,8 @@ class AppearanceTests(unittest.TestCase):
         self.state = self.root / "state"
         self.browser.mkdir(mode=0o700)
         self.state.mkdir(mode=0o700)
-        self.scheme = self.root / "scheme.json"
-        self.manager = appearance.AppearanceManager(self.browser, self.state, "default", scheme_file=self.scheme)
-        self.settings = {"accent": "blue", "wallpaper": "night", "themeSync": False, "art": True, "motion": True}
+        self.manager = appearance.AppearanceManager(self.browser, self.state, "default")
+        self.settings = {"motion": True}
 
     def tearDown(self):
         self.temporary.cleanup()
@@ -40,71 +39,38 @@ class AppearanceTests(unittest.TestCase):
     def refresh(self, **updates):
         return self.manager.refresh({**self.settings, **updates})
 
-    def write_scheme(self, color="#151820", primary="#bed8f8"):
-        values = {key: color for key in appearance.SCHEME_KEYS.values()}
-        values.update({"primary": primary, "onSurface": "#f1f4fa", "onSurfaceVariant": "#c2cada"})
-        self.scheme.write_text(json.dumps({"colours": values}))
+    def test_paper_palette_is_exactly_the_inkshadow_tokens(self):
+        expected = {"bg": "#f6f5f1", "surface": "#fbfaf7", "surfaceHigh": "#e8ece4", "text": "#252d2b",
+                    "muted": "#59625c", "outline": "#c7cdc4", "primary": "#963d32", "primaryContainer": "#eadfda",
+                    "secondary": "#496b60", "tertiary": "#73786f"}
+        self.assertEqual(appearance.PAPEL, expected)
+        self.assertEqual(self.refresh()["palette"], expected)
 
-    def test_wallpaper_synchronized_palettes_and_manual_palette_independence(self):
-        for wallpaper, palette in appearance.PALETTES.items():
-            result = self.refresh(themeSync=True, wallpaper=wallpaper)
-            self.assertEqual(result["source"], "wallpaper")
-            self.assertEqual(result["palette"], palette)
-            self.assertEqual(result["wallpaper"], wallpaper)
-        for accent, expected in (("blue", "night"), ("pink", "ember")):
-            for wallpaper in appearance.PALETTES:
-                result = self.refresh(accent=accent, wallpaper=wallpaper, themeSync=False)
-                self.assertEqual(result["source"], "manual")
-                self.assertEqual(result["palette"], appearance.PALETTES[expected])
+    def test_control_is_version_2_with_only_paper_fields(self):
+        self.refresh()
+        control = json.loads(self.manager.control.read_text())
+        self.assertEqual(control["version"], 2)
+        self.assertEqual(set(control), {"version", "palette", "motion", "googleRemember", "fingerprint"})
 
-    def test_desktop_scheme_changes_are_live_and_invalid_json_preserves_previous_palette(self):
-        self.write_scheme(primary="#b1c2ef")
-        first = self.refresh(accent="system")
-        self.write_scheme(primary="#a1d8df")
-        second = self.refresh(accent="system")
-        self.assertEqual(second["source"], "desktop")
-        self.assertNotEqual(first["palette"]["primary"], second["palette"]["primary"])
-        self.assertNotEqual(first["fingerprint"], second["fingerprint"])
-        self.scheme.write_text("{ incomplete fixture")
-        result = self.refresh(accent="system")
-        self.assertEqual(result["palette"], second["palette"])
-        self.assertIn("warning", result)
+    def test_legacy_nightfall_settings_are_ignored_not_rejected(self):
+        legacy = {"wallpaper": "veil", "accent": "pink", "themeSync": True, "art": False}
+        result = self.refresh(**legacy)
+        self.assertEqual(result["palette"], appearance.PAPEL)
+        self.assertEqual(result["fingerprint"], self.refresh()["fingerprint"])
+        for key in legacy:
+            self.assertNotIn(key, result)
 
-    def test_wrong_json_shapes_in_scheme_and_previous_control_are_recovered(self):
-        self.write_scheme()
-        first = self.refresh(accent="system")
-        for shape in ([], None, 42, "not a scheme", {"colours": []}):
-            self.scheme.write_text(json.dumps(shape))
-            with self.subTest(shape=type(shape).__name__):
-                result = self.refresh(accent="system")
-                self.assertEqual(result["palette"], first["palette"])
-                self.assertIn("warning", result)
-        self.manager.control.write_text("[]")
-        result = self.refresh(accent="system")
-        self.assertEqual(result["palette"], appearance.PALETTES["night"])
-        self.assertEqual(json.loads(self.manager.control.read_text())["version"], 1)
-
-    def test_invalid_colors_fall_back_without_publishing_unvalidated_values(self):
-        for invalid in ("not-a-color", "#12345", "#1234567", "#111111;unexpected", ["#123456"], 123456):
-            self.scheme.write_text(json.dumps({"colours": {"primary": invalid}}))
-            result = self.refresh(accent="system")
-            self.assertIn("warning", result)
-            for value in result["palette"].values():
-                self.assertRegex(value, r"^#[0-9a-f]{6}$")
-        for key, value in (("themeSync", "true"), ("art", 1), ("motion", None), ("wallpaper", "unknown"), ("accent", "unknown")):
+    def test_invalid_motion_is_rejected(self):
+        for value in ("true", 1, None):
             with self.assertRaises((ValueError, TypeError)):
-                self.refresh(**{key: value})
+                self.refresh(motion=value)
 
     def test_text_muted_and_primary_retain_45_contrast_over_every_surface(self):
-        palettes = list(appearance.PALETTES.values())
-        for shade in ("#ffffff", "#666666", "#707070", "#444444", "#111111"):
-            values = {key: shade for key in appearance.SCHEME_KEYS.values()}
-            palettes.append(appearance.desktop_palette({"colours": values}, appearance.PALETTES["night"]))
-        for index, palette in enumerate(palettes):
-            for foreground in ("text", "muted", "primary"):
-                for surface in ("bg", "surface", "surfaceHigh"):
-                    with self.subTest(palette=index, foreground=foreground, surface=surface):
-                        self.assertGreaterEqual(contrast(palette[foreground], palette[surface]), 4.5)
+        palette = appearance.PAPEL
+        for foreground in ("text", "muted", "primary"):
+            for surface in ("bg", "surface", "surfaceHigh"):
+                with self.subTest(foreground=foreground, surface=surface):
+                    self.assertGreaterEqual(contrast(palette[foreground], palette[surface]), 4.5)
 
     def test_corrupt_derived_control_recovers_and_unchanged_state_does_not_rewrite(self):
         first = self.refresh()
@@ -138,7 +104,7 @@ class AppearanceTests(unittest.TestCase):
         outside = self.root / "other-profile-fixture"
         outside.mkdir()
         (self.browser / "profiles").symlink_to(outside, target_is_directory=True)
-        manager = appearance.AppearanceManager(self.browser, self.state, "p-0123456789abcdef", scheme_file=self.scheme)
+        manager = appearance.AppearanceManager(self.browser, self.state, "p-0123456789abcdef")
         with self.assertRaises((ValueError, OSError)):
             manager.refresh(self.settings)
         self.assertEqual(list(outside.iterdir()), [])
@@ -165,15 +131,15 @@ class AppearanceTests(unittest.TestCase):
 
     def test_profiles_have_independent_controls_and_google_flags(self):
         identifier = "p-0123456789abcdef"
-        other = appearance.AppearanceManager(self.browser, self.state, identifier, scheme_file=self.scheme)
+        other = appearance.AppearanceManager(self.browser, self.state, identifier)
         registry = {"version": 2, "profiles": [{"id": "default", "rememberGoogle": False}, {"id": identifier, "rememberGoogle": True}]}
         (self.state / "profiles.json").write_text(json.dumps(registry))
         first = self.refresh()
-        second = other.refresh({**self.settings, "wallpaper": "ember", "themeSync": True})
+        second = other.refresh({**self.settings, "motion": False})
         self.assertFalse(first["googleRemember"])
         self.assertTrue(second["googleRemember"])
         self.assertNotEqual(self.manager.control, other.control)
-        self.assertNotEqual(first["palette"], second["palette"])
+        self.assertNotEqual(first["fingerprint"], second["fingerprint"])
         original = self.manager.control.read_bytes()
         other.refresh({**self.settings, "motion": False})
         self.assertEqual(self.manager.control.read_bytes(), original)

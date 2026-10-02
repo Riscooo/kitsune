@@ -12,34 +12,25 @@ let timer = null, busy = false, current = '', sheet = null, lastAck = 0, reporte
 const sheets = Cc['@mozilla.org/content/style-sheet-service;1'].getService(Ci.nsIStyleSheetService);
 const profileDirectory = () => Services.dirsvc.get('ProfD', Ci.nsIFile).path;
 
+const CONTROL_KEYS = Object.freeze(['version', 'fingerprint', 'palette', 'motion', 'googleRemember']);
+
 function validate(value) {
-  if (!value || typeof value !== 'object' || Array.isArray(value) || value.version !== 1 ||
+  if (!value || typeof value !== 'object' || Array.isArray(value) || value.version !== 2 ||
+      Object.keys(value).length !== CONTROL_KEYS.length || CONTROL_KEYS.some(key => !Object.hasOwn(value, key)) ||
       typeof value.fingerprint !== 'string' || !/^[a-f0-9]{64}$/.test(value.fingerprint) ||
-      !['night','veil','dusk','ember'].includes(value.wallpaper) ||
-      ['art','motion','themeSync','googleRemember'].some(key => typeof value[key] !== 'boolean') ||
+      ['motion','googleRemember'].some(key => typeof value[key] !== 'boolean') ||
       !value.palette || typeof value.palette !== 'object' || Array.isArray(value.palette) ||
       Object.keys(value.palette).length !== Object.keys(TOKENS).length ||
       Object.keys(TOKENS).some(key => typeof value.palette[key] !== 'string' || !/^#[0-9a-f]{6}$/.test(value.palette[key]))) throw Error('Invalid local appearance control');
   return value;
 }
 
+// Kitsune 0.5 «Tinta»: papel liso, sin imágenes de fondo.
 function nativeCss(value) {
   const variables = Object.entries(TOKENS).map(([key, name]) => `--kb-${name}:${value.palette[key]} !important;`).join('');
-  let background = 'none';
-  if (value.art) {
-    if (value.wallpaper === 'night' || value.wallpaper === 'veil') {
-      const file = Services.dirsvc.get('ProfD', Ci.nsIFile);
-      file.append('chrome'); file.append('assets');
-      file.append(value.wallpaper === 'night' ? 'kitsune-night.png' : 'anime-veil.webp');
-      const url = JSON.stringify(Services.io.newFileURI(file).spec);
-      background = `linear-gradient(90deg,color-mix(in srgb,var(--kb-bg) 85%,transparent),color-mix(in srgb,var(--kb-bg) 32%,transparent)),linear-gradient(0deg,var(--kb-bg),transparent 75%),url(${url})`;
-    } else {
-      background = value.wallpaper === 'dusk' ? 'radial-gradient(ellipse at 75% 20%,#684b8066,transparent 65%),linear-gradient(135deg,#151020,#382445)' : 'radial-gradient(ellipse at 80% 30%,#9c494966,transparent 65%),linear-gradient(135deg,#180f13,#49272e)';
-    }
-  }
   return `@-moz-document url("chrome://browser/content/browser.xhtml"),url("about:newtab"),url("about:home"),url("about:privatebrowsing"),url("about:downloads"),url-prefix("about:preferences"),url-prefix("about:addons"),url("about:protections"),url("about:logins"){ :root{${variables}} }
     @-moz-document url("about:newtab"),url("about:home"){
-      body{background-color:var(--kb-bg)!important;background-image:${background}!important;background-position:center!important;background-size:cover!important;background-attachment:fixed!important;}
+      body{background-color:var(--kb-bg)!important;background-image:none!important;}
       ${!value.motion ? '.logo-and-wordmark,.logo-and-wordmark .logo,.search-inner-wrapper{animation:none!important;transition:none!important;scale:none!important;}' : ''}
     }`;
 }

@@ -141,11 +141,14 @@ test('link edits merge with independent additions and do not overwrite same-link
   assert.deepEqual(editLinks(state, { id: 'absent', remove: true }), state)
 })
 
-const appearance = () => ({ version: 1, wallpaper: 'night', art: true, motion: true, themeSync: false, source: 'manual', fingerprint: 'a'.repeat(64), palette: Object.fromEntries(['bg', 'surface', 'surfaceHigh', 'text', 'muted', 'outline', 'primary', 'primaryContainer', 'secondary', 'tertiary'].map(key => [key, '#aabbcc'])), native: { available: true, status: 'queued' } })
-test('appearance validates all colors, booleans and fingerprint before CSS use', () => {
-  assert.equal(parseAppearance(appearance()).wallpaper, 'night')
+const appearance = () => ({ version: 2, motion: true, googleRemember: false, fingerprint: 'a'.repeat(64), palette: Object.fromEntries(['bg', 'surface', 'surfaceHigh', 'text', 'muted', 'outline', 'primary', 'primaryContainer', 'secondary', 'tertiary'].map(key => [key, '#aabbcc'])), native: { available: true, status: 'queued' } })
+test('appearance v2 validates all colors, motion and fingerprint before CSS use', () => {
+  assert.equal(parseAppearance(appearance()).version, 2)
   for (const invalid of ['red', '#fff', 'url(https://example.com)', 123, {}, null]) { const value = appearance(); value.palette.bg = invalid; assert.throws(() => parseAppearance(value)) }
-  for (const patch of [{ fingerprint: 'short' }, { themeSync: 'true' }, { art: 1 }, { wallpaper: 'unknown' }]) assert.throws(() => parseAppearance({ ...appearance(), ...patch }))
+  for (const patch of [{ fingerprint: 'short' }, { motion: 'true' }, { version: 1 }]) assert.throws(() => parseAppearance({ ...appearance(), ...patch }))
+})
+test('a Nightfall appearance response is rejected', () => {
+  assert.throws(() => parseAppearance({ ...appearance(), version: 1, wallpaper: 'night', art: true, themeSync: false, source: 'manual' }))
 })
 test('native theme success requires actual acknowledgement even in manual mode', () => {
   assert.match(appearanceStatus(appearance()), /Aplicando/u)

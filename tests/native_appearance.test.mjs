@@ -62,15 +62,15 @@ function fixture({ permissions = new Map(), preferences = new Map(), inherited =
 
 function control() {
   const keys = ['bg', 'surface', 'surfaceHigh', 'text', 'muted', 'outline', 'primary', 'primaryContainer', 'secondary', 'tertiary'];
-  return { version: 1, fingerprint: 'a'.repeat(64), wallpaper: 'night', themeSync: false, art: true, motion: true, googleRemember: false,
+  return { version: 2, fingerprint: 'a'.repeat(64), motion: true, googleRemember: false,
     palette: Object.fromEntries(keys.map(key => [key, '#123456'])) };
 }
 
-test('appearance control strictly requires string fingerprints and colors, booleans and known wallpaper', () => {
+test('appearance control v2 strictly requires its exact fields, string fingerprints, colors and booleans', () => {
   const { api } = fixture();
-  assert.equal(api.validate(control()).version, 1);
+  assert.equal(api.validate(control()).version, 2);
   for (const value of [null, [], 'control', 1]) assert.throws(() => api.validate(value));
-  for (const change of [{ fingerprint: ['a'.repeat(64)] }, { fingerprint: 1 }, { wallpaper: 'other' }, { art: 1 }, { motion: 'false' }, { googleRemember: null }, { palette: [] }]) {
+  for (const change of [{ fingerprint: ['a'.repeat(64)] }, { fingerprint: 1 }, { motion: 'false' }, { googleRemember: null }, { palette: [] }, { wallpaper: 'night' }]) {
     assert.throws(() => api.validate({ ...control(), ...change }));
   }
   for (const color of [['#123456'], 123456, '#ABCDEF', '#123456;ignored']) {
@@ -80,16 +80,22 @@ test('appearance control strictly requires string fingerprints and colors, boole
   }
 });
 
-test('native styles remain restricted to enumerated internal pages and fixed local assets', () => {
+test('a Nightfall (v1) control is rejected instead of half-applied', () => {
+  const { api } = fixture();
+  assert.throws(() => api.validate({ ...control(), version: 1, wallpaper: 'night', themeSync: false, art: true }));
+  assert.throws(() => api.validate({ ...control(), version: 1 }));
+});
+
+test('native styles remain restricted to enumerated internal pages and carry no background images', () => {
   const { api } = fixture();
   const css = api.nativeCss(api.validate(control()));
   assert.match(css, /url\("chrome:\/\/browser\/content\/browser.xhtml"\)/);
   assert.match(css, /url\("about:newtab"\)/);
-  assert.match(css, /temporary-kitsune-profile\/profile\/chrome\/assets\/kitsune-night.png/);
+  assert.doesNotMatch(css, /kitsune-night|anime-veil|file:/);
   assert.doesNotMatch(css, /url-prefix\("https?:|url\("https?:|@import/);
-  const noArt = api.nativeCss({ ...control(), art: false, motion: false });
-  assert.match(noArt, /background-image:none/);
-  assert.match(noArt, /animation:none/);
+  assert.match(css, /--kb-bg:#123456/);
+  const still = api.nativeCss({ ...control(), motion: false });
+  assert.match(still, /animation:none/);
 });
 
 test('on records only newly added exceptions; off removes exactly those', () => {
