@@ -1,9 +1,9 @@
 {
   "name": "kitsune-browser",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "private": true,
   "type": "module",
-  "description": "Kitsune Nightfall: branded Gecko browser, isolated profiles and a personal home",
+  "description": "Kitsune Tinta: branded Gecko browser, isolated profiles and a personal home",
   "scripts": {
     "build": "rolldown start/app.js --format iife --file start/app.bundle.js",
     "test": "node --test tests/*.test.mjs",
@@ -18,5 +18,7 @@
     "test:profile-photos": "python3 tests/profile_photos.py",
     "test:settings-ui": "python3 tests/settings_panels.py"
   },
-  "devDependencies": { "rolldown": "1.2.8" }
+  "devDependencies": {
+    "rolldown": "1.2.8"
+  }
 }

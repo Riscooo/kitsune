@@ -27,7 +27,7 @@ import zipfile
 
 
 # Bump when the resource transformation changes. Asset bytes are also hashed.
-REVISION = 3
+REVISION = 4
 BRAND_RESOURCE = re.compile(r"(?:^localization/[^/]+/branding/brand\.ftl$|^chrome/[^/]+/locale/branding/brand\.(?:dtd|properties)$)")
 ABOUT = "chrome/browser/content/browser/aboutDialog.xhtml"
 WINDOW = "chrome/browser/content/browser/browser.xhtml"
