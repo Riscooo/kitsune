@@ -46,76 +46,12 @@ elif [ -n "${profile_id}" ] && [ "${profile_id}" != "default" ]; then
 fi
 chrome_dir="${profile_dir}/chrome"
 start_dir="${browser_root}/start"
-scheme_file="${KITSUNE_SCHEME_FILE:-${XDG_STATE_HOME:-${HOME}/.local/state}/caelestia/scheme.json}"
-chrome_palette="${chrome_dir}/palette.css"
-start_palette="${start_dir}/palette.css"
-lock_file="${state_root}/palette.lock"
-
 mkdir -p "${chrome_dir}" "${start_dir}" "${state_root}" || exit 1
 chmod 700 "${profile_dir}" "${chrome_dir}" "${state_root}" 2>/dev/null || :
 
-write_palette() {
-    palette_target="$1"
-    # Avoid modifying the file when the wallpaper palette has not changed.
-    if [ -f "${palette_target}" ] &&
-       [ "$(cat "${palette_target}")" = "${palette_css}" ]; then
-        return 0
-    fi
-    palette_temp="$(mktemp "${palette_target}.tmp.XXXXXX")" || return 1
-    if ! printf '%s\n' "${palette_css}" > "${palette_temp}" ||
-       ! chmod 644 "${palette_temp}" ||
-       ! mv -f -- "${palette_temp}" "${palette_target}"; then
-        rm -f -- "${palette_temp}"
-        return 1
-    fi
-}
-
-sync_palette() {
-    command -v jq >/dev/null 2>&1 || return 0
-    [ -r "${scheme_file}" ] || return 0
-    # Parse one snapshot, not one read per color or per destination. Wallpaper
-    # changes during startup cannot mix two schemes within a generated palette.
-    palette_css="$(jq -er '
-        def color($name; $fallback):
-            .colours[$name] as $value
-            | if ($value | type) == "string" then
-                ($value | ltrimstr("#")) as $hex
-                | if ($hex | test("^[a-fA-F0-9]{6}$")) then $hex else $fallback end
-              else $fallback end;
-        if (.colours | type) != "object" then error("Invalid palette") else
-          [
-            ":root {",
-            "  --kb-bg: #" + color("background"; "00101c") + ";",
-            "  --kb-surface: #" + color("surfaceContainer"; "001c2d") + ";",
-            "  --kb-surface-high: #" + color("surfaceContainerHighest"; "00283f") + ";",
-            "  --kb-text: #" + color("onSurface"; "d1e8ff") + ";",
-            "  --kb-muted: #" + color("onSurfaceVariant"; "8aafcf") + ";",
-            "  --kb-outline: #" + color("outline"; "557997") + ";",
-            "  --kb-primary: #" + color("primary"; "65ccff") + ";",
-            "  --kb-primary-container: #" + color("primaryContainer"; "0cc0ff") + ";",
-            "  --kb-secondary: #" + color("secondary"; "39b4ff") + ";",
-            "  --kb-tertiary: #" + color("tertiary"; "989dff") + ";",
-            "}"
-          ] | join("\n")
-        end' "${scheme_file}" 2>/dev/null)" || return 0
-    write_palette "${chrome_palette}" || return 0
-    write_palette "${start_palette}" || return 0
-}
-
-if [ -f "${browser_root}/appearance.py" ]; then
-    # Kitsune 0.4's local service owns the chosen appearance and updates it
-    # live. Do not overwrite a manual/wallpaper theme with the desktop palette.
-    :
-elif command -v flock >/dev/null 2>&1; then
-    (
-        exec 9>"${lock_file}" || exit 0
-        flock -n 9 || exit 0
-        sync_palette
-    ) || :
-else
-    sync_palette || :
-fi
-
+# Kitsune 0.5 «Tinta»: la paleta es fija (papel de InkShadow) y la escribe la
+# instalación; el escritorio ya no la sobrescribe. --sync-palette-only se
+# conserva como orden vacía para que ningún hook antiguo abra el navegador.
 if [ "${1:-}" = "--sync-palette-only" ]; then
     exit 0
 fi

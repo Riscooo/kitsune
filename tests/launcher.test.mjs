@@ -30,41 +30,17 @@ async function setup() {
   return { root, data, state, scheme, env, profile, chrome, start, argsFile, run: (...args) => exec('/bin/sh', [launcher, ...args], { env }) };
 }
 
-test('one sanitized scheme snapshot writes matching atomic palettes without launching', async () => {
+test('the desktop scheme never rewrites the paper palette (Kitsune 0.5 «Tinta»)', async () => {
   const f = await setup();
+  const paper = ':root {\n  --kb-bg: #f6f5f1;\n}\n';
+  await mkdir(join(f.profile, 'chrome'), { recursive: true, mode: 0o700 });
+  await mkdir(join(f.data, 'kitsune-browser/start'), { recursive: true });
+  await writeFile(f.chrome, paper);
+  await writeFile(f.start, paper);
+  await f.run('https://example.com/');
   await f.run('--sync-palette-only');
-  const css = await readFile(f.chrome, 'utf8');
-  assert.equal(css, await readFile(f.start, 'utf8'));
-  assert.match(css, /--kb-bg: #112233;/);
-  assert.match(css, /--kb-primary: #AABBCC;/);
-  assert.match(css, /--kb-secondary: #39b4ff;/);
-  await assert.rejects(stat(f.argsFile), { code: 'ENOENT' });
-  assert.equal((await stat(f.profile)).mode & 0o777, 0o700);
-  assert.ok((await readdir(join(f.profile, 'chrome'))).every(name => !name.includes('.tmp.')));
-});
-
-test('invalid CSS values fall back and malformed JSON preserves the last valid palette', async () => {
-  const f = await setup();
-  await writeFile(f.scheme, JSON.stringify({ colours: { background: 'red; color:red', primary: {}, onSurface: null } }));
-  await f.run('--sync-palette-only');
-  const css = await readFile(f.chrome, 'utf8');
-  assert.match(css, /--kb-bg: #00101c;/);
-  assert.doesNotMatch(css, /color:red/);
-  await writeFile(f.scheme, '{ "colours":');
-  await f.run('--sync-palette-only');
-  assert.equal(await readFile(f.chrome, 'utf8'), css);
-  assert.equal(await readFile(f.start, 'utf8'), css);
-});
-
-test('unchanged and concurrent launches do not rewrite or truncate palettes', async () => {
-  const f = await setup();
-  await f.run('--sync-palette-only');
-  const initial = await stat(f.chrome);
-  await Promise.all(Array.from({ length: 10 }, () => f.run('--sync-palette-only')));
-  const current = await stat(f.chrome);
-  assert.equal(current.ino, initial.ino);
-  assert.equal(current.mtimeMs, initial.mtimeMs);
-  assert.equal(await readFile(f.chrome, 'utf8'), await readFile(f.start, 'utf8'));
+  assert.equal(await readFile(f.chrome, 'utf8'), paper);
+  assert.equal(await readFile(f.start, 'utf8'), paper);
 });
 
 test('URL arguments and native flags remain separate and preserve text exactly', async () => {
