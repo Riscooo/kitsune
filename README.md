@@ -1,48 +1,53 @@
-# Kitsune 0.4 · Nightfall
+# Kitsune 0.5 · Tinta
 
 Rediseño de Kitsune sobre el LibreWolf instalado (Gecko 154.0-2). No es una
 imitación con iframes: las pestañas, extensiones firmadas, navegación, permisos,
 certificados, marcadores, descargas y herramientas de desarrollo siguen siendo
 las funciones nativas del navegador.
 
-## Qué cambia
+## Estética «Tinta»
 
-- Inicio más limpio, con reloj y accesos que se pueden desactivar por separado.
-  Personalización en tres secciones: Apariencia, Módulos y Navegación. Los
-  botones de configuración abren ajustes reales del perfil elegido.
-- Cuatro fondos. «Combinar tema y fondo» aplica una paleta legible al inicio,
-  barra y pestañas internas ya abiertas. Desactivado, conserva el color manual
-  o sigue el escritorio en directo, incluso sin tener abierto el inicio.
-- Fotos de perfil locales PNG/JPEG/WebP, recortadas a 256 px y guardadas como
-  PNG sin metadatos. No se envían a servicios externos. Se pueden quitar y
-  recuperar las iniciales sin cambiar las sesiones del perfil.
-- «Recordar sesión de Google» por perfil, con confirmación del navegador y
-  persistencia comprobada tras cierre completo usando cookies ficticias.
-- Marco oscuro, pestañas redondeadas, barra de direcciones despejada, paneles y
-  modo privado diferenciados. Sin barridos luminosos permanentes ni capas sobre
-  los indicadores de seguridad.
-- Inicio con ilustración nocturna original, búsqueda Google, modos de imágenes,
-  vídeos y mapas, direcciones web reales y acceso a servidores localhost.
-- Accesos locales editables, validación de URL, personalización de acento y fondo,
-  modo enfoque, diálogos accesibles, navegación de teclado y movimiento reducido.
-- Google como búsqueda nativa normal y privada. Se repara el motor antiguo que
-  tenía `?{searchTerms}` en lugar de `?q={searchTerms}`; las preferencias obsoletas
-  que no seleccionaban realmente el motor se eliminan.
-- Launcher con rutas correctamente codificadas
-  y argumentos separados. Asociaciones MIME en la sección correcta del `.desktop`.
-- Selector de hasta 24 perfiles reales: nombre, correo como etiqueta local,
-  foto o avatar de color, edición, apertura independiente y perfil predeterminado.
-  Cada perfil mantiene su propio inicio, historial, sesiones y marcadores.
-- Títulos, logotipos internos y menú de información identificados como Kitsune.
-  Los títulos originales de las webs no se alteran. Se conservan los créditos
-  del motor, las licencias y la identidad técnica utilizada por los sitios.
-- Panel de extensiones corregido para los tokens actuales de Gecko 154:
-  superficie oscura y bordes redondeados, sin tapar avisos ni permisos.
-- Logo con flotación suave y reacción al pasar el ratón, tanto en el inicio
-  personalizable como en la nueva pestaña nativa. Conserva el dibujo y los
-  iconos estáticos de pestañas/escritorio; no añade scripts ni recursos externos.
-  Respeta el movimiento reducido del sistema. En el inicio también se puede
-  desactivar desde Personalizar inicio → Animaciones suaves.
+Una sola estética en todo el navegador, la misma de InkShadow: papel, tinta y
+óxido. Sin variantes, fondos ni acentos que elegir. Los diez colores son fijos:
+
+| Token | Color | Uso |
+|---|---|---|
+| papel | `#f6f5f1` | fondo de páginas e inicio |
+| elevado | `#fbfaf7` | pestaña activa, barra de navegación, paneles |
+| lavado | `#e8ece4` | tira de pestañas |
+| tinta | `#252d2b` | texto y logo |
+| secundario | `#59625c` | texto apagado |
+| línea | `#c7cdc4` | bordes |
+| óxido | `#963d32` | acento, cierre, foco |
+| óxido suave | `#eadfda` | selección |
+| jade | `#496b60` | modo privado y enlaces |
+| apagado | `#73786f` | iconos secundarios |
+
+Tipografías: Noto Sans en la interfaz y Noto Serif en títulos, saludo y «kitsune».
+
+## Qué cambia en 0.5
+
+- **Logo nuevo:** un ensō de pincel con la máscara kitsune dentro. Se genera de
+  forma determinista con `tools/logo/generate.py` (la textura de pincel va en la
+  geometría, sin filtros) y de ahí salen el icono, el favicon, la marca de la barra
+  y los iconos del escritorio. A 16 y 32 px la máscara va llena de tinta.
+- **Indicador de carga:** en las pestañas que cargan solo gira el ensō; la máscara
+  queda quieta. Con movimiento reducido el anillo late en vez de girar.
+- **Barra del navegador:** tira de pestañas en lavado, pestaña activa de papel con
+  un trazo óxido de pincel arriba, barra de direcciones de papel, botones de
+  ventana óxido y gris, modo privado en jade.
+- **Páginas internas:** nueva pestaña, ajustes, complementos, descargas,
+  protecciones y modo lectura en papel, con los tokens de Gecko 154 (acento,
+  botones, foco y enlaces) llevados a óxido y jade. Las páginas de error de
+  seguridad no se tocan.
+- **Inicio «B · Caligrafía»:** logo grande, «Bienvenido, {perfil}» en serif, fecha
+  y hora en una línea, buscador de papel con botón de tinta y accesos como sellos
+  hanko que alternan óxido y tinta. Al abrir, la tinta se posa (≤ 400 ms).
+  Personalizar inicio → Apariencia solo ofrece las animaciones suaves.
+- Fuera la ilustración Nightfall, los cuatro fondos, los acentos y la
+  sincronización con la paleta del escritorio: el tema ya no cambia con caelestia.
+- Se mantienen perfiles, fotos, «Recordar sesión de Google», búsqueda Google,
+  modos de búsqueda, accesos editables, modo enfoque, atajos y movimiento reducido.
 
 La nueva pestaña nativa conserva su propio buscador Google. La página de inicio
 personalizable se abre con `Alt+Inicio`, o con la acción
@@ -135,7 +140,22 @@ npm run test:profiles-ui
 npm run test:accounts
 npm run test:profiles-native
 npm run test:logo-motion
+npm run test:settings-ui
+python3 tests/header_native.py
+python3 tests/window_chrome.py
+python3 tests/appearance_native.py --browser <motor-Kitsune>
+python3 tests/native_branding_smoke.py --runtime-root <carpeta-temporal>
 ```
+
+Resultado 0.5 «Tinta» (3 de octubre de 2026): 78 pruebas JS y 83 Python; 12 pruebas
+nativas superadas, todas con perfiles temporales (navegador, ajustes, apariencia
+con el motor 0.5, animación, cabecera, controles de ventana, marca, perfiles,
+cuentas, persistencia, fotos y apertura nativa de perfiles). Las pruebas de CSS
+exigen que el chrome, las páginas internas y el inicio usen solo los tokens de
+papel (y las tintas de perfil en el inicio), que los paneles nativos, la nueva
+pestaña (Nova) y la navegación privada no conserven el azul o el violeta de Gecko,
+y que los recursos del logo coincidan byte a byte con lo que genera
+`tools/logo/generate.py`.
 
 La cobertura de 0.4 añade pruebas de migración v1/v2, fotos, revisiones y errores
 de guardado, preferencias de apariencia y política nativa de Google. Las
@@ -214,8 +234,10 @@ El módulo solo lee colores/opciones validados de un archivo privado y aplica
 estilos a páginas internas y la opción enumerada de conservación de Google.
 No abre puertos, recibe código de páginas web ni ejecuta CSS/URLs arbitrarios.
 El servicio y el módulo intercambian un acuse con huella y caducidad para no
-mostrar como aplicado un cambio pendiente. Los PNG de marca son
-conversiones deterministas del SVG de Kitsune; no se generó una ilustración nueva.
+mostrar como aplicado un cambio pendiente. Desde 0.5 el archivo de control es la
+versión 2 (`{version, palette, motion, googleRemember, fingerprint}`, siempre con la
+paleta de papel); un archivo antiguo se rechaza sin aplicar nada. Los PNG de marca
+son conversiones deterministas de los SVG generados por `tools/logo/generate.py`.
 Los ejecutables, las políticas de seguridad, el agente de usuario y la identidad
 interna de Gecko se mantienen. `/usr/lib/librewolf` no se modifica.
 
@@ -236,12 +258,23 @@ responsabilidad del gestor de paquetes del sistema.
 - Inicio: `/home/risco/.local/share/kitsune-browser/start`.
 - Ajustes locales: `/home/risco/.local/state/kitsune-browser/home.json`.
 - Lanzador: `/home/risco/.local/bin/kitsune-browser`.
+- Copia completa previa a 0.5: `/home/risco/.local/share/kitsune-0.5-backup.VzI1GN`
+  (perfil, inicio, plantillas, estado, lanzador y servicios; el motor no se copia
+  porque las versiones anteriores siguen en `runtime/`).
 - Copia completa previa a 0.4: `/home/risco/.local/share/kitsune-0.4-backup.9KgDBM`.
 - Copia previa a 0.3: `/home/risco/.local/share/kitsune-0.3-backup.JXUF2K`.
 - Copia de los estilos previos al logo animado: `/home/risco/.local/share/kitsune-logo-backup.zmcq6K`.
 - Copia previa a 0.2: `/home/risco/.local/share/kitsune-redesign-backup.n1vv7x`.
 
-La actualización 0.4 reemplaza el inicio, las hojas de estilo, el lanzador,
+La actualización 0.5 reemplaza el inicio, el chrome de la plantilla y del perfil,
+el backend de apariencia, el módulo nativo, la marca y el lanzador, y prepara el
+motor `154.0-2-kitsune4`. El `user.js` del perfil pasa a ser el de la plantilla
+(tema claro) más las marcas `kitsune.migrations.*` que ya tenía; el buscador, las
+extensiones, marcadores, historial, sesiones y la conservación de Google no se
+tocan. La paleta deja de seguir a caelestia: `--sync-palette-only` queda como una
+salida sin efecto para no romper llamadas antiguas.
+
+La actualización 0.4 reemplazó el inicio, las hojas de estilo, el lanzador,
 los servicios locales y el puente con Vela (compatible con el registro v2).
 Actualiza las plantillas limpias y añade el módulo nativo de apariencia y
 conservación de Google en la copia privada del motor. Conserva
@@ -256,11 +289,15 @@ El servidor y las fotos requieren Python 3 con Pillow (comprobado con Python
 3.14 y Pillow 12.3 del equipo). La interfaz se compila con `npm run build`;
 Node y el compilador no son necesarios para navegar con la app instalada.
 
-## Ilustración
+## Logo
 
-Generada con la herramienta integrada de imágenes, sin API externa configurada
-por el usuario. Archivo final: `start/kitsune-night.png`, copiado también a
-`chrome/assets/kitsune-night.png`. Prompt de producción en `ARTWORK.md`.
+`tools/logo/generate.py` dibuja el ensō, la máscara kitsune, las capas del indicador
+de carga, el trazo de la pestaña activa, la marca y el sello hanko del inicio sin
+dependencias y de forma determinista: la textura de pincel se hornea en la geometría
+(ruido de valor fijo), así que los SVG no llevan filtros y se ven igual en todas
+partes. `python3 tools/logo/generate.py` reescribe los SVG y
+`sh install/render-branding-assets.sh` los PNG. La ilustración Nightfall de 0.4 se
+retiró con su fondo; sigue en el historial de git y en la copia previa a 0.5.
 
 ## Referencias técnicas
 

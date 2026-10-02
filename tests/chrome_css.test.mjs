@@ -105,3 +105,11 @@ test('the private browsing page is paper and jade: search field, info box and pr
   assert.match(block, /\.info-border \{[^}]*background:\s*(transparent|none)/s);
   assert.match(block, /\.promo-cta \.primary \{[^}]*background(-color)?:\s*var\(--kb-secondary\)/s);
 });
+
+test('the native new tab maps Nova design tokens (violet accent, button ring, icons) to paper tokens', async () => {
+  const css = await read('userContent.css');
+  const block = css.match(/@-moz-document url\("about:newtab"\), url\("about:home"\) \{([\s\S]*?)\n\}/)?.[1] ?? '';
+  for (const token of ['--color-accent-primary', '--button-border-color', '--button-border-color-hover', '--icon-color', '--focus-outline-color', '--border-color-interactive']) {
+    assert.match(block, new RegExp(`${token}:\\s*var\\(--kb-[a-z-]+\\)`), `${token} sin mapear en la nueva pestaña`);
+  }
+});

@@ -34,7 +34,25 @@
     --newtab-contextmenu-button-color: var(--kb-text) !important;
     --newtab-contextmenu-button-hover-color: var(--kb-surface-high) !important;
     --newtab-modal-color: var(--kb-surface) !important;
+    /* Nova (Gecko 154) pinta el acento, los aros de botón y los iconos en violeta. */
+    --color-accent-primary: var(--kb-primary) !important;
+    --color-accent-primary-hover: color-mix(in srgb, var(--kb-primary) 86%, var(--kb-text)) !important;
+    --color-accent-primary-active: color-mix(in srgb, var(--kb-primary) 76%, var(--kb-text)) !important;
+    --button-border-color: var(--kb-outline) !important;
+    --button-border-color-hover: var(--kb-muted) !important;
+    --border-color: var(--kb-outline) !important;
+    --border-color-interactive: var(--kb-outline) !important;
+    --icon-color: var(--kb-text) !important;
+    --text-color: var(--kb-text) !important;
+    --text-color-deemphasized: var(--kb-muted) !important;
+    --focus-outline-color: var(--kb-primary) !important;
+    --link-color: var(--kb-secondary) !important;
     font-family: "Noto Sans", system-ui, sans-serif !important;
+  }
+  moz-button {
+    --button-border-color: var(--kb-outline) !important;
+    --button-border-color-hover: var(--kb-muted) !important;
+    --icon-color: var(--kb-text) !important;
   }
 
   body {
