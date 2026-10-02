@@ -200,10 +200,63 @@
     border-top: 4px solid var(--kb-secondary) !important;
     font-family: "Noto Sans", system-ui, sans-serif !important;
   }
+  /* Gecko 154 fija morados y color-scheme oscuro en html.private (modo clásico y
+     Nova): se pasan a papel con el jade del modo privado para que todo se lea. */
+  html.private {
+    color-scheme: light !important;
+    background: var(--kb-bg) !important;
+    color: var(--kb-text) !important;
+    --background-color-canvas: var(--kb-bg) !important;
+    --text-color-deemphasized: var(--kb-muted) !important;
+    --link-color: var(--kb-secondary) !important;
+    --link-color-hover: color-mix(in srgb, var(--kb-secondary) 80%, var(--kb-text)) !important;
+    --link-color-active: var(--kb-text) !important;
+    --color-accent-primary: var(--kb-secondary) !important;
+    --in-content-banner-background: var(--kb-surface-high) !important;
+    --in-content-banner-text-color: var(--kb-text) !important;
+  }
+  html.private body::before { opacity: .12 !important; }
+  content-search-handoff-ui {
+    --content-search-handoff-ui-background-color: var(--kb-surface) !important;
+    --content-search-handoff-ui-color: var(--kb-text) !important;
+    --content-search-handoff-ui-fill: var(--kb-muted) !important;
+    --content-search-handoff-ui-caret-color: var(--kb-secondary) !important;
+    --content-search-handoff-ui-border-width: 1px !important;
+    --content-search-handoff-ui-unfocused-border-color: var(--kb-outline) !important;
+    --content-search-handoff-ui-fakefocus-border-color: var(--kb-secondary) !important;
+    --content-search-handoff-ui-fakefocus-box-shadow-inner: var(--kb-secondary) !important;
+    --content-search-handoff-ui-fakefocus-box-shadow-outer: color-mix(in srgb, var(--kb-secondary) 25%, transparent) !important;
+  }
+  .info-border {
+    background: transparent !important;
+    box-shadow: none !important;
+  }
+  .info {
+    background-color: var(--kb-surface) !important;
+    border: 1px solid var(--kb-outline) !important;
+    box-shadow: none !important;
+    color: var(--kb-text) !important;
+  }
+  .promo-visible,
+  .promo.top,
+  .promo.below-search.promo-visible {
+    background-color: var(--kb-surface) !important;
+    border-color: var(--kb-outline) !important;
+    color: var(--kb-text) !important;
+  }
+  .promo-cta .primary {
+    background-color: var(--kb-secondary) !important;
+    color: var(--kb-surface) !important;
+  }
+  .promo-cta .primary:hover,
+  .promo-cta .primary:hover:active {
+    background-color: color-mix(in srgb, var(--kb-secondary) 85%, var(--kb-text)) !important;
+    color: var(--kb-surface) !important;
+  }
   .search-inner-wrapper,
   .info,
   .promo { border-radius: 10px !important; }
-  /* La máscara privada, los textos, avisos y enlaces siguen siendo los nativos. */
+  /* La máscara privada, los textos y los avisos siguen siendo los nativos. */
 }
 
 @-moz-document url("about:downloads"), url-prefix("about:preferences"), url-prefix("about:addons"), url("about:protections"), url("about:logins") {

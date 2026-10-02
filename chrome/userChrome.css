@@ -12,6 +12,23 @@
   --kb-hover: color-mix(in srgb, var(--kb-text) 6%, var(--kb-surface));
   --kb-selected: var(--kb-primary-container);
   --kb-shadow: color-mix(in srgb, var(--kb-text) 14%, transparent);
+  /* Gecko 154 design tokens: every panel (translations, permissions, menus)
+     inherits rust instead of system blue; jade in private windows. */
+  --color-accent-primary: var(--kb-accent) !important;
+  --color-accent-primary-hover: color-mix(in srgb, var(--kb-accent) 86%, var(--kb-text)) !important;
+  --color-accent-primary-active: color-mix(in srgb, var(--kb-accent) 76%, var(--kb-text)) !important;
+  --button-background-color-primary: var(--kb-accent) !important;
+  --button-background-color-primary-hover: color-mix(in srgb, var(--kb-accent) 86%, var(--kb-text)) !important;
+  --button-background-color-primary-active: color-mix(in srgb, var(--kb-accent) 76%, var(--kb-text)) !important;
+  --button-text-color-primary: var(--kb-surface) !important;
+  --button-text-color-primary-hover: var(--kb-surface) !important;
+  --button-text-color-primary-active: var(--kb-surface) !important;
+  --button-background-color: var(--kb-surface-high) !important;
+  --button-background-color-hover: color-mix(in srgb, var(--kb-text) 8%, var(--kb-surface-high)) !important;
+  --button-text-color: var(--kb-text) !important;
+  --focus-outline-color: var(--kb-accent) !important;
+  --link-color: var(--kb-secondary) !important;
+  --link-color-hover: color-mix(in srgb, var(--kb-secondary) 80%, var(--kb-text)) !important;
   --toolbar-bgcolor: var(--kb-bg) !important;
   --toolbar-background-color: var(--kb-bg) !important;
   --toolbar-color: var(--kb-text) !important;

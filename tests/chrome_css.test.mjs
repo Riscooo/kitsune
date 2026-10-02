@@ -87,3 +87,21 @@ test('internal pages map Gecko 154 design tokens (accent, buttons, focus) to rus
     assert.match(block, new RegExp(`${token}:\\s*var\\(--kb-(primary|secondary)\\)`), `${token} sin mapear`);
   }
 });
+
+test('every chrome panel maps Gecko 154 accent, primary button and focus tokens to rust (jade in private windows)', async () => {
+  const css = await read('userChrome.css');
+  const root = css.match(/\n:root \{([\s\S]*?)\n\}/)?.[1] ?? '';
+  for (const token of ['--color-accent-primary', '--button-background-color-primary', '--button-text-color-primary', '--focus-outline-color', '--link-color']) {
+    assert.match(root, new RegExp(`${token}:\\s*var\\(--kb-(accent|surface|secondary)\\)`), `${token} sin mapear en :root`);
+  }
+});
+
+test('the private browsing page is paper and jade: search field, info box and promo never keep Gecko purple', async () => {
+  const css = await read('userContent.css');
+  const block = css.match(/@-moz-document url\("about:privatebrowsing"\) \{([\s\S]*?)\n\}/)?.[1] ?? '';
+  assert.match(block, /html\.private \{[^}]*color-scheme:\s*light[^}]*background:\s*var\(--kb-bg\)/s);
+  assert.match(block, /content-search-handoff-ui \{[^}]*--content-search-handoff-ui-background-color:\s*var\(--kb-surface\)[^}]*--content-search-handoff-ui-color:\s*var\(--kb-text\)/s);
+  assert.match(block, /\.info \{[^}]*background(-color)?:\s*var\(--kb-surface\)/s);
+  assert.match(block, /\.info-border \{[^}]*background:\s*(transparent|none)/s);
+  assert.match(block, /\.promo-cta \.primary \{[^}]*background(-color)?:\s*var\(--kb-secondary\)/s);
+});

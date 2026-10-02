@@ -490,18 +490,16 @@ def start_function_checks(driver, start_url, start_origin, checks):
         checks.append("Fallo PUT 503 al eliminar: conserva el acceso y el estado confirmado")
 
         driver.click("#settings-open")
-        for selector in ("#art-toggle", "#motion-toggle"):
-            driver.click(selector)
-        driver.click('button[data-accent="pink"]')
+        driver.click("#motion-toggle")
         driver.click('[data-settings-tab="navigation"]')
         driver.click("#newtab-toggle")
         driver.shortcut("\ue00c")
         eventually(lambda: driver.script("return !document.querySelector('#settings-dialog').open"))
-        eventually(lambda: api_settings(start_origin)["data"]["accent"] == "pink")
+        eventually(lambda: api_settings(start_origin)["data"]["newTab"] is True and api_settings(start_origin)["data"]["motion"] is False)
         driver.command("POST", "/refresh", {})
         wait_start(driver)
-        settings = driver.script("return {art:document.body.dataset.art,motion:document.body.dataset.motion,accent:document.body.dataset.accent,newTab:[...document.querySelectorAll('#quick-links a')].every(link=>link.target==='_blank' && link.rel.includes('noopener'))}")
-        assert settings == {"art": "off", "motion": "off", "accent": "pink", "newTab": True}, settings
+        settings = driver.script("return {motion:document.body.dataset.motion,newTab:[...document.querySelectorAll('#quick-links a')].every(link=>link.target==='_blank' && link.rel.includes('noopener'))}")
+        assert settings == {"motion": "off", "newTab": True}, settings
         driver.click("#focus-toggle")
         eventually(lambda: api_settings(start_origin)["data"]["focus"] is True)
         driver.command("POST", "/refresh", {})
@@ -510,14 +508,12 @@ def start_function_checks(driver, start_url, start_origin, checks):
         driver.click("#focus-toggle")
         driver.click("#settings-open")
         driver.click('[data-settings-tab="appearance"]')
-        for selector in ("#art-toggle", "#motion-toggle"):
-            driver.click(selector)
-        driver.click('button[data-accent="blue"]')
+        driver.click("#motion-toggle")
         driver.click('[data-settings-tab="navigation"]')
         driver.click("#newtab-toggle")
         driver.shortcut("\ue00c")
-        eventually(lambda: api_settings(start_origin)["data"]["accent"] == "blue")
-        checks.append("Preferencias, acento, apertura en pestaña y modo enfoque persistentes")
+        eventually(lambda: api_settings(start_origin)["data"]["motion"] is True and api_settings(start_origin)["data"]["newTab"] is False)
+        checks.append("Movimiento, apertura en pestaña y modo enfoque persistentes")
 
         driver.click(".clock-module")
         driver.shortcut("/")
@@ -613,9 +609,8 @@ def restart_retention_check(driver, profile, evidence, start_origin, options, ch
     eventually(lambda: not driver.script("return document.querySelector('#link-dialog').open"))
     driver.click("#settings-open")
     driver.click("#motion-toggle")
-    driver.click('button[data-accent="pink"]')
     driver.shortcut("\ue00c")
-    eventually(lambda: api_settings(start_origin)["data"]["accent"] == "pink")
+    eventually(lambda: api_settings(start_origin)["data"]["motion"] is False)
     before = api_settings(start_origin)
     assert any(link["name"] == "Conservado tras reinicio" for link in before["data"]["links"])
 
@@ -640,9 +635,9 @@ def restart_retention_check(driver, profile, evidence, start_origin, options, ch
         driver = WebDriver(profile, evidence, options.browser, options.driver, options.headed)
         driver.navigate(start_url)
         wait_start(driver)
-        restored = driver.script("""return {accent:document.body.dataset.accent,motion:document.body.dataset.motion,
+        restored = driver.script("""return {motion:document.body.dataset.motion,
           link:[...document.querySelectorAll('#quick-links .link-name')].some(name=>name.textContent==='Conservado tras reinicio')};""")
-        assert restored == {"accent": "pink", "motion": "off", "link": True}, restored
+        assert restored == {"motion": "off", "link": True}, restored
         driver.navigate(other_file.as_uri())
         file_after = driver.script("return localStorage.getItem('kitsune-privacy-fixture')")
         driver.navigate(other_url)

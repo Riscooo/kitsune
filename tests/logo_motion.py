@@ -71,26 +71,29 @@ def main():
           width:r.width,height:r.height,animations:e.getAnimations().map(a=>({name:a.animationName,time:a.currentTime,
           duration:a.effect.getTiming().duration,iterations:String(a.effect.getTiming().iterations),state:a.playState}))};""", selector)
 
-    def motion(selector, name, label):
+    def settle(selector, name, label):
+        """«La tinta se posa»: una sola aparición corta (≤ 400 ms) de opacidad y desenfoque.
+        Se repite la animación real para comprobar que su reloj avanza y la opacidad cambia."""
         eventually(lambda: sample(selector)["animation"] == name)
+        state = sample(selector)
+        ink = next(item for item in state["animations"] if item["name"] == name)
+        assert ink["duration"] <= 400 and ink["iterations"] == "1", state
         values = js("""const [selector,name]=arguments,done=arguments[arguments.length-1],e=document.querySelector(selector);
           const a=e.getAnimations().find(a=>a.animationName===name),result=[],start=performance.now();
-          function tick(){result.push({at:performance.now(),time:a.currentTime,transform:getComputedStyle(e).transform});
-            if(performance.now()-start>=420)done(result);else requestAnimationFrame(tick)}tick();""", selector, name, asynchronous=True)
-        assert values[-1]["time"] > values[0]["time"] + 200, values
-        assert len({item["transform"] for item in values}) > 1, values
-        state = sample(selector)
-        floating = next(item for item in state["animations"] if item["name"] == name)
-        assert floating["duration"] == 6000 and floating["iterations"] == "Infinity", state
+          a.currentTime=0;a.play();
+          function tick(){const s=getComputedStyle(e);result.push({at:performance.now(),time:a.currentTime,opacity:s.opacity,filter:s.filter});
+            if(performance.now()-start>=520)done(result);else requestAnimationFrame(tick)}tick();""", selector, name, asynchronous=True)
+        assert len({item["opacity"] for item in values}) > 2, values
+        assert values[-1]["opacity"] == "1" and values[-1]["filter"] in ("none", "blur(0px)"), values[-1]
         report["samples"][label] = {"first": values[0], "last": values[-1], "style": state}
-        report["checks"].append(label + ": real animation clock advances and transform changes; 6s infinite")
-        print("PASS " + label + ": real motion rendered", flush=True)
+        report["checks"].append(label + ": ink settles once (opacity and blur, <=400 ms) on the real animation clock")
+        print("PASS " + label + ": ink settles", flush=True)
 
-    def hover(selector, target_scale):
+    def hover(selector, target):
         driver.context("content")
         driver.command("POST", "/actions", {"actions": [{"type": "pointer", "id": "logo-mouse", "parameters": {"pointerType": "mouse"}, "actions": [{"type": "pointerMove", "duration": 100, "origin": {"element-6066-11e4-a52e-4f735466cecf": driver.element(selector)}, "x": 0, "y": 0}]}]})
         driver.command("DELETE", "/actions")
-        eventually(lambda: abs(float(sample('.brand img' if selector == '.brand' else '.logo-and-wordmark .logo')["scale"]) - target_scale) < .005)
+        eventually(lambda: js("return getComputedStyle(document.querySelector('.brand img')).rotate") == target)
 
     def unhover():
         driver.command("POST", "/actions", {"actions": [{"type": "pointer", "id": "logo-mouse", "parameters": {"pointerType": "mouse"}, "actions": [{"type": "pointerMove", "duration": 0, "origin": "viewport", "x": 1, "y": 1}]}]})
@@ -114,11 +117,9 @@ def main():
         assert js("return document.body.dataset.motion") == "on"
         assert js("return document.querySelector('.brand img').complete && document.querySelector('.brand img').naturalWidth>0")
         favicon = js("return document.querySelector('link[rel=icon]').href")
-        motion(".brand img", "kitsune-logo-float", "home")
+        settle(".greeting", "ink-settle", "home")
         capture("home-motion-1540.png")
-        original_filter = sample(".brand img")["filter"]
-        hover(".brand", 1.12)
-        assert sample(".brand img")["filter"] != original_filter
+        hover(".brand", "-8deg")
         report["samples"]["homeHover"] = sample(".brand img")
         capture("home-hover-1540.png")
         unhover()
@@ -128,11 +129,11 @@ def main():
             if js("return document.activeElement.matches('.brand')"):
                 break
         assert js("return document.activeElement.matches('.brand:focus-visible')")
-        eventually(lambda: abs(float(sample(".brand img")["scale"]) - 1.12) < .005)
-        report["checks"].append("Home hover and keyboard focus produce scale/glow without changing the image asset")
+        eventually(lambda: js("return getComputedStyle(document.querySelector('.brand img')).rotate") == "-8deg")
+        report["checks"].append("Home hover and keyboard focus turn the ensō slightly without changing the image asset")
         driver.click("#query")
         width(390, 844)
-        motion(".brand img", "kitsune-logo-float", "home390")
+        settle(".greeting", "ink-settle", "home390")
         assert js("return document.documentElement.scrollWidth<=innerWidth+1")
         capture("home-motion-390.png")
 
@@ -140,21 +141,21 @@ def main():
         driver.click("#motion-toggle")
         driver.shortcut("\ue00c")
         eventually(lambda: api_settings(origin)["data"]["motion"] is False)
-        assert sample(".brand img")["animation"] == "none"
+        assert sample(".greeting")["animation"] == "none"
         driver.command("POST", "/refresh", {})
         wait_start(driver)
         assert js("return document.body.dataset.motion") == "off"
-        assert sample(".brand img")["animation"] == "none"
-        report["samples"]["homeOffAfterReload"] = sample(".brand img")
-        report["checks"].append("Disabling motion in the UI stops the logo and persists after reload")
+        assert sample(".greeting")["animation"] == "none" and sample(".brand img")["transition"] == "0s"
+        report["samples"]["homeOffAfterReload"] = sample(".greeting")
+        report["checks"].append("Disabling motion in the UI stops the ink animation and persists after reload")
         driver.click("#settings-open")
         driver.click("#motion-toggle")
         driver.shortcut("\ue00c")
         eventually(lambda: api_settings(origin)["data"]["motion"] is True)
         reduced(True)
-        assert sample(".brand img")["animation"] == "none"
+        assert sample(".greeting")["animation"] == "none"
         assert sample(".brand img")["transition"] == "0s"
-        report["samples"]["homeReduced"] = sample(".brand img")
+        report["samples"]["homeReduced"] = sample(".greeting")
         capture("home-reduced-390.png")
         assert js("return document.querySelector('link[rel=icon]').href") == favicon
         report["checks"].append("Native reduced-motion preference disables home animation and transitions; favicon stays static")
@@ -166,13 +167,10 @@ def main():
             eventually(lambda: js("return (document.querySelector('.logo-and-wordmark .logo')?.getBoundingClientRect().width||0)>0"))
             driver.settle()
             label = page.replace("about:", "native-")
-            motion(".logo-and-wordmark .logo", "kb-logo-float", label)
+            settle(".logo-and-wordmark", "kb-ink-settle", label)
+            assert sample(".logo-and-wordmark .logo")["animation"] == "none"
             capture(label + "-motion-1540.png")
-            hover(".logo-and-wordmark", 1.08)
-            report["samples"][label + "Hover"] = sample(".logo-and-wordmark .logo")
-            unhover()
             width(390, 844)
-            assert sample(".logo-and-wordmark .logo")["animation"] == "kb-logo-float"
             layout = js("""return {viewport:innerWidth,documentWidth:document.documentElement.scrollWidth,
               elements:['body','.nova-outer-wrapper','.container.nova-enabled','main','.logo-and-wordmark','.logo-and-wordmark .logo','.logo-and-wordmark .wordmark','.search-wrapper'].map(selector=>{
                 const e=document.querySelector(selector);if(!e)return {selector,missing:true};const r=e.getBoundingClientRect(),s=getComputedStyle(e);
@@ -184,16 +182,17 @@ def main():
                 assert not bounds.get("missing") and bounds["left"] >= 0 and bounds["right"] <= layout["viewport"], bounds
             capture(label + "-motion-390.png")
             reduced(True)
-            assert sample(".logo-and-wordmark .logo")["animation"] == "none"
+            assert sample(".logo-and-wordmark")["animation"] == "none"
             assert sample(".logo-and-wordmark .logo")["transition"] == "0s"
-            report["samples"][label + "Reduced"] = sample(".logo-and-wordmark .logo")
-            report["checks"].append(label + ": hover, reduced-motion and logo/wordmark/search fully inside the 390px viewport pass")
+            report["samples"][label + "Reduced"] = sample(".logo-and-wordmark")
+            report["checks"].append(label + ": ink settles, reduced motion stops it, and logo/wordmark/search fit the 390px viewport")
             reduced(False)
 
         driver.navigate(site_origin + "/")
         assert js("return document.title") == "Independent site fixture"
-        assert sample(".logo-and-wordmark .logo")["animation"] == "none"
+        assert sample(".logo-and-wordmark")["animation"] == "none"
         assert sample(".brand img")["animation"] == "none"
+        assert js("return getComputedStyle(document.querySelector('.brand img')).rotate") == "none"
         report["checks"].append("Native branding CSS does not animate matching selectors on an independent website")
         driver.context("chrome")
         errors = driver.script("return Services.console.getMessageArray().map(m=>({message:m.message,source:m.sourceName||'',flags:m.flags??null,category:m.category||''})).filter(m=>[arguments[0],'about:newtab','about:home'].some(prefix=>m.source.startsWith(prefix)) && m.flags===0 && m.category.toLowerCase().includes('javascript'));", [origin])

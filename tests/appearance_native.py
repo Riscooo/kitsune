@@ -27,8 +27,7 @@ def main():
     state = root / 'state'; state.mkdir()
     profiles = home.profiles_module.ProfileManager(root, state)
     profiles.snapshot()
-    scheme = root / 'desktop-scheme.json'
-    manager = appearance.AppearanceManager(root, state, scheme_file=scheme)
+    manager = appearance.AppearanceManager(root, state)
     server = home.create_server(profile / 'start', state / 'home.json', port=0, profiles=profiles, appearance=manager)
     worker = threading.Thread(target=server.serve_forever, daemon=True); worker.start()
     origin = f'http://127.0.0.1:{server.server_port}'
@@ -53,7 +52,7 @@ def main():
                    {'revision':snapshot['revision'],'rememberGoogle':enabled})
 
     remember(True)
-    save_settings(wallpaper='night',themeSync=True,accent='blue',art=True,motion=True)
+    save_settings(motion=True)
     report = {'root':str(root),'browser':str(args.browser),'checks':[]}
     driver = None
 
@@ -76,28 +75,22 @@ def main():
         baseline = chrome("return {signed:Services.prefs.getBoolPref('xpinstall.signatures.required'),strictFile:Services.prefs.getBoolPref('security.fileuri.strict_origin_policy'),sanitize:Services.prefs.getBoolPref('privacy.sanitize.sanitizeOnShutdown'),cookies:Services.prefs.getIntPref('network.cookie.cookieBehavior'),https:Services.prefs.getBoolPref('dom.security.https_only_mode'),sandbox:Services.prefs.getIntPref('security.sandbox.content.level')};")
         assert baseline['signed'] and baseline['strictFile'] and baseline['sanitize'] and baseline['cookies'] == 5 and baseline['https'] and baseline['sandbox'] > 0, baseline
         check('Native bridge loaded normally; security controls preserved')
-        assert chrome("return getComputedStyle(document.documentElement).getPropertyValue('--kb-bg').trim()") == appearance.PALETTES['night']['bg']
-        check('Initial native chrome palette applied and acknowledged')
-        save_settings(wallpaper='ember',motion=False); applied()
-        assert chrome("return getComputedStyle(document.documentElement).getPropertyValue('--kb-bg').trim()") == appearance.PALETTES['ember']['bg']
+        paper = lambda: chrome("return ['--kb-bg','--kb-primary','--kb-secondary'].map(name=>getComputedStyle(document.documentElement).getPropertyValue(name).trim())")
+        assert paper() == [appearance.PAPEL['bg'], appearance.PAPEL['primary'], appearance.PAPEL['secondary']], paper()
+        check('Initial native chrome paper palette applied and acknowledged')
+        save_settings(motion=False); applied()
+        assert paper() == [appearance.PAPEL['bg'], appearance.PAPEL['primary'], appearance.PAPEL['secondary']], paper()
         driver.context('content')
-        eventually(lambda: driver.script("return getComputedStyle(document.documentElement).getPropertyValue('--kb-bg').trim()") == appearance.PALETTES['ember']['bg'])
-        eventually(lambda: driver.script("return getComputedStyle(document.querySelector('.logo-and-wordmark .logo')).animationName") == 'none')
-        driver.screenshot('native-live-ember.png', chrome=True)
-        check('Open window and existing native tab update theme and motion without restart')
+        eventually(lambda: driver.script("return getComputedStyle(document.documentElement).getPropertyValue('--kb-bg').trim()") == appearance.PAPEL['bg'])
+        eventually(lambda: driver.script("return getComputedStyle(document.querySelector('.logo-and-wordmark')).animationName") == 'none')
+        driver.screenshot('native-live-paper.png', chrome=True)
+        check('Open window and existing native tab stay on paper and update motion without restart')
         driver.navigate('data:text/html,<title>Untouched site</title><h1>Ordinary website</h1>')
         assert driver.script("return getComputedStyle(document.documentElement).getPropertyValue('--kb-bg')") == ''
         check('Native appearance styles never enter ordinary websites')
-        values = {source:appearance.PALETTES['night'][key] for key, source in appearance.SCHEME_KEYS.items()}
-        values['primary'] = '#c4daf9'
-        scheme.write_text(json.dumps({'colours':values}))
-        save_settings(themeSync=False,accent='system'); applied()
-        assert chrome("return getComputedStyle(document.documentElement).getPropertyValue('--kb-primary').trim()") == '#c4daf9'
-        values['primary'] = '#bdedda'
-        scheme.write_text(json.dumps({'colours':values}))
-        eventually(lambda: chrome("return getComputedStyle(document.documentElement).getPropertyValue('--kb-primary').trim()") == '#bdedda', timeout=20)
-        check('Desktop palette updates native chrome with home closed, through the background service')
-        applied()
+        save_settings(motion=True); applied()
+        assert paper() == [appearance.PAPEL['bg'], appearance.PAPEL['primary'], appearance.PAPEL['secondary']], paper()
+        check('Saving settings never moves the chrome away from the paper palette')
         assert api('/api/appearance')['native']['googleRemember'] is True
         # Synthetic persistent cookies with no authentication value. The bridge,
         # not this test, must add the Google-only shutdown exception.

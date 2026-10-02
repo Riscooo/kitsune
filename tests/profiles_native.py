@@ -220,7 +220,7 @@ def main():
 
         settings_a = endpoint(servers[0], "/api/settings")
         settings_b = endpoint(servers[1], "/api/settings")
-        settings_a["data"]["accent"] = "pink"
+        settings_a["data"]["motion"] = False
         settings_a["data"]["links"].append({"id": "only-a", "name": "Solo A", "url": fixture_origin + "/a-link", "color": "blue", "icon": ""})
         endpoint(servers[0], "/api/settings", "PUT", {"data": settings_a["data"], "revision": settings_a["revision"]})
         unchanged_b = endpoint(servers[1], "/api/settings")

@@ -81,7 +81,7 @@ def main():
                 assert button['dot']['width'] == 12 and button['dot']['height'] == 12, button
                 assert button['label'], button
             assert box['rect']['right'] <= normal['tabLeft'], normal
-            assert {b['color'] for b in buttons} == {'rgb(186, 120, 108)', 'rgb(179, 175, 165)'}, normal
+            assert {b['color'] for b in buttons} == {'rgb(150, 61, 50)', 'rgb(115, 120, 111)'}, normal  # óxido y apagado de Tinta
             assert normal['fullscreenKey'] == 'View:FullScreen', normal
             assert not normal['hasGlobalOverlay'], normal
             report['checks'].append('native close/maximize, left order, 26x28 hit targets, 12px dots, localization, F11 preserved')

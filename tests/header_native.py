@@ -90,7 +90,7 @@ def main():
             assert wide['brand']['pointerEvents']=='none' and wide['animations']==0,wide
             assert 80<=wide['toolHeight']<=110 and wide['url']['rect']['width']>400,wide
             assert wide['signaturesRequired'] and wide['strictFileOrigins'] and wide['contentSandbox']>0,wide
-            assert wide['rootPalette']=='#65ccff',wide
+            assert wide['rootPalette']=='#963d32',wide  # óxido de Tinta
             for tab in wide['tabs']:
                 if tab['pinned']:
                     assert tab['close']['width']==0,tab
@@ -124,12 +124,12 @@ def main():
             vertical=eventually(lambda:(v if 'kitsune.svg' in (v:=state())['navBrand'] else None))
             assert vertical['url']['rect']['width']>250,vertical
             report['vertical']=vertical;shot('04-header-vertical.png')
-            assert vertical['navStateColors']['hover']=='#293b2d14',vertical
-            assert vertical['navStateColors']['active']=='#293b2d24',vertical
-            assert vertical['navStateColors']['focus']!='#65ccff',vertical
+            assert vertical['navStateColors']['hover']=='color-mix(in srgb, #252d2b 6%, transparent)',vertical
+            assert vertical['navStateColors']['active']=='color-mix(in srgb, #252d2b 11%, transparent)',vertical
+            assert vertical['navStateColors']['focus']=='#963d32',vertical
             dot_colors={dot['background'] for dot in vertical['verticalDots']}
-            assert {'rgb(154, 85, 72)','rgb(125, 122, 114)'}<=dot_colors,vertical
-            report['checks'].append('canonical Gecko hover/active/focus colors and darker native window dots on light vertical navigation')
+            assert {'rgb(150, 61, 50)','rgb(115, 120, 111)'}<=dot_colors,vertical
+            report['checks'].append('canonical Gecko hover/active (ink wash) and rust focus colors, rust/grey window dots on vertical navigation')
             browser.script('Services.prefs.setBoolPref("sidebar.verticalTabs",false);')
             eventually(lambda:not state()['vertical'])
             report['checks'].append('native vertical tabs remain usable; signature follows the navigation toolbar')
@@ -143,10 +143,11 @@ def main():
 
             # Change only a fixture variable to verify the appearance contract.
             before=state()['nav']['background']
-            browser.script('document.documentElement.style.setProperty("--kb-primary","#f2a39c","important");')
+            browser.script('document.documentElement.style.setProperty("--kb-surface","#fffdf5","important");')
             assert state()['nav']['background']!=before
-            browser.script('document.documentElement.style.removeProperty("--kb-primary");')
-            report['checks'].append('chosen palette changes remain reflected as a restrained chrome undertone')
+            browser.script('document.documentElement.style.removeProperty("--kb-surface");')
+            assert state()['nav']['background']==before=='rgb(251, 250, 247)'
+            report['checks'].append('the navigation bar is drawn from the paper tokens, not hard-coded colors')
 
             # about:newtab intentionally has no page identity. Exercise the
             # actual security hit region on a fixture, never an external site.

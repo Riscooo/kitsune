@@ -16,6 +16,7 @@ import tempfile
 import threading
 import time
 import traceback
+import urllib.error
 import urllib.request
 
 from browser_smoke import DEFAULT_BROWSER, ROOT, WebDriver, eventually, prepare_profile, wait_start
@@ -43,8 +44,6 @@ def main():
     manager = home.profiles_module.ProfileManager(browser_data, root / 'state', launch=lambda *request: launches.append(request))
     manager.snapshot()
     appearance = home.make_appearance(browser_data, root / 'state', 'default')
-    appearance.scheme_file = root / 'desktop-scheme.json'
-    appearance.scheme_file.write_text(json.dumps({'colours': {'primary': '#70e3c3'}}))
     state_file = root / 'state/home.json'
     server = home.create_server(profile / 'start', state_file, port=0, profiles=manager, appearance=appearance)
     threading.Thread(target=server.serve_forever, daemon=True).start()
@@ -65,11 +64,9 @@ def main():
             return predicate(value) and js("""const value=arguments[0], body=document.body.dataset;
               return document.documentElement.dataset.storageReady==='true'
                 && document.querySelector('#save-state').textContent==='Guardado en este perfil'
-                && body.wallpaper===value.wallpaper && body.accent===value.accent
-                && body.art===(value.art?'on':'off') && body.motion===(value.motion?'on':'off')
+                && body.motion===(value.motion?'on':'off')
                 && body.focus===(value.focus?'on':'off')
                 && body.clock===(value.modules.clock?'on':'off') && body.shortcuts===(value.modules.shortcuts?'on':'off')
-                && [...document.querySelectorAll('button[data-accent]')].every(button=>button.disabled===value.themeSync)
                 && document.querySelector('#newtab-toggle').checked===value.newTab;""", value)
         eventually(matches)
 
@@ -114,51 +111,26 @@ def main():
         tab('appearance')
         report['checks'].append('Settings opens accessibly; arrow/end keyboard navigation selects real tab panels')
 
-        backgrounds = []
-        for wallpaper in ('night', 'veil', 'dusk', 'ember'):
-            driver.click(f'button[data-wallpaper={wallpaper}]')
-            saved(lambda value, wallpaper=wallpaper: value['wallpaper'] == wallpaper)
-            eventually(lambda wallpaper=wallpaper: js('return document.body.dataset.wallpaper', ) == wallpaper)
-            backgrounds.append(js("return getComputedStyle(document.querySelector('.scene')).backgroundImage"))
-            if wallpaper == 'veil':
-                with urllib.request.urlopen(origin + '/anime-veil.webp') as response:
-                    assert response.status == 200 and response.headers['Content-Type'].startswith('image/webp')
-                driver.shortcut('\ue00c')
-                capture('home-veil-1540.png')
-                driver.click('#settings-open')
-        assert len(set(backgrounds)) == 4, backgrounds
-        assert json.loads(state_file.read_text())['data']['wallpaper'] == 'ember'
-        report['checks'].append('All four wallpapers change the rendered scene and persist to the real state file; anime image responds successfully')
+        assert js("""return getComputedStyle(document.documentElement).getPropertyValue('--accent').trim()==='#963d32'
+          && getComputedStyle(document.body).backgroundColor==='rgb(246, 245, 241)'
+          && !document.querySelector('.scene,[data-wallpaper],[data-accent],#art-toggle,#theme-sync-toggle')
+          && [...document.querySelectorAll('#settings-panel-appearance input')].map(input=>input.id).join()==='motion-toggle'""")
+        for path, status in (('/logo.svg', 200), ('/seal.svg', 200)):
+            with urllib.request.urlopen(origin + path) as response:
+                assert response.status == status and response.headers['Content-Type'].startswith('image/svg+xml'), path
+        try:
+            urllib.request.urlopen(origin + '/anime-veil.webp')
+            raise AssertionError('Nightfall art must no longer be served')
+        except urllib.error.HTTPError as error:
+            assert error.code == 404, error.code
+        report['checks'].append('Home is paper and ink: rust accent, no scene/wallpaper/accent controls, Apariencia only offers motion; logo and seal served, Nightfall art gone')
 
-        driver.click('#theme-sync-toggle')
-        saved(lambda value: value['themeSync'])
-        eventually(lambda: js("return document.querySelector('#theme-status').textContent==='Aplicando el tema al navegador…'"))
-        assert js("return [...document.querySelectorAll('button[data-accent]')].every(b=>b.disabled)"), 'Manual accent buttons must be disabled while theme synchronization is enabled'
-        value = server.refresh_appearance()
-        eventually(lambda: js("return getComputedStyle(document.documentElement).getPropertyValue('--accent').trim()") == value['palette']['primary'])
-        ack()
-        driver.click('button[data-wallpaper=dusk]')
-        saved(lambda value: value['wallpaper'] == 'dusk')
-        eventually(lambda: js("return document.querySelector('#theme-status').textContent==='Aplicando el tema al navegador…'"))
-        ack()
-        report['checks'].append('Wallpaper/theme synchronization shares the real palette; queued and stale native acknowledgements never claim applied (acks mocked)')
-        driver.click('#theme-sync-toggle')
-        saved(lambda value: not value['themeSync'])
-        driver.click('[data-accent=system]')
-        saved(lambda value: value['accent'] == 'system')
-        eventually(lambda: js("return getComputedStyle(document.documentElement).getPropertyValue('--accent').trim()") == '#70e3c3')
-        appearance.scheme_file.write_text(json.dumps({'colours': {'primary': '#e6b5fb'}}))
-        eventually(lambda: js("return getComputedStyle(document.documentElement).getPropertyValue('--accent').trim()") == '#e6b5fb')
-        report['checks'].append('Desktop accent reads an isolated scheme fixture and updates live when it changes')
-
-        driver.click('#art-toggle')
-        saved(lambda value: not value['art'])
-        assert js("return document.body.dataset.art==='off'")
-        driver.click('#art-toggle')
-        saved(lambda value: value['art'])
         driver.click('#motion-toggle')
         saved(lambda value: not value['motion'])
-        assert js("return getComputedStyle(document.querySelector('.brand img')).animationName==='none'")
+        eventually(lambda: js("return document.querySelector('#theme-status').textContent==='Aplicando el tema al navegador…'"))
+        ack()
+        assert js("return getComputedStyle(document.querySelector('.greeting')).animationName==='none'")
+        report['checks'].append('Motion toggle stops the ink-settle animation and waits for the real native acknowledgement (acks mocked)')
         tab('modules')
         driver.click('#module-clock')
         saved(lambda value: not value['modules']['clock'])
@@ -169,7 +141,7 @@ def main():
         driver.click('#module-clock')
         driver.click('#module-shortcuts')
         saved(lambda value: value['modules']['clock'] and value['modules']['shortcuts'])
-        report['checks'].append('Art/motion and both module toggles alter the UI and confirmed stored preferences; consecutive toggles preserve each other')
+        report['checks'].append('Both module toggles alter the UI and confirmed stored preferences; consecutive toggles preserve each other')
 
         tab('navigation')
         driver.click('#newtab-toggle')
@@ -196,8 +168,8 @@ def main():
             return old_update(value, revision)
 
         server.store.update = update_once
-        driver.click('#art-toggle')
-        saved(lambda value: not value['art'] and not value['modules']['clock'])
+        driver.click('#motion-toggle')
+        saved(lambda value: value['motion'] and not value['modules']['clock'])
         server.store.update = old_update
         assert conflict['injected']
         report['checks'].append('A real409 mutation conflict rebases the chosen preference without discarding the other window module change')
@@ -213,7 +185,7 @@ def main():
         saved()
         assert data() == before
         driver.click('#motion-toggle')
-        saved(lambda value: value['motion'])
+        saved(lambda value: not value['motion'])
         report['checks'].append('Real503 read/write outage restores last confirmed controls, never claims saved, and Retry reconnects before the next successful write')
 
         driver.shortcut('\ue00c')
@@ -248,7 +220,6 @@ def main():
         driver.navigate(origin + '/')
         loaded()
         assert data() == expected
-        assert js('return document.body.dataset.wallpaper') == expected['wallpaper']
         assert js("return document.querySelector('#motion-toggle').checked") == expected['motion']
         assert js("return document.querySelector('#module-clock').checked") == expected['modules']['clock']
         assert js("return document.querySelector('#newtab-toggle').checked") == expected['newTab']

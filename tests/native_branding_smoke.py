@@ -99,7 +99,7 @@ def main():
             panelRadius:getComputedStyle(panel).getPropertyValue('--panel-border-radius').trim(),
             nativeRole:visual?.parentElement.localName || null};""")
         assert panel["radius"] == "12px" and panel["panelRadius"] == "16px"
-        assert panel["surface"] == "rgb(0, 28, 45)", panel
+        assert panel["surface"] == "rgb(251, 250, 247)", panel  # papel elevado de Tinta
         assert panel["nativeRole"] in (None, "button")
         check("Native extension panel and shadow-DOM action are rounded/theme-aware", panel)
         if args.headed and shutil.which("grim") and shutil.which("hyprctl"):
