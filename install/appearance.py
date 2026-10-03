@@ -57,12 +57,6 @@ def private_write(path, value):
             os.unlink(temporary)
 
 
-def luminance(value):
-    channels = [int(value[i:i + 2], 16) / 255 for i in (1, 3, 5)]
-    linear = [v / 12.92 if v <= .04045 else ((v + .055) / 1.055) ** 2.4 for v in channels]
-    return sum(a * b for a, b in zip(linear, (.2126, .7152, .0722)))
-
-
 class AppearanceManager:
     def __init__(self, browser_root, state_root, current_id='default'):
         if current_id != 'default' and not re.fullmatch(r'p-[0-9a-f]{16}', current_id):

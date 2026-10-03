@@ -17,8 +17,14 @@ appearance = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(appearance)
 
 
+def luminance(value):
+    channels = [int(value[i:i + 2], 16) / 255 for i in (1, 3, 5)]
+    linear = [v / 12.92 if v <= .04045 else ((v + .055) / 1.055) ** 2.4 for v in channels]
+    return sum(a * b for a, b in zip(linear, (.2126, .7152, .0722)))
+
+
 def contrast(first, second):
-    values = [appearance.luminance(first), appearance.luminance(second)]
+    values = [luminance(first), luminance(second)]
     return (max(values) + 0.05) / (min(values) + 0.05)
 
 
