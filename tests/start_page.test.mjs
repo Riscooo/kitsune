@@ -17,7 +17,7 @@ test('the home page has no Nightfall scene, wallpapers or accents', () => {
 test('B · Caligrafía: big ensō logo, greeting, date and time on one line', () => {
   assert.match(html, /<section class="greeting"[^>]*>[\s\S]*<img src="logo\.svg" width="120" height="120"[\s\S]*id="welcome-line"/);
   assert.match(html, /class="clock-module"[^>]*>[\s\S]*id="date"[\s\S]*id="clock-time"/);
-  assert.match(html, /<span class="footer-note">Kitsune · Tinta<\/span>/);
+  assert.match(html, /<span class="footer-note"><span class="footer-seal" aria-hidden="true">狐<\/span>Kitsune · Tinta<\/span>/);
 });
 
 test('Ajustes → Apariencia only offers motion', () => {
@@ -52,4 +52,10 @@ test('the home server serves the logo and no longer the Nightfall art', async ()
 
 test('the home page loads the same paper palette as the browser chrome', async () => {
   assert.equal(await read('start/palette.css'), await read('chrome/palette.css'));
+});
+
+test('the footer carries the Kitsune hanko: the InkShadow seal colour on the bitten seal mask', () => {
+  const rule = css.match(/\.footer-seal::before \{[^}]*\}/)?.[0] ?? '';
+  assert.match(rule, /background: var\(--kb-hanko\)/);
+  assert.match(rule, /mask: url\("seal\.svg"\)/);
 });

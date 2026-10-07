@@ -81,6 +81,10 @@ body[data-clock=off] .clock-module, body[data-shortcuts=off] .favorites, body[da
 body[data-clock=off] .dashboard { margin-top: clamp(110px, 23vh, 220px); }
 .footer { position: fixed; inset: auto 0 0; z-index: 1; display: flex; align-items: center; justify-content: space-between; gap: 15px; padding: 20px 32px; color: var(--muted); font-size: 10px; background: linear-gradient(0deg, var(--bg) 55%, transparent); }
 .footer-note { font: 500 11px var(--serif); letter-spacing: .3px; }
+/* Sello de la familia InkShadow: 狐 sobre el hanko, con la misma máscara mordida que los accesos. */
+.footer-note { display: inline-flex; align-items: center; gap: 9px; }
+.footer-seal { position: relative; isolation: isolate; display: inline-grid; place-items: center; width: 20px; height: 20px; rotate: -5deg; color: var(--surface); font: 600 12px/1 var(--serif); letter-spacing: 0; }
+.footer-seal::before { content: ""; position: absolute; inset: 0; z-index: -1; background: var(--kb-hanko); mask: url("seal.svg") center / 100% 100% no-repeat; }
 .footer > div { display: flex; align-items: center; gap: 18px; }
 .footer button { display: inline-flex; align-items: center; gap: 7px; color: var(--muted); font-size: 11px; padding: 5px 0; }
 .footer svg { width: 15px; height: 15px; }

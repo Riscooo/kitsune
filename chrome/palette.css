@@ -1,4 +1,4 @@
-/* Kitsune 0.5 «Tinta»: los tokens de InkShadow. Archivo fijo, no se regenera. */
+/* Kitsune «Tinta»: generado por tools/design_tokens.py de InkShadow desde design/tokens.json. No editar. */
 :root {
   --kb-bg: #f6f5f1;
   --kb-surface: #fbfaf7;
@@ -10,4 +10,6 @@
   --kb-primary-container: #eadfda;
   --kb-secondary: #496b60;
   --kb-tertiary: #73786f;
+  --kb-hanko: #a8432f;
+  --kb-vermilion: #db452e;
 }

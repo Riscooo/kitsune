@@ -3,15 +3,19 @@ import { readFile } from 'node:fs/promises';
 import test from 'node:test';
 
 const read = name => readFile(new URL(`../chrome/${name}`, import.meta.url), 'utf8');
-const PAPEL = {
+// The ten interface colours; internal pages and the native module use only these.
+const INTERFACE = {
   bg: '#f6f5f1', surface: '#fbfaf7', 'surface-high': '#e8ece4', text: '#252d2b', muted: '#59625c',
   outline: '#c7cdc4', primary: '#963d32', 'primary-container': '#eadfda', secondary: '#496b60', tertiary: '#73786f',
 };
+// Plus the InkShadow seal colours, for the hanko marks.
+const PAPEL = { ...INTERFACE, hanko: '#a8432f', vermilion: '#db452e' };
 const ALLOWED = new Set(Object.values(PAPEL));
 const CHROME = ['userChrome.css', 'kitsune-header.css', 'window-controls.css'];
 
-test('the chrome palette is exactly the ten paper tokens', async () => {
+test('the chrome palette is exactly the InkShadow paper tokens, generated from their single source', async () => {
   const css = await read('palette.css');
+  assert.match(css, /generado por tools\/design_tokens\.py de InkShadow desde design\/tokens\.json/);
   const tokens = Object.fromEntries([...css.matchAll(/--kb-([a-z-]+):\s*(#[0-9a-f]{6});/g)].map(m => [m[1], m[2]]));
   assert.deepEqual(tokens, PAPEL);
 });
@@ -65,7 +69,7 @@ test('internal pages are paper: light scheme, paper fallback tokens, no Nightfal
     assert.ok(ALLOWED.has(base.toLowerCase()), `userContent.css: ${hex} no es un token de papel`);
   }
   const fallback = Object.fromEntries([...css.matchAll(/--kb-([a-z-]+):\s*(#[0-9a-f]{6});/g)].map(m => [m[1], m[2]]));
-  assert.deepEqual(fallback, PAPEL);
+  assert.deepEqual(fallback, INTERFACE);
 });
 
 test('reader view is paper and ink with a serif body', async () => {

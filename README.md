@@ -8,7 +8,10 @@ las funciones nativas del navegador.
 ## Estética «Tinta»
 
 Una sola estética en todo el navegador, la misma de InkShadow: papel, tinta y
-óxido. Sin variantes, fondos ni acentos que elegir. Los diez colores son fijos:
+óxido. Sin variantes, fondos ni acentos que elegir. Los colores salen de la fuente
+única de InkShadow (`design/tokens.json`): `chrome/palette.css` y
+`start/palette.css` se generan con `python3 tools/design_tokens.py --kitsune
+~/Projects/kitsune` desde el repo de InkShadow y no se editan a mano.
 
 | Token | Color | Uso |
 |---|---|---|
@@ -22,6 +25,10 @@ Una sola estética en todo el navegador, la misma de InkShadow: papel, tinta y
 | óxido suave | `#eadfda` | selección |
 | jade | `#496b60` | modo privado y enlaces |
 | apagado | `#73786f` | iconos secundarios |
+| hanko | `#a8432f` | sello 狐 del pie del inicio (familia InkShadow) |
+| bermellón | `#db452e` | reservado para marcas de la familia |
+
+Las páginas internas y el módulo nativo usan solo los diez primeros.
 
 Tipografías: Noto Sans en la interfaz y Noto Serif en títulos, saludo y «kitsune».
 
