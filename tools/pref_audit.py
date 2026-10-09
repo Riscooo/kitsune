@@ -20,11 +20,21 @@ sys.path.insert(0, str(ROOT / "install"))
 from engine_probe import dump_prefs  # noqa: E402
 
 
+# Remote rollouts and region lookup off, as in Kitsune's common settings (the
+# harness names are left out of the result; privacy_modes.py keeps them common).
+NO_REMOTE_DEFAULTS = {"app.normandy.api_url": "", "browser.region.network.url": "",
+                      "browser.region.update.enabled": False}
+
+
 def factory_prefs(browser: Path, env):
     """Measure the engine with no Kitsune configuration, without touching the installed one.
 
     A hard-linked copy of the engine (same filesystem, no extra space) gets an
     empty kitsune.cfg; Gecko finds its configuration next to the executable.
+    Mozilla's remote rollouts and the network region lookup are off, as Kitsune
+    always has them in both modes: otherwise a rollout rewrites default values
+    during the measurement (e.g. network.http.dictionaries.enable, compiled as
+    false in release builds) and the result depends on the day it was taken.
     """
     work = Path(tempfile.mkdtemp(prefix="kitsune-factory-", dir=Path.home() / ".cache"))
     try:
@@ -34,7 +44,8 @@ def factory_prefs(browser: Path, env):
         cfg.unlink()
         cfg.write_text("// Kitsune: medición de fábrica, sin configuración propia.\n")
         user_js = (ROOT / "install/user.js").read_text()
-        return dump_prefs(copy / browser.name, env, profile_setup=lambda profile: (profile / "user.js").write_text(user_js + "\n"))
+        return dump_prefs(copy / browser.name, env, user_prefs=NO_REMOTE_DEFAULTS,
+                          profile_setup=lambda profile: (profile / "user.js").write_text(user_js + "\n"))
     finally:
         shutil.rmtree(work, ignore_errors=True)
 

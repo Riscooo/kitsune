@@ -201,12 +201,6 @@
    "type": "string",
    "user": null
   },
-  "app.normandy.api_url": {
-   "default": "https://normandy.cdn.mozilla.net/api/v1",
-   "locked": false,
-   "type": "string",
-   "user": null
-  },
   "app.normandy.dev_mode": {
    "default": false,
    "locked": false,
@@ -223,7 +217,7 @@
    "default": true,
    "locked": false,
    "type": "bool",
-   "user": false
+   "user": null
   },
   "app.normandy.last_seen_buildid": {
    "default": "",
@@ -261,12 +255,6 @@
    "type": "string",
    "user": null
   },
-  "app.normandy.user_id": {
-   "default": null,
-   "locked": false,
-   "type": "string",
-   "user": "a7fbbe02-d083-4929-bea2-fa7083d4f08f"
-  },
   "app.shield.optoutstudies.enabled": {
    "default": true,
    "locked": false,
@@ -298,7 +286,7 @@
    "user": null
   },
   "app.update.channel": {
-   "default": "default",
+   "default": "release",
    "locked": false,
    "type": "string",
    "user": null
@@ -345,23 +333,11 @@
    "type": "int",
    "user": 0
   },
-  "app.update.lastUpdateTime.recipe-client-addon-run": {
-   "default": null,
-   "locked": false,
-   "type": "int",
-   "user": 1791582210
-  },
-  "app.update.lastUpdateTime.region-update-timer": {
-   "default": null,
-   "locked": false,
-   "type": "int",
-   "user": 0
-  },
   "app.update.lastUpdateTime.rs-experiment-loader-timer": {
    "default": null,
    "locked": false,
    "type": "int",
-   "user": 1791582210
+   "user": 0
   },
   "app.update.lastUpdateTime.xpi-signature-verification": {
    "default": null,
@@ -1963,7 +1939,7 @@
    "default": null,
    "locked": false,
    "type": "string",
-   "user": "c49a5988-ab9c-4926-8836-d998e49df641"
+   "user": "b7c60eae-7a3e-4905-b831-5d18d12b75d4"
   },
   "browser.contextual-services.contextId.rotation-in-days": {
    "default": 3,
@@ -1981,7 +1957,7 @@
    "default": null,
    "locked": false,
    "type": "int",
-   "user": 1791582209
+   "user": 1791584422
   },
   "browser.crashReporter.memtest": {
    "default": true,
@@ -4405,7 +4381,7 @@
    "default": null,
    "locked": false,
    "type": "string",
-   "user": "{41f745b2-bba9-4c5a-b4c5-b7e2584cc518}"
+   "user": "{bf37638e-de50-498b-aa9a-f5eed9ba0132}"
   },
   "browser.newtabpage.activity-stream.improvesearch.handoffToAwesomebar": {
    "default": true,
@@ -4432,7 +4408,7 @@
    "user": null
   },
   "browser.newtabpage.activity-stream.improvesearch.topSiteSearchShortcuts.searchEngines": {
-   "default": "google",
+   "default": "",
    "locked": false,
    "type": "string",
    "user": null
@@ -4834,19 +4810,19 @@
    "user": null
   },
   "browser.newtabpage.activity-stream.system.showSponsored": {
-   "default": true,
+   "default": false,
    "locked": false,
    "type": "bool",
    "user": null
   },
   "browser.newtabpage.activity-stream.system.showWeather": {
-   "default": true,
+   "default": false,
    "locked": false,
    "type": "bool",
    "user": null
   },
   "browser.newtabpage.activity-stream.system.showWeatherOptIn": {
-   "default": true,
+   "default": false,
    "locked": false,
    "type": "bool",
    "user": null
@@ -5458,7 +5434,7 @@
    "user": null
   },
   "browser.newtabpage.activity-stream.widgets.system.weather.enabled": {
-   "default": true,
+   "default": false,
    "locked": false,
    "type": "bool",
    "user": null
@@ -5781,29 +5757,11 @@
    "type": "bool",
    "user": null
   },
-  "browser.region.network.url": {
-   "default": "https://location.services.mozilla.com/v1/country?key=%MOZILLA_API_KEY%",
-   "locked": false,
-   "type": "string",
-   "user": null
-  },
   "browser.region.timeout": {
    "default": 5000,
    "locked": false,
    "type": "int",
    "user": null
-  },
-  "browser.region.update.enabled": {
-   "default": true,
-   "locked": false,
-   "type": "bool",
-   "user": null
-  },
-  "browser.region.update.updated": {
-   "default": null,
-   "locked": false,
-   "type": "int",
-   "user": 1791582209
   },
   "browser.resourceMonitor.enabled": {
    "default": false,
@@ -6218,12 +6176,6 @@
    "locked": false,
    "type": "bool",
    "user": null
-  },
-  "browser.search.region": {
-   "default": null,
-   "locked": false,
-   "type": "string",
-   "user": "ES"
   },
   "browser.search.removeEngineInfobar.enabled": {
    "default": true,
@@ -6937,7 +6889,7 @@
    "default": null,
    "locked": false,
    "type": "int",
-   "user": 1791582210
+   "user": 1791584423
   },
   "browser.startup.page": {
    "default": 1,
@@ -7714,7 +7666,7 @@
    "user": null
   },
   "browser.urlbar.amp.featureGate": {
-   "default": true,
+   "default": false,
    "locked": false,
    "type": "bool",
    "user": null
@@ -8074,7 +8026,7 @@
    "user": null
   },
   "browser.urlbar.quicksuggest.enabled": {
-   "default": true,
+   "default": false,
    "locked": false,
    "type": "bool",
    "user": false
@@ -8140,7 +8092,7 @@
    "user": null
   },
   "browser.urlbar.quicksuggest.settingsUi": {
-   "default": 2,
+   "default": 1,
    "locked": false,
    "type": "int",
    "user": null
@@ -8332,7 +8284,7 @@
    "user": null
   },
   "browser.urlbar.suggest.quicksuggest.all": {
-   "default": true,
+   "default": false,
    "locked": false,
    "type": "bool",
    "user": false
@@ -8524,7 +8476,7 @@
    "user": null
   },
   "browser.urlbar.wikipedia.featureGate": {
-   "default": true,
+   "default": false,
    "locked": false,
    "type": "bool",
    "user": null
@@ -8659,7 +8611,7 @@
    "default": null,
    "locked": false,
    "type": "int",
-   "user": 1791582
+   "user": 1791584
   },
   "captchadetection.loglevel": {
    "default": "Warn",
@@ -10670,18 +10622,6 @@
    "locked": false,
    "type": "bool",
    "user": null
-  },
-  "doh-rollout.doneFirstRun": {
-   "default": null,
-   "locked": false,
-   "type": "bool",
-   "user": true
-  },
-  "doh-rollout.home-region": {
-   "default": null,
-   "locked": false,
-   "type": "string",
-   "user": "ES"
   },
   "dom.abort_script_on_child_shutdown": {
    "default": true,
@@ -14422,7 +14362,7 @@
    "user": null
   },
   "extensions.formautofill.addresses.supported": {
-   "default": "on",
+   "default": "detect",
    "locked": false,
    "type": "string",
    "user": null
@@ -14701,7 +14641,7 @@
    "default": null,
    "locked": false,
    "type": "string",
-   "user": "20261009233510"
+   "user": "20261010001041"
   },
   "extensions.lastAppVersion": {
    "default": null,
@@ -14896,7 +14836,7 @@
    "user": null
   },
   "extensions.webcompat-reporter.enabled": {
-   "default": true,
+   "default": false,
    "locked": false,
    "type": "bool",
    "user": null
@@ -15037,7 +14977,7 @@
    "default": null,
    "locked": false,
    "type": "string",
-   "user": "{\"formautofill@mozilla.org\":\"c2fabe1b-796b-4179-8174-a11f24205339\",\"ipp-activator@mozilla.com\":\"29783114-5b01-4142-aa1a-7fc26fc91c39\",\"pictureinpicture@mozilla.org\":\"3e977e8f-4f2b-4de6-bdec-7990d04438fc\",\"addons-search-detection@mozilla.com\":\"30449586-a748-4599-b15a-ca26b74e4681\",\"webcompat@mozilla.org\":\"9a310967-e580-48bf-b3e8-4eafebbc122d\",\"newtab@mozilla.org\":\"3befc79d-f560-4b67-87ff-b6bc83b15693\",\"default-theme@mozilla.org\":\"e79d721a-caae-41fc-a0c5-094bde7e9c3b\",\"uBlock0@raymondhill.net\":\"e07600d4-e2f6-4636-89f3-8c9435f62a82\"}"
+   "user": "{\"formautofill@mozilla.org\":\"53db8ea9-b4a3-4eea-86c0-fb6437b9c6fa\",\"ipp-activator@mozilla.com\":\"ae78d375-7077-4774-895e-1c315cb45373\",\"pictureinpicture@mozilla.org\":\"3b0536fe-8cbc-45b2-8606-9a672e8932cc\",\"addons-search-detection@mozilla.com\":\"c5778f24-3138-4e31-8ad5-405f2df665de\",\"webcompat@mozilla.org\":\"9a310967-e580-48bf-b3e8-4eafebbc122d\",\"newtab@mozilla.org\":\"ed3a1d59-194e-44e9-a27f-3b0114a23415\",\"default-theme@mozilla.org\":\"cdc1c440-e25a-410d-adba-0ab974ad5e74\",\"uBlock0@raymondhill.net\":\"d88ca82a-7c3d-4560-9b3c-c5ffee31e3a0\"}"
   },
   "extensions.webidl-api.expose_mock_interface": {
    "default": false,
@@ -20924,18 +20864,6 @@
    "locked": false,
    "type": "bool",
    "user": true
-  },
-  "kitsune.privacy.active": {
-   "default": "estricto",
-   "locked": false,
-   "type": "string",
-   "user": null
-  },
-  "kitsune.privacy.applied": {
-   "default": null,
-   "locked": false,
-   "type": "string",
-   "user": "estricto"
   },
   "layers.acceleration.disabled": {
    "default": false,
@@ -28351,13 +28279,7 @@
    "default": false,
    "locked": false,
    "type": "bool",
-   "user": true
-  },
-  "nimbus.migrations.after-remote-settings-update": {
-   "default": null,
-   "locked": false,
-   "type": "int",
-   "user": 0
+   "user": null
   },
   "nimbus.migrations.after-store-initialized": {
    "default": null,
@@ -28375,7 +28297,7 @@
    "default": null,
    "locked": false,
    "type": "string",
-   "user": "a3dfd5c1-b893-4893-8143-08b52fbbc02f"
+   "user": "94d0d363-13f0-464c-acf2-e03af1dcefe8"
   },
   "nimbus.profilesdatastoreservice.enabled": {
    "default": true,
@@ -32815,10 +32737,10 @@
    "default": false,
    "locked": false,
    "type": "bool",
-   "user": true
+   "user": null
   },
   "signon.storage.rust.enabled": {
-   "default": true,
+   "default": false,
    "locked": false,
    "type": "bool",
    "user": null
@@ -32839,7 +32761,7 @@
    "default": 0,
    "locked": false,
    "type": "int",
-   "user": null
+   "user": 1
   },
   "signon.storage.rust.restoreEnabled": {
    "default": true,
@@ -32857,7 +32779,7 @@
    "default": 0,
    "locked": false,
    "type": "int",
-   "user": null
+   "user": 1
   },
   "signon.storeWhenAutocompleteOff": {
    "default": true,
@@ -33040,7 +32962,7 @@
    "user": null
   },
   "termsofuse.acceptedDate": {
-   "default": "1791582207991",
+   "default": "1791584421636",
    "locked": true,
    "type": "string",
    "user": null
@@ -33295,7 +33217,7 @@
    "default": null,
    "locked": false,
    "type": "string",
-   "user": "33f97d3c"
+   "user": "a5810387"
   },
   "toolkit.rust-components.logging.crates": {
    "default": "",
@@ -33409,13 +33331,13 @@
    "default": null,
    "locked": false,
    "type": "string",
-   "user": "1b451694-bbf0-47e3-9dd5-e20f8090bafc"
+   "user": "8f36e7f8-1e2d-4494-864c-c01d39c5b7c6"
   },
   "toolkit.telemetry.cachedProfileGroupID": {
    "default": null,
    "locked": false,
    "type": "string",
-   "user": "c8c2dfcb-faa3-49f5-9695-312ef0f58b29"
+   "user": "5adea43f-d7db-4819-92f5-ce0ea4d84e6b"
   },
   "toolkit.telemetry.dap.helper.hpke": {
    "default": "ACkAACAAAQABACAucqWdIQRN6BxumPBRXIlg2JsxcznwWX7vyqzM3cjuQA",
@@ -33454,7 +33376,7 @@
    "user": null
   },
   "toolkit.telemetry.enabled": {
-   "default": true,
+   "default": false,
    "locked": true,
    "type": "bool",
    "user": null
@@ -33481,7 +33403,7 @@
    "default": null,
    "locked": false,
    "type": "string",
-   "user": "20261009233510"
+   "user": "20261010001041"
   },
   "toolkit.telemetry.reportingpolicy.firstRun": {
    "default": null,

@@ -71,6 +71,10 @@ IGNORE = [
 # Normandy/translations write runtime state on first start.
 NOT_MANAGED = {"identity.fxaccounts.enabled", "browser.contentblocking.category",
                "app.normandy.first_run", "browser.translations.mostRecentTargetLanguages"}
+# Where saved passwords live (Rust store or logins.json) is Gecko's own
+# migration: 157 release turns the Rust store off and restores logins from it.
+# It must never follow a privacy mode, or switching modes would switch stores.
+NOT_MANAGED_PREFIXES = ("signon.storage.",)
 
 # Same value in both modes: no telemetry, studies or remote-content features,
 # no speculative connections, and LibreWolf's non-privacy UX choices.
@@ -119,7 +123,7 @@ def compile_rules(rules):
 
 
 def classify(name, ignore, common, mode):
-    if name in NOT_MANAGED or any(rule.fullmatch(name) for rule in ignore):
+    if name in NOT_MANAGED or name.startswith(NOT_MANAGED_PREFIXES) or any(rule.fullmatch(name) for rule in ignore):
         return "ignore"
     if any(rule.fullmatch(name) for rule in common):
         return "common"
