@@ -2,9 +2,9 @@
 """Real, isolated two-profile IPC and storage verification for Kitsune.
 
 Uses the real profile manager, HTTP APIs, launcher and transient systemd user
-services. Only home-service startup and runtime preparation are fixtures: home
-servers are already running in this test, and the selected branded runtime is
-already prepared. Debug flags exist only in temporary test adapters/profiles.
+services. Only home-service startup and the engine path are fixtures: home
+servers are already running in this test, and engine/current/kitsune is an
+adapter that starts the real engine with test flags. Debug flags exist only in temporary test adapters/profiles.
 No installed browser profile is opened or modified.
 """
 
@@ -102,7 +102,7 @@ def units_for(identifier):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--browser", type=Path, required=True)
+    parser.add_argument("--browser", type=Path, default=Path.home() / ".local/share/kitsune-browser/engine/current/kitsune")
     parser.add_argument("--headed", action="store_true", default=True, help="Use temporary visible windows to exercise desktop IPC (default)")
     parser.add_argument("--headless", dest="headed", action="store_false", help="Diagnostic only: headless Gecko does not exercise desktop IPC correctly")
     parser.add_argument("--evidence", type=Path, default=ROOT / "tests/evidence/profiles-native-2026-09-12")
@@ -136,7 +136,11 @@ def main():
     adapter = temporary / "test-browser-adapter"
     adapter.write_text("#!/bin/sh\n" + ("unset MOZ_HEADLESS\n" if options.headed else "export MOZ_HEADLESS=1\n") + "previous=''\nprofile=''\nfor arg do\n  if [ \"${previous}\" = --profile ]; then profile=\"${arg}\"; break; fi\n  previous=\"${arg}\"\ndone\nif [ -f \"${profile}/.parentlock\" ]; then\n  exec " + shlex.quote(str(options.browser)) + " \"$@\"\nfi\nexec " + shlex.quote(str(options.browser)) + " --marionette --remote-allow-system-access " + ("" if options.headed else "-headless ") + "\"$@\"\n")
     adapter.chmod(0o700)
-    (browser_root / "prepare-runtime.py").write_text("print(" + repr(str(adapter)) + ")\n")
+    # The launcher runs engine/current/kitsune: the adapter stands in for it here.
+    engine_dir = browser_root / "engine/current"
+    engine_dir.mkdir(parents=True)
+    shutil.copy2(adapter, engine_dir / "kitsune")
+    shutil.copy2(ROOT / "install/kitsune-engine.py", browser_root / "kitsune-engine.py")
     entrypoint = temporary / "isolated-profile-launcher"
     entrypoint.write_text("#!/bin/sh\n" + "\n".join("export " + key + "=" + shlex.quote(str(value)) for key, value in {
         "XDG_DATA_HOME": data, "XDG_STATE_HOME": state, "XDG_CONFIG_HOME": config,
@@ -163,7 +167,7 @@ def main():
             }.items():
                 output.write("user_pref(" + json.dumps(name) + ", " + json.dumps(value) + ");\n")
     report = {"ok": False, "fixtureRoot": str(temporary), "browser": str(options.browser), "headed": options.headed,
-              "scope": "Actual ProfileManager→systemd-run→Kitsune launcher→native Gecko IPC; temporary XDG roots only. Home service startup and already-prepared runtime selection stubbed; HTTP APIs and two browser processes are real.",
+              "scope": "Actual ProfileManager→systemd-run→Kitsune launcher→native Gecko IPC; temporary XDG roots only. Home service startup stubbed and engine/current is a test adapter for the real engine; HTTP APIs and two browser processes are real.",
               "profiles": [{key: str(value) if isinstance(value, Path) else value for key, value in item.items()} for item in resolved],
               "checks": [], "errors": []}
     servers, threads, drivers = [], [], []

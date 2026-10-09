@@ -19,7 +19,7 @@ home_spec.loader.exec_module(home)
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--browser', type=Path, required=True)
+    parser.add_argument('--browser', type=Path, default=Path.home() / '.local/share/kitsune-browser/engine/current/kitsune')
     args = parser.parse_args()
     root = Path(tempfile.mkdtemp(prefix='kitsune-appearance-native-'))
     evidence = root / 'evidence'; evidence.mkdir()

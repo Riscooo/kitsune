@@ -161,9 +161,11 @@ necesitaría un servicio de identidad y sincronización adicional; no se simula.
 ## Verificación
 
 ```sh
-cd outputs/kitsune
+cd ~/Projects/kitsune
 npm run check
 python3 -m unittest discover -s tests -p '*_test.py'
+python3 tools/privacy_modes.py --check
+python3 tests/privacy_modes_native.py
 npm run test:browser
 npm run test:profiles-ui
 npm run test:accounts
@@ -172,9 +174,12 @@ npm run test:logo-motion
 npm run test:settings-ui
 python3 tests/header_native.py
 python3 tests/window_chrome.py
-python3 tests/appearance_native.py --browser <motor-Kitsune>
-python3 tests/native_branding_smoke.py --runtime-root <carpeta-temporal>
+python3 tests/appearance_native.py
+python3 tests/native_branding_smoke.py
 ```
+
+Las pruebas nativas usan por defecto el motor activo
+(`~/.local/share/kitsune-browser/engine/current/kitsune`) con perfiles temporales.
 
 Resultado 0.5 «Tinta» (3 de octubre de 2026): 78 pruebas JS y 83 Python; 12 pruebas
 nativas superadas, todas con perfiles temporales (navegador, ajustes, apariencia
@@ -188,7 +193,7 @@ y que los recursos del logo coincidan byte a byte con lo que genera
 
 La cobertura de 0.4 añade pruebas de migración v1/v2, fotos, revisiones y errores
 de guardado, preferencias de apariencia y política nativa de Google. Las
-pruebas de `appearance_native.py --browser <motor-Kitsune>` recorren API HTTP
+pruebas de `appearance_native.py` recorren API HTTP
 real → archivo local validado → módulo nativo → cierre y reinicio. Comprueban
 también el tema en pestañas ya abiertas, cambios del escritorio sin Home abierto,
 y que las páginas web normales no reciben los estilos internos. No usan cuentas
@@ -300,6 +305,10 @@ y `~/.local/state/kitsune-browser/engine/`.
 
 ## Instalación existente y copia de seguridad
 
+- Motor: `/home/risco/.local/share/kitsune-browser/engine/current` (el activo y el
+  anterior; los compila `kitsune-engine.py`, su estado en
+  `~/.local/state/kitsune-browser/engine/` y la compilación en `~/.cache/kitsune-build`).
+- Modos de privacidad: `/home/risco/.local/state/kitsune-browser/privacy.json`.
 - Perfil conservado: `/home/risco/.local/share/kitsune-browser/profile`.
 - Inicio: `/home/risco/.local/share/kitsune-browser/start`.
 - Ajustes locales: `/home/risco/.local/state/kitsune-browser/home.json`.
@@ -311,6 +320,22 @@ y `~/.local/state/kitsune-browser/engine/`.
 - Copia previa a 0.3: `/home/risco/.local/share/kitsune-0.3-backup.JXUF2K`.
 - Copia de los estilos previos al logo animado: `/home/risco/.local/share/kitsune-logo-backup.zmcq6K`.
 - Copia previa a 0.2: `/home/risco/.local/share/kitsune-redesign-backup.n1vv7x`.
+
+`sh install/install.sh` instala 0.6 cuando el motor propio ya está activo: guarda
+antes en `~/.local/share/kitsune-0.6-backup.*` el inicio, las plantillas, los
+módulos, el estado, el lanzador y los servicios; copia los módulos, la receta del
+motor, el inicio y las plantillas; deja el `user.js` de cada perfil como la
+plantilla más sus marcas `kitsune.migrations.*`; instala el lanzador y los
+servicios y activa `kitsune-engine-update.timer`. El perfil no se copia ahí,
+porque puede estar abierto: el lanzador lo copia **cerrado** en
+`~/.local/share/kitsune-0.6-profile-backup.*` justo antes de que el motor propio lo
+abra por primera vez (un Gecko más nuevo actualiza el perfil y uno más antiguo ya no
+puede abrirlo). Los valores de privacidad que el `user.js` de 0.5 dejó en `prefs.js`
+coinciden con Estricto y se conservan.
+
+Con el motor propio activo ya no hacen falta el paquete `librewolf`
+(`sudo pacman -R librewolf`) ni las copias de `runtime/` (≈1,3 GB), que no se
+borran solas.
 
 La actualización 0.5 reemplaza el inicio, el chrome de la plantilla y del perfil,
 el backend de apariencia, el módulo nativo, la marca y el lanzador, y prepara el
