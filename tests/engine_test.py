@@ -276,6 +276,31 @@ class ProfileSafekeepingTests(unittest.TestCase):
         self.assertIsNotNone(engine.backup_profile(profile, root / "data"))
 
 
+class ResourceTests(unittest.TestCase):
+    def meminfo(self, kib):
+        path = Path(tempfile.mkdtemp()) / "meminfo"
+        path.write_text(f"MemTotal:       32000000 kB\nMemAvailable:   {kib} kB\n")
+        return path
+
+    def test_jobs_follow_available_memory(self):
+        self.assertEqual(engine.build_jobs(self.meminfo(18 * 1024 * 1024), cpus=16), 9)
+        self.assertEqual(engine.build_jobs(self.meminfo(64 * 1024 * 1024), cpus=16), 16)
+        self.assertEqual(engine.build_jobs(self.meminfo(1024 * 1024), cpus=16), 2)
+        self.assertEqual(engine.build_jobs(Path("/nonexistent/meminfo"), cpus=16), 2)
+
+    def test_status_reports_a_build_killed_from_outside(self):
+        base = Path(tempfile.mkdtemp())
+        layout = engine.Layout(base / "data", base / "state", base / "cache")
+        dead = subprocess.Popen([sys.executable, "-c", "pass"])
+        dead.wait()
+        engine.write_status(layout, building={"version": "157.0.1", "since": "2026-10-09T19:58:15+00:00", "pid": dead.pid})
+        report = engine.status(layout)
+        self.assertIsNone(report["building"])
+        self.assertEqual(report["lastBuild"]["result"], "interrumpida")
+        engine.write_status(layout, building={"version": "157.0.1", "since": "x", "pid": os.getpid()})
+        self.assertEqual(engine.status(layout)["building"]["pid"], os.getpid())
+
+
 class BuildFlowTests(unittest.TestCase):
     def test_up_to_date_engine_is_not_rebuilt(self):
         base = Path(tempfile.mkdtemp())

@@ -10,4 +10,7 @@ ExecStart=/usr/bin/python3 %h/.local/share/kitsune-browser/kitsune-engine.py bui
 Nice=19
 IOSchedulingClass=idle
 CPUWeight=idle
+# Además del número de tareas según la memoria libre: el escritorio va primero.
+MemoryHigh=60%
+MemoryMax=80%
 TimeoutStartSec=6h

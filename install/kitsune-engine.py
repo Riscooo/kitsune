@@ -33,6 +33,9 @@ ARCHIVE = "https://archive.mozilla.org/pub/firefox/releases"
 VERSIONS_URL = "https://product-details.mozilla.org/1.0/firefox_versions.json"
 VERSION = re.compile(r"\d{1,4}\.\d{1,4}(?:\.\d{1,4})?")
 MIN_FREE_BYTES = 50 * 2**30
+# Each parallel Gecko compile job can take ~2 GiB at its peak (Rust crates,
+# large C++ units); more jobs than memory allows gets the build OOM-killed.
+GIB_PER_JOB = 2
 HERE = Path(__file__).resolve().parent
 RECIPE, BRANDING, NATIVE = HERE / "recipe", HERE / "branding", HERE / "native"
 NATIVE_FILES = ("kitsune-bootstrap.js", "kitsune-appearance.sys.mjs")
@@ -381,6 +384,16 @@ def mach_environment(mozconfig: Path, tools: Path):
     return env
 
 
+def build_jobs(meminfo=Path("/proc/meminfo"), cpus=None):
+    """Parallel jobs that fit in the memory available now (at least 2)."""
+    cpus = cpus or os.cpu_count() or 2
+    available = 0
+    with contextlib.suppress(OSError, ValueError):
+        match = re.search(r"(?m)^MemAvailable:\s+(\d+) kB$", meminfo.read_text())
+        available = int(match.group(1)) * 1024 if match else 0
+    return max(2, min(cpus, available // (GIB_PER_JOB * 2**30)))
+
+
 def mach(source: Path, arguments, env, logfile, run=subprocess.run):
     python = os.environ.get("KITSUNE_MACH_PYTHON", sys.executable)
     with logfile.open("a") as handle:
@@ -402,7 +415,9 @@ def compile_package(layout: Layout, version: str, source: Path, build_fp: str, l
         raise EngineError("Hacen falta al menos 50 GB libres para compilar Kitsune")
     env = mach_environment(write_mozconfig(layout, version), build_tools(layout))
     log(f"Compilando Kitsune sobre Gecko {version} (registro: {logfile})")
-    mach(source, ["build"], env, logfile, run)
+    jobs = build_jobs()
+    log(f"Compilando con {jobs} tareas en paralelo (según la memoria libre)")
+    mach(source, ["build", f"-j{jobs}"], env, logfile, run)
     mach(source, ["package"], env, logfile, run)
     candidates = sorted((layout.cache / f"obj-{version}" / "dist").glob(f"kitsune-{version}.*.linux-*.tar.*"))
     if len(candidates) != 1:
@@ -639,9 +654,28 @@ def build(layout: Layout, version=None, if_new=False, notify_user=False, log=pri
         return engine
 
 
+def process_alive(pid) -> bool:
+    if not isinstance(pid, int) or pid <= 0:
+        return False
+    try:
+        os.kill(pid, 0)
+    except ProcessLookupError:
+        return False
+    except PermissionError:
+        return True
+    return True
+
+
 def status(layout: Layout):
     current, manifest = layout.current_engine()
     data = read_status(layout)
+    building = data.get("building")
+    if building and not process_alive(building.get("pid")):
+        # Killed from outside (e.g. out of memory) before it could record a result.
+        data["building"] = None
+        data["lastBuild"] = {"version": building.get("version"), "result": "interrumpida",
+                             "message": "La compilación se interrumpió desde fuera (por ejemplo, por falta de memoria)",
+                             "at": building.get("since")}
     return {"engine": current.name if current else None,
             "engineVersion": manifest["engineVersion"] if manifest else None,
             "installedAt": manifest["installedAt"] if manifest else None,
