@@ -182,6 +182,8 @@ const wait = (test, ms = 30000) => new Promise((resolve, reject) => {
     policies: Services.policies.status === Services.policies.ACTIVE,
     privacyMode: Services.prefs.getStringPref('kitsune.privacy.active', ''),
     signaturesRequired: Services.prefs.getBoolPref('xpinstall.signatures.required', false),
+    channel: Services.prefs.getDefaultBranch('').getStringPref('app.update.channel', ''),
+    telemetryExtended: Services.telemetry.canRecordExtended,
     sandboxLevel: Services.prefs.getIntPref('security.sandbox.content.level', 0)};
 })().then(done, error => done({error: String(error)}));
 """

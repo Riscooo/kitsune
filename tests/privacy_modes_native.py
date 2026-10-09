@@ -56,6 +56,7 @@ def main():
 
     strict = fresh(browser, "estricto")
     assert effective(strict, "kitsune.privacy.active") == "estricto"
+    assert effective(strict, "browser.contentblocking.category") == "strict"
     wrong = {name: (effective(strict, name), value) for name, value in {**sets["common"],
              **{n: v[0] for n, v in sets["mode"].items()}}.items() if effective(strict, name) != value}
     assert not wrong, f"Estricto no reproduce 0.5: {wrong}"
@@ -63,6 +64,7 @@ def main():
 
     comfort = fresh(browser, "comodo")
     assert effective(comfort, "kitsune.privacy.active") == "comodo"
+    assert effective(comfort, "browser.contentblocking.category") == "standard"
     wrong = {}
     for name, (_, comfort_value) in sets["mode"].items():
         expected = comfort_value if comfort_value is not None else effective(factory, name)

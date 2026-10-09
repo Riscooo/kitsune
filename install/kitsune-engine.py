@@ -490,7 +490,8 @@ def smoke_check(binary: Path, version: str):
     if not isinstance(result, dict) or result.get("error"):
         raise EngineError(f"La prueba de humo no pudo ejecutarse: {result}")
     expect = {"name": "Kitsune", "version": version, "brand": "Kitsune", "nativeEntry": True, "nativeModule": True,
-              "policies": True, "privacyMode": "estricto", "signaturesRequired": True}
+              "policies": True, "privacyMode": "estricto", "signaturesRequired": True, "channel": "release",
+              "telemetryExtended": False}
     problems = [f"{key}={result.get(key)!r}" for key, value in expect.items() if result.get(key) != value]
     agent = result.get("userAgent") or ""
     if "Kitsune" in agent or f"Firefox/{version_key(version)[0]}.0" not in agent or result.get("sandboxLevel", 0) <= 0:

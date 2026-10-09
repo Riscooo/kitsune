@@ -179,7 +179,8 @@ class RecipeTests(unittest.TestCase):
     def test_mozconfig_has_own_identity_and_no_updater(self):
         text = (ROOT / "install/recipe/mozconfig.in").read_text()
         for option in ("--with-app-name=kitsune", "--with-branding=browser/branding/kitsune",
-                       "--disable-updater", "--disable-crashreporter", "--enable-release"):
+                       "--disable-updater", "--disable-crashreporter", "--enable-release",
+                       "--enable-update-channel=release"):
             self.assertIn(option, text)
         self.assertNotIn("librewolf", text.lower())
         self.assertNotIn("MOZ_REQUIRE_SIGNING", text)
@@ -365,6 +366,7 @@ if __name__ == "__main__":
 class SmokeCheckTests(unittest.TestCase):
     GOOD = {"name": "Kitsune", "version": "157.0.1", "brand": "Kitsune", "nativeEntry": True, "nativeModule": True,
             "policies": True, "privacyMode": "estricto", "signaturesRequired": True, "sandboxLevel": 6,
+            "channel": "release", "telemetryExtended": False,
             "userAgent": "Mozilla/5.0 (X11; Linux x86_64; rv:157.0) Gecko/20100101 Firefox/157.0"}
 
     def check(self, **changes):
@@ -380,6 +382,7 @@ class SmokeCheckTests(unittest.TestCase):
     def test_kitsune_user_agent_or_missing_protections_fail(self):
         for changes in ({"userAgent": "Mozilla/5.0 (X11; Linux x86_64; rv:157.0) Gecko/20100101 Kitsune/157.0.1"},
                         {"brand": None}, {"nativeModule": False}, {"policies": False}, {"sandboxLevel": 0},
-                        {"privacyMode": ""}, {"signaturesRequired": False}, {"error": "timeout"}):
+                        {"privacyMode": ""}, {"signaturesRequired": False}, {"error": "timeout"},
+                        {"channel": "default"}, {"telemetryExtended": True}):
             with self.assertRaises(engine.EngineError, msg=str(changes)):
                 self.check(**changes)

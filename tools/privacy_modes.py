@@ -47,10 +47,29 @@ IGNORE = [
     r"(browser\.newtabpage\.storageVersion|browser\.urlbar\.placeholderName.*|browser\.search\.region|doh-rollout\..*)",
     r"(datareporting\.policy\..*|identity\.fxaccounts\.toolbar\..*|browser\.uiCustomization\..*|browser\.engagement\..*)",
     r"(browser\.contextual-services\.contextId|nimbus\..*|messaging-system\..*|toolkit\.telemetry\.reportingpolicy\..*)",
+    # LibreWolf's identity, its overrides file and its documentation links.
+    r"(app\.releaseNotesURL|app\.distributor.*|app\.partner\..*|autoadmin\..*|browser\.geolocation\.warning\.infoURL|default-browser-agent\..*)",
+    # Per-profile identifiers and runtime state, not settings.
+    r"(dom\.push\.userAgentID|privacy\.sanitize\.pending|privacy\.sanitize\.clearOnShutdown\.hasMigrated.*|captchadetection\..*|gecko\.handlerService\..*)",
+    # Gecko 154 defaults that 157 changed on purpose (features, protocol tuning,
+    # list names, service URLs): keeping 157's own values, never forcing 154's.
+    r"(layout\.css\..*|accessibility\..*|devtools\..*|apz\..*|svg\..*|image\..*|idle_period\..*|javascript\.options\.wasm.*)",
+    r"(security\.tls\.client_hello\..*|security\.tls\.enable_mlkem.*|browser\.tabs\.remote\..*|dom\.navigation\..*)",
+    r"(network\.http\.http3\.(apple_fast_datapath|max_gso_segments|version_negotiation.*)|network\.dns\.preferIPv6)",
+    r"(captivedetect\.canonicalContent|network\.connectivity-service\.IPv[46]\.url|urlclassifier\..*|browser\.safebrowsing\.(id|provider\.mozilla\.lists))",
+    r"(browser\.newtabpage\.activity-stream\..*(config|layout|variation|sectionId|sportsfeed|searchEngines)|browser\.newtabpage\.activity-stream\.discoverystream\.thumbsUpDown\..*)",
+    r"(browser\.urlbar\.quicksuggest\.(online\.enabled|settingsUi)|browser\.urlbar\.deduplication\..*|browser\.tabs\.groups\.smart\.agglomerativeThresholdInt)",
+    r"(general\.config\..*|intl\.locale\.requested|places\.semanticHistory\..*|browser\.smartwindow\..*|browser\.ipProtection\..*)",
+    r"(browser\.sessionstore\.newTabOnRestore\..*|browser\.translation\.neverForLanguages|lightweightThemes\..*|spellchecker\.dictionary_path)",
+    r"(browser\.dom\.window\.dump\.enabled|browser\.touchmode\.auto|browser\.macAppMenu\..*|browser\.bypassAutoTriggerActions|sidebar\.revamp\.round-content-area)",
 ]
 
-# Sync stays available in both modes (it only does anything after signing in).
-NOT_MANAGED = {"identity.fxaccounts.enabled"}
+# Sync stays available in both modes (it only does anything after signing in);
+# the content blocking category is set by kitsune.cfg itself when a mode is
+# applied, because Firefox only expands a category from a profile value; and
+# Normandy/translations write runtime state on first start.
+NOT_MANAGED = {"identity.fxaccounts.enabled", "browser.contentblocking.category",
+               "app.normandy.first_run", "browser.translations.mostRecentTargetLanguages"}
 
 # Same value in both modes: no telemetry, studies or remote-content features,
 # no speculative connections, and LibreWolf's non-privacy UX choices.
@@ -69,6 +88,12 @@ COMMON = [
     r"(devtools\..*|ui\..*|layout\..*|accessibility\..*|general\..*|middlemouse\..*|font\..*|intl\..*)",
     r"(browser\.contentblocking\.report.*|browser\.contentblocking\.cfr.*|browser\.protections_panel\..*|browser\.messaging-system\..*)",
     r"(extensions\..*|xpinstall\..*|browser\.policies\..*|pdfjs\..*|browser\.places\..*|places\..*|browser\.bookmarks\..*)",
+    # Interface Kitsune's Tinta chrome was designed against, and no promotions,
+    # referral pings, region lookups by IP, UI tours or sponsored tiles.
+    r"(browser\.nova\.enabled|sidebar\.revamp|sidebar\.main\.tools|browser\.aboutConfig\.showWarning|browser\.preferences\..*)",
+    r"(browser\.contentblocking\.reject-and-isolate-cookies\..*|browser\.link\.open_newwindow\.restriction|browser\.xul\.error_pages\..*)",
+    r"(browser\.promo\..*|browser\.referrals\..*|browser\.region\..*|browser\.shareqrcode\..*|browser\.topsites\..*|browser\.uitour\..*)",
+    r"(startup\.homepage_override_nimbus_disable_wnp)",
 ]
 
 # Managed by the mode: Estricto = measured value, Cómodo = factory or COMFORT.
@@ -85,9 +110,7 @@ MODE = [
 ]
 
 # Cómodo values that are not simply Gecko's factory value.
-COMFORT = {
-    "browser.contentblocking.category": "standard",
-}
+COMFORT = {}
 
 
 def compile_rules(rules):
