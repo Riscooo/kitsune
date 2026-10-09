@@ -31,6 +31,7 @@ BEGIN, END = "// @@KITSUNE_GENERATED_BEGIN@@", "// @@KITSUNE_GENERATED_END@@"
 IGNORE = [
     r".*(uuid|Uuid|UUID|impressionId|profileId|storeID|ProfileGroupID|ClientID|clientID|installID).*",
     r".*(lastColdStartupCheck|acceptedDate|lastDailyNotification|lastUpdateTime|lastUpdate|LastUpdate).*",
+    r".*\.(nextupdatetime|lastupdatetime|updatetime)$",
     r".*([Tt]imestamp|lastCheck|lastRun|[Ii]nstallDate|lastSuccess|last_success|lastPing|firstRun).*",
     r".*(buildID|BuildID|BuildId|mstone|lastAppVersion|lastPlatformVersion|lastAppBuildId|previousBuildID).*",
     r".*\.(version|migration|migrationVersion|schemaVersion|lastVersion)$",

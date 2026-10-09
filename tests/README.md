@@ -14,7 +14,11 @@ nunca borra un motor en uso.
 `kitsune-0.5-effective-prefs.json` (LibreWolf 154 + el `user.js` de 0.5: lo que
 Estricto debe reproducir) y `kitsune-engine-factory-prefs.json` (motor propio sin
 modo). Se tomaron con `tools/pref_audit.py`/`install/engine_probe.py`, que hablan
-Marionette directamente para no meter ajustes de automatización. Con ellas
+Marionette directamente para no meter ajustes de automatización. La de fábrica se
+repite con cada motor nuevo: `python3 tools/pref_audit.py --factory --browser
+~/.local/share/kitsune-browser/engine/current/kitsune --output
+tests/fixtures/kitsune-engine-factory-prefs.json` (copia del motor con enlaces duros
+y sin `kitsune.cfg`, con sus políticas y el `user.js` de la plantilla). Con ellas
 `python3 tools/privacy_modes.py` genera los conjuntos de `kitsune.cfg` y
 `--check` comprueba que siguen al día. `python3 tests/privacy_modes_native.py`
 arranca el motor real en los dos modos y compara.

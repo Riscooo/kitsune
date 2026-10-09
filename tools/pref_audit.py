@@ -10,10 +10,33 @@ from __future__ import annotations
 import argparse
 import json
 from pathlib import Path
+import shutil
+import subprocess
 import sys
+import tempfile
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "install"))
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / "install"))
 from engine_probe import dump_prefs  # noqa: E402
+
+
+def factory_prefs(browser: Path, env):
+    """Measure the engine with no Kitsune configuration, without touching the installed one.
+
+    A hard-linked copy of the engine (same filesystem, no extra space) gets an
+    empty kitsune.cfg; Gecko finds its configuration next to the executable.
+    """
+    work = Path(tempfile.mkdtemp(prefix="kitsune-factory-", dir=Path.home() / ".cache"))
+    try:
+        copy = work / "engine"
+        subprocess.run(["cp", "-al", str(browser.parent), str(copy)], check=True)
+        cfg = copy / "kitsune.cfg"
+        cfg.unlink()
+        cfg.write_text("// Kitsune: medición de fábrica, sin configuración propia.\n")
+        user_js = (ROOT / "install/user.js").read_text()
+        return dump_prefs(copy / browser.name, env, profile_setup=lambda profile: (profile / "user.js").write_text(user_js + "\n"))
+    finally:
+        shutil.rmtree(work, ignore_errors=True)
 
 
 def main():
@@ -21,9 +44,16 @@ def main():
     parser.add_argument("--browser", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--env", action="append", default=[], help="KEY=VALUE for the engine process")
+    parser.add_argument("--factory", action="store_true",
+                        help="Kitsune engine without kitsune.cfg, with its policies and the template user.js: "
+                             "the factory values tools/privacy_modes.py compares (kitsune-engine-factory-prefs.json)")
     args = parser.parse_args()
     env = dict(item.split("=", 1) for item in args.env)
-    result = dump_prefs(args.browser.resolve(strict=True), env)
+    browser = args.browser.resolve(strict=True)
+    if args.factory:
+        result = factory_prefs(browser, env)
+    else:
+        result = dump_prefs(browser, env)
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(result, ensure_ascii=False, indent=1, sort_keys=True) + "\n")
     print(json.dumps({"app": result["app"], "prefs": len(result["prefs"]), "policies": len(result["policies"])}))
