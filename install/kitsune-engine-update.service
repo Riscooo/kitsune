@@ -10,7 +10,8 @@ ExecStart=/usr/bin/python3 %h/.local/share/kitsune-browser/kitsune-engine.py bui
 Nice=19
 IOSchedulingClass=idle
 CPUWeight=idle
-# Además del número de tareas según la memoria libre: el escritorio va primero.
-MemoryHigh=60%
-MemoryMax=80%
+# El escritorio va primero: la compilación nunca pasa del 65 % de la RAM ni usa
+# swap. Si lo intentara, el sistema mata solo la compilación en vez de congelar el PC.
+MemoryMax=65%
+MemorySwapMax=0
 TimeoutStartSec=6h

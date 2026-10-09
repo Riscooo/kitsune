@@ -132,6 +132,19 @@ class RecipeTests(unittest.TestCase):
             self.assertEqual((root / "browser/base/content" / name).read_bytes(), (ROOT / "install/native" / name).read_bytes())
         self.assertNotIn("LibreWolf", (brand / "locales/en-US/brand.ftl").read_text())
 
+    def test_rust_uses_thin_lto_and_tuning_can_be_reapplied(self):
+        root = self.source_tree()
+        rules = root / "config/makefiles/rust.mk"
+        rules.parent.mkdir(parents=True)
+        rules.write_text("ifndef MOZ_LTO_RUST_CROSS\n" + engine.RUST_FAT_LTO + "\nendif\n")
+        engine.tune_build(root)
+        engine.tune_build(root)
+        self.assertEqual(rules.read_text().count(engine.RUST_THIN_LTO), 1)
+        self.assertNotIn("=fat", rules.read_text())
+        rules.write_text("moved upstream\n")
+        with self.assertRaises(engine.EngineError):
+            engine.tune_build(root)
+
     def test_native_integration_can_be_reapplied(self):
         root = self.source_tree()
         engine.integrate_native(root)
@@ -282,11 +295,25 @@ class ResourceTests(unittest.TestCase):
         path.write_text(f"MemTotal:       32000000 kB\nMemAvailable:   {kib} kB\n")
         return path
 
-    def test_jobs_follow_available_memory(self):
-        self.assertEqual(engine.build_jobs(self.meminfo(18 * 1024 * 1024), cpus=16), 9)
-        self.assertEqual(engine.build_jobs(self.meminfo(64 * 1024 * 1024), cpus=16), 16)
-        self.assertEqual(engine.build_jobs(self.meminfo(1024 * 1024), cpus=16), 2)
+    def test_jobs_follow_available_memory_with_gkrust_headroom(self):
+        gib = 1024 * 1024
+        self.assertEqual(engine.build_jobs(self.meminfo(18 * gib), cpus=16), 6)
+        self.assertEqual(engine.build_jobs(self.meminfo(64 * gib), cpus=16), 16)
+        self.assertEqual(engine.build_jobs(self.meminfo(1 * gib), cpus=16), 2)
         self.assertEqual(engine.build_jobs(Path("/nonexistent/meminfo"), cpus=16), 2)
+        # Inside the update service its cgroup memory.max is the real limit.
+        self.assertEqual(engine.build_jobs(self.meminfo(30 * gib), cpus=16, limit=20 * 2**30), 7)
+
+    def test_cgroup_memory_limit_is_read_from_own_cgroup(self):
+        root = Path(tempfile.mkdtemp())
+        (root / "proc").mkdir()
+        (root / "proc/cgroup").write_text("0::/user.slice/kitsune-engine-update.service\n")
+        unit = root / "sys/user.slice/kitsune-engine-update.service"
+        unit.mkdir(parents=True)
+        (unit / "memory.max").write_text("21474836480\n")
+        self.assertEqual(engine.cgroup_memory_limit(root / "proc/cgroup", root / "sys"), 20 * 2**30)
+        (unit / "memory.max").write_text("max\n")
+        self.assertIsNone(engine.cgroup_memory_limit(root / "proc/cgroup", root / "sys"))
 
     def test_status_reports_a_build_killed_from_outside(self):
         base = Path(tempfile.mkdtemp())

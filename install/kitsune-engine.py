@@ -26,7 +26,7 @@ import urllib.request
 
 # Bump BUILD_REVISION when the compile recipe changes in code (not only in its
 # input files, which are hashed); bump INSTALL_REVISION for install-only changes.
-BUILD_REVISION = 1
+BUILD_REVISION = 2
 INSTALL_REVISION = 1
 MOZILLA_RELEASE_KEY = "14F26682D0916CDD81E37B6D61B7B526D98F0353"  # Mozilla Software Releases
 ARCHIVE = "https://archive.mozilla.org/pub/firefox/releases"
@@ -34,8 +34,15 @@ VERSIONS_URL = "https://product-details.mozilla.org/1.0/firefox_versions.json"
 VERSION = re.compile(r"\d{1,4}\.\d{1,4}(?:\.\d{1,4})?")
 MIN_FREE_BYTES = 50 * 2**30
 # Each parallel Gecko compile job can take ~2 GiB at its peak (Rust crates,
-# large C++ units); more jobs than memory allows gets the build OOM-killed.
+# large C++ units), and the final gkrust link-time optimization needs its own
+# headroom on top; more than memory allows froze this PC once.
 GIB_PER_JOB = 2
+GKRUST_RESERVE_GIB = 6
+# Release builds link gkrust (all of Gecko's Rust) with fat LTO: one rustc of
+# more than 13 GiB. Thin LTO, what Mozilla's own cross-language LTO builds use
+# for Rust, optimizes the same crates in parallel with a fraction of the memory.
+RUST_FAT_LTO = "cargo_rustc_flags += -Clto$(if $(filter full,$(MOZ_LTO_RUST_CROSS)),=fat)"
+RUST_THIN_LTO = "cargo_rustc_flags += -Clto=thin"
 HERE = Path(__file__).resolve().parent
 RECIPE, BRANDING, NATIVE = HERE / "recipe", HERE / "branding", HERE / "native"
 NATIVE_FILES = ("kitsune-bootstrap.js", "kitsune-appearance.sys.mjs")
@@ -321,6 +328,14 @@ def integrate_native(source: Path):
                                   "El diálogo Acerca de"))
 
 
+def tune_build(source: Path):
+    """Build-system settings for this PC's memory. Idempotent."""
+    rules = source / "config/makefiles/rust.mk"
+    text = rules.read_text()
+    if RUST_THIN_LTO not in text:
+        rules.write_text(replace_once(text, RUST_FAT_LTO, RUST_THIN_LTO, "La optimización LTO de Rust"))
+
+
 def prepare_source(layout: Layout, version: str, tarball: Path, build_fp: str, log=print, run=subprocess.run):
     source = layout.cache / f"src-{version}"
     marker = source / ".kitsune-source.json"
@@ -333,6 +348,7 @@ def prepare_source(layout: Layout, version: str, tarball: Path, build_fp: str, l
             log("La receta de Kitsune cambió: se aplica sobre el código ya extraído")
             write_branding(source)
             integrate_native(source)
+            tune_build(source)
             marker.write_text(json.dumps({**prepared, "buildFingerprint": build_fp, "preparedAt": now()}))
             return source
     if source.exists():
@@ -349,6 +365,7 @@ def prepare_source(layout: Layout, version: str, tarball: Path, build_fp: str, l
         raise EngineError("El código fuente no tiene la estructura esperada")
     write_branding(top)
     integrate_native(top)
+    tune_build(top)
     (top / ".kitsune-source.json").write_text(json.dumps({"version": version, "buildFingerprint": build_fp, "preparedAt": now()}))
     os.rename(top, source)
     shutil.rmtree(stage, ignore_errors=True)
@@ -384,14 +401,26 @@ def mach_environment(mozconfig: Path, tools: Path):
     return env
 
 
-def build_jobs(meminfo=Path("/proc/meminfo"), cpus=None):
-    """Parallel jobs that fit in the memory available now (at least 2)."""
+def cgroup_memory_limit(proc_cgroup=Path("/proc/self/cgroup"), root=Path("/sys/fs/cgroup")):
+    """memory.max of this process's cgroup (e.g. the update service), or None."""
+    with contextlib.suppress(OSError, ValueError):
+        relative = next(line.split("::", 1)[1] for line in proc_cgroup.read_text().splitlines() if line.startswith("0::"))
+        value = (root / relative.lstrip("/") / "memory.max").read_text().strip()
+        return None if value == "max" else int(value)
+    return None
+
+
+def build_jobs(meminfo=Path("/proc/meminfo"), cpus=None, limit=None):
+    """Parallel jobs that fit in the memory available now and in our cgroup (at least 2)."""
     cpus = cpus or os.cpu_count() or 2
     available = 0
     with contextlib.suppress(OSError, ValueError):
         match = re.search(r"(?m)^MemAvailable:\s+(\d+) kB$", meminfo.read_text())
         available = int(match.group(1)) * 1024 if match else 0
-    return max(2, min(cpus, available // (GIB_PER_JOB * 2**30)))
+    if limit:
+        available = min(available, limit)
+    usable = available - GKRUST_RESERVE_GIB * 2**30
+    return max(2, min(cpus, usable // (GIB_PER_JOB * 2**30)))
 
 
 def mach(source: Path, arguments, env, logfile, run=subprocess.run):
@@ -415,7 +444,13 @@ def compile_package(layout: Layout, version: str, source: Path, build_fp: str, l
         raise EngineError("Hacen falta al menos 50 GB libres para compilar Kitsune")
     env = mach_environment(write_mozconfig(layout, version), build_tools(layout))
     log(f"Compilando Kitsune sobre Gecko {version} (registro: {logfile})")
-    jobs = build_jobs()
+    # A compile server left from an earlier build would run compilers outside
+    # this build's priority and memory limits; the next one starts inside them.
+    sccache = Path(env["MOZBUILD_STATE_PATH"]) / "sccache/sccache"
+    if sccache.is_file():
+        run([str(sccache), "--stop-server"], env=env, stdin=subprocess.DEVNULL,
+            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    jobs = build_jobs(limit=cgroup_memory_limit())
     log(f"Compilando con {jobs} tareas en paralelo (según la memoria libre)")
     mach(source, ["build", f"-j{jobs}"], env, logfile, run)
     mach(source, ["package"], env, logfile, run)
