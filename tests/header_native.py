@@ -112,7 +112,9 @@ def main():
             for width in (800,500):
                 browser.command('POST','/window/rect',{'width':width,'height':800})
                 value=eventually(lambda:(v if (v:=state())['width']==width else None))
-                assert value['url']['rect']['width']>=95,value
+                # 157 shows the native account button (Sync is available in the own engine);
+                # at Gecko's 500px minimum the address field keeps ~90px.
+                assert value['url']['rect']['width']>=85,value
                 assert value['menu']['right']<=width and value['menu']['width']>0,value
                 assert value['url']['rect']['left']>=0,value
                 report[str(width)]=value;shot(f'03-header-{width}.png')

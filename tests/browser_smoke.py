@@ -83,6 +83,12 @@ class WebDriver:
                         # The driver otherwise weakens file-origin isolation.
                         # Keep production's protection in all source tests.
                         "security.fileuri.strict_origin_policy": True,
+                        # Marionette also turns Safe Browsing off unless the profile
+                        # has its own value; Kitsune ships it on as an engine default.
+                        "browser.safebrowsing.malware.enabled": True,
+                        "browser.safebrowsing.phishing.enabled": True,
+                        "browser.safebrowsing.blockedURIs.enabled": True,
+                        "browser.safebrowsing.downloads.enabled": True,
                     },
                 },
             }},
@@ -270,29 +276,43 @@ def native_search_checks(driver, checks):
     scripts = search_scripts()
     driver.context("chrome")
     created = driver.script(scripts["configureGoogleScript"], asynchronous=True)
-    assert created["ok"] and created["created"] and created["after"]["normal"]["name"] == "Google", created
-    checks.append("Google instalado y seleccionado con la API nativa, normal y privado")
-    driver.script("""
-      const {SearchService:search}=ChromeUtils.importESModule('moz-src:///toolkit/components/search/SearchService.sys.mjs');
-      search.getEngineByName('Google').changeUrl('text/html','https://www.google.com/search?{searchTerms}',null);
-      Services.prefs.clearUserPref('kitsune.migrations.googleSearch.v2');
-    """)
-    repaired = driver.script(scripts["configureGoogleScript"], asynchronous=True)
-    assert repaired["ok"] and repaired["repaired"] and not repaired["created"], repaired
-    checks.append("Regresión de Google sin q=: URL reparada, consulta Unicode y símbolos conservados")
+    assert created["ok"] and created["after"]["normal"]["name"] == "Google", created
+    assert created["after"]["private"]["name"] == "Google", created
+    query = created["after"]["normal"]["submission"]
+    assert query.startswith("https://www.google.com/search?") and "q=Kitsune+caf%C3%A9+%26+anime" in query, created
+    builtin = driver.script("""const {SearchService:s}=ChromeUtils.importESModule('moz-src:///toolkit/components/search/SearchService.sys.mjs');
+      const e=s.getEngineByName('Google');
+      return e.isAppProvided ?? /^AppProvided/.test(e.constructor?.name || '');""")
+    repaired = None
+    if builtin:
+        # Kitsune's own engine ships Google: the migration only selects and verifies it.
+        assert not created["created"] and not created["repaired"], created
+        checks.append("Google de serie seleccionado y verificado con la API nativa, normal y privado")
+    else:
+        assert created["created"], created
+        checks.append("Google instalado y seleccionado con la API nativa, normal y privado")
+        driver.script("""
+          const {SearchService:search}=ChromeUtils.importESModule('moz-src:///toolkit/components/search/SearchService.sys.mjs');
+          search.getEngineByName('Google').changeUrl('text/html','https://www.google.com/search?{searchTerms}',null);
+          Services.prefs.clearUserPref('kitsune.migrations.googleSearch.v2');
+        """)
+        repaired = driver.script(scripts["configureGoogleScript"], asynchronous=True)
+        assert repaired["ok"] and repaired["repaired"] and not repaired["created"], repaired
+        checks.append("Regresión de Google sin q=: URL reparada, consulta Unicode y símbolos conservados")
     result = driver.script("""
       const done=arguments[arguments.length-1];
       (async()=>{
         const {SearchService:s}=ChromeUtils.importESModule('moz-src:///toolkit/components/search/SearchService.sys.mjs');
-        await s.setDefault(s.getEngineByName('Mojeek'),s.CHANGE_REASON.USER);
-        await s.setDefaultPrivate(s.getEngineByName('Mojeek'),s.CHANGE_REASON.USER);
+        const other=s.getEngineByName('Mojeek')||s.getEngineByName('DuckDuckGo');
+        await s.setDefault(other,s.CHANGE_REASON.USER);
+        await s.setDefaultPrivate(other,s.CHANGE_REASON.USER);
         return true;
       })().then(done,error=>done({error:String(error)}));
     """, asynchronous=True)
     assert result is True
     preserved = driver.script(scripts["configureGoogleScript"], asynchronous=True)
-    assert preserved["alreadyApplied"] and preserved["after"]["normal"]["name"] == "Mojeek", preserved
-    assert preserved["after"]["private"]["name"] == "Mojeek", preserved
+    assert preserved["alreadyApplied"] and preserved["after"]["normal"]["name"] in ("Mojeek", "DuckDuckGo"), preserved
+    assert preserved["after"]["private"]["name"] == preserved["after"]["normal"]["name"], preserved
     checks.append("La migración única respeta cambios posteriores del usuario")
     driver.script("Services.prefs.clearUserPref('kitsune.migrations.googleSearch.v2')")
     restored = driver.script(scripts["configureGoogleScript"], asynchronous=True)

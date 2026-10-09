@@ -207,7 +207,8 @@ def main():
             info["search"] = driver.script(scripts["inspectGoogleScript"], asynchronous=True)
             assert info["profile"] == str(resolved[index]["profile"]), info
             assert info["signatures"] and info["strictFileOrigins"] and info["sanitize"] and info["httpsOnly"], info
-            assert not info["syncEnabled"] and info["cookieBehavior"] == 5, info
+            # Firefox Sync is available in Kitsune's own engine (nothing syncs without signing in).
+            assert info["syncEnabled"] and info["cookieBehavior"] == 5, info
             assert info["search"]["normal"]["name"] == info["search"]["private"]["name"] == "Google", info
             assert "Kitsune" in info["title"] and "LibreWolf" not in info["title"], info
             native_info.append(info)
