@@ -138,9 +138,11 @@ class RecipeTests(unittest.TestCase):
         rules = root / "config/makefiles/rust.mk"
         rules.parent.mkdir(parents=True)
         rules.write_text("ifndef MOZ_LTO_RUST_CROSS\n" + engine.RUST_FAT_LTO + "\nendif\n")
+        (root / "browser/moz.configure").write_text('imply_option("MOZ_APP_VENDOR", "Mozilla")\n' + engine.UA_ANCHOR + "\n")
         engine.tune_build(root)
         engine.tune_build(root)
         self.assertEqual(rules.read_text().count(engine.RUST_THIN_LTO), 1)
+        self.assertEqual((root / "browser/moz.configure").read_text().count(engine.UA_FIREFOX), 1)
         self.assertNotIn("=fat", rules.read_text())
         rules.write_text("moved upstream\n")
         with self.assertRaises(engine.EngineError):
@@ -172,7 +174,7 @@ class RecipeTests(unittest.TestCase):
 
     def test_mozconfig_has_own_identity_and_no_updater(self):
         text = (ROOT / "install/recipe/mozconfig.in").read_text()
-        for option in ("--with-app-name=kitsune", "--with-branding=browser/branding/kitsune", "MOZ_APP_UA_NAME=Firefox",
+        for option in ("--with-app-name=kitsune", "--with-branding=browser/branding/kitsune",
                        "--disable-updater", "--disable-crashreporter", "--enable-release"):
             self.assertIn(option, text)
         self.assertNotIn("librewolf", text.lower())

@@ -43,6 +43,10 @@ GKRUST_RESERVE_GIB = 6
 # for Rust, optimizes the same crates in parallel with a fraction of the memory.
 RUST_FAT_LTO = "cargo_rustc_flags += -Clto$(if $(filter full,$(MOZ_LTO_RUST_CROSS)),=fat)"
 RUST_THIN_LTO = "cargo_rustc_flags += -Clto=thin"
+# The user agent keeps Firefox's standard product token (websites decide by it)
+# while the application identity is Kitsune. Gecko only accepts this implied.
+UA_ANCHOR = 'imply_option("MOZ_DEVTOOLS", "all")'
+UA_FIREFOX = 'imply_option("MOZ_APP_UA_NAME", "Firefox")'
 HERE = Path(__file__).resolve().parent
 RECIPE, BRANDING, NATIVE = HERE / "recipe", HERE / "branding", HERE / "native"
 NATIVE_FILES = ("kitsune-bootstrap.js", "kitsune-appearance.sys.mjs")
@@ -334,6 +338,10 @@ def tune_build(source: Path):
     text = rules.read_text()
     if RUST_THIN_LTO not in text:
         rules.write_text(replace_once(text, RUST_FAT_LTO, RUST_THIN_LTO, "La optimización LTO de Rust"))
+    configure = source / "browser/moz.configure"
+    text = configure.read_text()
+    if UA_FIREFOX not in text:
+        configure.write_text(replace_once(text, UA_ANCHOR, UA_ANCHOR + "\n" + UA_FIREFOX, "La configuración del navegador"))
 
 
 def prepare_source(layout: Layout, version: str, tarball: Path, build_fp: str, log=print, run=subprocess.run):
