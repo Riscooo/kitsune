@@ -14,6 +14,7 @@ import contextlib
 import datetime
 import fcntl
 import hashlib
+import inspect
 import json
 import os
 from pathlib import Path
@@ -194,8 +195,16 @@ def fingerprint(version: str, files: dict, revision: int, parent: str = "") -> s
     return digest.hexdigest()
 
 
+def recipe_code() -> str:
+    """Hash of the code that shapes the compiled engine, so changing it always rebuilds."""
+    parts = [inspect.getsource(function) for function in (write_branding, integrate_native, tune_build, write_mozconfig)]
+    parts += [BRAND_FTL, BRAND_PROPERTIES, BRAND_CONFIGURE, KITSUNE_BOOTSTRAP, ABOUT_CREDIT, RUST_THIN_LTO,
+              UA_FIREFOX, json.dumps(BRAND_CONTENT, sort_keys=True), repr(ICON_SIZES), repr(NATIVE_FILES)]
+    return hashlib.sha256("\0".join(parts).encode()).hexdigest()
+
+
 def build_fingerprint(version):
-    return fingerprint(version, input_files(), BUILD_REVISION)
+    return fingerprint(version, input_files(), BUILD_REVISION, recipe_code())
 
 
 def install_fingerprint(version):

@@ -168,6 +168,10 @@ class RecipeTests(unittest.TestCase):
             engine.integrate_native(root)
 
     def test_fingerprints_follow_version_and_recipe(self):
+        from unittest import mock
+        before = engine.build_fingerprint("157.0.1")
+        with mock.patch.object(engine, "UA_FIREFOX", 'imply_option("MOZ_APP_UA_NAME", "Otro")'):
+            self.assertNotEqual(engine.build_fingerprint("157.0.1"), before)  # recipe code changes rebuild
         self.assertNotEqual(engine.build_fingerprint("157.0.1"), engine.build_fingerprint("157.0"))
         self.assertEqual(engine.build_fingerprint("157.0.1"), engine.build_fingerprint("157.0.1"))
         self.assertNotEqual(engine.install_fingerprint("157.0.1"), engine.build_fingerprint("157.0.1"))
