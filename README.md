@@ -181,6 +181,18 @@ python3 tests/native_branding_smoke.py
 Las pruebas nativas usan por defecto el motor activo
 (`~/.local/share/kitsune-browser/engine/current/kitsune`) con perfiles temporales.
 
+Resultado 0.6 «motor propio» (10 de octubre de 2026), con el motor
+`157.0.1-5d576f85e0ef` (Gecko 157.0.1, canal release, LTO thin para Rust):
+85 pruebas JS y 115 Python (25 del motor, 4 de los modos); `privacy_modes.py --check`
+al día (156 ajustes comunes y 64 por modo). Pruebas nativas superadas con perfiles
+temporales: modos de privacidad 4/4 (Estricto reproduce 0.5 en los 220 ajustes
+gestionados), navegador 19, marca 6, cabecera 9, perfiles nativos 8, apariencia 7,
+animación del logo 4, cuentas, ajustes, perfiles visuales, controles de ventana y
+fotos. `tools/profile_upgrade_trial.py` abrió una copia del perfil real con el
+motor propio, sin red: 1213 entradas de historial, uBlock Origin y Phantom activas,
+Google normal y privado y Estricto aplicado. Con Sync disponible aparece el botón
+de cuenta nativo en la barra; a 500 px la barra de direcciones conserva ~90 px.
+
 Resultado 0.5 «Tinta» (3 de octubre de 2026): 78 pruebas JS y 83 Python; 12 pruebas
 nativas superadas, todas con perfiles temporales (navegador, ajustes, apariencia
 con el motor 0.5, animación, cabecera, controles de ventana, marca, perfiles,
