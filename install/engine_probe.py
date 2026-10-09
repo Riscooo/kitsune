@@ -174,7 +174,7 @@ const wait = (test, ms = 30000) => new Promise((resolve, reject) => {
 (async () => {
   let win = null;
   await wait(() => (win = Services.wm.getMostRecentWindow('navigator:browser')) && win.gBrowserInit.delayedStartupFinished);
-  const brand = await new Localization(['branding/brand.ftl']).formatValue('brand-short-name');
+  const brand = Services.strings.createBundle('chrome://branding/locale/brand.properties').GetStringFromName('brandShortName');
   return {name: Services.appinfo.name, version: Services.appinfo.version, brand,
     userAgent: win.navigator.userAgent,
     nativeEntry: !!win.document.querySelector('script[src="chrome://browser/content/kitsune-bootstrap.js"]'),

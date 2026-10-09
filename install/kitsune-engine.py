@@ -475,7 +475,8 @@ def smoke_check(binary: Path, version: str):
     expect = {"name": "Kitsune", "version": version, "brand": "Kitsune", "nativeEntry": True, "nativeModule": True,
               "policies": True, "privacyMode": "estricto", "signaturesRequired": True}
     problems = [f"{key}={result.get(key)!r}" for key, value in expect.items() if result.get(key) != value]
-    if "Kitsune" in result.get("userAgent", "Kitsune") or result.get("sandboxLevel", 0) <= 0:
+    agent = result.get("userAgent") or ""
+    if "Kitsune" in agent or f"Firefox/{version_key(version)[0]}.0" not in agent or result.get("sandboxLevel", 0) <= 0:
         problems.append(f"userAgent/sandbox={result.get('userAgent')!r}/{result.get('sandboxLevel')!r}")
     if problems:
         raise EngineError("El motor nuevo no pasó la prueba de humo: " + ", ".join(problems))

@@ -117,3 +117,16 @@ test('the native new tab maps Nova design tokens (violet accent, button ring, ic
     assert.match(block, new RegExp(`${token}:\\s*var\\(--kb-[a-z-]+\\)`), `${token} sin mapear en la nueva pestaña`);
   }
 });
+
+test("a page's <select> drop-down follows the page: paper on a light select, the system's dark menu on a dark one", async () => {
+  const css = (await read('userChrome.css')).replace(/\/\*[\s\S]*?\*\//g, '');
+  // Gecko marks the drop-down dark (inline color-scheme) when the select is dark; the
+  // paper override for every menupopup must not cover that one with paper and ink.
+  const rule = css.match(/#ContentSelectDropdownPopup\s*\{([^}]*)\}/);
+  assert.ok(rule, 'no rule for the content select drop-down');
+  for (const token of ['--panel-background', '--panel-background-color', '--panel-text-color']) {
+    const value = rule[1].match(new RegExp(`${token}:\\s*([^;]+);`));
+    assert.ok(value, `${token} is not set for the select drop-down`);
+    assert.match(value[1], /^light-dark\(var\(--kb-[a-z-]+\),\s*Menu(Text)?\)\s*!important$/, `${token}: ${value[1]}`);
+  }
+});

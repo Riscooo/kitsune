@@ -8,6 +8,7 @@ import subprocess
 import sys
 import tarfile
 import tempfile
+import types
 import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -171,7 +172,7 @@ class RecipeTests(unittest.TestCase):
 
     def test_mozconfig_has_own_identity_and_no_updater(self):
         text = (ROOT / "install/recipe/mozconfig.in").read_text()
-        for option in ("--with-app-name=kitsune", "--with-branding=browser/branding/kitsune",
+        for option in ("--with-app-name=kitsune", "--with-branding=browser/branding/kitsune", "MOZ_APP_UA_NAME=Firefox",
                        "--disable-updater", "--disable-crashreporter", "--enable-release"):
             self.assertIn(option, text)
         self.assertNotIn("librewolf", text.lower())
@@ -353,3 +354,26 @@ class BuildFlowTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class SmokeCheckTests(unittest.TestCase):
+    GOOD = {"name": "Kitsune", "version": "157.0.1", "brand": "Kitsune", "nativeEntry": True, "nativeModule": True,
+            "policies": True, "privacyMode": "estricto", "signaturesRequired": True, "sandboxLevel": 6,
+            "userAgent": "Mozilla/5.0 (X11; Linux x86_64; rv:157.0) Gecko/20100101 Firefox/157.0"}
+
+    def check(self, **changes):
+        from unittest import mock
+        fake = types.ModuleType("engine_probe")
+        fake.smoke = lambda binary: {**self.GOOD, **changes}
+        with mock.patch.dict(sys.modules, {"engine_probe": fake}):
+            return engine.smoke_check(Path("/x/kitsune"), "157.0.1")
+
+    def test_good_engine_passes(self):
+        self.assertEqual(self.check()["name"], "Kitsune")
+
+    def test_kitsune_user_agent_or_missing_protections_fail(self):
+        for changes in ({"userAgent": "Mozilla/5.0 (X11; Linux x86_64; rv:157.0) Gecko/20100101 Kitsune/157.0.1"},
+                        {"brand": None}, {"nativeModule": False}, {"policies": False}, {"sandboxLevel": 0},
+                        {"privacyMode": ""}, {"signaturesRequired": False}, {"error": "timeout"}):
+            with self.assertRaises(engine.EngineError, msg=str(changes)):
+                self.check(**changes)

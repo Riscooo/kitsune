@@ -7,6 +7,8 @@ mk_add_options MOZ_OBJDIR=@OBJDIR@
 ac_add_options --with-app-name=kitsune
 ac_add_options --with-app-basename=Kitsune
 ac_add_options --with-branding=browser/branding/kitsune
+# El agente de usuario sigue siendo el estándar de Firefox: las webs deciden por él.
+ac_add_options MOZ_APP_UA_NAME=Firefox
 
 # Versión de uso diario, sin actualizador de Mozilla ni informe de fallos.
 ac_add_options --enable-release
