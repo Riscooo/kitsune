@@ -198,6 +198,13 @@ menupopup {
   --panel-border-radius: 12px !important;
   --menuitem-border-radius: 8px !important;
 }
+/* A page's <select> drop-down follows the page: Gecko marks it dark when the select
+   is dark, and it keeps the system's dark menu then instead of paper and ink. */
+#ContentSelectDropdownPopup {
+  --panel-background: light-dark(var(--kb-surface), Menu) !important;
+  --panel-background-color: light-dark(var(--kb-surface), Menu) !important;
+  --panel-text-color: light-dark(var(--kb-text), MenuText) !important;
+}
 /* Gecko 154 replaced the old --arrowpanel-background token. Style the native
    popup surface, not an extra rectangle layered over its content. */
 panel[type="arrow"] {
