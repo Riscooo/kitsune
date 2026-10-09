@@ -1,0 +1,21 @@
+/* Kitsune «Tinta»: diálogo Acerca de en papel y tinta. */
+#aboutDialogContainer {
+  background-color: #f6f5f1;
+  color: #252d2b;
+  color-scheme: light;
+}
+
+#rightBox {
+  background-size: auto 44px;
+  margin-inline: 30px;
+  padding-top: 64px;
+}
+
+#bottomBox {
+  background-color: #e8ece4;
+  padding: 15px 10px;
+}
+
+#kitsune-engine-credit {
+  color: #59625c;
+}

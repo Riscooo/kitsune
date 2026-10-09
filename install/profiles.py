@@ -34,12 +34,16 @@ MAX_REVISION = 2 ** 53 - 1
 MAX_PROFILES = 24
 MAX_FILE = 128 * 1024
 COLORS = ("blue", "pink", "violet", "teal", "amber", "red")
+# Modo de privacidad por perfil. Vive fuera del registro (privacy.json) para
+# que el registro siga en v2, la única versión que entiende el puente de Vela.
+PRIVACY_MODES = ("estricto", "comodo")
+DEFAULT_PRIVACY_MODE = "estricto"
 OMITTED = object()
 ACTIONS = {
     "home": None,
     "google": "https://accounts.google.com/ServiceLogin",
     "privacy": "about:preferences#privacy",
-    "sync": "about:preferences#librewolf",
+    "sync": "about:preferences#sync",
     "sync-settings": "about:preferences#sync",
     "passwords": "about:logins",
     "settings": "about:preferences",
@@ -180,11 +184,17 @@ def validate_record(record):
     return record
 
 
+def validate_privacy_mode(value):
+    if value is not OMITTED and value not in PRIVACY_MODES:
+        raise InvalidProfile("El modo de privacidad debe ser Estricto o Cómodo.")
+
+
 class ProfileManager:
     def __init__(self, browser_root, state_root, launcher=None, launch=None):
         self.browser_root = Path(browser_root).absolute()
         self.state_root = Path(state_root).absolute()
         self.registry = self.state_root / "profiles.json"
+        self.privacy = self.state_root / "privacy.json"
         self.launcher = Path(launcher) if launcher else Path.home() / ".local/bin/kitsune-browser"
         self.launch = launch or self._launch
         self.thread_lock = threading.Lock()
@@ -235,14 +245,53 @@ class ProfileManager:
             raise InvalidProfile("El registro de perfiles es demasiado grande.")
         atomic_write(self.registry, encoded)
 
+    def _read_privacy(self, strict=False):
+        """Return {profile id: mode}. Missing → {}; invalid → {} (Estricto) unless strict."""
+        try:
+            value = json.loads(read_regular(self.privacy))
+            if (type(value) is not dict or set(value) != {"version", "modes"} or value["version"] != 1
+                    or type(value["modes"]) is not dict or len(value["modes"]) > MAX_PROFILES
+                    or any(not valid_id(key) or mode not in PRIVACY_MODES for key, mode in value["modes"].items())):
+                raise ValueError("Invalid privacy modes")
+            return dict(value["modes"])
+        except FileNotFoundError:
+            return {}
+        except (ValueError, TypeError, UnicodeError, RecursionError) as error:
+            if strict:
+                raise ProfilesUnavailable("Los modos de privacidad guardados necesitan revisión. No se han sobrescrito.") from error
+            return {}
+
+    def _write_privacy(self, modes):
+        encoded = json.dumps({"version": 1, "modes": modes}, separators=(",", ":"), sort_keys=True).encode("utf-8")
+        atomic_write(self.privacy, encoded)
+
+    def _commit(self, record, identifier, privacy_mode):
+        """Write the privacy mode (if given) and then the registry, under the caller's lock."""
+        if privacy_mode is OMITTED:
+            self._write(record)
+            return
+        previous = self._read_privacy(strict=True)
+        modes = {**previous, identifier: privacy_mode}
+        if modes != previous:
+            self._write_privacy(modes)
+        try:
+            self._write(record)
+        except OSError:
+            if modes != previous:
+                with contextlib.suppress(OSError):
+                    self._write_privacy(previous)
+            raise
+
     def _snapshot(self, record, current_id):
         self._find(record, current_id)
         result = {"version": 1, "revision": record["revision"], "currentId": current_id,
                   "defaultId": record["defaultId"], "profiles": []}
+        modes = self._read_privacy()
         for profile in record["profiles"]:
             public = {key: value for key, value in profile.items() if key not in ("port", "avatarHash")}
             public["avatar"] = f"/api/profile-avatars/{profile['id']}/{profile['avatarHash']}.png" if profile["avatarHash"] else None
-            public.update(isDefault=profile["id"] == record["defaultId"], isCurrent=profile["id"] == current_id)
+            public.update(isDefault=profile["id"] == record["defaultId"], isCurrent=profile["id"] == current_id,
+                          privacyMode=modes.get(profile["id"], DEFAULT_PRIVACY_MODE))
             result["profiles"].append(public)
         return result
 
@@ -318,11 +367,13 @@ class ProfileManager:
                 raise ProfilesUnavailable("La foto guardada no se puede verificar. Elige otra foto.")
             return data
 
-    def create(self, name, email, color, revision, current_id="default", avatarData=OMITTED, rememberGoogle=OMITTED):
+    def create(self, name, email, color, revision, current_id="default", avatarData=OMITTED, rememberGoogle=OMITTED,
+               privacyMode=OMITTED):
         labels = validate_label(name, email, color)
         avatar = self._avatar_value(avatarData)
         if rememberGoogle is not OMITTED and type(rememberGoogle) is not bool:
             raise InvalidProfile("La preferencia de Google debe estar activada o desactivada.")
+        validate_privacy_mode(privacyMode)
         with self.locked():
             record = self._read()
             self._check_revision(record, revision, current_id)
@@ -341,7 +392,7 @@ class ProfileManager:
             record["profiles"].append(profile)
             record["revision"] += 1
             try:
-                self._write(record)
+                self._commit(record, identifier, privacyMode)
             except OSError:
                 self._discard_avatar(identifier, profile["avatarHash"])
                 raise
@@ -349,11 +400,13 @@ class ProfileManager:
             result["createdId"] = identifier
             return result
 
-    def edit(self, identifier, name, email, color, revision, current_id="default", avatarData=OMITTED, rememberGoogle=OMITTED):
+    def edit(self, identifier, name, email, color, revision, current_id="default", avatarData=OMITTED, rememberGoogle=OMITTED,
+             privacyMode=OMITTED):
         labels = validate_label(name, email, color)
         avatar = self._avatar_value(avatarData)
         if rememberGoogle is not OMITTED and type(rememberGoogle) is not bool:
             raise InvalidProfile("La preferencia de Google debe estar activada o desactivada.")
+        validate_privacy_mode(privacyMode)
         with self.locked():
             record = self._read()
             self._check_revision(record, revision, current_id)
@@ -366,7 +419,7 @@ class ProfileManager:
                 profile["rememberGoogle"] = rememberGoogle
             record["revision"] += 1
             try:
-                self._write(record)
+                self._commit(record, identifier, privacyMode)
             except OSError:
                 if profile["avatarHash"] != old_hash:
                     self._discard_avatar(identifier, profile["avatarHash"])
@@ -443,7 +496,8 @@ class ProfileManager:
             record = self._read()
             profile = copy.deepcopy(self._find(record, identifier or record["defaultId"]))
             paths = self._initialize(profile) if initialize else self.paths(profile)
-            return {"id": profile["id"], **paths}
+            mode = self._read_privacy().get(profile["id"], DEFAULT_PRIVACY_MODE)
+            return {"id": profile["id"], **paths, "privacyMode": mode}
 
     def open(self, identifier, action="home", revision=None, current_id="default"):
         if not isinstance(action, str) or action not in ACTIONS:
@@ -519,7 +573,7 @@ def main():
     subcommands = parser.add_subparsers(dest="command", required=True)
     resolve = subcommands.add_parser("resolve")
     resolve.add_argument("--id")
-    resolve.add_argument("--field", choices=("id", "profile", "state", "home", "port", "service", "remoting"))
+    resolve.add_argument("--field", choices=("id", "profile", "state", "home", "port", "service", "remoting", "privacyMode"))
     subcommands.add_parser("list")
     options = parser.parse_args()
     manager = ProfileManager(options.browser_root, options.state_root)

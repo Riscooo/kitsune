@@ -499,7 +499,7 @@ class HomeHandler(BaseHTTPRequestHandler):
             if action == "open":
                 if set(value) not in ({"action"}, {"action", "revision"}):
                     raise profiles_module.InvalidProfile("La solicitud de apertura no es válida.")
-            elif action in ("create", "edit") and not expected <= set(value) <= expected | {"avatarData", "rememberGoogle"}:
+            elif action in ("create", "edit") and not expected <= set(value) <= expected | {"avatarData", "rememberGoogle", "privacyMode"}:
                 raise profiles_module.InvalidProfile("La solicitud del perfil no es válida.")
             elif action not in ("create", "edit") and set(value) != expected:
                 raise profiles_module.InvalidProfile("La solicitud del perfil no es válida.")

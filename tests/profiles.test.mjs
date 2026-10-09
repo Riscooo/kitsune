@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { PROFILE_COLORS, googleRetentionStatus, profileInitials, validateProfileDraft, parseProfilesSnapshot } from '../start/profiles.mjs'
+import { PROFILE_COLORS, googleRetentionStatus, privacyMode, privacyModeStatus, profileInitials, validateProfileDraft, parseProfilesSnapshot } from '../start/profiles.mjs'
 
 test('Google retention distinguishes a matching acknowledgement, pending application and existing manual privacy exceptions', () => {
   const state = (desired, effective, managed, status = 'applied') => ({ googleRemember: desired, native: { status, googleRemember: effective, googlePolicyManaged: managed } })
@@ -42,4 +42,25 @@ test('profiles API snapshots require an actual current/default profile and bound
     { profiles: [snapshot().profiles[0], snapshot().profiles[0]] },
     { profiles: Array.from({ length: 25 }, (_, i) => ({ ...snapshot().profiles[0], id: String(i) })) },
   ]) assert.throws(() => parseProfilesSnapshot({ ...snapshot(), ...change }))
+})
+
+test('privacy mode defaults to Estricto and reports active, pending and other-profile states', () => {
+  assert.equal(privacyMode({}), 'estricto')
+  assert.equal(privacyMode({ privacyMode: 'comodo' }), 'comodo')
+  assert.equal(privacyMode({ privacyMode: 'toString' }), 'estricto')
+  const applied = mode => ({ native: { status: 'applied', privacyMode: mode } })
+  assert.equal(privacyModeStatus({ privacyMode: 'comodo' }, false), 'Privacidad: Cómodo · se aplica al abrir este perfil')
+  assert.equal(privacyModeStatus({ privacyMode: 'comodo' }, true, applied('comodo')), 'Privacidad: Cómodo · activo')
+  assert.equal(privacyModeStatus({ privacyMode: 'comodo' }, true, applied('estricto')), 'Privacidad: Cómodo · se aplicará al reiniciar Kitsune')
+  assert.equal(privacyModeStatus({}, true, applied('estricto')), 'Privacidad: Estricto · activo')
+  assert.equal(privacyModeStatus({}, true, { native: { status: 'queued', privacyMode: 'comodo' } }), 'Privacidad: Estricto')
+  assert.equal(privacyModeStatus({}, true), 'Privacidad: Estricto')
+})
+
+test('profiles API snapshots reject unknown privacy modes', () => {
+  const base = { version: 1, revision: 1, currentId: 'default', defaultId: 'default', token: 't',
+    profiles: [{ id: 'default', name: 'Personal', email: '', color: 'blue' }] }
+  assert.equal(parseProfilesSnapshot(base).profiles.length, 1)
+  assert.equal(parseProfilesSnapshot({ ...base, profiles: [{ ...base.profiles[0], privacyMode: 'comodo' }] }).profiles[0].privacyMode, 'comodo')
+  assert.throws(() => parseProfilesSnapshot({ ...base, profiles: [{ ...base.profiles[0], privacyMode: 'abierto' }] }))
 })

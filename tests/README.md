@@ -1,5 +1,24 @@
 # Kitsune native browser tests
 
+## 0.6: motor propio y modos de privacidad
+
+`python3 -m unittest tests/engine_test.py` cubre el motor propio sin red ni
+compilación: firma de Mozilla fijada por huella (otra clave, firma mala o SHA-512
+distinto se rechazan), versiones mal formadas, marca y módulo nativo compilados
+dentro, receta re-aplicable, instalación con configuración propia, cambio atómico
+de `current`, prueba de humo fallida que conserva el motor anterior y limpieza que
+nunca borra un motor en uso.
+
+`tests/fixtures/` guarda las mediciones de ajustes efectivos con perfil limpio:
+`librewolf-154-effective-prefs.json` (LibreWolf 154 tal cual),
+`kitsune-0.5-effective-prefs.json` (LibreWolf 154 + el `user.js` de 0.5: lo que
+Estricto debe reproducir) y `kitsune-engine-factory-prefs.json` (motor propio sin
+modo). Se tomaron con `tools/pref_audit.py`/`install/engine_probe.py`, que hablan
+Marionette directamente para no meter ajustes de automatización. Con ellas
+`python3 tools/privacy_modes.py` genera los conjuntos de `kitsune.cfg` y
+`--check` comprueba que siguen al día. `python3 tests/privacy_modes_native.py`
+arranca el motor real en los dos modos y compara.
+
 ## 0.4: appearance, Google retention and photos
 
 Run `npm run check` and `npm run test:python` from `outputs/kitsune`.
@@ -75,7 +94,8 @@ site/file data still undergoes normal shutdown cleanup.
 - Archive: `geckodriver-v0.37.1-linux64.tar.gz`
 - SHA-256: `e815130ea95983e162ae91843b48d3a3ce991735635fce83a647afde21e09f7e`
 - Executable: `outputs/kitsune/tools/geckodriver-0.37.1/geckodriver`
-- Browser: `/usr/lib/librewolf/librewolf` (tested with `154.0-2`)
+- Browser: Kitsune's own engine, `~/.local/share/kitsune-browser/engine/current/kitsune`
+  (built from Gecko `157.0.1` by `install/kitsune-engine.py`)
 
 The driver listens on loopback and is shut down at the end of the test.
 Firefox 138+ requires `--allow-system-access` on geckodriver for native chrome
@@ -90,7 +110,7 @@ asserted to remain enabled. At 390 pixels the test window's CSS minimum width is
 temporarily relaxed; actual Gecko viewport dimensions are measured and checked.
 ## Gestor de perfiles
 
-`python3 tests/profiles_ui.py` prueba el inicio en LibreWolf real contra el servidor
+`python3 tests/profiles_ui.py` prueba el inicio en el motor real de Kitsune contra el servidor
 HTTP y el registro de perfiles reales, siempre dentro de un directorio temporal.
 Usa únicamente las plantillas de la aplicación. La apertura de perfiles se
 intercepta con un callback de prueba: no abre perfiles personales ni contacta con
@@ -108,7 +128,7 @@ en el directorio temporal que imprime al terminar. Las pruebas unitarias de
 Desde el proyecto Kitsune, con un runtime de marca ya preparado:
 
 ```sh
-npm run test:profiles-native -- --browser /ruta/absoluta/al/runtime/librewolf
+npm run test:profiles-native -- --browser ~/.local/share/kitsune-browser/engine/current/kitsune
 ```
 
 `tests/profiles_native.py` requiere una sesión gráfica Linux activa. Abre dos
@@ -149,7 +169,7 @@ unidades de prueba restantes.
 ## Controles de ventana nativos sin abrir el escritorio
 
 ```sh
-python tests/window_chrome.py --browser /ruta/absoluta/al/runtime/librewolf
+python tests/window_chrome.py --browser ~/.local/share/kitsune-browser/engine/current/kitsune
 ```
 
 Crea un perfil temporal independiente y utiliza Gecko headless. Solo ese

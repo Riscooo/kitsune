@@ -114,7 +114,9 @@ async function update() {
     if (Date.now() - lastAck > 10000) {
       const ack = {version:1,fingerprint:current,at:Date.now(),
         googleRemember:googlePrincipals().every(p => Services.perms.testPermissionFromPrincipal(p, PERMISSION) === Services.perms.ALLOW_ACTION),
-        googlePolicyManaged:managedOrigins().length > 0};
+        googlePolicyManaged:managedOrigins().length > 0,
+        // Modo de privacidad que kitsune.cfg aplicó al arrancar este motor.
+        privacyMode:Services.prefs.getStringPref('kitsune.privacy.active', '')};
       await IOUtils.writeJSON(PathUtils.join(directory,'kitsune-appearance-ack.json'), ack, {tmpPath:PathUtils.join(directory,'.kitsune-appearance-ack.tmp'),permissions:0o600});
       lastAck = ack.at;
     }

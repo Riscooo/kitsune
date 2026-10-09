@@ -30,49 +30,21 @@ def main():
           sanitization: Services.prefs.getBoolPref('privacy.sanitize.sanitizeOnShutdown', true),
           cookieBehavior: Services.prefs.getIntPref('network.cookie.cookieBehavior')
         }""")
-        assert report["baseline"]["sync"] is False
+        assert report["baseline"]["sync"] is True
         assert all(report["baseline"][key] for key in ("signatures", "strictFiles", "sanitization"))
-        driver.navigate("about:preferences#librewolf")
-        h.eventually(lambda: driver.script("return document.readyState === 'complete' && document.body.innerText.length > 100"))
-        driver.settle()
-        report["preferences"] = driver.script("""return {
-          title: document.title, url: location.href, text: document.body.innerText.slice(0,14000),
-          controls: [...document.querySelectorAll('setting-control, moz-checkbox, checkbox, button')]
-            .map(el => ({tag:el.localName,id:el.id,label:el.getAttribute('label'),
-              setting:el.getAttribute('setting'),settingId:el.getAttribute('setting-id'),
-              text:el.textContent.trim().slice(0,120)}))
-            .filter(el=> /sync|cookie|librewolf/i.test(JSON.stringify(el)))
-        }""")
-        report["screenshots"] = [driver.screenshot("native-accounts-options.png", chrome=True)]
-        driver.navigate("about:preferences#privacy")
-        driver.settle()
-        report["privacy"] = driver.script("""return {
-          url: location.href,
-          controls: [...document.querySelectorAll('button, setting-control')]
-            .map(el=>({id:el.id,setting:el.getAttribute('setting-id'),text:el.textContent.trim().slice(0,120)}))
-            .filter(el=>/cookie|exception|history|permission/i.test(JSON.stringify(el)))
-        }""")
-        driver.navigate("about:preferences#sync")
-        control = h.eventually(lambda: driver.script("""return [...document.querySelectorAll('#librewolfSync')]
-          .find(el=>el.getBoundingClientRect().width > 0 && !el.closest('[hidden]')) || null"""))
-        driver.command("POST", f"/element/{control['element-6066-11e4-a52e-4f735466cecf']}/click", {})
-        report["restartPrompt"] = h.eventually(lambda: driver.command("GET", "/alert/text"))
-        # Do not let the native restart detach the test controller. Dismiss the
-        # immediate-restart prompt, then close/reopen this temporary profile.
-        driver.command("POST", "/alert/dismiss", {})
-        driver.context("chrome")
-        report["syncOptIn"] = driver.script("return Services.prefs.getBoolPref('identity.fxaccounts.enabled', false)")
-        assert report["syncOptIn"] is True
-        driver.close()
-        driver = h.WebDriver(profile, evidence, browser=args.browser)
+        # Kitsune's own engine offers Firefox Sync natively: nothing to unlock,
+        # nothing synchronizes until the user signs in to a Mozilla account.
         driver.navigate("about:preferences#sync")
         driver.settle()
-        report["syncAfterRestart"] = driver.script("""return {
+        report["sync"] = driver.script("""return {
           url: location.href, signIn: [...document.querySelectorAll('[id]')]
             .filter(el=>/fxa|syncNoFxaSignIn|syncSignIn/i.test(el.id) && el.getBoundingClientRect().width > 0)
             .map(el=>({id:el.id,label:el.getAttribute('label'),text:el.textContent.trim().slice(0,100)}))
         }""")
-        report["screenshots"].append(driver.screenshot("native-sync-ready.png", chrome=True))
+        report["screenshots"] = [driver.screenshot("native-sync-ready.png", chrome=True)]
+        assert report["sync"]["signIn"], report["sync"]
+        driver.close()
+        driver = h.WebDriver(profile, evidence, browser=args.browser)
         driver.context("chrome")
         report["protectionsAfterRestart"] = driver.script("""return {
           sync: Services.prefs.getBoolPref('identity.fxaccounts.enabled', false),
@@ -81,7 +53,6 @@ def main():
           sanitization: Services.prefs.getBoolPref('privacy.sanitize.sanitizeOnShutdown', true)
         }""")
         assert all(report["protectionsAfterRestart"].values())
-        assert report["syncAfterRestart"]["signIn"], report["syncAfterRestart"]
         report["ok"] = True
     finally:
         if driver:

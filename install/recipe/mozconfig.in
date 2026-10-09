@@ -1,0 +1,21 @@
+# Kitsune: motor propio compilado desde el código fuente oficial de Gecko.
+# Plantilla de kitsune-engine.py; @OBJDIR@ se sustituye por la carpeta de objetos de la versión.
+ac_add_options --enable-application=browser
+mk_add_options MOZ_OBJDIR=@OBJDIR@
+
+# Identidad propia, compilada dentro.
+ac_add_options --with-app-name=kitsune
+ac_add_options --with-app-basename=Kitsune
+ac_add_options --with-branding=browser/branding/kitsune
+
+# Versión de uso diario, sin actualizador de Mozilla ni informe de fallos.
+ac_add_options --enable-release
+ac_add_options --enable-optimize
+ac_add_options --disable-debug
+ac_add_options --disable-tests
+ac_add_options --disable-updater
+ac_add_options --disable-crashreporter
+
+# Herramientas de Mozilla descargadas en ~/.mozbuild (sin sudo) y caché de compilación.
+ac_add_options --enable-bootstrap
+ac_add_options --with-ccache=sccache

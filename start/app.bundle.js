@@ -311,11 +311,26 @@
 		if (!value || value.version !== 1 || typeof value.currentId !== "string" || typeof value.defaultId !== "string" || !Number.isSafeInteger(value.revision) || value.revision < 0 || typeof value.token !== "string" || !value.token || !Array.isArray(value.profiles) || value.profiles.length < 1 || value.profiles.length > 24) throw new Error("Invalid profiles response");
 		const ids = /* @__PURE__ */ new Set();
 		for (const item of value.profiles) {
-			if (!item || typeof item.id !== "string" || !/^[a-zA-Z0-9_-]{1,80}$/u.test(item.id) || ids.has(item.id) || typeof item.name !== "string" || !item.name.trim() || [...item.name].length > 48 || BAD_TEXT.test(item.name) || typeof item.email !== "string" || [...item.email].length > 254 || BAD_TEXT.test(item.email) || !PROFILE_COLORS.includes(item.color)) throw new Error("Invalid profile in response");
+			if (!item || typeof item.id !== "string" || !/^[a-zA-Z0-9_-]{1,80}$/u.test(item.id) || ids.has(item.id) || typeof item.name !== "string" || !item.name.trim() || [...item.name].length > 48 || BAD_TEXT.test(item.name) || typeof item.email !== "string" || [...item.email].length > 254 || BAD_TEXT.test(item.email) || !PROFILE_COLORS.includes(item.color) || item.privacyMode !== void 0 && !Object.hasOwn(PRIVACY_MODES, item.privacyMode)) throw new Error("Invalid profile in response");
 			ids.add(item.id);
 		}
 		if (!ids.has(value.currentId) || !ids.has(value.defaultId)) throw new Error("Invalid current/default profile");
 		return value;
+	}
+	const PRIVACY_MODES = Object.freeze({
+		estricto: "Estricto",
+		comodo: "Cómodo"
+	});
+	function privacyMode(profile) {
+		return Object.hasOwn(PRIVACY_MODES, profile?.privacyMode) ? profile.privacyMode : "estricto";
+	}
+	function privacyModeStatus(profile, isCurrent, appearance) {
+		const mode = privacyMode(profile);
+		const label = `Privacidad: ${PRIVACY_MODES[mode]}`;
+		if (!isCurrent) return `${label} · se aplica al abrir este perfil`;
+		const active = appearance?.native?.status === "applied" ? appearance.native.privacyMode : void 0;
+		if (!Object.hasOwn(PRIVACY_MODES, active ?? "")) return label;
+		return active === mode ? `${label} · activo` : `${label} · se aplicará al reiniciar Kitsune`;
 	}
 	function googleRetentionStatus(appearance, desired) {
 		if (typeof desired !== "boolean" || appearance?.googleRemember !== desired || appearance.native?.status !== "applied") return null;
@@ -375,7 +390,13 @@
 			const status = $("#profile-google-status");
 			const profile = selectedProfile();
 			if (!status || !profile || !dialog.open || formMode) return;
+			const privacy = $("#profile-privacy-status");
+			if (privacy) privacy.textContent = privacyModeStatus(profile, profile.id === snapshot.currentId);
 			const desired = profile.rememberGoogle === true;
+			if (privacyMode(profile) === "comodo") {
+				status.textContent = "En modo Cómodo las sesiones ya se conservan al cerrar.";
+				if (profile.id !== snapshot.currentId) return;
+			}
 			if (profile.id !== snapshot.currentId) {
 				status.textContent = desired ? "Abre este perfil para aplicar la conservación de Google." : "Sin conservación de Google activada en Kitsune.";
 				return;
@@ -392,6 +413,8 @@
 					if (!response.ok) throw new Error("Native state unavailable");
 					const appearance = await response.json();
 					if (request !== googleRequest || !dialog.open || formMode) return;
+					if (privacy) privacy.textContent = privacyModeStatus(profile, true, appearance);
+					if (privacyMode(profile) === "comodo") return;
 					const confirmed = googleRetentionStatus(appearance, desired);
 					if (confirmed) {
 						status.textContent = confirmed;
@@ -442,7 +465,21 @@
 			});
 			if ($("#profile-photo")) $("#profile-photo").disabled = busy;
 			if ($("#profile-photo-remove")) $("#profile-photo-remove").disabled = busy || !(photoData === void 0 ? originalPhoto : photoData);
-			if ($("#profile-remember-google")) $("#profile-remember-google").disabled = busy;
+			dialog.querySelectorAll("input[name=\"profile-privacy\"]").forEach((input) => {
+				input.disabled = busy;
+			});
+			updatePrivacyForm();
+		}
+		function selectedPrivacy() {
+			return dialog.querySelector("input[name=\"profile-privacy\"]:checked")?.value === "comodo" ? "comodo" : "estricto";
+		}
+		function updatePrivacyForm() {
+			const remember = $("#profile-remember-google");
+			if (!remember) return;
+			const comfortable = selectedPrivacy() === "comodo";
+			remember.disabled = busy || comfortable;
+			const help = $("#profile-remember-google-help");
+			if (help) help.textContent = comfortable ? "En modo Cómodo las sesiones ya se conservan." : "Conservar Google al cerrar; no inicia sesión.";
 		}
 		function renderList() {
 			const list = $("#profiles-list");
@@ -613,6 +650,11 @@
 			originalPhoto = profile?.avatar || null;
 			photoMessage();
 			if ($("#profile-remember-google")) $("#profile-remember-google").checked = profile?.rememberGoogle === true;
+			const mode = privacyMode(profile);
+			dialog.querySelectorAll("input[name=\"profile-privacy\"]").forEach((input) => {
+				input.checked = input.value === mode;
+			});
+			updatePrivacyForm();
 			$("#profile-name").value = profile?.name || "";
 			$("#profile-email").value = profile?.email || "";
 			$("#profile-form-title").textContent = profile ? "Editar perfil" : "Nuevo perfil";
@@ -653,6 +695,7 @@
 			$("#profile-edit").focus();
 		});
 		$("#profile-name").addEventListener("input", preview);
+		dialog.querySelectorAll("input[name=\"profile-privacy\"]").forEach((input) => input.addEventListener("change", updatePrivacyForm));
 		$("#profile-photo")?.addEventListener("change", async (event) => {
 			const file = event.target.files?.[0];
 			if (!file || busy || !formMode || !dialog.open) return;
@@ -711,6 +754,7 @@
 			const creating = formMode === "create";
 			if (photoData !== void 0) draft.avatarData = photoData;
 			if ($("#profile-remember-google")) draft.rememberGoogle = $("#profile-remember-google").checked;
+			if (dialog.querySelector("input[name=\"profile-privacy\"]")) draft.privacyMode = selectedPrivacy();
 			const result = await mutate(creating ? "/api/profiles" : `/api/profiles/${encodeURIComponent(formId)}`, creating ? "POST" : "PATCH", draft, creating ? "Creando tu nuevo espacio…" : "Guardando los detalles…");
 			if (!result) return;
 			selectedId = creating ? result.createdId : formId;

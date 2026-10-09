@@ -99,8 +99,55 @@ class ProfileTests(unittest.TestCase):
             self.assertTrue(result["launchRequested"])
         self.assertEqual(self.launches, [(identifier, action) for action in profiles.ACTIONS])
         self.assertEqual((self.browser / "profile/cookies.sqlite").read_bytes(), b"original-private-session")
-        self.assertEqual(profiles.ACTIONS["sync"], "about:preferences#librewolf")
+        self.assertEqual(profiles.ACTIONS["sync"], "about:preferences#sync")
         self.assertEqual(profiles.ACTIONS["sync-settings"], "about:preferences#sync")
+
+    def test_privacy_mode_defaults_to_strict_and_is_stored_outside_the_registry(self):
+        self.assertEqual(self.manager.resolve()["privacyMode"], "estricto")
+        self.assertEqual(self.manager.snapshot()["profiles"][0]["privacyMode"], "estricto")
+        created = self.create()
+        identifier = created["createdId"]
+        self.assertEqual(self.manager.resolve(identifier)["privacyMode"], "estricto")
+        revision = self.manager.snapshot()["revision"]
+        snapshot = self.manager.edit(identifier, "Trabajo", "", "violet", revision, privacyMode="comodo")
+        mine = next(p for p in snapshot["profiles"] if p["id"] == identifier)
+        self.assertEqual(mine["privacyMode"], "comodo")
+        self.assertEqual(self.manager.resolve(identifier)["privacyMode"], "comodo")
+        self.assertEqual(self.manager.resolve()["privacyMode"], "estricto")
+        registry = json.loads((self.state / "profiles.json").read_text())
+        # The registry stays v2 with its exact schema: the Vela bridge only reads v1/v2.
+        self.assertEqual(registry["version"], 2)
+        self.assertTrue(all("privacyMode" not in profile for profile in registry["profiles"]))
+        stored = json.loads((self.state / "privacy.json").read_text())
+        self.assertEqual(stored, {"version": 1, "modes": {identifier: "comodo"}})
+        self.assertEqual(stat.S_IMODE((self.state / "privacy.json").stat().st_mode), 0o600)
+
+    def test_privacy_mode_on_create_and_invalid_values(self):
+        revision = self.manager.snapshot()["revision"]
+        created = self.manager.create("Ocio", "", "teal", revision, privacyMode="comodo")
+        self.assertEqual(self.manager.resolve(created["createdId"])["privacyMode"], "comodo")
+        revision = self.manager.snapshot()["revision"]
+        for bad in ("relajado", "", None, True, "Estricto"):
+            with self.assertRaises(profiles.InvalidProfile):
+                self.manager.edit("default", "Personal", "", "blue", revision, privacyMode=bad)
+        self.assertEqual(self.manager.snapshot()["revision"], revision)
+
+    def test_corrupt_privacy_file_launches_strict_and_is_never_overwritten(self):
+        self.manager.snapshot()
+        (self.state / "privacy.json").write_text('{"version": 1, "modes": {"default": "abierto"}}')
+        self.assertEqual(self.manager.resolve()["privacyMode"], "estricto")
+        revision = self.manager.snapshot()["revision"]
+        with self.assertRaises(profiles.ProfilesUnavailable):
+            self.manager.edit("default", "Personal", "", "blue", revision, privacyMode="comodo")
+        self.assertIn("abierto", (self.state / "privacy.json").read_text())
+        self.assertEqual(self.manager.snapshot()["revision"], revision)
+
+    def test_failed_registry_write_restores_previous_privacy_mode(self):
+        revision = self.manager.snapshot()["revision"]
+        with mock.patch.object(self.manager, "_write", side_effect=OSError("disk full")):
+            with self.assertRaises(OSError):
+                self.manager.edit("default", "Personal", "", "blue", revision, privacyMode="comodo")
+        self.assertEqual(self.manager.resolve()["privacyMode"], "estricto")
 
     def test_bad_inputs_missing_ids_and_unknown_actions_are_rejected(self):
         for changes in ({"name": ""}, {"name": " "}, {"name": "x" * 49}, {"name": "a\x7fb"}, {"email": "no-email"}, {"email": "a@b.com\n"}, {"color": "orange"}, {"revision": True}):

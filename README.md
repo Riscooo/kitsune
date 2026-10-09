@@ -1,9 +1,11 @@
-# Kitsune 0.5 · Tinta
+# Kitsune 0.6 · Tinta · motor propio
 
-Rediseño de Kitsune sobre el LibreWolf instalado (Gecko 154.0-2). No es una
-imitación con iframes: las pestañas, extensiones firmadas, navegación, permisos,
-certificados, marcadores, descargas y herramientas de desarrollo siguen siendo
-las funciones nativas del navegador.
+Kitsune es un navegador propio: se compila en este PC desde el código fuente
+oficial y firmado de Gecko (Mozilla), con su nombre, su marca, su módulo nativo
+y su configuración de privacidad dentro. No depende de LibreWolf ni de ningún
+otro navegador instalado. No es una imitación con iframes: las pestañas,
+extensiones firmadas, navegación, permisos, certificados, marcadores, descargas
+y herramientas de desarrollo son las funciones nativas de Gecko.
 
 ## Estética «Tinta»
 
@@ -31,6 +33,27 @@ Una sola estética en todo el navegador, la misma de InkShadow: papel, tinta y
 Las páginas internas y el módulo nativo usan solo los diez primeros.
 
 Tipografías: Noto Sans en la interfaz y Noto Serif en títulos, saludo y «kitsune».
+
+## Qué cambia en 0.6
+
+- **Motor propio.** `install/kitsune-engine.py` descarga el código de Gecko de
+  `archive.mozilla.org`, exige la firma de la clave de versiones de Mozilla
+  (`14F2 6682 D091 6CDD 81E3 7B6D 61B7 B526 D98F 0353`, fijada en el código) y el
+  SHA-512 firmado, compila Kitsune con su identidad (`kitsune`, `--with-branding`
+  propio, sin actualizador de Mozilla ni informe de fallos) y lo instala en
+  `~/.local/share/kitsune-browser/engine/<versión>-<huella>/`. Solo se activa
+  (`engine/current`) tras una prueba de humo sin ventana.
+- **Actualización automática.** `kitsune-engine-update.timer` comprueba cada día
+  la versión estable de Gecko y, si hay una nueva, compila con prioridad mínima de
+  CPU y disco y avisa al terminar. La ventana abierta sigue con su motor; la
+  siguiente apertura usa el nuevo. Se guardan el motor activo y el anterior.
+  `kitsune-browser --actualizar-motor` y `--estado-motor` lo hacen a mano.
+- **Modos de privacidad por perfil**, en Perfiles → Editar: **Estricto** (el de
+  siempre: borra cookies y sesiones al cerrar salvo Google si lo pides, HTTPS
+  obligatorio, bloqueo estricto, anti-huella) y **Cómodo** (conserva sesiones,
+  bloqueo estándar, rompe menos webs). Ninguno envía telemetría.
+- **Sin LibreWolf.** El lanzador ya no copia `/usr/lib/librewolf` ni lo usa como
+  último recurso; «Sincronizar» abre el panel nativo de Firefox Sync.
 
 ## Qué cambia en 0.5
 
@@ -110,11 +133,10 @@ hay que iniciar sesión de nuevo; ni el nombre ni el correo pueden recuperarlos.
 El estado confirma la política de conservación, no que Google haya autenticado
 la cuenta. Google también puede cerrar una sesión por sus propias reglas.
 Las ventanas privadas siguen siendo temporales.
-[Documentación de LibreWolf](https://librewolf.net/docs/faq/#how-do-i-stay-logged-into-specific-websites).
 
-«Sincronizar entre dispositivos» guía hacia Firefox Sync: habilitarlo,
-reiniciar si se solicita, iniciar sesión con una cuenta Mozilla y elegir los
-datos que se compartirán. «Continuar con Google» abre el acceso oficial de
+«Sincronizar entre dispositivos» guía hacia Firefox Sync, disponible de serie
+en el motor propio: iniciar sesión con una cuenta Mozilla y elegir los datos que
+se compartirán. Nada se sincroniza sin iniciar sesión. «Continuar con Google» abre el acceso oficial de
 Mozilla, donde puede elegirse Google como identidad. Sync puede pedir crear
 una contraseña de Mozilla para cifrar los datos; la contraseña de Google no
 se comparte con Kitsune ni Mozilla. No conecta con Chrome Sync.
@@ -215,7 +237,7 @@ El inicio original se sirve en `http://127.0.0.1:49721/` mediante
 loopback, con una instancia `kitsune-home@<id>.service` por perfil. No se expone
 ningún servidor a la red local o Internet. Los ajustes se guardan en un JSON privado bajo
 `~/.local/state/kitsune-browser/`, fuera de las cookies y del almacenamiento
-que LibreWolf limpia al cerrar. No se relajan el aislamiento de archivos ni
+que Kitsune limpia al cerrar en modo Estricto. No se relajan el aislamiento de archivos ni
 la sanitización de sitios. La API valida origen, cabecera Host, un token de
 sesión y revisiones para evitar sobrescribir cambios de otra pestaña.
 El servicio espera a tener el puerto preparado antes de abrir el inicio.
@@ -235,9 +257,9 @@ apertura en lugar de redirigir accidentalmente al inicio de otro perfil.
 
 ## Marca y actualizaciones del motor
 
-`install/prepare-runtime.py` genera una copia privada y versionada del motor
-instalado, con recursos de marca, iconos y un módulo nativo propio de Kitsune.
-El módulo solo lee colores/opciones validados de un archivo privado y aplica
+El motor de Kitsune se compila con su marca (`install/branding/`), sus iconos y un
+módulo nativo propio (`install/native/`) dentro de `omni.ja`; ya no se parchea el
+binario de otro navegador. El módulo solo lee colores/opciones validados de un archivo privado y aplica
 estilos a páginas internas y la opción enumerada de conservación de Google.
 No abre puertos, recibe código de páginas web ni ejecuta CSS/URLs arbitrarios.
 El servicio y el módulo intercambian un acuse con huella y caducidad para no
@@ -245,19 +267,36 @@ mostrar como aplicado un cambio pendiente. Desde 0.5 el archivo de control es la
 versión 2 (`{version, palette, motion, googleRemember, fingerprint}`, siempre con la
 paleta de papel); un archivo antiguo se rechaza sin aplicar nada. Los PNG de marca
 son conversiones deterministas de los SVG generados por `tools/logo/generate.py`.
-Los ejecutables, las políticas de seguridad, el agente de usuario y la identidad
-interna de Gecko se mantienen. `/usr/lib/librewolf` no se modifica.
+El agente de usuario sigue siendo el estándar de Firefox (no menciona Kitsune) y
+la firma de extensiones sigue siendo obligatoria. Su acuse incluye también el
+modo de privacidad que aplicó el motor al arrancar.
+
+Junto al ejecutable, `kitsune-engine.py` instala `distribution/policies.json`
+(sin telemetría, estudios, actualizador de Mozilla ni contenido patrocinado; uBlock
+Origin en perfiles nuevos), `defaults/pref/autoconfig.js` y `kitsune.cfg`. Este
+último aplica el modo que el lanzador pasa en `KITSUNE_PRIVACY_MODE` (lo guarda
+`~/.local/state/kitsune-browser/privacy.json`, aparte del registro de perfiles,
+que sigue en v2 para el puente de Vela). Gecko lee `prefs.js` y `user.js` antes
+que `kitsune.cfg`, así que los valores de cada modo son valores por defecto: los
+cambios manuales se respetan y solo al cambiar de modo se limpian una vez los
+ajustes gestionados. Los conjuntos los genera `tools/privacy_modes.py` a partir de
+mediciones con perfil limpio (`tests/fixtures/`): Estricto es exactamente lo que
+hacía 0.5 (LibreWolf 154 + su `user.js`).
 
 El inicio está separado en módulos de estado, apariencia, accesos, diálogos,
 acciones nativas, perfiles y fotos. El estado usa revisiones y una cola de
 guardado que combina cambios independientes entre pestañas. El backend separa
 HTTP, registro de perfiles, medios y apariencia. No se cargan módulos remotos.
 
-El lanzador detecta los cambios del motor instalado y prepara una copia nueva
-antes de abrirlo. No sustituye silenciosamente una actualización fallida por
-una versión antigua. La copia ocupa aproximadamente 425 MB por versión; las
-anteriores se conservan por seguridad. Actualizar el motor base sigue siendo
-responsabilidad del gestor de paquetes del sistema.
+El lanzador solo ejecuta `engine/current/kitsune`. Si no hay motor, lo dice y no
+abre nada en su lugar. Compilar necesita ≈40 GB temporales en
+`~/.cache/kitsune-build` (el script exige 50 GB libres) y las herramientas que
+Mozilla descarga en `~/.mozbuild`; no hace falta sudo. Si falta `unzip`, se usa un
+sustituto mínimo con `zipfile` de Python. Una receta nueva sobre la misma versión
+de Gecko recompila de forma incremental. Si cambia el punto de entrada de la
+ventana o del diálogo Acerca de en una versión futura, la compilación se detiene y
+se sigue con el motor anterior. Estado y registros: `kitsune-browser --estado-motor`
+y `~/.local/state/kitsune-browser/engine/`.
 
 ## Instalación existente y copia de seguridad
 

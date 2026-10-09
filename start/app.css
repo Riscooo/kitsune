@@ -205,6 +205,16 @@ input::placeholder { color: var(--muted); opacity: .8; }
 .photo-field input { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
 .optional-label { float: right; font-size: 10px; color: var(--muted); }
 .profile-colors { padding: 0; border: 0; margin: 22px 0 0; }
+.profile-privacy { padding: 0; border: 0; margin: 18px 0 0; }
+.profile-privacy legend { font-size: 12px; padding: 0; margin-bottom: 10px; }
+.privacy-modes { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.privacy-mode { display: flex; align-items: flex-start; gap: 10px; padding: 11px 12px; border: 1px solid var(--line); border-radius: 12px; cursor: pointer; font-size: 12px; }
+.privacy-mode:has(input:checked) { border-color: var(--accent); background: var(--surface); }
+.privacy-mode > span { display: flex; flex-direction: column; gap: 4px; }
+.privacy-mode b { font-size: 12px; font-weight: 550; }
+.privacy-mode small { color: var(--muted); font-size: 10px; line-height: 1.5; }
+.privacy-mode input { accent-color: var(--accent); margin: 1px 0 0; flex-shrink: 0; }
+@media (max-width: 520px) { .privacy-modes { grid-template-columns: 1fr; } }
 .profile-colors legend { font-size: 12px; padding: 0; margin-bottom: 13px; }
 .profile-colors > div { display: flex; gap: 10px; flex-wrap: wrap; }
 .profile-swatch { width: 32px; height: 32px; padding: 4px; background: #35587a; border: 3px solid var(--surface); outline: 1px solid var(--line); border-radius: 11px; color: var(--surface); }

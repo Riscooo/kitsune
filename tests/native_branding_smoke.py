@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Verify Kitsune branding/panels on a brand-new native Gecko test profile.
+"""Verify the branding built into Kitsune's own engine on a brand-new test profile.
 
 The privileged WebDriver context is test-only, never a production launch flag.
 --headed additionally captures only the temporary test window on Hyprland.
@@ -7,8 +7,6 @@ The privileged WebDriver context is test-only, never a production launch flag.
 from __future__ import annotations
 
 import argparse
-import hashlib
-import importlib.util
 import json
 from pathlib import Path
 import shutil
@@ -16,11 +14,9 @@ import subprocess
 import tempfile
 import time
 
-from browser_smoke import ROOT, WebDriver, prepare_profile, eventually
+from browser_smoke import DEFAULT_BROWSER, WebDriver, prepare_profile, eventually
 
-SPEC = importlib.util.spec_from_file_location("kitsune_runtime", ROOT / "install/prepare-runtime.py")
-runtime = importlib.util.module_from_spec(SPEC)
-SPEC.loader.exec_module(runtime)
+MOZILLA_RELEASE_KEY = "14F26682D0916CDD81E37B6D61B7B526D98F0353"
 
 
 def native_state(driver):
@@ -37,32 +33,26 @@ def native_state(driver):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--runtime-root", type=Path, required=True)
-    parser.add_argument("--source", type=Path, default=Path("/usr/lib/librewolf"))
+    parser.add_argument("--browser", type=Path, default=DEFAULT_BROWSER)
     parser.add_argument("--headed", action="store_true")
     args = parser.parse_args()
-    browser = runtime.prepare(args.source, args.runtime_root)
+    browser = args.browser.resolve(strict=True)
     test_root = Path(tempfile.mkdtemp(prefix="kitsune-native-branding-"))
     evidence = test_root / "evidence"
     evidence.mkdir()
     profile, _ = prepare_profile(test_root)
-    report = {"runtime": str(browser), "temporaryProfile": str(profile), "checks": []}
+    report = {"engine": str(browser), "temporaryProfile": str(profile), "checks": []}
 
     def check(name, details):
         report["checks"].append({"name": name, "status": "passed", "details": details})
 
-    with runtime.open_omni(args.source / "browser/omni.ja") as original, runtime.open_omni(browser.parent / "browser/omni.ja") as branded:
-        assert set(branded.namelist()) == set(original.namelist()) | set(runtime.NATIVE_FILES)
-        changed = [name for name in original.namelist() if original.read(name) != branded.read(name)]
-        assert all(runtime.BRAND_RESOURCE.fullmatch(name) or name in (runtime.ABOUT, runtime.WINDOW) or name in runtime.BRAND_IMAGES for name in changed)
-        assert len(changed) > 1
-        check("Only allowlisted brand resources and the Kitsune UI entry changed; all other archive payloads byte-identical", {"changed": len(changed), "added": len(runtime.NATIVE_FILES), "total": len(original.namelist())})
-    originals = [p for p in args.source.rglob("*") if p.is_file() and not p.is_symlink() and p.relative_to(args.source).as_posix() not in {"browser/omni.ja", *runtime.ICON_FILES}]
-    for path in originals:
-        copy = browser.parent / path.relative_to(args.source)
-        with path.open("rb") as original_file, copy.open("rb") as copied_file:
-            assert hashlib.file_digest(original_file, "sha256").digest() == hashlib.file_digest(copied_file, "sha256").digest(), str(path)
-    check("All other engine files and security configuration byte-identical", {"files": len(originals)})
+    manifest = json.loads((browser.parent / "kitsune-engine.json").read_text())
+    assert manifest["signedBy"] == MOZILLA_RELEASE_KEY and manifest["source"].startswith("https://archive.mozilla.org/")
+    assert not (browser.parent / "librewolf").exists() and not (browser.parent / "librewolf.cfg").exists()
+    for relative in ("distribution/policies.json", "defaults/pref/autoconfig.js", "kitsune.cfg"):
+        assert (browser.parent / relative).is_file(), relative
+    check("Own engine built from Mozilla's signed Gecko source, with Kitsune's configuration and nothing from LibreWolf",
+          {"engineVersion": manifest["engineVersion"], "signedBy": manifest["signedBy"]})
 
     driver = WebDriver(profile, evidence, browser=browser, headed=args.headed)
     try:
@@ -71,7 +61,7 @@ def main():
         page = native_state(driver)
         assert page["tabTitle"] == "LibreWolf article · ejemplo"
         assert page["windowTitle"] == "LibreWolf article · ejemplo — Kitsune"
-        assert page["internalName"] == "LibreWolf" and "Kitsune" not in page["userAgent"]
+        assert page["internalName"] == "Kitsune" and "Kitsune" not in page["userAgent"]
         assert page["signaturesRequired"] and page["strictFileOrigins"] and page["malwareProtection"]
         assert page["sandboxLevel"] > 0
         check("Native window brand, site-title integrity, internal identity and protections", page)

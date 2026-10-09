@@ -10,6 +10,13 @@ profile_service="kitsune-home.service"
 profile_home="http://127.0.0.1:49721/"
 profile_remoting="kitsune-browser"
 profile_action=""
+profile_privacy="estricto"
+engine_tool="${browser_root}/kitsune-engine.py"
+# Kitsune's own engine: built from Mozilla's signed Gecko source on this computer.
+case "${1:-}" in
+    --actualizar-motor) exec nice -n 19 python3 "${engine_tool}" build --if-new ;;
+    --estado-motor) exec python3 "${engine_tool}" status ;;
+esac
 if [ "${1:-}" = "--kitsune-profile" ]; then
     [ "$#" -ge 2 ] || { printf '%s\n' 'Falta el identificador del perfil.' >&2; exit 1; }
     profile_id="$2"
@@ -40,6 +47,7 @@ if [ -f "${profile_manager}" ]; then
     profile_home="$(profile_field home)" || exit 1
     profile_service="$(profile_field service)" || exit 1
     profile_remoting="$(profile_field remoting)" || exit 1
+    profile_privacy="$(printf '%s' "${profile_json}" | python3 -c 'import json,sys; print(json.load(sys.stdin).get("privacyMode", ""))')" || profile_privacy=""
 elif [ -n "${profile_id}" ] && [ "${profile_id}" != "default" ]; then
     printf '%s\n' 'La gestión de perfiles aún no está instalada.' >&2
     exit 1
@@ -87,7 +95,7 @@ fi
 case "${profile_action}" in
     google) set -- --new-tab 'https://accounts.google.com/ServiceLogin' "$@" ;;
     privacy) set -- --new-tab 'about:preferences#privacy' "$@" ;;
-    sync) set -- --new-tab 'about:preferences#librewolf' "$@" ;;
+    sync) set -- --new-tab 'about:preferences#sync' "$@" ;;
     sync-settings) set -- --new-tab 'about:preferences#sync' "$@" ;;
     passwords) set -- --new-tab 'about:logins' "$@" ;;
     settings) set -- --new-tab 'about:preferences' "$@" ;;
@@ -98,16 +106,27 @@ case "${profile_action}" in
     sync-google) set -- --new-tab 'https://accounts.firefox.com/' "$@" ;;
 esac
 
+# Privacy mode of this profile, applied by the engine's kitsune.cfg at startup.
+case "${profile_privacy}" in
+    estricto|comodo) ;;
+    *) profile_privacy="estricto" ;;
+esac
+
 export MOZ_ENABLE_WAYLAND=1
 export MOZ_APP_REMOTINGNAME="${profile_remoting}"
+export KITSUNE_PRIVACY_MODE="${profile_privacy}"
 
-# A current, privately branded runtime keeps the upstream engine's updates and
-# trust settings. A preparation failure must never silently launch an old copy.
-runtime_preparer="${browser_root}/prepare-runtime.py"
-if [ -f "${runtime_preparer}" ]; then
-    runtime_binary="$(python3 "${runtime_preparer}" --source /usr/lib/librewolf --runtime-root "${browser_root}/runtime")" || exit 1
-    [ -x "${runtime_binary}" ] || { printf '%s\n' 'El motor de Kitsune no está disponible.' >&2; exit 1; }
-    exec "${runtime_binary}" --profile "${profile_dir}" "$@"
+# Only Kitsune's own, smoke-tested engine runs. Without one, nothing older or
+# foreign is launched in its place.
+engine_binary="${browser_root}/engine/current/kitsune"
+if [ ! -x "${engine_binary}" ]; then
+    printf '%s\n' 'El motor de Kitsune aún no está compilado. Ejecuta: kitsune-browser --actualizar-motor' >&2
+    exit 1
 fi
-
-exec /usr/bin/librewolf --profile "${profile_dir}" "$@"
+# Before the own engine first upgrades a profile last used by another engine,
+# keep a copy of it (only ever taken while the profile is closed).
+python3 "${engine_tool}" backup-profile --profile "${profile_dir}" || {
+    printf '%s\n' 'No se pudo hacer la copia de seguridad del perfil; no se ha abierto.' >&2
+    exit 1
+}
+exec "${engine_binary}" --profile "${profile_dir}" "$@"

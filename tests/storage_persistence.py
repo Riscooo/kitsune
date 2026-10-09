@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Probe exact-origin shutdown storage exceptions in an isolated LibreWolf.
+"""Probe exact-origin shutdown storage exceptions in an isolated Kitsune engine.
 
 Never opens or modifies the installed Kitsune user profile. The test uses the
 native Sanitizer's shutdown entry point, not a global clearing-preference change.

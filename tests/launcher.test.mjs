@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { mkdtemp, mkdir, readFile, writeFile, stat, readdir, cp } from 'node:fs/promises';
+import { mkdtemp, mkdir, readFile, writeFile, stat, readdir, cp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { resolve, join } from 'node:path';
 import { pathToFileURL } from 'node:url';
@@ -15,19 +15,21 @@ async function setup() {
   const data = join(root, 'data with spaces # 狐');
   const state = join(root, 'state');
   const scheme = join(root, 'scheme.json');
-  const stub = join(root, 'browser-stub');
   const launcher = join(root, 'kitsune-browser');
   const argsFile = join(root, 'args.json');
-  await writeFile(stub, '#!/usr/bin/env node\nrequire("node:fs").writeFileSync(process.env.KITSUNE_TEST_ARGS, JSON.stringify({args:process.argv.slice(2),remoting:process.env.MOZ_APP_REMOTINGNAME,wayland:process.env.MOZ_ENABLE_WAYLAND}));\n', { mode: 0o755 });
-  // Replace only the executable in a temporary fixture, never in the installed
-  // launcher. The production browser path is intentionally not env-overridable.
-  await writeFile(launcher, source.replace('exec /usr/bin/librewolf ', 'exec "${KITSUNE_TEST_BINARY}" '), { mode: 0o755 });
+  // The launcher only runs Kitsune's own engine at engine/current/kitsune; the
+  // fixture places a stub there. The engine path is intentionally not env-overridable.
+  const engine = join(data, 'kitsune-browser/engine/current');
+  await mkdir(engine, { recursive: true });
+  await writeFile(join(engine, 'kitsune'), '#!/usr/bin/env node\nrequire("node:fs").writeFileSync(process.env.KITSUNE_TEST_ARGS, JSON.stringify({args:process.argv.slice(2),remoting:process.env.MOZ_APP_REMOTINGNAME,wayland:process.env.MOZ_ENABLE_WAYLAND,privacy:process.env.KITSUNE_PRIVACY_MODE}));\n', { mode: 0o755 });
+  await writeFile(launcher, source, { mode: 0o755 });
+  await cp(new URL('../install/kitsune-engine.py', import.meta.url), join(data, 'kitsune-browser/kitsune-engine.py'));
   await writeFile(scheme, JSON.stringify({ colours: { background: '#112233', primary: 'AABBCC', onSurface: '#fafafa' } }));
-  const env = { ...process.env, XDG_DATA_HOME: data, XDG_STATE_HOME: state, XDG_CONFIG_HOME: join(root, 'config'), KITSUNE_SCHEME_FILE: scheme, KITSUNE_TEST_ARGS: argsFile, KITSUNE_TEST_BINARY: stub };
+  const env = { ...process.env, XDG_DATA_HOME: data, XDG_STATE_HOME: state, XDG_CONFIG_HOME: join(root, 'config'), KITSUNE_SCHEME_FILE: scheme, KITSUNE_TEST_ARGS: argsFile };
   const profile = join(data, 'kitsune-browser/profile');
   const chrome = join(profile, 'chrome/palette.css');
   const start = join(data, 'kitsune-browser/start/palette.css');
-  return { root, data, state, scheme, env, profile, chrome, start, argsFile, run: (...args) => exec('/bin/sh', [launcher, ...args], { env }) };
+  return { root, data, state, scheme, env, profile, chrome, start, argsFile, engine, run: (...args) => exec('/bin/sh', [launcher, ...args], { env }) };
 }
 
 test('the desktop scheme never rewrites the paper palette (Kitsune 0.5 «Tinta»)', async () => {
@@ -51,6 +53,33 @@ test('URL arguments and native flags remain separate and preserve text exactly',
   assert.deepEqual(actual.args, ['--profile', f.profile, ...requested]);
   assert.equal(actual.remoting, 'kitsune-browser');
   assert.equal(actual.wayland, '1');
+  assert.equal(actual.privacy, 'estricto');
+});
+
+test('without its own engine Kitsune explains how to build it and launches nothing else', async () => {
+  const f = await setup();
+  await rm(f.engine, { recursive: true });
+  await assert.rejects(f.run('https://example.com/'), error => {
+    assert.match(error.stderr, /El motor de Kitsune aún no está compilado/);
+    return true;
+  });
+  await assert.rejects(stat(f.argsFile), { code: 'ENOENT' });
+  assert.doesNotMatch(source, /librewolf/i);
+});
+
+test('a profile last opened by another engine is copied before its first launch, and only once', async () => {
+  const f = await setup();
+  await mkdir(f.profile, { recursive: true });
+  await writeFile(join(f.profile, 'places.sqlite'), 'history');
+  await writeFile(join(f.profile, 'compatibility.ini'), '[Compatibility]\nLastPlatformDir=/usr/lib/librewolf\n');
+  await f.run('https://example.com/');
+  const copies = (await readdir(f.data)).filter(name => name.startsWith('kitsune-0.6-profile-backup.'));
+  assert.equal(copies.length, 1);
+  assert.equal(await readFile(join(f.data, copies[0], 'profile/places.sqlite'), 'utf8'), 'history');
+  await writeFile(join(f.profile, 'compatibility.ini'), `[Compatibility]\nLastPlatformDir=${f.engine}\n`);
+  await f.run('https://example.com/');
+  assert.equal((await readdir(f.data)).filter(name => name.startsWith('kitsune-0.6-profile-backup.')).length, 1);
+  assert.doesNotMatch(source, /prepare-runtime/);
 });
 
 test('--home encodes local paths correctly and preserves additional arguments', async () => {
@@ -110,6 +139,17 @@ test('registered default and explicit profile route to separate profile paths an
   assert.equal(actual.remoting, 'kitsune-browser');
 });
 
+test('each profile launches with its own privacy mode', async () => {
+  const f = await setup();
+  const created = await installProfileFixture(f);
+  const script = 'import sys; sys.path.insert(0,sys.argv[1]); from profiles import ProfileManager; m=ProfileManager(sys.argv[1],sys.argv[2]); s=m.snapshot(); m.edit(sys.argv[3],"Trabajo","work@example.org","teal",s["revision"],privacyMode="comodo")';
+  await exec('python3', ['-c', script, join(f.data, 'kitsune-browser'), join(f.state, 'kitsune-browser'), created.id], { env: f.env });
+  await f.run('--kitsune-profile', created.id);
+  assert.equal(JSON.parse(await readFile(f.argsFile, 'utf8')).privacy, 'comodo');
+  await f.run('--kitsune-profile', 'default');
+  assert.equal(JSON.parse(await readFile(f.argsFile, 'utf8')).privacy, 'estricto');
+});
+
 test('profile actions are enumerated and invalid IDs never launch', async () => {
   const f = await setup();
   const created = await installProfileFixture(f);
@@ -129,7 +169,7 @@ test('profile service or branded runtime failures abort without falling back to 
   await assert.rejects(f.run('--home'));
   await assert.rejects(stat(f.argsFile), { code: 'ENOENT' });
   await writeFile(join(f.root, 'bin/systemctl'), '#!/bin/sh\nexit 0\n', { mode: 0o755 });
-  await writeFile(join(f.data, 'kitsune-browser/prepare-runtime.py'), 'raise SystemExit(1)\n');
+  await rm(f.engine, { recursive: true });
   await assert.rejects(f.run('--home'));
   await assert.rejects(stat(f.argsFile), { code: 'ENOENT' });
 });
@@ -140,7 +180,7 @@ test('every settings action reaches the matching native destination in the selec
   const actions = { settings: 'about:preferences', general: 'about:preferences#general',
     search: 'about:preferences#search', privacy: 'about:preferences#privacy',
     downloads: 'about:downloads', extensions: 'about:addons', passwords: 'about:logins',
-    sync: 'about:preferences#librewolf', 'sync-settings': 'about:preferences#sync',
+    sync: 'about:preferences#sync', 'sync-settings': 'about:preferences#sync',
     'sync-google': 'https://accounts.firefox.com/' };
   for (const [action, destination] of Object.entries(actions)) {
     await f.run('--kitsune-profile', created.id, '--kitsune-action', action);

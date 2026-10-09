@@ -109,6 +109,8 @@ class AppearanceManager:
                 if ack.get('version') == 1 and ack.get('fingerprint') == value['fingerprint'] and type(ack.get('at')) in (int, float) and 0 <= time.time() * 1000 - ack['at'] < 30000:
                     native.update(available=True, status='applied', googleRemember=ack.get('googleRemember') is True,
                                   googlePolicyManaged=ack.get('googlePolicyManaged') is True)
+                    if ack.get('privacyMode') in ('estricto', 'comodo'):
+                        native['privacyMode'] = ack['privacyMode']
             except (OSError, ValueError, TypeError):
                 pass
             return {**value, 'native': native}

@@ -115,7 +115,7 @@ def main():
 
             # Close only an extra window from this disposable browser session.
             handles_before = browser.command('GET', '/window/handles')
-            browser.shortcut('n', ('\ue009',))  # Native Ctrl+N; LibreWolf rejects WebDriver newWindow.
+            browser.shortcut('n', ('\ue009',))  # Native Ctrl+N; Gecko rejects WebDriver newWindow here.
             created = eventually(lambda: [handle for handle in browser.command('GET', '/window/handles')
                                            if handle not in handles_before])
             browser.command('POST', '/window', {'handle': created[0]})

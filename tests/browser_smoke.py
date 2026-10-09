@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Native LibreWolf smoke tests, isolated from the user's browser profile.
+"""Native Kitsune engine smoke tests, isolated from the user's browser profile.
 
 Uses Mozilla's WebDriver implementation against a newly created temporary
 profile. The privileged chrome context is enabled only for that test instance.
@@ -30,7 +30,7 @@ from urllib.parse import parse_qs, urlparse
 
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_DRIVER = ROOT / "tools/geckodriver-0.37.1/geckodriver"
-DEFAULT_BROWSER = Path("/usr/lib/librewolf/librewolf")
+DEFAULT_BROWSER = Path.home() / ".local/share/kitsune-browser/engine/current/kitsune"
 
 
 def unused_port() -> int:
@@ -704,7 +704,7 @@ def main():
             report["searchAfterRestart"] = driver.script(search_scripts()["inspectGoogleScript"], asynchronous=True)
             assert report["searchAfterRestart"]["normal"]["name"] == "Google", report["searchAfterRestart"]
             assert report["searchAfterRestart"]["private"]["name"] == "Google", report["searchAfterRestart"]
-            report["checks"].append("Google persiste al cerrar y reiniciar LibreWolf")
+            report["checks"].append("Google persiste al cerrar y reiniciar Kitsune")
             report["nativeUI"] = basic_native_checks(driver, downloads, report["checks"])
             report["nativeVisuals"] = native_visual_checks(driver)
             report["startPage"] = start_page_checks(driver, profile, report["checks"], start_origin)

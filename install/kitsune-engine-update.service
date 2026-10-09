@@ -1,0 +1,13 @@
+[Unit]
+Description=Kitsune: compila su motor propio si hay una versión nueva de Gecko
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/python3 %h/.local/share/kitsune-browser/kitsune-engine.py build --if-new --notify
+# Prioridad mínima de CPU y disco: compilar no debe notarse mientras se usa el PC.
+Nice=19
+IOSchedulingClass=idle
+CPUWeight=idle
+TimeoutStartSec=6h
