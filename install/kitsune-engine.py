@@ -1006,9 +1006,14 @@ def prune(layout: Layout, log=print, using=in_use):
 
 
 def clean_build_cache(layout: Layout, version: str):
-    for pattern in ("src-*", "obj-*", "mozconfig-*", "downloads/*"):
+    """Quita lo de otras versiones de Gecko. Lo de esta versión se queda, también lo de
+    Windows y macOS (obj-<versión>-windows…) y las herramientas descargadas (rust, msitools…)."""
+    def other_version(name: str) -> bool:
+        found = re.search(r"\d+\.\d+(?:\.\d+)?(?:[ab]\d+)?", name)
+        return found is not None and found.group(0) != version
+    for pattern in ("src-*", "obj-*", "mozconfig-*", "l10n-*", "downloads/firefox-*"):
         for path in layout.cache.glob(pattern):
-            if not path.name.endswith(version):
+            if other_version(path.name):
                 shutil.rmtree(path) if path.is_dir() and not path.is_symlink() else path.unlink()
     packages = sorted((layout.cache / "packages").glob("kitsune-*.tar.xz"), key=lambda p: p.stat().st_mtime, reverse=True)
     for old in packages[2:]:
@@ -1142,7 +1147,7 @@ def build(layout: Layout, version=None, if_new=False, notify_user=False, log=pri
 # --enable-bootstrap. Se empaquetan para la web de descarga; no se instalan ni se
 # prueban en este PC. Con la clave de Safe Browsing de Risco, si está (lo decidió él).
 TARGETS = {"windows": "x86_64-pc-windows-msvc", "macos": "aarch64-apple-darwin"}
-CROSS_MIN_FREE_BYTES = 30 * 2**30
+CROSS_MIN_FREE_BYTES = 24 * 2**30
 # Si ya hay una compilación anterior para ese sistema, solo se recompila lo que cambia.
 CROSS_REBUILD_MIN_FREE_BYTES = 8 * 2**30
 # Windows: el paquete .zip y el instalador .exe que arma `mach package` (NSIS).
@@ -1424,7 +1429,7 @@ def build_target(layout: Layout, version: str, target: str, log=print, run=subpr
         layout.private(layout.cache)
         incremental = (layout.cache / f"obj-{version}-{target}").is_dir()
         if shutil.disk_usage(layout.cache).free < (CROSS_REBUILD_MIN_FREE_BYTES if incremental else CROSS_MIN_FREE_BYTES):
-            raise EngineError(f"Hacen falta al menos {8 if incremental else 30} GB libres para compilar Kitsune para otro sistema")
+            raise EngineError(f"Hacen falta al menos {8 if incremental else 24} GB libres para compilar Kitsune para otro sistema")
         build_fp = build_fingerprint(version)
         logfile = layout.private(layout.state) / f"build-{version}-{target}.log"
         write_status(layout, building={"version": version, "target": target, "since": now(), "pid": os.getpid()})

@@ -724,6 +724,26 @@ class TargetTests(unittest.TestCase):
         self.assertEqual(dmg.name, "kitsune-157.0.1.en-US.mac.dmg")
 
 
+    def test_cleaning_keeps_this_version_for_every_system_and_the_tools(self):
+        base = Path(tempfile.mkdtemp())
+        layout = engine.Layout(base / "data", base / "state", base / "cache")
+        keep = ["obj-157.0.1", "obj-157.0.1-windows", "obj-157.0.1-macos", "src-157.0.1", "mozconfig-157.0.1-windows",
+                "l10n-157.0.1", "downloads/rust", "downloads/msitools", "downloads/firefox-157.0.1.source.tar.xz", "toolchain"]
+        drop = ["obj-156.0.2", "obj-156.0.2-windows", "src-156.0.2", "mozconfig-156.0.2-macos", "l10n-156.0.2",
+                "downloads/firefox-156.0.2.source.tar.xz"]
+        for name in keep + drop:
+            path = layout.cache / name
+            if "." in name.rsplit("/", 1)[-1][-8:] and name.endswith(".xz"):
+                path.parent.mkdir(parents=True, exist_ok=True); path.write_text("x")
+            else:
+                path.mkdir(parents=True, exist_ok=True)
+        engine.clean_build_cache(layout, "157.0.1")
+        for name in keep:
+            self.assertTrue((layout.cache / name).exists(), name)
+        for name in drop:
+            self.assertFalse((layout.cache / name).exists(), name)
+
+
 class L10nTests(unittest.TestCase):
     def setup(self, head=None):
         base = Path(tempfile.mkdtemp())
