@@ -49,8 +49,15 @@ ASSETS = {
     "/favicon-dark.svg": ("favicon-dark.svg", "image/svg+xml"),
     "/logo.svg": ("logo.svg", "image/svg+xml"),
     "/logo-dark.svg": ("logo-dark.svg", "image/svg+xml"),
+    "/logo-ring.svg": ("logo-ring.svg", "image/svg+xml"),
+    "/logo-mask.svg": ("logo-mask.svg", "image/svg+xml"),
+    "/logo-ring-dark.svg": ("logo-ring-dark.svg", "image/svg+xml"),
+    "/logo-mask-dark.svg": ("logo-mask-dark.svg", "image/svg+xml"),
     "/seal.svg": ("seal.svg", "image/svg+xml"),
+    "/ayuda.js": ("ayuda.js", "text/javascript; charset=utf-8"),
 }
+# Ayuda de Kitsune: los enlaces de ayuda del motor llegan aquí (app.support.baseURL).
+HELP_ROUTE = re.compile(r"/ayuda/(?:[A-Za-z0-9][A-Za-z0-9._-]{0,120})?")
 CSP = ("default-src 'self'; script-src 'self'; style-src 'self'; "
        "img-src 'self' data:; font-src 'self'; connect-src 'self'; "
        "object-src 'none'; frame-src 'none'; frame-ancestors 'none'; "
@@ -67,6 +74,8 @@ DEFAULT_DATA = {
     "wallpaper": "night", "themeSync": False, "modules": {"clock": True, "shortcuts": True},
     # Tema del navegador y del inicio, y el hash de la imagen de fondo propia.
     "theme": "claro", "background": None,
+    # Botones de la ventana (izquierda o derecha) y el logo «KITSUNE» de la barra.
+    "windowControls": "izquierda", "brand": True,
 }
 LEGACY_SETTINGS_KEYS = {"links", "art", "motion", "newTab", "accent", "focus"}
 
@@ -98,6 +107,8 @@ def validate_data(value, base=None):
         raise InvalidSettings("El fondo seleccionado no es válido.")
     if value["theme"] not in ("claro", "oscuro"):
         raise InvalidSettings("El tema no es válido.")
+    if value["windowControls"] not in ("izquierda", "derecha") or type(value["brand"]) is not bool:
+        raise InvalidSettings("Las opciones de la ventana no son válidas.")
     background = value["background"]
     if background is not None and (type(background) is not str or not re.fullmatch(r"[0-9a-f]{64}", background)):
         raise InvalidSettings("El fondo no es válido.")
@@ -519,10 +530,13 @@ class HomeHandler(BaseHTTPRequestHandler):
             except (profiles_module.ProfilesUnavailable, profiles_module.ProfileNotFound, profiles_module.InvalidProfile):
                 self.error(503, "No se pueden leer los perfiles locales. Sus datos no se han modificado.")
             return
-        if path not in ASSETS:
+        if HELP_ROUTE.fullmatch(path or ""):
+            filename, content_type = "ayuda.html", "text/html; charset=utf-8"
+        elif path not in ASSETS:
             self.error(404, "Recurso no encontrado.")
             return
-        filename, content_type = ASSETS[path]
+        else:
+            filename, content_type = ASSETS[path]
         try:
             body = read_regular(self.server.root / filename, 16 * 1024 * 1024)
         except FileNotFoundError:
@@ -531,7 +545,7 @@ class HomeHandler(BaseHTTPRequestHandler):
         except OSError:
             self.error(503, "El recurso local no está disponible.")
             return
-        if filename == "index.html":
+        if filename in ("index.html", "ayuda.html"):
             # El tema llega ya en el HTML: el inicio en Oscuro no parpadea en claro al abrirse.
             try:
                 dark = self.server.store.snapshot()["data"]["theme"] == "oscuro"
@@ -541,6 +555,7 @@ class HomeHandler(BaseHTTPRequestHandler):
                 body = body.replace(b'<html lang="es">', b'<html lang="es" data-theme="oscuro">', 1)
                 body = body.replace(b'<meta name="theme-color" content="#f6f5f1">', b'<meta name="theme-color" content="#161a19">', 1)
                 body = body.replace(b'<link rel="icon" href="favicon.svg"', b'<link rel="icon" href="favicon-dark.svg"', 1)
+                body = body.replace(b'<link rel="icon" href="/favicon.svg"', b'<link rel="icon" href="/favicon-dark.svg"', 1)
         self.respond(200, body, content_type, head=head)
 
     def do_HEAD(self):

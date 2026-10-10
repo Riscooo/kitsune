@@ -19,3 +19,16 @@
 #kitsune-engine-credit {
   color: #59625c;
 }
+
+/* Sin rastro de Mozilla: fuera el texto de la comunidad, las donaciones, el
+   envío de opiniones y los términos y la privacidad de Firefox. Se queda la
+   información de licencias (avisos legales del código). */
+#communityExperimentalDesc,
+#communityDesc,
+#contributeDesc,
+#contributeDescReferrals,
+#submit-feedback,
+#trademark,
+.bottom-link:not([href="about:license"]) {
+  display: none !important;
+}

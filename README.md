@@ -37,6 +37,34 @@ Tipografías: Noto Sans en la interfaz y Noto Serif en títulos, saludo y «kits
 
 ## Qué cambia en 0.7
 
+- **Sin rastro de Mozilla.** Ni políticas de empresa (fuera «Tu navegador está
+  gestionado por tu organización»: sus ajustes van ahora en el bloque «identidad» de
+  `kitsune.cfg`), ni Sync ni cuentas de Mozilla, ni temas de Firefox (Alpenglow, Dark,
+  Light), ni marcadores de Mozilla en perfiles nuevos, ni Firefox View, Relay, VPN,
+  Monitor, Pocket, recomendaciones o mensajes, ni notificaciones push (pasaban por un
+  servidor de Mozilla). La receta del motor (`rebrand_source`) pone nombres propios
+  donde Gecko muestra sus marcas (Kitsune Home, Kitsune Translations, «extension
+  store»…), oculta sus enlaces «Más información» y el menú Ayuda solo deja Modo de
+  solución de problemas, Información técnica y Acerca de Kitsune. Los enlaces de ayuda
+  que quedan llevan a la **ayuda de Kitsune** (`/ayuda/…` del inicio local, en español).
+  uBlock Origin viene de serie en `distribution/extensions` (firmado), sin políticas.
+  `tools/mozilla_audit.py --check` lo comprueba con el motor real: texto visible en las
+  páginas internas, menú Ayuda y conexiones en reposo. Se quedan, por necesarias: la
+  tienda de extensiones (instalar, actualizar, firmas, lista de bloqueo), las listas de
+  seguridad y de rastreadores (Remote Settings), los códecs de vídeo (OpenH264/Widevine),
+  los avisos legales de la licencia (`about:license`), la página técnica `about:support`
+  y el «Mozilla/5.0 … Firefox/157.0» del agente de usuario, que las webs necesitan.
+- **Mascota de Kitsune.** Un zorrito kitsune de papel, tinta y óxido
+  (`tools/mascot/generate.py` → `install/mascot/`) sustituye a los 55 zorros de Firefox
+  del motor (panel de protección, páginas de error, contraseñas, privacidad…) en cinco
+  poses: guardia, preocupado, dormido, hola y cara, más su cola; los logos de Firefox
+  pasan a ser el de Kitsune.
+- **Ventana.** «Tu inicio» → Apariencia → Ventana: botones de cerrar y ampliar a la
+  izquierda o a la derecha, y mostrar u ocultar el logo «KITSUNE» de la barra (control
+  de apariencia v4, en directo).
+- **Logo del inicio en dos capas:** al abrir y al pasar el ratón gira el ensō; la
+  máscara del zorro se queda quieta.
+
 - **Modo oscuro.** «Tu inicio» → Apariencia → Tema: Claro (papel) u Oscuro (sumi:
   `#161a19` de fondo, `#ebe8e0` de texto, óxido `#e0806b` y jade `#8fb8aa`, con
   los mismos contrastes AA que el papel). Se guarda por perfil y llega a la ventana
@@ -221,7 +249,7 @@ python3 tests/native_branding_smoke.py
 Las pruebas nativas usan por defecto el motor activo
 (`~/.local/share/kitsune-browser/engine/current/kitsune`) con perfiles temporales.
 
-Resultado 0.7 (10 de octubre de 2026), con el motor `157.0.1-198fb4ecd63f`:
+Resultado 0.7 (10 de octubre de 2026), con el motor `157.0.1-9d145f908173`:
 92 pruebas JS y 129 Python (fondo propio, fondos de serie y librería). Nativas:
 `theme_native.py` 8/8 (Oscuro en directo en ventana, nueva pestaña y webs, también
 con «Claro» guardado de antes; fondo propio y de serie visibles, comprobado en

@@ -147,21 +147,13 @@ def main():
         idle()
         driver.click('[data-profile-action="google"]')
         idle()
-        driver.click(".profile-sync-guide summary")
-        driver.click('[data-profile-action="sync"]')
-        idle()
-        driver.click('[data-profile-action="sync-settings"]')
-        idle()
-        driver.click('[data-profile-action="sync-google"]')
-        idle()
         driver.click('[data-profile-action="passwords"]')
         idle()
-        assert launches == [(created["id"], action) for action in ("home", "google", "sync", "sync-settings", "sync-google", "passwords")], launches
+        assert launches == [(created["id"], action) for action in ("home", "google", "passwords")], launches
+        assert js("return !document.querySelector('.profile-sync-guide') && !/Firefox|Mozilla/.test(document.querySelector('#profiles-dialog').innerText)")
         assert js("return document.querySelector('#current-profile-name').textContent") == "Personal · Luna"
         assert js("return !document.querySelector('#profiles-dialog').innerText.includes('conectado correctamente')")
-        checks.append("Default and six account/native actions target selected real profile without pretending the current window switched")
-        report["syncGuide"] = capture("profiles-sync-guide-1540.png")
-        driver.click(".profile-sync-guide summary")
+        checks.append("Default and account/native actions target selected real profile without pretending the current window switched; no Sync or Mozilla")
         report["manager"] = capture("profiles-manager-1540.png")
 
         driver.click("#profile-create")

@@ -135,15 +135,19 @@ export async function initializeProfiles({ announce = () => {} } = {}) {
     const privacy = $('#profile-privacy-status')
     if (privacy) privacy.textContent = privacyModeStatus(profile, profile.id === snapshot.currentId)
     const desired = profile.rememberGoogle === true
-    if (privacyMode(profile) === 'comodo') {
+    const comfortable = privacyMode(profile) === 'comodo'
+    const relogin = $('#profile-google-relogin')
+    if (relogin) relogin.hidden = comfortable
+    if (comfortable) {
+      // En Cómodo no hay nada que aplicar para Google: solo se sigue el modo activo.
       status.textContent = 'En modo Cómodo las sesiones ya se conservan al cerrar.'
       if (profile.id !== snapshot.currentId) return
-    }
-    if (profile.id !== snapshot.currentId) {
+    } else if (profile.id !== snapshot.currentId) {
       status.textContent = desired ? 'Abre este perfil para aplicar la conservación de Google.' : 'Sin conservación de Google activada en Kitsune.'
       return
+    } else {
+      status.textContent = 'Aplicando…'
     }
-    status.textContent = 'Aplicando…'
     const started = performance.now()
     const check = async () => {
       try {
@@ -159,7 +163,7 @@ export async function initializeProfiles({ announce = () => {} } = {}) {
           return
         }
       } catch { /* Keep pending until a native acknowledgement is available. */ }
-      if (request !== googleRequest || !dialog.open || formMode) return
+      if (request !== googleRequest || !dialog.open || formMode || comfortable) return
       if (performance.now() - started >= 10_000) {
         status.textContent = 'Pendiente de aplicar. Abre o reinicia este perfil para completarlo.'
         return

@@ -98,6 +98,10 @@ class AppearanceManager:
             background = settings.get('background')
             if type(motion) is not bool or theme not in PALETTES or (background is not None and (type(background) is not str or not BACKGROUND.fullmatch(background))):
                 raise ValueError('Invalid appearance option')
+            controls = settings.get('windowControls', 'izquierda')
+            brand = settings.get('brand', True)
+            if controls not in ('izquierda', 'derecha') or type(brand) is not bool:
+                raise ValueError('Invalid window option')
             if background is not None and not background_path(self.profile, background).is_file():
                 background = None
             palette = PALETTES[theme].copy()
@@ -115,7 +119,8 @@ class AppearanceManager:
                     raise ValueError('Invalid Google retention policy')
             except FileNotFoundError:
                 pass
-            value = {'version': 3, 'palette': palette, 'motion': motion, 'googleRemember': remember, 'theme': theme, 'background': background}
+            value = {'version': 4, 'palette': palette, 'motion': motion, 'googleRemember': remember, 'theme': theme,
+                     'background': background, 'windowControls': controls, 'brand': brand}
             value['fingerprint'] = hashlib.sha256(json.dumps(value, sort_keys=True).encode()).hexdigest()
             private_write(self.control, value)
             native = {'available': (self.browser_root / 'native/kitsune-appearance.sys.mjs').is_file(), 'status': 'queued'}

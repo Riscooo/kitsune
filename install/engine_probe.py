@@ -180,6 +180,7 @@ const wait = (test, ms = 30000) => new Promise((resolve, reject) => {
     nativeEntry: !!win.document.querySelector('script[src="chrome://browser/content/kitsune-bootstrap.js"]'),
     nativeModule: typeof ChromeUtils.importESModule('chrome://browser/content/kitsune-appearance.sys.mjs').KitsuneAppearance?.start === 'function',
     policies: Services.policies.status === Services.policies.ACTIVE,
+    fxaccounts: Services.prefs.getBoolPref('identity.fxaccounts.enabled', true),
     privacyMode: Services.prefs.getStringPref('kitsune.privacy.active', ''),
     signaturesRequired: Services.prefs.getBoolPref('xpinstall.signatures.required', false),
     channel: Services.prefs.getDefaultBranch('').getStringPref('app.update.channel', ''),

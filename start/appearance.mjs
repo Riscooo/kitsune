@@ -4,8 +4,8 @@ const THEME_COLORS = Object.freeze({ claro: '#f6f5f1', oscuro: '#161a19' })
 // Papel (Claro) o sumi (Oscuro). El inicio pinta su paleta con CSS según
 // data-theme; la respuesta del servidor solo confirma lo que recibe el navegador.
 export function parseAppearance(value) {
-  if (![2, 3].includes(value?.version) || typeof value.fingerprint !== 'string' || !/^[a-f\d]{64}$/iu.test(value.fingerprint) || typeof value.motion !== 'boolean' || !value.palette || PALETTE_KEYS.some(key => typeof value.palette[key] !== 'string' || !/^#[a-f\d]{6}$/iu.test(value.palette[key]))) throw new Error('Paleta no válida.')
-  if (value.version === 3 && (!Object.hasOwn(THEME_COLORS, value.theme) || (value.background !== null && (typeof value.background !== 'string' || !/^[a-f\d]{64}$/u.test(value.background))))) throw new Error('Tema no válido.')
+  if (![2, 3, 4].includes(value?.version) || typeof value.fingerprint !== 'string' || !/^[a-f\d]{64}$/iu.test(value.fingerprint) || typeof value.motion !== 'boolean' || !value.palette || PALETTE_KEYS.some(key => typeof value.palette[key] !== 'string' || !/^#[a-f\d]{6}$/iu.test(value.palette[key]))) throw new Error('Paleta no válida.')
+  if (value.version >= 3 && (!Object.hasOwn(THEME_COLORS, value.theme) || (value.background !== null && (typeof value.background !== 'string' || !/^[a-f\d]{64}$/u.test(value.background))))) throw new Error('Tema no válido.')
   return value
 }
 

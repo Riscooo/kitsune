@@ -1,5 +1,6 @@
 """Offline tests for Kitsune's own engine pipeline (install/kitsune-engine.py)."""
 import importlib.util
+import contextlib
 import io
 import json
 import os
@@ -10,6 +11,7 @@ import tarfile
 import tempfile
 import types
 import unittest
+import zipfile
 
 ROOT = Path(__file__).resolve().parents[1]
 SPEC = importlib.util.spec_from_file_location("kitsune_engine", ROOT / "install/kitsune-engine.py")
@@ -128,10 +130,61 @@ class RecipeTests(unittest.TestCase):
         self.assertIn("        content/browser/kitsune-appearance.sys.mjs (content/kitsune-appearance.sys.mjs)\n", jar)
         self.assertLess(jar.index("browser-main.js"), jar.index("kitsune-bootstrap.js"))
         self.assertIn(engine.KITSUNE_BOOTSTRAP, (root / "browser/base/content/browser.xhtml").read_text())
-        self.assertIn("basado en Mozilla Gecko", (root / "browser/base/content/aboutDialog.xhtml").read_text())
+        about = (root / "browser/base/content/aboutDialog.xhtml").read_text()
+        self.assertIn("motor Gecko compilado en este equipo", about)
+        self.assertNotIn("Mozilla", about)
+        self.assertIn("-vendor-short-name = Kitsune", (brand / "locales/en-US/brand.ftl").read_text())
         for name in engine.NATIVE_FILES:
             self.assertEqual((root / "browser/base/content" / name).read_bytes(), (ROOT / "install/native" / name).read_bytes())
         self.assertNotIn("LibreWolf", (brand / "locales/en-US/brand.ftl").read_text())
+
+    def rebrand_tree(self):
+        root = self.source_tree()
+        for relative, patches in engine.TEXT_PATCHES.items():
+            path = root / relative
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text("\n".join(old for old, _ in patches) + "\n")
+        themes = root / "browser/themes/BuiltInThemeConfig.sys.mjs"
+        themes.parent.mkdir(parents=True)
+        themes.write_text('export const BuiltInThemeConfig = new Map([\n  ["firefox-alpenglow@mozilla.org", {}],\n]);\n')
+        link = root / "toolkit/content/widgets/moz-support-link/moz-support-link.mjs"
+        link.parent.mkdir(parents=True)
+        link.write_text("class MozSupportLink {\n" + engine.SUPPORT_LINK + "\n  }\n}\n")
+        for relative in [r for targets in engine.MASCOT_POSES.values() for r in targets] + list(engine.KITSUNE_LOGOS):
+            (root / relative).parent.mkdir(parents=True, exist_ok=True)
+            (root / relative).write_text('<svg><title>firefox fox</title></svg>')
+        return root
+
+    def test_rebrand_leaves_no_firefox_names_themes_bookmarks_or_help_links(self):
+        root = self.rebrand_tree()
+        engine.rebrand_source(root)
+        engine.rebrand_source(root)  # idempotente
+        for relative, patches in engine.TEXT_PATCHES.items():
+            text = (root / relative).read_text()
+            for old, new in patches:
+                self.assertIn(new, text)
+                self.assertNotIn(old, text)
+        self.assertIn("new Map([]);", (root / "browser/themes/BuiltInThemeConfig.sys.mjs").read_text())
+        self.assertNotIn("mozilla", (root / "browser/base/content/default-bookmarks.html").read_text().lower())
+        link = (root / "toolkit/content/widgets/moz-support-link/moz-support-link.mjs").read_text()
+        self.assertEqual(link.count("display"), 1)
+        for pose, targets in engine.MASCOT_POSES.items():
+            for relative in targets:
+                self.assertEqual((root / relative).read_bytes(), (ROOT / "install/mascot" / f"{pose}.svg").read_bytes(), relative)
+        for relative in engine.KITSUNE_LOGOS:
+            self.assertEqual((root / relative).read_bytes(), (ROOT / "install/branding/icon-small.svg").read_bytes())
+
+    def test_a_missing_gecko_illustration_stops_the_recipe(self):
+        root = self.rebrand_tree()
+        (root / engine.MASCOT_POSES["guardia"][0]).unlink()
+        with self.assertRaises(engine.EngineError):
+            engine.rebrand_source(root)
+
+    def test_rebrand_stops_when_gecko_changes_a_patched_text(self):
+        root = self.rebrand_tree()
+        (root / "browser/locales/en-US/browser/appExtensionFields.ftl").write_text("extension-default-theme-name-auto=Otro\n")
+        with self.assertRaises(engine.EngineError):
+            engine.rebrand_source(root)
 
     def test_rust_uses_thin_lto_and_tuning_can_be_reapplied(self):
         root = self.source_tree()
@@ -203,14 +256,17 @@ class InstallTests(unittest.TestCase):
         make_package(self.package)
 
     def install(self, version="157.0.1", fp="a" * 64, check=lambda binary, version: {"ok": True}):
-        return engine.install_package(self.layout, version, self.package, "b" * 64, fp, log=lambda *_: None, check=check)
+        return engine.install_package(self.layout, version, self.package, "b" * 64, fp, log=lambda *_: None, check=check,
+                                      addons=lambda layout, target, log: (target.mkdir(parents=True), (target / "fixture@kitsune.xpi").write_bytes(b"xpi")))
 
     def test_install_adds_own_configuration_and_switches_atomically(self):
         target = self.install()
         self.assertTrue(self.layout.current.is_symlink())
         self.assertEqual(os.readlink(self.layout.current), target.name)
-        for relative in ("distribution/policies.json", "defaults/pref/autoconfig.js", "kitsune.cfg", "kitsune-engine.json"):
+        for relative in ("distribution/extensions/fixture@kitsune.xpi", "defaults/pref/autoconfig.js", "kitsune.cfg", "kitsune-engine.json"):
             self.assertTrue((target / relative).is_file(), relative)
+        # Sin políticas de empresa: no sale «gestionado por tu organización».
+        self.assertFalse((target / "distribution/policies.json").exists())
         current, manifest = self.layout.current_engine()
         self.assertEqual(current, target.resolve())
         self.assertEqual(manifest["engineVersion"], "157.0.1")
@@ -344,7 +400,7 @@ class BuildFlowTests(unittest.TestCase):
         make_package(package)
         fp = engine.install_fingerprint("157.0.1")
         engine.install_package(layout, "157.0.1", package, "b" * 64, fp, log=lambda *_: None,
-                               check=lambda binary, version: {})
+                               check=lambda binary, version: {}, addons=lambda *args: None)
         messages = []
         result = engine.build(layout, "157.0.1", if_new=True, log=messages.append)
         self.assertEqual(result, layout.current.resolve())
@@ -363,9 +419,37 @@ if __name__ == "__main__":
     unittest.main()
 
 
+class DistributionAddonTests(unittest.TestCase):
+    def xpi(self, addon):
+        output = io.BytesIO()
+        with zipfile.ZipFile(output, "w") as archive:
+            archive.writestr("manifest.json", json.dumps({"browser_specific_settings": {"gecko": {"id": addon}}}))
+            archive.writestr("META-INF/cose.sig", b"signed")
+        return output.getvalue()
+
+    def test_signed_xpi_with_the_expected_id_is_bundled_and_reused_offline(self):
+        base = Path(tempfile.mkdtemp())
+        layout = engine.Layout(base / "data", base / "state", base / "cache")
+        good = self.xpi("uBlock0@raymondhill.net")
+        opener = lambda url, timeout: contextlib.closing(io.BytesIO(good))
+        engine.distribution_addons(layout, base / "one", log=lambda *_: None, opener=opener)
+        self.assertEqual((base / "one/uBlock0@raymondhill.net.xpi").read_bytes(), good)
+        def offline(url, timeout):
+            raise OSError("sin red")
+        engine.distribution_addons(layout, base / "two", log=lambda *_: None, opener=offline)
+        self.assertEqual((base / "two/uBlock0@raymondhill.net.xpi").read_bytes(), good)
+
+    def test_a_download_with_another_id_is_rejected(self):
+        base = Path(tempfile.mkdtemp())
+        layout = engine.Layout(base / "data", base / "state", base / "cache")
+        bad = self.xpi("other@example.com")
+        engine.distribution_addons(layout, base / "out", log=lambda *_: None, opener=lambda url, timeout: contextlib.closing(io.BytesIO(bad)))
+        self.assertFalse((base / "out/uBlock0@raymondhill.net.xpi").exists())
+
+
 class SmokeCheckTests(unittest.TestCase):
     GOOD = {"name": "Kitsune", "version": "157.0.1", "brand": "Kitsune", "nativeEntry": True, "nativeModule": True,
-            "policies": True, "privacyMode": "estricto", "signaturesRequired": True, "sandboxLevel": 6,
+            "policies": False, "fxaccounts": False, "privacyMode": "estricto", "signaturesRequired": True, "sandboxLevel": 6,
             "channel": "release", "telemetryExtended": False,
             "userAgent": "Mozilla/5.0 (X11; Linux x86_64; rv:157.0) Gecko/20100101 Firefox/157.0"}
 
@@ -381,7 +465,7 @@ class SmokeCheckTests(unittest.TestCase):
 
     def test_kitsune_user_agent_or_missing_protections_fail(self):
         for changes in ({"userAgent": "Mozilla/5.0 (X11; Linux x86_64; rv:157.0) Gecko/20100101 Kitsune/157.0.1"},
-                        {"brand": None}, {"nativeModule": False}, {"policies": False}, {"sandboxLevel": 0},
+                        {"brand": None}, {"nativeModule": False}, {"policies": True}, {"fxaccounts": True}, {"sandboxLevel": 0},
                         {"privacyMode": ""}, {"signaturesRequired": False}, {"error": "timeout"},
                         {"channel": "default"}, {"telemetryExtended": True}):
             with self.assertRaises(engine.EngineError, msg=str(changes)):

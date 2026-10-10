@@ -414,15 +414,16 @@
 			const privacy = $("#profile-privacy-status");
 			if (privacy) privacy.textContent = privacyModeStatus(profile, profile.id === snapshot.currentId);
 			const desired = profile.rememberGoogle === true;
-			if (privacyMode(profile) === "comodo") {
+			const comfortable = privacyMode(profile) === "comodo";
+			const relogin = $("#profile-google-relogin");
+			if (relogin) relogin.hidden = comfortable;
+			if (comfortable) {
 				status.textContent = "En modo Cómodo las sesiones ya se conservan al cerrar.";
 				if (profile.id !== snapshot.currentId) return;
-			}
-			if (profile.id !== snapshot.currentId) {
+			} else if (profile.id !== snapshot.currentId) {
 				status.textContent = desired ? "Abre este perfil para aplicar la conservación de Google." : "Sin conservación de Google activada en Kitsune.";
 				return;
-			}
-			status.textContent = "Aplicando…";
+			} else status.textContent = "Aplicando…";
 			const started = performance.now();
 			const check = async () => {
 				try {
@@ -442,7 +443,7 @@
 						return;
 					}
 				} catch {}
-				if (request !== googleRequest || !dialog.open || formMode) return;
+				if (request !== googleRequest || !dialog.open || formMode || comfortable) return;
 				if (performance.now() - started >= 1e4) {
 					status.textContent = "Pendiente de aplicar. Abre o reinicia este perfil para completarlo.";
 					return;
@@ -863,7 +864,9 @@
 				shortcuts: value?.modules?.shortcuts !== false
 			},
 			theme: THEMES.includes(value?.theme) ? value.theme : "claro",
-			background: typeof value?.background === "string" && /^[a-f\d]{64}$/u.test(value.background) ? value.background : null
+			background: typeof value?.background === "string" && /^[a-f\d]{64}$/u.test(value.background) ? value.background : null,
+			windowControls: value?.windowControls === "derecha" ? "derecha" : "izquierda",
+			brand: value?.brand !== false
 		};
 	}
 	function mergeSettings(current, patch) {
@@ -1102,8 +1105,12 @@
 		oscuro: "#161a19"
 	});
 	function parseAppearance(value) {
-		if (![2, 3].includes(value?.version) || typeof value.fingerprint !== "string" || !/^[a-f\d]{64}$/iu.test(value.fingerprint) || typeof value.motion !== "boolean" || !value.palette || PALETTE_KEYS.some((key) => typeof value.palette[key] !== "string" || !/^#[a-f\d]{6}$/iu.test(value.palette[key]))) throw new Error("Paleta no válida.");
-		if (value.version === 3 && (!Object.hasOwn(THEME_COLORS, value.theme) || value.background !== null && (typeof value.background !== "string" || !/^[a-f\d]{64}$/u.test(value.background)))) throw new Error("Tema no válido.");
+		if (![
+			2,
+			3,
+			4
+		].includes(value?.version) || typeof value.fingerprint !== "string" || !/^[a-f\d]{64}$/iu.test(value.fingerprint) || typeof value.motion !== "boolean" || !value.palette || PALETTE_KEYS.some((key) => typeof value.palette[key] !== "string" || !/^#[a-f\d]{6}$/iu.test(value.palette[key]))) throw new Error("Paleta no válida.");
+		if (value.version >= 3 && (!Object.hasOwn(THEME_COLORS, value.theme) || value.background !== null && (typeof value.background !== "string" || !/^[a-f\d]{64}$/u.test(value.background)))) throw new Error("Tema no válido.");
 		return value;
 	}
 	function appearanceStatus(value) {
@@ -1570,7 +1577,8 @@
 	};
 	const toggles = {
 		"motion-toggle": "motion",
-		"newtab-toggle": "newTab"
+		"newtab-toggle": "newTab",
+		"brand-toggle": "brand"
 	};
 	const store = createSettingsStore({
 		onChange(settings, state) {
@@ -1584,11 +1592,16 @@
 				$(`#module-${key}`).checked = settings.modules[key];
 				$(`#module-${key}`).disabled = !state.ready;
 			}
+			for (const button of document.querySelectorAll("[data-window-controls]")) button.addEventListener("click", () => void save({ windowControls: button.dataset.windowControls }));
 			for (const radio of document.querySelectorAll("input[name=\"theme\"]")) {
 				radio.checked = radio.value === settings.theme;
 				radio.disabled = !state.ready;
 			}
 			$("#background-file").disabled = !state.ready;
+			for (const button of document.querySelectorAll("[data-window-controls]")) {
+				button.setAttribute("aria-pressed", String(button.dataset.windowControls === settings.windowControls));
+				button.disabled = !state.ready;
+			}
 			$("#background-remove").hidden = !settings.background;
 			$("#background-remove").disabled = !state.ready;
 			presets?.sync(settings, state.ready);

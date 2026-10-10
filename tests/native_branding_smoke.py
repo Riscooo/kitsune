@@ -49,9 +49,11 @@ def main():
     manifest = json.loads((browser.parent / "kitsune-engine.json").read_text())
     assert manifest["signedBy"] == MOZILLA_RELEASE_KEY and manifest["source"].startswith("https://archive.mozilla.org/")
     assert not (browser.parent / "librewolf").exists() and not (browser.parent / "librewolf.cfg").exists()
-    for relative in ("distribution/policies.json", "defaults/pref/autoconfig.js", "kitsune.cfg"):
+    for relative in ("distribution/extensions/uBlock0@raymondhill.net.xpi", "defaults/pref/autoconfig.js", "kitsune.cfg"):
         assert (browser.parent / relative).is_file(), relative
-    check("Own engine built from Mozilla's signed Gecko source, with Kitsune's configuration and nothing from LibreWolf",
+    # Sin políticas de empresa: no sale «Tu navegador está gestionado por tu organización».
+    assert not (browser.parent / "distribution/policies.json").exists()
+    check("Own engine built from Mozilla's signed Gecko source, with Kitsune's configuration, no enterprise policies and nothing from LibreWolf",
           {"engineVersion": manifest["engineVersion"], "signedBy": manifest["signedBy"]})
 
     driver = WebDriver(profile, evidence, browser=browser, headed=args.headed)

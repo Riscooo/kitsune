@@ -398,3 +398,15 @@ findbar .findbar-textbox[status="notfound"] {
 :root[uidensity="compact"] #nav-bar { padding-block: 2px 5px !important; }
 :root[uidensity="touch"] #tabbrowser-tabs[orient="horizontal"] { --tab-min-height: 42px !important; }
 :root[inFullscreen] #nav-bar { padding-block: 3px !important; }
+
+/* Panel de protección («Kitsune is on guard»): la mascota de Kitsune sobre papel
+   u óxido suave, en vez del morado de Gecko. */
+#trustpanel-popup {
+  --trustpanel-highlight-bg: var(--kb-primary-container) !important;
+  --trustpanel-warning-bg: color-mix(in srgb, var(--kb-primary) 16%, var(--kb-surface)) !important;
+  --trustpanel-graphic-bg: var(--kb-surface-high) !important;
+}
+#trustpanel-graphic-section,
+#trustpanel-graphic-section * {
+  color: var(--kb-text) !important;
+}

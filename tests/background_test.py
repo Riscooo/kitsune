@@ -127,6 +127,15 @@ class BackgroundTests(backend.BackendV04Tests):
         self.assertEqual(self.request("POST", "/api/background", {"preset": items[0]["id"]})[0], 503)
         self.assertEqual(self.server.store.snapshot()["data"]["background"], items[1]["sha256"])
 
+    def test_help_links_land_on_kitsune_help(self):
+        (self.start / "ayuda.html").write_text('<html lang="es"><title>Kitsune · Ayuda</title>')
+        for path in ("/ayuda/", "/ayuda/enhanced-tracking-protection", "/ayuda/password-manager-remember-delete-edit-logins"):
+            status, body, headers = self.request(path=path)
+            self.assertEqual((status, headers["Content-Type"]), (200, "text/html; charset=utf-8"), path)
+            self.assertIn("Kitsune · Ayuda".encode(), body)
+        for path in ("/ayuda/../index.html", "/ayuda/a/b", "/ayuda/%2e%2e"):
+            self.assertEqual(self.request(path=path)[0], 404, path)
+
     def test_rejected_uploads_change_nothing(self):
         for image in ("data:image/svg+xml;base64,PHN2Zy8+", "data:image/png;base64,bm90IGFuIGltYWdl", "x" * 64):
             status, _, _ = self.upload(image)

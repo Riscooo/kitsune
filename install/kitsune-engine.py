@@ -24,11 +24,12 @@ import subprocess
 import sys
 import tempfile
 import urllib.request
+import zipfile
 
 # Bump BUILD_REVISION when the compile recipe changes in code (not only in its
 # input files, which are hashed); bump INSTALL_REVISION for install-only changes.
 BUILD_REVISION = 2
-INSTALL_REVISION = 1
+INSTALL_REVISION = 2
 MOZILLA_RELEASE_KEY = "14F26682D0916CDD81E37B6D61B7B526D98F0353"  # Mozilla Software Releases
 ARCHIVE = "https://archive.mozilla.org/pub/firefox/releases"
 VERSIONS_URL = "https://product-details.mozilla.org/1.0/firefox_versions.json"
@@ -62,7 +63,125 @@ BOOTSTRAP = '<script src="chrome://browser/content/browser-main.js"></script>'
 KITSUNE_BOOTSTRAP = '<script src="chrome://browser/content/kitsune-bootstrap.js"></script>'
 JAR_ANCHOR = re.compile(r"(?m)^(\s+)content/browser/browser-main\.js(\s+)\(content/browser-main\.js\)\n")
 ABOUT_ANCHOR = '<label id="distributionId" class="text-blurb"/>'
-ABOUT_CREDIT = '<label id="kitsune-engine-credit" class="text-blurb">Tinta · basado en Mozilla Gecko</label>'
+ABOUT_CREDIT = '<label id="kitsune-engine-credit" class="text-blurb">Tinta · motor Gecko compilado en este equipo</label>'
+# Sin rastro de Mozilla en la interfaz: nombres propios donde Gecko muestra sus
+# marcas, el buscador de extensiones sin la dirección de la tienda, el tema por
+# defecto llamado Kitsune y ningún marcador, tema ni enlace de ayuda de Firefox.
+# Cada texto se comprueba: si Gecko lo cambia, la receta avisa en vez de seguir.
+TEXT_PATCHES = {
+    "toolkit/locales/en-US/toolkit/branding/brandings.ftl": (
+        ("-monitor-brand-name = Firefox Monitor", "-monitor-brand-name = Monitor"),
+        ("-mozmonitor-brand-name = Mozilla Monitor", "-mozmonitor-brand-name = Monitor"),
+        ("-send-brand-name = Firefox Send", "-send-brand-name = Send"),
+        ("-screenshots-brand-name = Firefox Screenshots", "-screenshots-brand-name = Screenshots"),
+        ("-mozilla-vpn-brand-name = Mozilla VPN", "-mozilla-vpn-brand-name = VPN"),
+        ("-profiler-brand-name = Firefox Profiler", "-profiler-brand-name = Profiler"),
+        ("-translations-brand-name = Firefox Translations", "-translations-brand-name = Kitsune Translations"),
+        ("-relay-brand-name = Firefox Relay", "-relay-brand-name = Relay"),
+        ("-firefox-suggest-brand-name = Firefox Suggest", "-firefox-suggest-brand-name = Kitsune Suggest"),
+        ("-firefox-home-brand-name = Firefox Home", "-firefox-home-brand-name = Kitsune Home"),
+        ("-firefoxview-brand-name = Firefox View", "-firefoxview-brand-name = Kitsune View"),
+        ("-firefoxlabs-brand-name = Firefox Labs", "-firefoxlabs-brand-name = Kitsune Labs"),
+    ),
+    "toolkit/locales/en-US/toolkit/about/aboutAddons.ftl": (
+        ("Search addons.mozilla.org", "Search extensions and themes"),
+        ('Get extensions and themes on <a data-l10n-name="get-extensions">{ $domain }</a>',
+         'Get extensions and themes in the <a data-l10n-name="get-extensions">extension store</a>'),
+        ('Get dictionaries on <a data-l10n-name="get-extensions">{ $domain }</a>',
+         'Get dictionaries in the <a data-l10n-name="get-extensions">extension store</a>'),
+        ('Get language packs on <a data-l10n-name="get-extensions">{ $domain }</a>',
+         'Get language packs in the <a data-l10n-name="get-extensions">extension store</a>'),
+        ("  .title = Firefox only recommends extensions that meet standards for security and performance",
+         "  .title = { -brand-product-name } only recommends extensions that meet standards for security and performance"),
+    ),
+    "browser/locales/en-US/browser/appExtensionFields.ftl": (
+        ("extension-default-theme-name-auto=System theme — auto", "extension-default-theme-name-auto=Kitsune"),
+    ),
+    "browser/locales/en-US/browser/aboutLogins.ftl": (
+        ("login-intro-instructions-fxa2 = Create or sign in to your account on the device where your logins are saved.",
+         "login-intro-instructions-fxa2 = Save a password when you sign in to a website, or add one with the + button."),
+        ("login-intro-instructions-fxa-settings = Go to Settings > Sync > Turn on syncing… Select the Logins and passwords checkbox.",
+         "login-intro-instructions-fxa-settings = You can also import them from a file in the ⋯ menu."),
+    ),
+    "browser/components/aboutlogins/content/aboutLogins.html": (
+        ('href="https://support.mozilla.org/kb/import-login-data-file"', 'href=""'),
+        ('href="https://support.mozilla.org/kb/firefox-password-manager-alerts-breached-websites"', 'href=""'),
+    ),
+}
+KITSUNE_BOOKMARKS = """#filter substitution
+<!-- Kitsune: un perfil nuevo empieza sin marcadores de terceros (el preprocesador
+     de Gecko exige alguna directiva en este archivo). -->
+<!DOCTYPE NETSCAPE-Bookmark-file-1>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'none';">
+    <link rel="localization" href="branding/brand.ftl"/>
+    <link rel="localization" href="browser/profile/default-bookmarks.ftl"/>
+    <title data-l10n-id="default-bookmarks-title">default-bookmarks-title</title>
+</head>
+<body>
+<h1 data-l10n-id="default-bookmarks-heading">default-bookmarks-heading</h1>
+<dl><p>
+</dl>
+</body>
+</html>
+"""
+# Ni un zorro de Firefox: cada ilustración suya pasa a ser la mascota de Kitsune
+# (install/mascot, de tools/mascot/generate.py) en la pose que pide su sitio, y
+# cada logo de Firefox, el de Kitsune.
+MASCOT_POSES = {
+    "guardia": ("browser/themes/shared/identity-block/trustpanel-graphic-enabled.svg",
+                "browser/components/controlcenter/content/assets/breach-alert-shield-check.svg",
+                "toolkit/themes/shared/illustrations/shield-check.svg",
+                "toolkit/themes/shared/illustrations/kit-holding-lock.svg"),
+    "preocupado": ("browser/themes/shared/identity-block/trustpanel-graphic-warning.svg",
+                   "browser/components/controlcenter/content/assets/breach-alert-shield-warning.svg",
+                   "browser/components/controlcenter/content/assets/fox-concern.svg",
+                   "toolkit/themes/shared/illustrations/shield-alert.svg",
+                   "toolkit/themes/shared/illustrations/kit-concerned.svg",
+                   "toolkit/themes/shared/illustrations/no-connection.svg",
+                   "toolkit/themes/shared/illustrations/security-error.svg",
+                   "browser/components/firefoxview/content/synced-tabs-error.svg",
+                   "browser/themes/shared/fxa/sync-illustration-issue.svg"),
+    "dormido": ("browser/themes/shared/identity-block/trustpanel-graphic-disabled.svg",
+                "browser/components/controlcenter/content/assets/breach-alert-shield-cross.svg",
+                "browser/components/firefoxview/content/history-empty.svg",
+                "browser/components/firefoxview/content/synced-tabs-empty.svg"),
+    "hola": ("toolkit/themes/shared/illustrations/kit-happy.svg",
+             "toolkit/themes/shared/illustrations/kit-confetti.svg",
+             "browser/components/aboutlogins/content/icons/intro-illustration.svg",
+             "toolkit/components/satchel/megalist/content/icons/cpm-fox-illustration.svg",
+             "browser/themes/shared/preferences/fox-ai.svg",
+             "browser/themes/shared/sidebar/foxy.svg",
+             "browser/themes/shared/fxa/sync-illustration.svg",
+             "browser/components/aiwindow/ui/assets/kit.svg",
+             *(f"browser/components/asrouter/content/assets/fox-with-{name}.svg"
+               for name in ("locked-box", "devices", "checkmark", "mobile", "profiles", "box-on-cloud")),
+             *(f"browser/components/aboutwelcome/assets/{name}.svg"
+               for name in ("br-migration-fox-juggle", "br-backup-fox-outside-box", "br-gratitude-fox-rock",
+                            "br-fxa-fox-mirror", "br-backup-fox-in-box", "br-set-default-fox-heart", "br-amo-fox-paint",
+                            "br-import-fox-house", "fox-doodle-backup-restore")),
+             *(f"browser/extensions/newtab/data/content/assets/{name}.svg"
+               for name in ("firefox-mascot-prop-heart-light", "firefox-mascot-prop-heart-dark",
+                            "firefox-mascot-prop-heart-light-narrow", "firefox-mascot-prop-heart-light-responsive",
+                            "firefox-mascot-prop-heart-dark-responsive", "firefox-mascot-prop-heart-dark-narrow",
+                            "firefox-mascot-prop-paintbucket-rgb", "puzzle-fox", "highlights/firefox-mascot-prop-paintbucket-rgb"))),
+    "cara": ("toolkit/themes/shared/illustrations/kit-in-circle.svg",
+             "browser/themes/shared/fxa/avatar-fox.svg",
+             "browser/themes/shared/fxa/avatar-fox-circle.svg",
+             "browser/components/asrouter/content/assets/smiling-fox-icon.svg",
+             "browser/extensions/newtab/data/content/assets/firefox-motion-head-pop-up-no-bg.svg"),
+    "cola": ("browser/themes/shared/privatebrowsing/fox-tail.svg",),
+    "ventana": ("browser/themes/shared/icons/window-firefox.svg",),
+}
+KITSUNE_LOGOS = ("browser/base/content/logos/share-firefox.svg", "browser/themes/shared/sidebar/firefox.svg",
+                 "browser/extensions/newtab/data/content/assets/firefox.svg", "browser/themes/shared/icons/firefox-view.svg")
+MASCOT = HERE / "mascot"
+THEMES_MAP = re.compile(r"export const BuiltInThemeConfig = new Map\(\[.*?\n\]\);", re.S)
+SUPPORT_LINK = "  connectedCallback() {\n    this.#register();"
+SUPPORT_LINK_HIDDEN = ("  connectedCallback() {\n    // Kitsune: sin enlaces a la ayuda de Mozilla.\n"
+                       "    this.style.setProperty(\"display\", \"none\", \"important\");\n    this.#register();")
 BRAND_FTL = """# This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -74,7 +193,7 @@ BRAND_FTL = """# This Source Code Form is subject to the terms of the Mozilla Pu
 -brand-shortcut-name = Kitsune
 -brand-full-name = Kitsune
 -brand-product-name = Kitsune
--vendor-short-name = Mozilla
+-vendor-short-name = Kitsune
 trademarkInfo = { " " }
 """
 BRAND_PROPERTIES = """# This Source Code Form is subject to the terms of the Mozilla Public
@@ -179,11 +298,14 @@ def input_files():
         files[f"branding/{name}"] = BRANDING / name
     for name in NATIVE_FILES:
         files[f"native/{name}"] = NATIVE / name
+    for pose in MASCOT_POSES:
+        files[f"mascot/{pose}.svg"] = MASCOT / f"{pose}.svg"
+    files["branding/icon-small.svg"] = BRANDING / "icon-small.svg"
     return files
 
 
 def install_files():
-    return {name: RECIPE / name for name in ("policies.json", "autoconfig.js", "kitsune.cfg")}
+    return {name: RECIPE / name for name in ("autoconfig.js", "kitsune.cfg")}
 
 
 def fingerprint(version: str, files: dict, revision: int, parent: str = "") -> str:
@@ -197,8 +319,10 @@ def fingerprint(version: str, files: dict, revision: int, parent: str = "") -> s
 
 def recipe_code() -> str:
     """Hash of the code that shapes the compiled engine, so changing it always rebuilds."""
-    parts = [inspect.getsource(function) for function in (write_branding, integrate_native, tune_build, write_mozconfig)]
+    parts = [inspect.getsource(function) for function in (write_branding, integrate_native, rebrand_source, tune_build, write_mozconfig)]
     parts += [BRAND_FTL, BRAND_PROPERTIES, BRAND_CONFIGURE, KITSUNE_BOOTSTRAP, ABOUT_CREDIT, RUST_THIN_LTO,
+              json.dumps(TEXT_PATCHES, sort_keys=True), KITSUNE_BOOKMARKS, SUPPORT_LINK_HIDDEN,
+              json.dumps(MASCOT_POSES, sort_keys=True), repr(KITSUNE_LOGOS),
               UA_FIREFOX, json.dumps(BRAND_CONTENT, sort_keys=True), repr(ICON_SIZES), repr(NATIVE_FILES)]
     return hashlib.sha256("\0".join(parts).encode()).hexdigest()
 
@@ -341,6 +465,39 @@ def integrate_native(source: Path):
                                   "El diálogo Acerca de"))
 
 
+def rebrand_source(source: Path):
+    """Nombres propios y nada de Firefox en la interfaz. Idempotente."""
+    for relative, patches in TEXT_PATCHES.items():
+        path = source / relative
+        text = path.read_text()
+        for old, new in patches:
+            if old in text:
+                text = text.replace(old, new)
+            elif new not in text:
+                raise EngineError(f"El texto «{old[:40]}» cambió en esta versión de Gecko; la receta necesita revisión")
+        path.write_text(text)
+    (source / "browser/base/content/default-bookmarks.html").write_text(KITSUNE_BOOKMARKS)
+    themes = source / "browser/themes/BuiltInThemeConfig.sys.mjs"
+    text = themes.read_text()
+    if "export const BuiltInThemeConfig = new Map([]);" not in text:
+        if len(THEMES_MAP.findall(text)) != 1:
+            raise EngineError("La lista de temas de Gecko cambió; la receta necesita revisión")
+        themes.write_text(THEMES_MAP.sub("export const BuiltInThemeConfig = new Map([]);", text))
+    for pose, targets in MASCOT_POSES.items():
+        for relative in targets:
+            if not (source / relative).is_file():
+                raise EngineError(f"La ilustración {relative} ya no existe en esta versión de Gecko; la receta necesita revisión")
+            shutil.copyfile(MASCOT / f"{pose}.svg", source / relative)
+    for relative in KITSUNE_LOGOS:
+        if not (source / relative).is_file():
+            raise EngineError(f"El logo {relative} ya no existe en esta versión de Gecko; la receta necesita revisión")
+        shutil.copyfile(BRANDING / "icon-small.svg", source / relative)
+    link = source / "toolkit/content/widgets/moz-support-link/moz-support-link.mjs"
+    text = link.read_text()
+    if SUPPORT_LINK_HIDDEN not in text:
+        link.write_text(replace_once(text, SUPPORT_LINK, SUPPORT_LINK_HIDDEN, "El enlace de ayuda de Gecko"))
+
+
 def tune_build(source: Path):
     """Build-system settings for this PC's memory. Idempotent."""
     rules = source / "config/makefiles/rust.mk"
@@ -365,6 +522,7 @@ def prepare_source(layout: Layout, version: str, tarball: Path, build_fp: str, l
             log("La receta de Kitsune cambió: se aplica sobre el código ya extraído")
             write_branding(source)
             integrate_native(source)
+            rebrand_source(source)
             tune_build(source)
             marker.write_text(json.dumps({**prepared, "buildFingerprint": build_fp, "preparedAt": now()}))
             return source
@@ -382,6 +540,7 @@ def prepare_source(layout: Layout, version: str, tarball: Path, build_fp: str, l
         raise EngineError("El código fuente no tiene la estructura esperada")
     write_branding(top)
     integrate_native(top)
+    rebrand_source(top)
     tune_build(top)
     (top / ".kitsune-source.json").write_text(json.dumps({"version": version, "buildFingerprint": build_fp, "preparedAt": now()}))
     os.rename(top, source)
@@ -490,7 +649,7 @@ def smoke_check(binary: Path, version: str):
     if not isinstance(result, dict) or result.get("error"):
         raise EngineError(f"La prueba de humo no pudo ejecutarse: {result}")
     expect = {"name": "Kitsune", "version": version, "brand": "Kitsune", "nativeEntry": True, "nativeModule": True,
-              "policies": True, "privacyMode": "estricto", "signaturesRequired": True, "channel": "release",
+              "policies": False, "fxaccounts": False, "privacyMode": "estricto", "signaturesRequired": True, "channel": "release",
               "telemetryExtended": False}
     problems = [f"{key}={result.get(key)!r}" for key, value in expect.items() if result.get(key) != value]
     agent = result.get("userAgent") or ""
@@ -509,8 +668,35 @@ def switch_current(layout: Layout, target: Path):
     os.replace(temporary, layout.current)
 
 
+# Extensiones que Kitsune trae de serie, sin políticas de empresa: Gecko las instala
+# en cada perfil nuevo desde distribution/extensions (firmadas; la firma se exige).
+DISTRIBUTION_ADDONS = {"uBlock0@raymondhill.net": "https://addons.mozilla.org/firefox/downloads/latest/uBlock0@raymondhill.net/latest.xpi"}
+
+
+def distribution_addons(layout: Layout, target: Path, log=print, opener=urllib.request.urlopen):
+    """Descarga las extensiones de serie (o reutiliza la última buena si no hay red)."""
+    cache = layout.private(layout.cache / "addons")
+    target.mkdir(parents=True, exist_ok=True)
+    for addon, url in DISTRIBUTION_ADDONS.items():
+        cached = cache / f"{addon}.xpi"
+        try:
+            partial = cached.with_suffix(".part")
+            partial.unlink(missing_ok=True)
+            download(url, partial, opener)
+            with zipfile.ZipFile(partial) as xpi:
+                manifest = json.loads(xpi.read("manifest.json"))
+                gecko = manifest.get("browser_specific_settings", manifest.get("applications", {})).get("gecko", {})
+                if gecko.get("id") != addon or not any(name.startswith("META-INF/") for name in xpi.namelist()):
+                    raise EngineError(f"{addon}: la descarga no es la extensión firmada esperada")
+            os.replace(partial, cached)
+        except (OSError, ValueError, KeyError, zipfile.BadZipFile, EngineError) as error:
+            log(f"No se pudo descargar {addon} ({type(error).__name__}); se usa la copia anterior si la hay")
+        if cached.is_file():
+            shutil.copyfile(cached, target / f"{addon}.xpi")
+
+
 def install_package(layout: Layout, version: str, package: Path, build_fp: str, install_fp: str, log=print,
-                    run=subprocess.run, check=smoke_check):
+                    run=subprocess.run, check=smoke_check, addons=distribution_addons):
     layout.private(layout.engines)
     final = layout.engines / f"{version}-{install_fp[:12]}"
     stage = Path(tempfile.mkdtemp(prefix=".installing-", dir=layout.engines))
@@ -520,7 +706,7 @@ def install_package(layout: Layout, version: str, package: Path, build_fp: str, 
         if result.returncode != 0 or not (root / "kitsune").is_file():
             raise EngineError("El paquete de Kitsune no tiene la estructura esperada")
         (root / "distribution").mkdir(exist_ok=True)
-        shutil.copyfile(RECIPE / "policies.json", root / "distribution/policies.json")
+        addons(layout, root / "distribution/extensions", log)
         (root / "defaults/pref").mkdir(parents=True, exist_ok=True)
         shutil.copyfile(RECIPE / "autoconfig.js", root / "defaults/pref/autoconfig.js")
         shutil.copyfile(RECIPE / "kitsune.cfg", root / "kitsune.cfg")

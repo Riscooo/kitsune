@@ -158,6 +158,11 @@ def build() -> dict[str, bytes]:
         "chrome/assets/kitsune-dark.svg": _dark(full),
         "start/logo-dark.svg": _dark(full),
         "start/favicon-dark.svg": _dark(small),
+        # El logo del inicio en dos capas: el ensō gira, la máscara del zorro no.
+        "start/logo-ring.svg": _svg(RING_SVG),
+        "start/logo-mask.svg": _svg(MASK_SVG),
+        "start/logo-ring-dark.svg": _dark(_svg(RING_SVG)),
+        "start/logo-mask-dark.svg": _dark(_svg(MASK_SVG)),
         "chrome/assets/kitsune-throbber-ring-dark.svg": _dark(_svg(SMALL_RING_SVG)),
         "chrome/assets/kitsune-throbber-mask-dark.svg": _dark(_svg(SMALL_MASK_SVG)),
         "chrome/assets/kitsune-stroke-dark.svg": _dark(_stroke()),

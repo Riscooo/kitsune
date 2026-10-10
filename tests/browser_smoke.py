@@ -55,7 +55,7 @@ def eventually(test, timeout=20, interval=0.1):
 
 class WebDriver:
     def __init__(self, profile: Path, evidence: Path, browser=DEFAULT_BROWSER,
-                 driver=DEFAULT_DRIVER, headed=False):
+                 driver=DEFAULT_DRIVER, headed=False, env=None):
         self.profile = profile
         self.evidence = evidence
         self.session_id = None
@@ -75,7 +75,7 @@ class WebDriver:
                 "browserName": "firefox",
                 "pageLoadStrategy": "normal",
                 "moz:firefoxOptions": {
-                    "binary": str(browser), "args": arguments,
+                    "binary": str(browser), "args": arguments, **({"env": env} if env else {}),
                     # geckodriver disables NewTab's Redux feeds by default.
                     # Undo that automation-only setting to test the real UI.
                     "prefs": {

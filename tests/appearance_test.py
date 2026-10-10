@@ -53,12 +53,19 @@ class AppearanceTests(unittest.TestCase):
         self.assertEqual(appearance.PAPEL, expected)
         self.assertEqual(self.refresh()["palette"], expected)
 
-    def test_control_is_version_3_with_theme_and_background(self):
+    def test_control_is_version_4_with_theme_background_and_window_options(self):
         self.refresh()
         control = json.loads(self.manager.control.read_text())
-        self.assertEqual(control["version"], 3)
-        self.assertEqual(set(control), {"version", "palette", "motion", "googleRemember", "theme", "background", "fingerprint"})
-        self.assertEqual((control["theme"], control["background"]), ("claro", None))
+        self.assertEqual(control["version"], 4)
+        self.assertEqual(set(control), {"version", "palette", "motion", "googleRemember", "theme", "background",
+                                        "windowControls", "brand", "fingerprint"})
+        self.assertEqual((control["theme"], control["background"], control["windowControls"], control["brand"]),
+                         ("claro", None, "izquierda", True))
+        result = self.refresh(windowControls="derecha", brand=False)
+        self.assertEqual((result["windowControls"], result["brand"]), ("derecha", False))
+        for change in ({"windowControls": "arriba"}, {"brand": "no"}):
+            with self.subTest(change=change), self.assertRaises(ValueError):
+                self.refresh(**change)
 
     def test_dark_theme_uses_the_sumi_palette(self):
         result = self.refresh(theme="oscuro")

@@ -99,8 +99,8 @@ class ProfileTests(unittest.TestCase):
             self.assertTrue(result["launchRequested"])
         self.assertEqual(self.launches, [(identifier, action) for action in profiles.ACTIONS])
         self.assertEqual((self.browser / "profile/cookies.sqlite").read_bytes(), b"original-private-session")
-        self.assertEqual(profiles.ACTIONS["sync"], "about:preferences#sync")
-        self.assertEqual(profiles.ACTIONS["sync-settings"], "about:preferences#sync")
+        # Sin rastro de Mozilla: ninguna acción lleva a Sync ni a cuentas de Mozilla.
+        self.assertFalse([a for a, url in profiles.ACTIONS.items() if "sync" in a or "firefox.com" in (url or "")])
 
     def test_privacy_mode_defaults_to_strict_and_is_stored_outside_the_registry(self):
         self.assertEqual(self.manager.resolve()["privacyMode"], "estricto")

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Check the real, opt-in account controls without signing in to any account."""
+"""Sin cuentas de Mozilla: Sync no existe en Kitsune y las protecciones siguen activas."""
 from __future__ import annotations
 
 import argparse
@@ -30,19 +30,16 @@ def main():
           sanitization: Services.prefs.getBoolPref('privacy.sanitize.sanitizeOnShutdown', true),
           cookieBehavior: Services.prefs.getIntPref('network.cookie.cookieBehavior')
         }""")
-        assert report["baseline"]["sync"] is True
+        assert report["baseline"]["sync"] is False
         assert all(report["baseline"][key] for key in ("signatures", "strictFiles", "sanitization"))
-        # Kitsune's own engine offers Firefox Sync natively: nothing to unlock,
-        # nothing synchronizes until the user signs in to a Mozilla account.
-        driver.navigate("about:preferences#sync")
+        # Sin Sync ni cuentas de Mozilla: ni botón de cuenta en la barra ni sección en Ajustes.
+        report["accountButton"] = driver.script("const b=document.getElementById('fxa-toolbar-menu-button'); return !!b && !b.hidden && b.getBoundingClientRect().width > 0;")
+        assert report["accountButton"] is False
+        driver.navigate("about:preferences")
         driver.settle()
-        report["sync"] = driver.script("""return {
-          url: location.href, signIn: [...document.querySelectorAll('[id]')]
-            .filter(el=>/fxa|syncNoFxaSignIn|syncSignIn/i.test(el.id) && el.getBoundingClientRect().width > 0)
-            .map(el=>({id:el.id,label:el.getAttribute('label'),text:el.textContent.trim().slice(0,100)}))
-        }""")
-        report["screenshots"] = [driver.screenshot("native-sync-ready.png", chrome=True)]
-        assert report["sync"]["signIn"], report["sync"]
+        report["syncCategory"] = driver.script("const c=document.querySelector('#category-sync'); return !!c && !c.hidden && c.getBoundingClientRect().width > 0;")
+        assert report["syncCategory"] is False, report
+        report["screenshots"] = [driver.screenshot("native-no-sync.png", chrome=True)]
         driver.close()
         driver = h.WebDriver(profile, evidence, browser=args.browser)
         driver.context("chrome")
@@ -52,7 +49,8 @@ def main():
           strictFiles: Services.prefs.getBoolPref('security.fileuri.strict_origin_policy', true),
           sanitization: Services.prefs.getBoolPref('privacy.sanitize.sanitizeOnShutdown', true)
         }""")
-        assert all(report["protectionsAfterRestart"].values())
+        sync = report["protectionsAfterRestart"].pop("sync")
+        assert sync is False and all(report["protectionsAfterRestart"].values())
         report["ok"] = True
     finally:
         if driver:

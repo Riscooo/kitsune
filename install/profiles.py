@@ -43,15 +43,12 @@ ACTIONS = {
     "home": None,
     "google": "https://accounts.google.com/ServiceLogin",
     "privacy": "about:preferences#privacy",
-    "sync": "about:preferences#sync",
-    "sync-settings": "about:preferences#sync",
     "passwords": "about:logins",
     "settings": "about:preferences",
     "general": "about:preferences#general",
     "search": "about:preferences#search",
     "downloads": "about:downloads",
     "extensions": "about:addons",
-    "sync-google": "https://accounts.firefox.com/",
 }
 GUI_ENVIRONMENT_KEYS = {"WAYLAND_DISPLAY", "DISPLAY", "XDG_CURRENT_DESKTOP", "XDG_SESSION_TYPE", "DBUS_SESSION_BUS_ADDRESS", "XDG_RUNTIME_DIR"}
 

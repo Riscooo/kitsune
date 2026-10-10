@@ -114,7 +114,7 @@ def main():
         assert js("""return getComputedStyle(document.documentElement).getPropertyValue('--accent').trim()==='#963d32'
           && getComputedStyle(document.body).backgroundColor==='rgb(246, 245, 241)'
           && !document.querySelector('.scene,[data-wallpaper],[data-accent],#art-toggle,#theme-sync-toggle')
-          && [...document.querySelectorAll('#settings-panel-appearance input')].map(input=>input.id).join()==='theme-claro,theme-oscuro,background-file,motion-toggle'""")
+          && [...document.querySelectorAll('#settings-panel-appearance input')].map(input=>input.id).join()==='theme-claro,theme-oscuro,background-file,brand-toggle,motion-toggle'""")
         for path, status in (('/logo.svg', 200), ('/logo-dark.svg', 200), ('/seal.svg', 200)):
             with urllib.request.urlopen(origin + path) as response:
                 assert response.status == status and response.headers['Content-Type'].startswith('image/svg+xml'), path
@@ -147,12 +147,13 @@ def main():
         driver.click('#newtab-toggle')
         saved(lambda value: value['newTab'])
         assert js("return [...document.querySelectorAll('.quick-link>a')].every(a=>a.target==='_blank'&&a.rel.includes('noopener'))")
-        for action in ('search', 'privacy', 'downloads', 'extensions', 'passwords', 'sync', 'settings'):
+        assert js("return !document.querySelector('[data-native-action=sync]')")
+        for action in ('search', 'privacy', 'downloads', 'extensions', 'passwords', 'settings'):
             driver.click(f'[data-native-action={action}]')
             eventually(lambda: len(launches) and launches[-1] == ('default', action))
             eventually(lambda: js("return !document.querySelector('[data-native-action=settings]').disabled"))
-        assert len(launches) == 7
-        report['checks'].append('New-tab preference updates real links; seven native navigation actions dispatch to the current profile (launcher mocked)')
+        assert len(launches) == 6
+        report['checks'].append('New-tab preference updates real links; six native navigation actions dispatch to the current profile (launcher mocked)')
 
         tab('appearance')
         old_update = server.store.update

@@ -46,8 +46,11 @@ input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .dashboard { position: relative; width: min(680px, calc(100% - 48px)); margin: clamp(4px, 3vh, 40px) auto 120px; display: grid; gap: 30px; }
 /* Saludo: logo grande, «Bienvenido, nombre» en serif y fecha · hora en una línea. */
 .greeting { display: flex; flex-direction: column; align-items: center; gap: 14px; text-align: center; }
-.brand { display: block; border-radius: 50%; }
-.brand img { display: block; width: 120px; height: 120px; object-fit: contain; }
+.brand { display: block; border-radius: 50%; --logo-size: 120px; }
+.brand img { display: block; width: var(--logo-size); height: var(--logo-size); object-fit: contain; }
+/* Logo del inicio en dos capas: el ensō gira alrededor del zorro, que no se mueve. */
+.logo-art { position: relative; display: block; width: var(--logo-size); height: var(--logo-size); }
+.logo-art img { position: absolute; inset: 0; }
 .welcome-line { margin: 4px 0 0; font: 400 clamp(28px, 3.4vw, 36px)/1.2 var(--serif); letter-spacing: -.4px; color: var(--text); overflow-wrap: anywhere; }
 .clock-module { display: flex; align-items: baseline; justify-content: center; gap: 9px; margin: 0; font-size: 13px; color: var(--muted); }
 #date { display: inline-block; }
@@ -197,7 +200,6 @@ input::placeholder { color: var(--muted); opacity: .8; }
 .profile-sync-guide { border-bottom: 1px solid var(--line); }
 .profile-sync-guide > summary { cursor: pointer; list-style: none; border-radius: 10px; }
 .profile-sync-guide > summary::-webkit-details-marker { display: none; }
-.profile-sync-guide[open] .guide-chevron { transform: rotate(90deg); }
 .compact-guide { padding: 0 0 15px 43px; }
 .compact-guide p { font-size: 11px; color: var(--muted); line-height: 1.65; margin: 7px 0 11px; }
 .guide-actions { display: flex; gap: 13px; flex-wrap: wrap; }
@@ -254,8 +256,9 @@ input::placeholder { color: var(--muted); opacity: .8; }
   body[data-motion=on] .greeting, body[data-motion=on] .welcome, body[data-motion=on] .favorites { animation: ink-settle 380ms ease-out both; }
   body[data-motion=on] .welcome { animation-delay: 60ms; }
   body[data-motion=on] .favorites { animation-delay: 120ms; }
-  body[data-motion=on] .brand img { transition: rotate 600ms ease; }
-  body[data-motion=on] .brand:hover img, body[data-motion=on] .brand:focus-visible img { rotate: -8deg; }
+  body[data-motion=on] .logo-ring { animation: enso-in 900ms cubic-bezier(.2, .7, .2, 1) backwards; transition: rotate 700ms cubic-bezier(.3, .7, .3, 1); }
+  body[data-motion=on] .brand:hover .logo-ring, body[data-motion=on] .brand:focus-visible .logo-ring { rotate: -24deg; }
+  @keyframes enso-in { from { rotate: -120deg; opacity: 0; } to { rotate: 0deg; opacity: 1; } }
   body[data-motion=on] dialog[open] { animation: dialog-in 170ms ease both; }
   @keyframes ink-settle { from { opacity: 0; filter: blur(4px); } to { opacity: 1; filter: blur(0); } }
   @keyframes dialog-in { from { opacity: 0; transform: translateY(7px); } to { opacity: 1; transform: translateY(0); } }
@@ -263,7 +266,7 @@ input::placeholder { color: var(--muted); opacity: .8; }
 body[data-motion=off] *, body[data-motion=off] *::before, body[data-motion=off] *::after { animation: none !important; transition: none !important; }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
 @media (max-width: 740px) {
-  .topbar { padding: 18px 20px; gap: 12px; }.brand img { width: 96px; height: 96px; }.welcome-line { font-size: 26px; }
+  .topbar { padding: 18px 20px; gap: 12px; }.brand { --logo-size: 96px; }.welcome-line { font-size: 26px; }
   .topbar-right { gap: 9px; }.profile-trigger { padding: 3px; min-height: 40px; }.profile-trigger-copy, .profile-trigger-chevron { display: none; }
   .dashboard { margin-top: 0; gap: 27px; }.clock-module { font-size: 12px; }
   #search-form { gap: 11px; min-height: 61px; padding-left: 16px; border-radius: 18px; }#query { font-size: 12px; }.search-submit { width: 39px; height: 39px; }.search-hint { display: none; }
@@ -276,7 +279,7 @@ body[data-motion=off] *, body[data-motion=off] *::before, body[data-motion=off] 
   #profiles-dialog[data-view=form] .profiles-sidebar, #profiles-dialog[data-view=form] #profiles-description { display: none; }
   #profiles-dialog[data-view=form] .profiles-layout { gap: 0; padding-top: 17px; }.profile-identity h3 { font-size: 21px; }.compact-guide { padding-left: 0; }
 }
-@media (max-height: 720px) and (min-width: 741px) { .topbar { padding-block: 16px; }.dashboard { margin-top: 0; gap: 22px; }.brand img { width: 92px; height: 92px; }.greeting { gap: 10px; }.quick-link > a, .add-link { min-height: 93px; } }
+@media (max-height: 720px) and (min-width: 741px) { .topbar { padding-block: 16px; }.dashboard { margin-top: 0; gap: 22px; }.brand { --logo-size: 92px; }.greeting { gap: 10px; }.quick-link > a, .add-link { min-height: 93px; } }
 /* Oscuro: las tintas de los perfiles, aclaradas para leerse sobre sumi. */
 :root[data-theme=oscuro] .profile-avatar { --profile-color: #8fb0d4; }
 :root[data-theme=oscuro] .profile-avatar[data-profile-color=pink] { --profile-color: #e09ab3; }
@@ -321,3 +324,18 @@ body[data-motion=off] *, body[data-motion=off] *::before, body[data-motion=off] 
 .privacy-card p { margin: 0; color: var(--muted); font-size: 11px; line-height: 1.55; }
 .privacy-effect { margin: 16px 0 4px; padding-left: 11px; border-left: 2px solid var(--accent); font-size: 12px; line-height: 1.6; color: var(--text); }
 @media (max-width: 520px) { .privacy-compare { grid-template-columns: 1fr; } }
+/* Ayuda de Kitsune (/ayuda/…): adonde llevan los enlaces de ayuda del motor. */
+.help { width: min(680px, calc(100% - 48px)); margin: 48px auto 80px; }
+.help .brand { width: 72px; margin-bottom: 18px; }
+.help .brand { --logo-size: 72px; }
+.help h1 { margin: 0 0 10px; font: 400 32px/1.2 var(--serif); }
+.help-lead { margin: 0 0 22px; color: var(--muted); font-size: 14px; line-height: 1.6; }
+.help-index { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 26px; }
+.help-index a { padding: 6px 12px; border: 1px solid var(--line); border-radius: 999px; font-size: 12px; background: var(--surface); }
+.help-index a:hover { border-color: var(--accent); color: var(--accent); }
+.help section { padding: 18px 20px; margin-bottom: 12px; border: 1px solid var(--line); border-radius: 14px; background: var(--surface); scroll-margin-top: 24px; }
+.help section.help-highlight { border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 12%, transparent); }
+.help h2 { margin: 0 0 8px; font: 500 18px var(--serif); }
+.help p { margin: 0; font-size: 13px; line-height: 1.7; }
+.help-back { margin-top: 22px !important; }
+.help-back a { color: var(--accent); }

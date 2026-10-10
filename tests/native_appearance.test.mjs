@@ -12,7 +12,7 @@ const PERMISSION = 'persist-data-on-shutdown';
 const SCHEME_PREFS = ['ui.systemUsesDarkTheme'];
 const WEBSITES = 'layout.css.prefers-color-scheme.content-override';
 
-function fixture({ permissions = new Map(), preferences = new Map(), inherited = false, newTab = null } = {}) {
+function fixture({ permissions = new Map(), preferences = new Map(), inherited = false, newTab = null, defaults = new Map() } = {}) {
   const calls = [];
   const prefs = {
     getStringPref: (name, fallback) => preferences.has(name) ? preferences.get(name) : fallback,
@@ -21,6 +21,10 @@ function fixture({ permissions = new Map(), preferences = new Map(), inherited =
     setIntPref(name, value) { assert.ok(SCHEME_PREFS.includes(name), name); preferences.set(name, value); calls.push(['int', name, value]); },
     setStringPref(name, value) { assert.ok([OWNED, 'kitsune.theme.applied'].includes(name), name); assert.equal(typeof value, 'string'); preferences.set(name, value); calls.push(['pref', name, value]); },
     prefHasUserValue: name => preferences.has(name),
+    getDefaultBranch: () => ({ PREF_STRING: 32, getChildList: () => [...defaults.keys()],
+      getPrefType: name => typeof defaults.get(name) === 'string' ? 32 : 64,
+      getStringPref: (name, fallback) => defaults.has(name) ? defaults.get(name) : fallback,
+      setStringPref(name, value) { defaults.set(name, value); calls.push(['default', name, value]); } }),
     clearUserPref(name) { assert.ok([OWNED, LEGACY, WEBSITES].includes(name), name); preferences.delete(name); calls.push(['clear', name]); },
   };
   const perms = {
@@ -63,7 +67,7 @@ function fixture({ permissions = new Map(), preferences = new Map(), inherited =
   // Execute only this local trusted source against fake Services. No network,
   // real profile, timers or native browser APIs are available in the context.
   vm.runInContext(source.replace('export const KitsuneAppearance', 'const KitsuneAppearance') +
-    '\nglobalThis.api = { validate, nativeCss, applyGoogle, applyScheme, applyNewTab, managedOrigins };', context);
+    '\nglobalThis.api = { validate, nativeCss, applyGoogle, applyScheme, applyNewTab, applySupportUrl, managedOrigins, IDENTITY_CSS };', context);
   return { api: context.api, permissions, preferences, calls };
 }
 
@@ -102,6 +106,21 @@ test('appearance control v3 adds only Claro/Oscuro and a background content hash
   const { theme, background, ...withoutTheme } = controlV3();
   assert.throws(() => api.validate(withoutTheme));
   assert.throws(() => api.validate({ ...control(), theme: 'oscuro' }));
+});
+
+test('v4 moves the window buttons to the right and hides the brand only when asked; Mozilla help items are always hidden', () => {
+  const { api } = fixture();
+  const v4 = (extra = {}) => ({ ...controlV3(), version: 4, windowControls: 'izquierda', brand: true, ...extra });
+  const left = api.nativeCss(api.validate(v4()));
+  assert.doesNotMatch(left, /order:999/);
+  assert.doesNotMatch(left, /#TabsToolbar::before[^{]*\{display:none/);
+  assert.match(api.IDENTITY_CSS, /#menu_openHelp,#appMenu_menu_openHelp/);
+  assert.match(api.IDENTITY_CSS, /#feedbackPage,#appMenu_feedbackPage/);
+  assert.match(api.IDENTITY_CSS, /url-prefix\("about:preferences"\)[^{]*\{#category-sync,#category-experimental,#category-more-from-mozilla\{display:none/);
+  const right = api.nativeCss(api.validate(v4({ windowControls: 'derecha', brand: false })));
+  assert.match(right, /\.titlebar-buttonbox-container\{order:999!important/);
+  assert.match(right, /#TabsToolbar::before[^{]*\{display:none!important/);
+  for (const change of [{ windowControls: 'arriba' }, { brand: 'no' }, { brand: undefined }]) assert.throws(() => api.validate(v4(change)));
 });
 
 test('dark controls set the scheme variable, and the background is a file inside the profile chrome folder', () => {
@@ -155,6 +174,26 @@ test('switching theme puts websites back on automatic once, so an old forced-lig
   assert.equal(f.preferences.get(WEBSITES), 1);
   f.api.applyScheme('claro');
   assert.equal(f.preferences.has(WEBSITES), false);
+});
+
+test('help links go to the profile\'s own Kitsune help, as a default that is never saved', () => {
+  const defaults = new Map([['app.support.baseURL', 'https://support.mozilla.org/1/firefox/%VERSION%/%OS%/%LOCALE%/'],
+    ['browser.contentblocking.report.social.url', 'https://support.mozilla.org/1/firefox/%VERSION%/%OS%/%LOCALE%/social-media-tracking-report'],
+    ['identity.sendtab.deviceissues.url', 'https://support.mozilla.org/1/firefox/%VERSION%/%OS%/%LOCALE%/send-tab#w_i-dont-see'],
+    ['browser.startup.homepage_override.buildID', 'https://example.com/'], ['some.number', 3]]);
+  const f = fixture({ defaults, preferences: new Map([['browser.startup.homepage', 'http://127.0.0.1:49722/']]) });
+  f.api.applySupportUrl();
+  assert.equal(defaults.get('app.support.baseURL'), 'http://127.0.0.1:49722/ayuda/');
+  assert.equal(defaults.get('browser.contentblocking.report.social.url'), 'http://127.0.0.1:49722/ayuda/social-media-tracking-report');
+  assert.equal(defaults.get('identity.sendtab.deviceissues.url'), 'http://127.0.0.1:49722/ayuda/send-tab');
+  assert.equal(defaults.get('browser.startup.homepage_override.buildID'), 'https://example.com/');
+  const writes = f.calls.length;
+  f.api.applySupportUrl();
+  assert.equal(f.calls.length, writes);
+  assert.equal(f.preferences.has('app.support.baseURL'), false);
+  const other = new Map([['app.support.baseURL', 'x']]);
+  fixture({ defaults: other, preferences: new Map([['browser.startup.homepage', 'https://example.com/']]) }).api.applySupportUrl();
+  assert.equal(other.get('app.support.baseURL'), 'x');
 });
 
 test('a Nightfall (v1) control is rejected instead of half-applied', () => {

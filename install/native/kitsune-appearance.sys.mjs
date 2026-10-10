@@ -21,21 +21,25 @@ const CONTROL_KEYS = Object.freeze({
   // 0.7: tema claro u oscuro y fondo propio (solo el hash de una imagen ya
   // normalizada por el inicio en <perfil>/chrome; nunca una URL ni una ruta).
   3: Object.freeze(['version', 'fingerprint', 'palette', 'motion', 'googleRemember', 'theme', 'background']),
+  // Botones de la ventana a la izquierda o a la derecha y el logo «KITSUNE», a elegir.
+  4: Object.freeze(['version', 'fingerprint', 'palette', 'motion', 'googleRemember', 'theme', 'background', 'windowControls', 'brand']),
 });
+const CONTROL_SIDES = Object.freeze(['izquierda', 'derecha']);
 const SCHEMES = Object.freeze({claro:'light', oscuro:'dark'});
 
 function validate(value) {
   const keys = value && typeof value === 'object' && !Array.isArray(value) && Number.isInteger(value.version) && Object.hasOwn(CONTROL_KEYS, value.version) ? CONTROL_KEYS[value.version] : null;
   if (!keys || Object.keys(value).length !== keys.length || keys.some(key => !Object.hasOwn(value, key)) ||
-      (value.version === 3 && (!Object.hasOwn(SCHEMES, value.theme) ||
+      (value.version >= 3 && (!Object.hasOwn(SCHEMES, value.theme) ||
         (value.background !== null && (typeof value.background !== 'string' || !/^[a-f0-9]{64}$/.test(value.background))))) ||
+      (value.version === 4 && (!CONTROL_SIDES.includes(value.windowControls) || typeof value.brand !== 'boolean')) ||
       typeof value.fingerprint !== 'string' || !/^[a-f0-9]{64}$/.test(value.fingerprint) ||
       ['motion','googleRemember'].some(key => typeof value[key] !== 'boolean') ||
       !value.palette || typeof value.palette !== 'object' || Array.isArray(value.palette) ||
       Object.keys(value.palette).length !== Object.keys(TOKENS).length ||
       Object.keys(TOKENS).some(key => typeof value.palette[key] !== 'string' || !/^#[0-9a-f]{6}$/.test(value.palette[key]))) throw Error('Invalid local appearance control');
-  // Un control v2 (Kitsune 0.6) es papel claro y sin fondo.
-  return value.version === 2 ? {...value, theme:'claro', background:null} : value;
+  // Un control v2 (0.6) es papel claro y sin fondo; v2 y v3, botones a la izquierda y con logo.
+  return {theme:'claro', background:null, windowControls:'izquierda', brand:true, ...value};
 }
 
 function backgroundUri(hash) {
@@ -59,8 +63,30 @@ function nativeCss(value) {
     @-moz-document url("about:newtab"),url("about:home"){
       :root body{${background}}
       ${!value.motion ? '.logo-and-wordmark,.logo-and-wordmark .logo,.search-inner-wrapper{animation:none!important;transition:none!important;scale:none!important;}' : ''}
-    }`;
+    }
+    @-moz-document url("chrome://browser/content/browser.xhtml"){${windowCss(value)}}`;
 }
+
+// Más específico que userChrome.css, que va detrás en la cascada.
+function windowCss(value) {
+  const right = value.windowControls === 'derecha' ? `
+    :root#main-window .titlebar-buttonbox-container{order:999!important;padding-inline:8px 2px!important;}
+    :root#main-window #navigator-toolbox[tabs-hidden]>#nav-bar>.titlebar-buttonbox-container{order:999!important;}
+    :root#main-window .titlebar-buttonbox .titlebar-close{order:2!important;}` : '';
+  const hidden = value.brand ? '' : `
+    :root#main-window #TabsToolbar::before,:root#main-window #navigator-toolbox[tabs-hidden]>#nav-bar::before{display:none!important;}`;
+  return right + hidden;
+}
+
+// Sin rastro de Mozilla: fuera las entradas de Ayuda que llevan a sus webs o
+// servicios (ayuda, opiniones, informar de webs, cambiar de dispositivo, compartir).
+// En Ajustes, fuera las secciones de cuenta y Sync, laboratorio y «Más de Mozilla».
+const IDENTITY_CSS = '@-moz-document url("chrome://browser/content/browser.xhtml"){' +
+  ['menu_openHelp', 'help_reportBrokenSite', 'feedbackPage', 'menu_HelpPopup_reportPhishingtoolmenu',
+   'menu_HelpPopup_reportPhishingErrortoolmenu', 'helpSwitchDevice', 'menu_referralsPage']
+    .map(id => `#${id},#appMenu_${id}`).join(',') + '{display:none!important;}}' +
+  '@-moz-document url-prefix("about:preferences"),url-prefix("about:settings"){' +
+  '#category-sync,#category-experimental,#category-more-from-mozilla{display:none!important;}}';
 
 // El esquema de Gecko sigue al tema: menús, ajustes y las webs que lo admiten
 // se ven oscuros en Oscuro. Con el tema por defecto, browser.theme.* vale 2
@@ -144,11 +170,30 @@ function applyNewTab() {
   if (!AboutNewTab.newTabURLOverridden) AboutNewTab.newTabURL = home;
 }
 
+// Todos los enlaces de ayuda de Gecko (app.support.baseURL y los informes de
+// protección, entre otros) llevan a la ayuda de Kitsune del perfil, en su inicio
+// local, no a la de Mozilla. Solo los valores por defecto: nada se guarda en el perfil.
+const MOZILLA_SUPPORT = /^https:\/\/support\.mozilla\.org\//;
+let supportHome = '';
+function applySupportUrl() {
+  const home = Services.prefs.getStringPref('browser.startup.homepage', '');
+  if (!HOME_URL.test(home) || supportHome === home) return;
+  const defaults = Services.prefs.getDefaultBranch('');
+  for (const name of defaults.getChildList('')) {
+    if (defaults.getPrefType(name) !== defaults.PREF_STRING) continue;
+    const value = defaults.getStringPref(name, '');
+    if (!MOZILLA_SUPPORT.test(value)) continue;
+    const topic = value.split(/[?#]/)[0].replace(/\/+$/, '').split('/').pop().replace(/[^A-Za-z0-9._-]/g, '');
+    defaults.setStringPref(name, name === 'app.support.baseURL' || !topic ? `${home}ayuda/` : `${home}ayuda/${topic}`);
+  }
+  supportHome = home;
+}
+
 async function update() {
   if (busy) return;
   busy = true;
   try {
-    try { applyNewTab(); } catch { /* sin inicio propio, la pestaña nueva de Gecko sigue funcionando */ }
+    try { applyNewTab(); applySupportUrl(); } catch { /* sin inicio propio, Gecko sigue con lo suyo */ }
     const directory = PathUtils.join(profileDirectory(), 'chrome');
     const control = PathUtils.join(directory, 'kitsune-appearance.json');
     const info = await IOUtils.stat(control);
@@ -183,9 +228,16 @@ async function update() {
   } finally { busy = false; }
 }
 
+// Siempre, haya o no ajustes de apariencia: la identidad no depende del inicio.
+function registerIdentity() {
+  const uri = Services.io.newURI('data:text/css;charset=utf-8,' + encodeURIComponent(IDENTITY_CSS));
+  if (!sheets.sheetRegistered(uri, sheets.USER_SHEET)) sheets.loadAndRegisterSheet(uri, sheets.USER_SHEET);
+}
+
 export const KitsuneAppearance = {
   start() {
     if (timer !== null) return;
+    try { registerIdentity(); } catch { /* el resto de Kitsune sigue */ }
     void update();
     timer = setInterval(update, 2000);
     Services.obs.addObserver(this, 'quit-application-granted');

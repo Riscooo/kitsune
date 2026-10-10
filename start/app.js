@@ -17,14 +17,16 @@ const announce = message => {
   $('#status').textContent = message; $('#status').hidden = !message
   toastTimer = setTimeout(() => { $('#status').hidden = true }, 4000)
 }
-const toggles = { 'motion-toggle': 'motion', 'newtab-toggle': 'newTab' }
+const toggles = { 'motion-toggle': 'motion', 'newtab-toggle': 'newTab', 'brand-toggle': 'brand' }
 const store = createSettingsStore({
   onChange(settings, state) {
     appearance?.applySettings(settings); shortcuts?.render(settings)
     for (const [id, key] of Object.entries(toggles)) { $(`#${id}`).checked = settings[key]; $(`#${id}`).disabled = !state.ready }
     for (const key of ['clock', 'shortcuts']) { $(`#module-${key}`).checked = settings.modules[key]; $(`#module-${key}`).disabled = !state.ready }
-    for (const radio of document.querySelectorAll('input[name="theme"]')) { radio.checked = radio.value === settings.theme; radio.disabled = !state.ready }
+    for (const button of document.querySelectorAll('[data-window-controls]')) button.addEventListener('click', () => void save({ windowControls: button.dataset.windowControls }))
+for (const radio of document.querySelectorAll('input[name="theme"]')) { radio.checked = radio.value === settings.theme; radio.disabled = !state.ready }
     $('#background-file').disabled = !state.ready
+    for (const button of document.querySelectorAll('[data-window-controls]')) { button.setAttribute('aria-pressed', String(button.dataset.windowControls === settings.windowControls)); button.disabled = !state.ready }
     $('#background-remove').hidden = !settings.background; $('#background-remove').disabled = !state.ready
     presets?.sync(settings, state.ready)
     $('#focus-toggle').setAttribute('aria-pressed', String(settings.focus)); $('#focus-toggle').disabled = !state.ready

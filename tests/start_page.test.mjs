@@ -16,7 +16,10 @@ test('the home page has no Nightfall scene, wallpapers or accents', () => {
 });
 
 test('B · Caligrafía: big ensō logo, greeting, date and time on one line', () => {
-  assert.match(html, /<section class="greeting"[^>]*>[\s\S]*<img class="logo-light" src="logo\.svg" width="120" height="120"[^>]*><img class="logo-dark" src="logo-dark\.svg"[\s\S]*id="welcome-line"/);
+  assert.match(html, /<section class="greeting"[^>]*>[\s\S]*<span class="logo-art logo-light"><img class="logo-ring" src="logo-ring\.svg"[^>]*><img class="logo-mask" src="logo-mask\.svg"[^>]*><\/span><span class="logo-art logo-dark">[\s\S]*id="welcome-line"/);
+  // Solo gira el ensō: la máscara del zorro se queda quieta.
+  assert.match(css, /\.brand:hover \.logo-ring[^{]*\{ rotate:/);
+  assert.doesNotMatch(css, /\.logo-mask[^{]*\{[^}]*(rotate|animation)/);
   assert.match(html, /class="clock-module"[^>]*>[\s\S]*id="date"[\s\S]*id="clock-time"/);
 });
 
@@ -61,6 +64,7 @@ test('the home server serves the logo and no longer the Nightfall art', async ()
   const server = await read('install/home-server.py');
   assert.match(server, /"\/logo\.svg": \("logo\.svg", "image\/svg\+xml"\)/);
   assert.match(server, /"\/logo-dark\.svg": \("logo-dark\.svg", "image\/svg\+xml"\)/);
+  for (const name of ['logo-ring', 'logo-mask', 'logo-ring-dark', 'logo-mask-dark']) assert.match(server, new RegExp(`"/${name}\\.svg"`));
   assert.match(server, /"\/seal\.svg": \("seal\.svg", "image\/svg\+xml"\)/);
   assert.doesNotMatch(server, /kitsune-night|anime-veil/);
 });

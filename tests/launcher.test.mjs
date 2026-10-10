@@ -153,9 +153,11 @@ test('each profile launches with its own privacy mode', async () => {
 test('profile actions are enumerated and invalid IDs never launch', async () => {
   const f = await setup();
   const created = await installProfileFixture(f);
-  await f.run('--kitsune-profile', created.id, '--kitsune-action', 'sync-settings');
+  await f.run('--kitsune-profile', created.id, '--kitsune-action', 'passwords');
   const actual = JSON.parse(await readFile(f.argsFile, 'utf8'));
-  assert.deepEqual(actual.args, ['--profile', created.profile, '--new-tab', 'about:preferences#sync']);
+  assert.deepEqual(actual.args, ['--profile', created.profile, '--new-tab', 'about:logins']);
+  // Las acciones de Sync ya no existen (sin cuentas de Mozilla).
+  for (const action of ['sync', 'sync-settings', 'sync-google']) await assert.rejects(f.run('--kitsune-profile', created.id, '--kitsune-action', action));
   const previous = await readFile(f.argsFile, 'utf8');
   await assert.rejects(f.run('--kitsune-profile', '../escape', '--home'));
   await assert.rejects(f.run('--kitsune-profile', 'default', '--kitsune-action', 'unknown'));
@@ -179,9 +181,7 @@ test('every settings action reaches the matching native destination in the selec
   const created = await installProfileFixture(f);
   const actions = { settings: 'about:preferences', general: 'about:preferences#general',
     search: 'about:preferences#search', privacy: 'about:preferences#privacy',
-    downloads: 'about:downloads', extensions: 'about:addons', passwords: 'about:logins',
-    sync: 'about:preferences#sync', 'sync-settings': 'about:preferences#sync',
-    'sync-google': 'https://accounts.firefox.com/' };
+    downloads: 'about:downloads', extensions: 'about:addons', passwords: 'about:logins' };
   for (const [action, destination] of Object.entries(actions)) {
     await f.run('--kitsune-profile', created.id, '--kitsune-action', action);
     const actual = JSON.parse(await readFile(f.argsFile, 'utf8'));

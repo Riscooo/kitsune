@@ -14,6 +14,8 @@ export function normalizeSettings(value = {}) {
     modules: { clock: value?.modules?.clock !== false, shortcuts: value?.modules?.shortcuts !== false },
     theme: THEMES.includes(value?.theme) ? value.theme : 'claro',
     background: typeof value?.background === 'string' && /^[a-f\d]{64}$/u.test(value.background) ? value.background : null,
+    windowControls: value?.windowControls === 'derecha' ? 'derecha' : 'izquierda',
+    brand: value?.brand !== false,
   }
 }
 
