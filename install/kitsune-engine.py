@@ -1044,6 +1044,65 @@ def cross_tools(layout: Layout, tools: Path, target: str, log=print, run=subproc
         shim.chmod(0o700)
 
 
+# Rust para otro sistema: el rustc del sistema solo trae la biblioteca estándar de
+# Linux. Se baja el Rust oficial de la misma versión (rustc, cargo y las bibliotecas
+# de Linux y del sistema destino), se comprueba con la clave de firma de Rust y se
+# usa desde la caché solo en las compilaciones cruzadas.
+RUST_DIST = "https://static.rust-lang.org/dist"
+RUST_KEY_URL = "https://static.rust-lang.org/rust-key.gpg.ascii"
+RUST_KEY_FINGERPRINT = "108F66205EAEB0AAA8DD5E1C85AB96E6FA1BE5FE"
+RUST_HOST = "x86_64-unknown-linux-gnu"
+
+
+def cross_rust(layout: Layout, target: str, log=print, run=subprocess.run) -> dict:
+    """RUSTC y CARGO de un Rust oficial con la biblioteca estándar del sistema destino."""
+    found = re.match(r"rustc (\d+\.\d+\.\d+)\b", run(["rustc", "--version"], capture_output=True, text=True, check=True).stdout)
+    if not found:
+        raise EngineError("No se pudo leer la versión de rustc")
+    version = found.group(1)
+    root = layout.cache / f"toolchain/rust-{version}"
+    wanted = [("rustc", RUST_HOST), ("cargo", RUST_HOST), ("rust-std", RUST_HOST), ("rust-std", TARGETS[target])]
+    present = {"rustc": "bin/rustc", "cargo": "bin/cargo", "rust-std": "lib/rustlib/{}/lib"}
+    missing = [(name, platform) for name, platform in wanted if not (root / present[name].format(platform)).exists()]
+    if missing:
+        log(f"Preparando Rust {version} para {target} (firmado por el equipo de Rust)")
+        downloads = layout.private(layout.cache / "downloads/rust")
+        work = Path(tempfile.mkdtemp(prefix="rust-", dir=layout.private(layout.cache / "toolchain")))
+        try:
+            gnupg = work / "gnupg"
+            gnupg.mkdir(mode=0o700)
+            env = {**os.environ, "GNUPGHOME": str(gnupg)}
+            key = work / "rust-key.asc"
+            run(["curl", "-fsSL", "-o", str(key), RUST_KEY_URL], check=True)
+            run(["gpg", "--batch", "--quiet", "--import", str(key)], env=env, check=True,
+                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            listing = run(["gpg", "--batch", "--with-colons", "--fingerprint"], env=env, capture_output=True, text=True, check=True).stdout
+            if f"fpr:::::::::{RUST_KEY_FINGERPRINT}:" not in listing:
+                raise EngineError("La clave de firma de Rust no es la esperada")
+            staging = root if root.is_dir() else work / "prefix"
+            for name, platform in missing:
+                archive = downloads / f"{name}-{version}-{platform}.tar.xz"
+                for suffix in ("", ".asc"):
+                    run(["curl", "-fsSL", "-o", f"{archive}{suffix}", f"{RUST_DIST}/{archive.name}{suffix}"], check=True)
+                verified = run(["gpg", "--batch", "--status-fd", "1", "--verify", f"{archive}.asc", str(archive)],
+                               env=env, capture_output=True, text=True)
+                if verified.returncode != 0 or f"VALIDSIG {RUST_KEY_FINGERPRINT}" not in verified.stdout:
+                    raise EngineError(f"La firma de {archive.name} no es válida")
+                unpacked = work / archive.name.removesuffix(".tar.xz")
+                unpacked.mkdir()
+                run(["tar", "-xJf", str(archive), "-C", str(unpacked), "--strip-components=1"], check=True)
+                for component in (unpacked / "components").read_text().split():
+                    if "/" in component or component.startswith("."):
+                        raise EngineError(f"Componente de Rust inesperado: {component}")
+                    shutil.copytree(unpacked / component, staging, dirs_exist_ok=True,
+                                    ignore=shutil.ignore_patterns("manifest.in"))
+            if staging != root:
+                staging.rename(root)
+        finally:
+            shutil.rmtree(work, ignore_errors=True)
+    return {"RUSTC": str(root / "bin/rustc"), "CARGO": str(root / "bin/cargo")}
+
+
 def write_target_mozconfig(layout: Layout, version: str, target: str) -> Path:
     objdir = layout.cache / f"obj-{version}-{target}"
     text = ((RECIPE / "mozconfig.in").read_text().replace("@OBJDIR@", str(objdir))
@@ -1073,6 +1132,7 @@ def build_target(layout: Layout, version: str, target: str, log=print, run=subpr
             tools = build_tools(layout)
             cross_tools(layout, tools, target, log, run)
             env = mach_environment(write_target_mozconfig(layout, version, target), tools)
+            env.update(cross_rust(layout, target, log, run))
             sccache = Path(env["MOZBUILD_STATE_PATH"]) / "sccache/sccache"
             if sccache.is_file():
                 run([str(sccache), "--stop-server"], env=env, stdin=subprocess.DEVNULL,

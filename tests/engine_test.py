@@ -499,6 +499,59 @@ class TargetTests(unittest.TestCase):
         self.assertFalse((tools / "msiextract").exists())
 
 
+    def rust_run(self, calls, fingerprint=None, valid=True):
+        good = fingerprint or engine.RUST_KEY_FINGERPRINT
+
+        def run(command, **kwargs):
+            calls.append(command)
+            if command[0] == "rustc":
+                return types.SimpleNamespace(returncode=0, stdout="rustc 1.98.0 (88d9e12ae 2026-08-18)\n")
+            if command[0] == "gpg" and "--fingerprint" in command:
+                return types.SimpleNamespace(returncode=0, stdout=f"fpr:::::::::{good}:\n")
+            if command[0] == "gpg" and "--verify" in command:
+                return types.SimpleNamespace(returncode=0 if valid else 1, stdout=f"[GNUPG:] VALIDSIG {good} x\n" if valid else "")
+            if command[0] == "tar":
+                unpacked = Path(command[command.index("-C") + 1])
+                name = unpacked.name.split("-1.98.0-")[0]
+                platform = unpacked.name.split("-1.98.0-")[1]
+                component = name if name != "rust-std" else f"rust-std-{platform}"
+                (unpacked / "components").write_text(component + "\n")
+                inner = {"rustc": "bin/rustc", "cargo": "bin/cargo"}.get(name, f"lib/rustlib/{platform}/lib/libstd.rlib")
+                (unpacked / component / inner).parent.mkdir(parents=True)
+                (unpacked / component / inner).write_text("")
+                (unpacked / component / "manifest.in").write_text("")
+            return types.SimpleNamespace(returncode=0, stdout="")
+        return run
+
+    def test_cross_builds_get_signed_official_rust_with_the_target_std(self):
+        base = Path(tempfile.mkdtemp())
+        layout = engine.Layout(base / "data", base / "state", base / "cache")
+        layout.private(layout.cache)
+        calls = []
+        env = engine.cross_rust(layout, "windows", log=lambda *_: None, run=self.rust_run(calls))
+        root = layout.cache / "toolchain/rust-1.98.0"
+        self.assertEqual(env, {"RUSTC": str(root / "bin/rustc"), "CARGO": str(root / "bin/cargo")})
+        self.assertTrue((root / "lib/rustlib/x86_64-pc-windows-msvc/lib/libstd.rlib").is_file())
+        self.assertTrue((root / "lib/rustlib/x86_64-unknown-linux-gnu/lib/libstd.rlib").is_file())
+        self.assertFalse((root / "manifest.in").exists())
+        self.assertEqual(sum("--verify" in command for command in calls), 4)
+        # macOS después: solo baja su biblioteca estándar.
+        calls.clear()
+        engine.cross_rust(layout, "macos", log=lambda *_: None, run=self.rust_run(calls))
+        downloads = [command[-1] for command in calls if command[0] == "curl" and not command[-1].endswith((".asc", "ascii"))]
+        self.assertEqual(downloads, [f"{engine.RUST_DIST}/rust-std-1.98.0-aarch64-apple-darwin.tar.xz"])
+        self.assertTrue((root / "lib/rustlib/aarch64-apple-darwin/lib/libstd.rlib").is_file())
+
+    def test_rust_with_another_key_or_a_bad_signature_is_rejected(self):
+        for kwargs in ({"fingerprint": "0" * 40}, {"valid": False}):
+            base = Path(tempfile.mkdtemp())
+            layout = engine.Layout(base / "data", base / "state", base / "cache")
+            layout.private(layout.cache)
+            with self.assertRaises(engine.EngineError):
+                engine.cross_rust(layout, "windows", log=lambda *_: None, run=self.rust_run([], **kwargs))
+            self.assertFalse((layout.cache / "toolchain/rust-1.98.0").exists())
+
+
 class L10nTests(unittest.TestCase):
     def setup(self, head=None):
         base = Path(tempfile.mkdtemp())
