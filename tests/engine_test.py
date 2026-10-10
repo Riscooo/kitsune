@@ -471,19 +471,48 @@ class TargetTests(unittest.TestCase):
         def run(command, **kwargs):
             calls.append(command)
             if command[:2] == ["pacman", "-Sp"]:
-                return types.SimpleNamespace(returncode=0, stdout="https://m/extra/os/x86_64/msitools-1-x86_64.pkg.tar.zst\n")
+                return types.SimpleNamespace(returncode=0, stdout=f"https://m/extra/os/x86_64/{command[2]}-1-x86_64.pkg.tar.zst\n")
             if command[0] == "tar":
                 staging = Path(command[command.index("-C") + 1])
-                (staging / "usr/bin").mkdir(parents=True)
-                (staging / "usr/bin/msiextract").write_text("")
+                (staging / "usr/bin").mkdir(parents=True, exist_ok=True)
+                for program in ("msiextract",):
+                    (staging / "usr/bin" / program).write_text("")
             return types.SimpleNamespace(returncode=0, stdout="")
         with mock.patch.object(engine.shutil, "which", return_value=None):
             engine.cross_tools(layout, tools, "macos", log=lambda *_: None, run=run)
             self.assertEqual(calls, [])
             engine.cross_tools(layout, tools, "windows", log=lambda *_: None, run=run)
-        self.assertTrue(any(command[0] == "pacman-key" for command in calls))
+        self.assertEqual(sum(command[0] == "pacman-key" for command in calls), 1)
         self.assertTrue((layout.cache / "toolchain/msitools/usr/bin/msiextract").is_file())
         self.assertIn("toolchain/msitools", (tools / "msiextract").read_text())
+        # Con el sistema ya equipado no se baja nada.
+        calls.clear()
+        with mock.patch.object(engine.shutil, "which", return_value="/usr/bin/x"):
+            engine.cross_tools(layout, layout.private(base / "otro-bin"), "windows", log=lambda *_: None, run=run)
+        self.assertEqual(calls, [])
+
+    def test_a_package_gone_from_the_mirror_comes_from_the_arch_archive(self):
+        base = Path(tempfile.mkdtemp())
+        layout = engine.Layout(base / "data", base / "state", base / "cache")
+        tools = layout.private(layout.cache / "bin")
+        fetched = []
+
+        def run(command, **kwargs):
+            if command[:2] == ["pacman", "-Sp"]:
+                return types.SimpleNamespace(returncode=0, stdout=f"https://m/extra/os/x86_64/{command[2]}-26.02-1-x86_64.pkg.tar.zst\n")
+            if command[0] == "curl":
+                fetched.append(command[-1])
+                return types.SimpleNamespace(returncode=22 if command[-1].startswith("https://m/") else 0, stdout="")
+            if command[0] == "tar":
+                staging = Path(command[command.index("-C") + 1])
+                (staging / "usr/bin").mkdir(parents=True, exist_ok=True)
+                for program in ("msiextract",):
+                    (staging / "usr/bin" / program).write_text("")
+            return types.SimpleNamespace(returncode=0, stdout="")
+        with mock.patch.object(engine.shutil, "which", return_value=None):
+            engine.cross_tools(layout, tools, "windows", log=lambda *_: None, run=run)
+        self.assertIn(f"{engine.ARCH_ARCHIVE}/m/msitools/msitools-26.02-1-x86_64.pkg.tar.zst", fetched)
+        self.assertIn(f"{engine.ARCH_ARCHIVE}/m/msitools/msitools-26.02-1-x86_64.pkg.tar.zst.sig", fetched)
 
     def test_a_bad_signature_stops_the_windows_tools(self):
         base = Path(tempfile.mkdtemp())

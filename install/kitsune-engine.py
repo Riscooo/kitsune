@@ -1002,46 +1002,64 @@ CROSS_MIN_FREE_BYTES = 30 * 2**30
 TARGET_ARTIFACTS = {"windows": ("*.win64.zip", "install/sea/*.exe"), "macos": ("*.mac.dmg",)}
 
 
-# El SDK de Windows viene en .msi: Gecko los abre con msiextract (msitools). Si no
-# está instalado, se bajan msitools y gcab de los repos de Arch, se comprueba su
-# firma con el llavero del sistema y se usan desde la caché, sin sudo.
-MSITOOLS_PACKAGES = ("msitools", "gcab")
-MSIEXTRACT_SHIM = """#!/bin/sh
-# Kitsune: msiextract de la caché (msitools sin instalar en el sistema).
+# Programas de Arch que solo hacen falta al compilar para Windows: msiextract
+# (msitools) abre el SDK, que viene en .msi (7zz y NSIS para el instalador los trae
+# el propio Gecko con --enable-bootstrap). Si no están instalados, se bajan sus paquetes de los repos de Arch, se comprueba
+# la firma con el llavero del sistema y se usan desde la caché, sin sudo.
+ARCH_TOOLS = {
+    "windows": (
+        ("msitools", ("msitools", "gcab"), ("msiextract",)),
+    ),
+}
+ARCH_ARCHIVE = "https://archive.archlinux.org/packages"
+TOOL_SHIM = """#!/bin/sh
+# Kitsune: @PROGRAM@ de la caché (paquete de Arch sin instalar en el sistema).
 here=@ROOT@
-LD_LIBRARY_PATH="$here/usr/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}" exec "$here/usr/bin/msiextract" "$@"
+LD_LIBRARY_PATH="$here/usr/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}" exec "$here/usr/bin/@PROGRAM@" "$@"
 """
 
 
 def cross_tools(layout: Layout, tools: Path, target: str, log=print, run=subprocess.run) -> None:
     """Programas que solo hacen falta al compilar para otro sistema."""
-    if target != "windows" or shutil.which("msiextract"):
-        return
-    root = layout.cache / "toolchain/msitools"
-    shim = tools / "msiextract"
-    text = MSIEXTRACT_SHIM.replace("@ROOT@", shlex.quote(str(root)))
-    if not (root / "usr/bin/msiextract").is_file():
-        log("Preparando msitools (para abrir el SDK de Windows) sin instalar nada en el sistema")
-        urls = run(["pacman", "-Sp", *MSITOOLS_PACKAGES], capture_output=True, text=True, check=True).stdout.split()
-        downloads = layout.private(layout.cache / "downloads/msitools")
-        staging = layout.cache / "toolchain/msitools.part"
-        shutil.rmtree(staging, ignore_errors=True)
-        staging.mkdir(parents=True)
-        for url in urls:
-            if not url.startswith("https://") or not url.endswith(".pkg.tar.zst"):
-                raise EngineError(f"Dirección de paquete inesperada: {url}")
-            package = downloads / url.rsplit("/", 1)[1]
-            for suffix in ("", ".sig"):
-                run(["curl", "-fsSL", "-o", f"{package}{suffix}", url + suffix], check=True)
-            if run(["pacman-key", "--verify", f"{package}.sig", str(package)], stdout=subprocess.DEVNULL,
-                   stderr=subprocess.DEVNULL).returncode != 0:
-                raise EngineError(f"La firma de {package.name} no es válida")
-            run(["tar", "--zstd", "-xf", str(package), "-C", str(staging), "usr"], check=True)
-        shutil.rmtree(root, ignore_errors=True)
-        staging.rename(root)
-    if not shim.is_file() or shim.read_text() != text:
-        shim.write_text(text)
-        shim.chmod(0o700)
+    for name, packages, programs in ARCH_TOOLS.get(target, ()):
+        if all(shutil.which(program) and not (tools / program).is_file() for program in programs):
+            continue
+        root = layout.cache / "toolchain" / name
+        if not all((root / "usr/bin" / program).is_file() for program in programs):
+            log(f"Preparando {name} sin instalar nada en el sistema")
+            urls = run(["pacman", "-Sp", *packages], capture_output=True, text=True, check=True).stdout.split()
+            downloads = layout.private(layout.cache / "downloads" / name)
+            staging = layout.cache / "toolchain" / f"{name}.part"
+            shutil.rmtree(staging, ignore_errors=True)
+            staging.mkdir(parents=True)
+            for url in urls:
+                if not url.startswith("https://") or not url.endswith(".pkg.tar.zst"):
+                    raise EngineError(f"Dirección de paquete inesperada: {url}")
+                package = downloads / url.rsplit("/", 1)[1]
+                # Si la base de pacman va por detrás del espejo, la versión que pide ya no
+                # está en él: el archivo de Arch guarda todas, con su firma.
+                pkgname = re.match(r"(.+)-[^-]+-[^-]+-(?:x86_64|any)\.pkg\.tar\.zst$", package.name)
+                mirrors = [url]
+                if pkgname:
+                    mirrors.append(f"{ARCH_ARCHIVE}/{pkgname.group(1)[0]}/{pkgname.group(1)}/{package.name}")
+                for candidate in mirrors:
+                    if all(run(["curl", "-fsSL", "-o", f"{package}{suffix}", candidate + suffix]).returncode == 0
+                           for suffix in ("", ".sig")):
+                        break
+                else:
+                    raise EngineError(f"No se pudo descargar {package.name}")
+                if run(["pacman-key", "--verify", f"{package}.sig", str(package)], stdout=subprocess.DEVNULL,
+                       stderr=subprocess.DEVNULL).returncode != 0:
+                    raise EngineError(f"La firma de {package.name} no es válida")
+                run(["tar", "--zstd", "-xf", str(package), "-C", str(staging), "usr"], check=True)
+            shutil.rmtree(root, ignore_errors=True)
+            staging.rename(root)
+        for program in programs:
+            shim = tools / program
+            text = TOOL_SHIM.replace("@ROOT@", shlex.quote(str(root))).replace("@PROGRAM@", program)
+            if not shim.is_file() or shim.read_text() != text:
+                shim.write_text(text)
+                shim.chmod(0o700)
 
 
 # Rust para otro sistema: el rustc del sistema solo trae la biblioteca estándar de
@@ -1141,6 +1159,9 @@ def build_target(layout: Layout, version: str, target: str, log=print, run=subpr
             log(f"Compilando Kitsune para {target} sobre Gecko {version} con {jobs} tareas (registro: {logfile})")
             mach(source, ["build", f"-j{jobs}"], env, logfile, run)
             mach(source, ["package-multi-locale", "--locales", "en-US", *L10N_LOCALES], env, logfile, run)
+            if target == "windows":
+                # El instalador .exe (NSIS) con el mismo paquete en inglés y castellano.
+                mach(source, ["build", "installer"], {**env, "MOZ_CHROME_MULTILOCALE": " ".join(L10N_LOCALES)}, logfile, run)
             dist = layout.cache / f"obj-{version}-{target}" / "dist"
             out = layout.private(layout.cache / "packages" / target)
             ready = []
