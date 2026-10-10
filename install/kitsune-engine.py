@@ -1370,7 +1370,9 @@ def finish_macos_package(layout: Layout, version: str, source: Path, env, logfil
     addons(layout, resources / "distribution/extensions", log)
     if not any((resources / "distribution/extensions").glob("*.xpi")):
         raise EngineError("No hay copia de uBlock Origin para la app de macOS")
-    mach(source, ["macos-sign", "-a", str(app), "-r", "-s", "-", "-e", "production", "-c", "release"], env, logfile, run)
+    # Firma ad hoc con rcodesign: sin -s, y con los permisos «developer» (los de producción
+    # dependen del equipo de Apple del certificado y la app no arrancaría).
+    mach(source, ["macos-sign", "-a", str(app), "-r", "-e", "developer", "-c", "release"], env, logfile, run)
     branding = source / "browser/branding/kitsune"
     dmg = dist / f"kitsune-{version}.en-US.mac.dmg"
     mach(source, ["python", "-m", "mozbuild.action.make_dmg", "--dsstore", str(branding / "dsstore"),
