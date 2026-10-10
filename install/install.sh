@@ -19,7 +19,7 @@ if [ ! -x "${root}/engine/current/kitsune" ]; then
 fi
 
 backup="$(mktemp -d "${data}/kitsune-0.6-backup.XXXXXX")"
-for item in start templates native branding appearance.py home-server.py media.py profiles.py wallpapers.py prepare-runtime.py version.json; do
+for item in start templates native branding mascot appearance.py home-server.py media.py profiles.py wallpapers.py prepare-runtime.py version.json; do
     [ -e "${root}/${item}" ] && cp -a "${root}/${item}" "${backup}/"
 done
 mkdir -p "${backup}/profile" "${backup}/state" "${backup}/systemd"
@@ -40,7 +40,7 @@ for file in appearance.py home-server.py media.py profiles.py wallpapers.py kits
 done
 chmod 700 "${root}/kitsune-engine.py"
 rm -f "${root}/prepare-runtime.py"
-for directory in native branding recipe; do
+for directory in native branding recipe mascot; do
     rm -rf "${root:?}/${directory}.new"
     cp -r "${repo}/install/${directory}" "${root}/${directory}.new"
     rm -rf "${root:?}/${directory}"
