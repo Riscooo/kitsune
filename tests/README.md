@@ -2,13 +2,17 @@
 
 ## 0.7: contraste con el sistema oscuro o claro
 
-`python3 tests/contrast_native.py` abre el motor real con el sistema en oscuro y en claro
-(`ui.systemUsesDarkTheme`) y recorre el texto visible de la barra (pestaña y resultados de la
-barra de direcciones), el menú principal y buscar en la página: todo tiene que tener al menos
-3:1 de contraste con su fondo. Gecko calcula algunos colores con `light-dark()` según el
-sistema, y cuando renombra una variable (en la 157, `--tab-text-color-selected` y
-`--urlbarview-text-color-selected`) el texto vuelve al color del sistema: blanco sobre papel.
-Como el motor se actualiza solo, conviene pasarla con cada Gecko nuevo.
+`python3 tests/contrast_native.py` abre el motor real cuatro veces: sin tema todavía, con el
+sistema en oscuro y en claro (`ui.systemUsesDarkTheme`), y con los temas Claro y Oscuro ya
+aplicados (escribe el control `chrome/kitsune-appearance.json` como lo haría «Tu inicio»). En
+cada caso recorre el texto visible de la barra (pestaña y resultados de la barra de
+direcciones), el menú principal y buscar en la página: todo tiene que tener al menos 3:1 de
+contraste con su fondo. Gecko calcula algunos colores con `light-dark()` según el esquema, y
+cuando renombra una variable (en la 157, `--tab-text-color-selected` y
+`--urlbarview-text-color-selected`) el texto vuelve al color del sistema. Se notaba sin tema
+todavía con el sistema oscuro (los primeros segundos de un perfil nuevo, hasta que el inicio
+escribe el control y el módulo nativo lleva el esquema al del tema): blanco sobre papel. Como
+el motor se actualiza solo, conviene pasarla con cada Gecko nuevo.
 
 ## 0.6: motor propio y modos de privacidad
 

@@ -6,15 +6,22 @@ light-dark() según el sistema. Cuando Gecko cambia el nombre de una variable (p
 sistema: blanco sobre papel con el sistema oscuro. Como el motor se actualiza solo, esta prueba
 recorre el texto visible de la barra (con una pestaña y los resultados de la barra de direcciones
 abiertos), el menú principal y la barra de buscar en la página, con el sistema en oscuro y en
-claro, y exige un contraste de al menos 3:1 con el fondo que tiene detrás.
+claro antes de que el perfil tenga tema (lo que se ve hasta que el inicio escribe el control del
+módulo nativo, que desde entonces fuerza el esquema al del tema), y con los temas Claro y Oscuro
+ya aplicados. Exige un contraste de al menos 3:1 con el fondo que tiene detrás.
 """
 import argparse
+import hashlib
 import json
 from pathlib import Path
+import sys
 import tempfile
 import time
 
-from browser_smoke import WebDriver, prepare_profile
+from browser_smoke import ROOT, WebDriver, eventually, prepare_profile
+
+sys.path.insert(0, str(ROOT / 'install'))
+from appearance import PAPEL, SUMI  # noqa: E402  (las paletas de Claro y Oscuro, de una sola fuente)
 
 MINIMUM = 3.0
 
@@ -67,16 +74,36 @@ return {checked, low};
 """.replace('MINIMUM', str(MINIMUM))
 
 
-def audit(browser, system_dark, evidence):
+def theme_control(theme):
+    """El control que escribe «Tu inicio» (appearance.py) para ese tema, tal cual lo lee el módulo nativo."""
+    value = {'version': 6, 'palette': SUMI if theme == 'oscuro' else PAPEL, 'motion': True, 'googleRemember': False,
+             'theme': theme, 'background': None, 'windowControls': 'izquierda', 'brand': True,
+             'performance': 'normal', 'ramLimit': 2048, 'minimize': True}
+    value['fingerprint'] = hashlib.sha256(json.dumps(value, sort_keys=True).encode()).hexdigest()
+    return value
+
+
+def audit(browser, system_dark, theme, evidence):
+    """Sin `theme`, un perfil sin tema todavía con el sistema en oscuro o en claro; con él, ese tema aplicado."""
     root = Path(tempfile.mkdtemp(prefix='kitsune-contrast-'))
     profile, _ = prepare_profile(root)
     with (profile / 'user.js').open('a') as prefs:
         prefs.write(f'user_pref("ui.systemUsesDarkTheme", {1 if system_dark else 0});\n')
+    if theme:
+        (profile / 'chrome').mkdir(exist_ok=True)
+        (profile / 'chrome/kitsune-appearance.json').write_text(json.dumps(theme_control(theme)))
     driver = WebDriver(profile, evidence, browser=browser, headed=True)
     results = {}
     try:
         driver.context('chrome')
-        assert driver.script("return matchMedia('(prefers-color-scheme: dark)').matches") == system_dark
+        if theme:
+            # El módulo aplica la paleta del tema y lleva el esquema de Gecko al del tema.
+            bg = (SUMI if theme == 'oscuro' else PAPEL)['bg']
+            eventually(lambda: driver.script("return getComputedStyle(document.documentElement).getPropertyValue('--kb-bg').trim()") == bg,
+                       timeout=15)
+            eventually(lambda: driver.script("return matchMedia('(prefers-color-scheme: dark)').matches") == (theme == 'oscuro'), timeout=15)
+        else:
+            assert driver.script("return matchMedia('(prefers-color-scheme: dark)').matches") == system_dark
         driver.script("gURLBar.focus(); gURLBar.value = 'kitsune'; gURLBar.startQuery();")
         time.sleep(1.5)
         results['toolbox'] = driver.script(AUDIT, ['toolbox'])
@@ -97,14 +124,16 @@ def main():
     args = parser.parse_args()
     evidence = Path(tempfile.mkdtemp(prefix='kitsune-contrast-evidence-'))
     report = {}
-    for name, dark in (('oscuro', True), ('claro', False)):
-        results = audit(args.browser, dark, evidence)
+    cases = (('sin tema todavía y el sistema oscuro', True, None), ('sin tema todavía y el sistema claro', False, None),
+             ('con el tema Claro (sistema oscuro)', True, 'claro'), ('con el tema Oscuro (sistema claro)', False, 'oscuro'))
+    for name, dark, theme in cases:
+        results = audit(args.browser, dark, theme, evidence)
         report[name] = results
         for where, result in results.items():
-            assert result['checked'] > 0, f'sistema {name}, {where}: no se ha revisado ningún texto'
-            assert not result['low'], f'sistema {name}, {where}: texto con poco contraste: {result["low"]}'
+            assert result['checked'] > 0, f'{name}, {where}: no se ha revisado ningún texto'
+            assert not result['low'], f'{name}, {where}: texto con poco contraste: {result["low"]}'
         total = sum(result['checked'] for result in results.values())
-        print(f'PASS Con el sistema {name}, los {total} textos de la barra, el menú y buscar se leen (≥ {MINIMUM:g}:1)', flush=True)
+        print(f'PASS {name[0].upper() + name[1:]}: los {total} textos de la barra, el menú y buscar se leen (≥ {MINIMUM:g}:1)', flush=True)
     (evidence / 'report.json').write_text(json.dumps(report, indent=2, ensure_ascii=False))
     print(evidence, flush=True)
 
