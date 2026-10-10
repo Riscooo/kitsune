@@ -87,6 +87,11 @@ ABOUT_CREDIT = '<label id="kitsune-engine-credit" class="text-blurb">Tinta · mo
 # defecto llamado Kitsune y ningún marcador, tema ni enlace de ayuda de Firefox.
 # Cada texto se comprueba: si Gecko lo cambia, la receta avisa en vez de seguir.
 TEXT_PATCHES = {
+    # macOS: el icono de la app sale de firefox.icns (el de Kitsune), no del catálogo
+    # Assets.car de la marca genérica de Gecko.
+    "browser/app/macbuild/Contents/Info.plist.in": [
+        ("\n\t<key>CFBundleIconName</key>\n\t<string>AppIcon</string>", ""),
+    ],
     # Al desinstalar, Gecko ofrece abrir una encuesta de Mozilla: fuera.
     "browser/installer/windows/nsis/uninstaller.nsi": [
         ("!define MUI_FINISHPAGE_SHOWREADME\n!define MUI_FINISHPAGE_SHOWREADME_NOTCHECKED\n"
@@ -286,6 +291,8 @@ brandFullName=Kitsune
 """
 BRAND_CONFIGURE = "MOZ_APP_DISPLAYNAME=Kitsune\nMOZ_MACBUNDLE_ID=kitsune\n"
 WINDOWS_BRANDING = BRANDING / "windows"
+# macOS: iconos .icns y el fondo de la ventana del .dmg (tools/branding/macos.py).
+MACOS_BRANDING = BRANDING / "macos"
 WEBSITE = "https://kitsune-navegador.vercel.app"
 # Lo que el instalador de Windows enseña y deja en «Aplicaciones instaladas».
 BRANDING_NSI = {
@@ -395,6 +402,8 @@ def input_files():
     files["branding/icon-small.svg"] = BRANDING / "icon-small.svg"
     for asset in sorted(WINDOWS_BRANDING.iterdir()):
         files[f"branding/windows/{asset.name}"] = asset
+    for asset in sorted(MACOS_BRANDING.iterdir()):
+        files[f"branding/macos/{asset.name}"] = asset
     for name in HOME_EXTENSION_FILES:
         files[f"home-extension/{name}"] = HOME_EXTENSION / name
     for name in HOME_PAGE_FILES:
@@ -543,7 +552,7 @@ def write_branding(source: Path):
     (target / "locales/en-US/brand.properties").write_text(BRAND_PROPERTIES)
     # Windows: iconos, mosaicos e imágenes del instalador propios (tools/branding/windows.py)
     # y el nombre, la empresa y los enlaces del instalador.
-    for asset in sorted(WINDOWS_BRANDING.iterdir()):
+    for asset in sorted(WINDOWS_BRANDING.iterdir()) + sorted(MACOS_BRANDING.iterdir()):
         shutil.copyfile(asset, target / asset.name)
     nsi = target / "branding.nsi"
     if nsi.is_file():
@@ -1133,6 +1142,11 @@ ARCH_TOOLS = {
         ("msitools", ("msitools", "gcab"), ("msiextract",)),
     ),
 }
+# rcodesign (apple-platform-rs) firma la app de macOS desde Linux. Versión y suma fijadas.
+RCODESIGN_VERSION = "0.29.0"
+RCODESIGN_URL = ("https://github.com/indygreg/apple-platform-rs/releases/download/apple-codesign%2F"
+                 f"{RCODESIGN_VERSION}/apple-codesign-{RCODESIGN_VERSION}-x86_64-unknown-linux-musl.tar.gz")
+RCODESIGN_SHA256 = "dbe85cedd8ee4217b64e9a0e4c2aef92ab8bcaaa41f20bde99781ff02e600002"
 ARCH_ARCHIVE = "https://archive.archlinux.org/packages"
 TOOL_SHIM = """#!/bin/sh
 # Kitsune: @PROGRAM@ de la caché (paquete de Arch sin instalar en el sistema).
@@ -1143,6 +1157,24 @@ LD_LIBRARY_PATH="$here/usr/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}" exec "$here
 
 def cross_tools(layout: Layout, tools: Path, target: str, log=print, run=subprocess.run) -> None:
     """Programas que solo hacen falta al compilar para otro sistema."""
+    if target == "macos":
+        root = layout.private(layout.cache / "toolchain") / f"rcodesign-{RCODESIGN_VERSION}"
+        if not (root / "rcodesign").is_file():
+            log(f"Preparando rcodesign {RCODESIGN_VERSION} (firma de la app de macOS)")
+            archive = layout.private(layout.cache / "downloads") / f"rcodesign-{RCODESIGN_VERSION}.tar.gz"
+            run(["curl", "-fsSL", "-o", str(archive), RCODESIGN_URL], check=True)
+            if sha256_file(archive) != RCODESIGN_SHA256:
+                raise EngineError("La descarga de rcodesign no coincide con la suma esperada")
+            staging = root.with_name(root.name + ".part")
+            shutil.rmtree(staging, ignore_errors=True)
+            staging.mkdir()
+            run(["tar", "-xzf", str(archive), "-C", str(staging), "--strip-components=1"], check=True)
+            shutil.rmtree(root, ignore_errors=True)
+            staging.rename(root)
+        shim = tools / "rcodesign"
+        if shim.is_symlink() or shim.exists():
+            shim.unlink()
+        shim.symlink_to(root / "rcodesign")
     for name, packages, programs in ARCH_TOOLS.get(target, ()):
         if all(shutil.which(program) and not (tools / program).is_file() for program in programs):
             continue
@@ -1251,6 +1283,9 @@ def write_target_mozconfig(layout: Layout, version: str, target: str) -> Path:
     if target == "windows":
         # Sin el agente del navegador predeterminado (tarea programada que informa a Mozilla).
         text += "ac_add_options --disable-default-browser-agent\n"
+    if target == "macos":
+        # La app se identifica como io.github.riscooo.kitsune, no como org.mozilla.kitsune.
+        text += "ac_add_options --with-distribution-id=io.github.riscooo\n"
     if SAFEBROWSING_KEY.is_file():
         # Risco decidió (2026-10-10) que las versiones públicas también lleven su clave.
         text += f"# Avisos de webs peligrosas (clave de Google Safe Browsing de Risco).\n" \
@@ -1311,6 +1346,35 @@ def finish_windows_package(layout: Layout, version: str, source: Path, env, logf
     return installer
 
 
+def finish_macos_package(layout: Layout, version: str, source: Path, env, logfile: Path, log=print, run=subprocess.run,
+                         addons=distribution_addons):
+    """Lo que en Linux se añade al instalar el motor, dentro de la app de macOS: kitsune.cfg
+    con su cargador y uBlock Origin. Luego se firma ad hoc y se rehace el .dmg con el fondo,
+    la colocación de los iconos y el icono del disco de Kitsune."""
+    dist = layout.cache / f"obj-{version}-macos" / "dist"
+    staged = [app for app in sorted(dist.glob("*/*.app"))
+              if app.parent.name != "bin" and (app / "Contents/Resources").is_dir() and not (app / "Contents/MacOS").is_symlink()
+              and not any(path.is_symlink() for path in (app / "Contents/MacOS").iterdir())]
+    if len(staged) != 1:
+        raise EngineError(f"No se encuentra la app de macOS empaquetada en {dist}")
+    app = staged[0]
+    resources = app / "Contents/Resources"
+    for name, path in install_files().items():
+        target = resources / ("defaults/pref" if name == "autoconfig.js" else "") / name
+        target.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(path, target)
+    addons(layout, resources / "distribution/extensions", log)
+    if not any((resources / "distribution/extensions").glob("*.xpi")):
+        raise EngineError("No hay copia de uBlock Origin para la app de macOS")
+    mach(source, ["macos-sign", "-a", str(app), "-r", "-s", "-", "-e", "production", "-c", "release"], env, logfile, run)
+    branding = source / "browser/branding/kitsune"
+    dmg = dist / f"kitsune-{version}.en-US.mac.dmg"
+    mach(source, ["python", "-m", "mozbuild.action.make_dmg", "--dsstore", str(branding / "dsstore"),
+                  "--background", str(branding / "background.png"), "--icon", str(branding / "disk.icns"),
+                  "--volume-name", "Kitsune", str(app.parent), str(dmg)], env, logfile, run)
+    return dmg
+
+
 def build_target(layout: Layout, version: str, target: str, log=print, run=subprocess.run) -> list:
     """Compila y empaqueta el motor para otro sistema; devuelve los archivos listos."""
     if target not in TARGETS:
@@ -1347,6 +1411,8 @@ def build_target(layout: Layout, version: str, target: str, log=print, run=subpr
             mach(source, ["package-multi-locale", "--locales", "en-US", *L10N_LOCALES], env, logfile, run)
             if target == "windows":
                 finish_windows_package(layout, version, source, env, logfile, log, run)
+            if target == "macos":
+                finish_macos_package(layout, version, source, env, logfile, log, run)
             dist = layout.cache / f"obj-{version}-{target}" / "dist"
             out = layout.private(layout.cache / "packages" / target)
             ready = []

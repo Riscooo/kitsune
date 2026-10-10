@@ -1,4 +1,5 @@
 """Offline tests for Kitsune's own engine pipeline (install/kitsune-engine.py)."""
+import hashlib
 import importlib.util
 import contextlib
 import io
@@ -512,6 +513,7 @@ class TargetTests(unittest.TestCase):
             self.assertIn(f"obj-157.0.1-{target}", text)
             self.assertEqual("safebrowsing-api-keyfile" in text, engine.SAFEBROWSING_KEY.is_file())
             self.assertEqual("--disable-default-browser-agent" in text, target == "windows")
+            self.assertEqual("--with-distribution-id=io.github.riscooo" in text, target == "macos")
         with self.assertRaises(engine.EngineError):
             engine.build_target(layout, "157.0.1", "beos")
 
@@ -533,7 +535,7 @@ class TargetTests(unittest.TestCase):
                     (staging / "usr/bin" / program).write_text("")
             return types.SimpleNamespace(returncode=0, stdout="")
         with mock.patch.object(engine.shutil, "which", return_value=None):
-            engine.cross_tools(layout, tools, "macos", log=lambda *_: None, run=run)
+            engine.cross_tools(layout, tools, "linux", log=lambda *_: None, run=run)
             self.assertEqual(calls, [])
             engine.cross_tools(layout, tools, "windows", log=lambda *_: None, run=run)
         self.assertEqual(sum(command[0] == "pacman-key" for command in calls), 1)
@@ -567,6 +569,29 @@ class TargetTests(unittest.TestCase):
             engine.cross_tools(layout, tools, "windows", log=lambda *_: None, run=run)
         self.assertIn(f"{engine.ARCH_ARCHIVE}/m/msitools/msitools-26.02-1-x86_64.pkg.tar.zst", fetched)
         self.assertIn(f"{engine.ARCH_ARCHIVE}/m/msitools/msitools-26.02-1-x86_64.pkg.tar.zst.sig", fetched)
+
+    def test_macos_gets_rcodesign_only_when_it_matches_the_pinned_sum(self):
+        for good in (True, False):
+            base = Path(tempfile.mkdtemp())
+            layout = engine.Layout(base / "data", base / "state", base / "cache")
+            tools = layout.private(layout.cache / "bin")
+
+            def run(command, **kwargs):
+                if command[0] == "curl":
+                    Path(command[command.index("-o") + 1]).write_bytes(b"rcodesign")
+                if command[0] == "tar":
+                    staging = Path(command[command.index("-C") + 1])
+                    (staging / "rcodesign").write_text("#!/bin/sh\n")
+                return types.SimpleNamespace(returncode=0, stdout="")
+            pinned = hashlib.sha256(b"rcodesign").hexdigest() if good else "0" * 64
+            with mock.patch.object(engine, "RCODESIGN_SHA256", pinned):
+                if good:
+                    engine.cross_tools(layout, tools, "macos", log=lambda *_: None, run=run)
+                    self.assertTrue((tools / "rcodesign").resolve().is_file())
+                else:
+                    with self.assertRaises(engine.EngineError):
+                        engine.cross_tools(layout, tools, "macos", log=lambda *_: None, run=run)
+                    self.assertFalse((tools / "rcodesign").exists())
 
     def test_a_bad_signature_stops_the_windows_tools(self):
         base = Path(tempfile.mkdtemp())
@@ -667,6 +692,34 @@ class TargetTests(unittest.TestCase):
         repackages = [command for command in calls if "repackage" in command]
         self.assertEqual(len(repackages), 2)
         self.assertIn("--use-upx", repackages[0])
+
+
+    def test_the_macos_app_gets_kitsune_cfg_and_ublock_is_signed_and_goes_in_a_new_dmg(self):
+        base = Path(tempfile.mkdtemp())
+        layout = engine.Layout(base / "data", base / "state", base / "cache")
+        dist = layout.cache / "obj-157.0.1-macos/dist"
+        for folder in ("kitsune/Kitsune.app", "bin/Kitsune.app"):
+            (dist / folder / "Contents/Resources").mkdir(parents=True)
+            (dist / folder / "Contents/MacOS").mkdir(parents=True)
+        (dist / "kitsune/Kitsune.app/Contents/MacOS/kitsune").write_bytes(b"\xcf\xfa\xed\xfe")
+        (dist / "bin/Kitsune.app/Contents/MacOS/kitsune").symlink_to(base)
+        calls = []
+
+        def addons(layout, target, log):
+            target.mkdir(parents=True, exist_ok=True)
+            (target / "uBlock0@raymondhill.net.xpi").write_bytes(b"xpi")
+        run = lambda command, **kwargs: calls.append(command) or types.SimpleNamespace(returncode=0)
+        dmg = engine.finish_macos_package(layout, "157.0.1", base / "src", {}, base / "build.log", log=lambda *_: None,
+                                          run=run, addons=addons)
+        resources = dist / "kitsune/Kitsune.app/Contents/Resources"
+        self.assertEqual((resources / "kitsune.cfg").read_bytes(), (ROOT / "install/recipe/kitsune.cfg").read_bytes())
+        self.assertTrue((resources / "defaults/pref/autoconfig.js").is_file())
+        self.assertTrue((resources / "distribution/extensions/uBlock0@raymondhill.net.xpi").is_file())
+        self.assertFalse((dist / "bin/Kitsune.app/Contents/Resources/kitsune.cfg").exists())
+        signed, made = calls
+        self.assertIn("macos-sign", signed)
+        self.assertIn("mozbuild.action.make_dmg", made)
+        self.assertEqual(dmg.name, "kitsune-157.0.1.en-US.mac.dmg")
 
 
 class L10nTests(unittest.TestCase):
