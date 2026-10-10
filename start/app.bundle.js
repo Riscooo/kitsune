@@ -1566,6 +1566,8 @@
 			}
 		}
 		gallery.querySelector(".preset-original").addEventListener("click", (event) => void pick(event.currentTarget));
+		let last = null;
+		let retries = 0;
 		async function load() {
 			if (location.protocol === "file:" || gallery.dataset.loaded) return;
 			try {
@@ -1574,7 +1576,9 @@
 					cache: "no-store"
 				});
 				if (!response.ok) return;
-				for (const category of parsePresets(await response.json())) {
+				const body = await response.json();
+				for (const node of gallery.querySelectorAll(".preset-heading, .preset-grid")) node.remove();
+				for (const category of parsePresets(body)) {
 					const heading = document.createElement("h4");
 					heading.className = "preset-heading";
 					heading.textContent = category.name;
@@ -1591,7 +1595,9 @@
 						button.setAttribute("aria-label", `${category.name} ${index + 1}${item.label ? ` · ${item.label}` : ""}`);
 						if (item.label) button.title = item.label;
 						const image = document.createElement("img");
-						image.src = `/api/wallpapers/${item.id}.jpg`;
+						imageUrl(`/api/wallpapers/${item.id}.jpg`).then((url) => {
+							image.src = url;
+						}).catch(() => {});
 						image.alt = "";
 						image.loading = "lazy";
 						image.decoding = "async";
@@ -1601,10 +1607,13 @@
 					});
 					gallery.append(heading, grid);
 				}
-				gallery.dataset.loaded = "true";
+				if (last) sync(...last);
+				if (body?.pending === true && retries++ < 60) setTimeout(() => void load(), 3e3);
+				else gallery.dataset.loaded = "true";
 			} catch {}
 		}
 		function sync(settings, isReady) {
+			last = [settings, isReady];
 			ready = isReady;
 			for (const tile of gallery.querySelectorAll(".preset-tile")) {
 				tile.setAttribute("aria-pressed", String(tile.dataset.preset ? tile.dataset.sha === settings.background : !settings.background));

@@ -8,7 +8,8 @@ Gecko que se creen no tocan los de verdad) y comprueba desde su propia página:
 2. Pasar a Oscuro guarda los ajustes en el perfil y el módulo nativo aplica el control.
 3. Un fondo propio se vuelve a codificar en JPEG, se guarda y se ve en el inicio.
 4. Editar el perfil (nombre y modo Cómodo) lo guarda y deja el modo en su user.js.
-5. Crear un perfil crea un perfil de Gecko con su modo; abrir Ajustes del perfil
+5. Los fondos de serie se bajan y comprueban, la galería se completa y uno se pone de fondo.
+6. Crear un perfil crea un perfil de Gecko con su modo; abrir Ajustes del perfil
    actual abre la pestaña aquí mismo.
 """
 import argparse
@@ -121,6 +122,27 @@ def main():
         driver.settle(); time.sleep(1.5)
         driver.screenshot('fondo-integrado.png', chrome=True)
         check('Un fondo propio se vuelve a codificar en JPEG, se guarda en el perfil y se ve en el inicio')
+
+        # Fondos de serie: la primera vez se bajan del CDN (comprobados) y la galería se completa sola.
+        eventually(lambda: api('GET', '/api/wallpapers')['body']['pending'] is False, timeout=240)
+        gallery = api('GET', '/api/wallpapers')['body']['categories']
+        names = [category['name'] for category in gallery]
+        assert {'Abstractos', 'Colores'} <= set(names) and 'firefox' not in str(gallery).lower(), names
+        preset = gallery[0]['items'][0]
+        chosen = api('POST', '/api/background', {'preset': preset['id']})
+        assert chosen['status'] == 200 and chosen['body']['data']['background'] == preset['sha256'], chosen
+        thumb = page("""const [path, done] = arguments; browser.kitsuneHome.request('GET', path).then(r => {
+          const image = new Image(); image.onload = () => done([image.naturalWidth, image.naturalHeight]); image.onerror = () => done(null);
+          image.src = URL.createObjectURL(new Blob([r.bytes], {type: r.contentType})); });""", f"/api/wallpapers/{preset['id']}.jpg", asynchronous=True)
+        assert thumb == [320, 200], thumb
+        driver.context('content'); driver.navigate(HOME)
+        eventually(lambda: page("return document.documentElement.dataset.storageReady") == 'true', timeout=15)
+        driver.click('#settings-open')
+        eventually(lambda: page("return document.querySelectorAll('#preset-gallery .preset-tile img').length") > 20, timeout=15)
+        eventually(lambda: page("return [...document.querySelectorAll('#preset-gallery .preset-tile img')].filter(i => i.naturalWidth === 320).length") > 20, timeout=15)
+        driver.settle(); time.sleep(1)
+        driver.screenshot('galeria-integrada.png', chrome=True)
+        check(f"Fondos de serie: {sum(len(c['items']) for c in gallery)} comprobados en {len(gallery)} categorías, sin los de Firefox, y uno elegido de fondo")
 
         revision = api('GET', '/api/profiles')['body']['revision']
         edited = api('PATCH', '/api/profiles/default', {'name': 'Ana', 'email': '', 'color': 'pink', 'revision': revision,

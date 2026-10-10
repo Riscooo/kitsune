@@ -9,8 +9,9 @@
  *   <perfil>/chrome/kitsune-background-<sha>.jpg     fondo propio
  *   <carpeta de perfiles>/kitsune-profiles.json      registro de perfiles
  *   <carpeta de perfiles>/kitsune-avatars/<id>/      fotos de perfil
+ *   <carpeta de perfiles>/kitsune-wallpapers/        fondos de serie (del CDN de Mozilla)
  */
-/* global ExtensionAPI, ChromeUtils, Services, IOUtils, PathUtils, Cc, Ci */
+/* global ExtensionAPI, ChromeUtils, Services, IOUtils, PathUtils, Cc, Ci, Cu, OffscreenCanvas */
 'use strict'
 
 const SETTINGS_FILE = 'kitsune-home.json'
@@ -33,6 +34,9 @@ function coreModule(extension) {
   }
   throw new Error('Kitsune: no se encuentra el núcleo del inicio integrado.')
 }
+
+// La librería de fondos de serie se prepara una vez por sesión del navegador.
+let wallpaperSync = null
 
 this.kitsuneHome = class extends ExtensionAPI {
   getAPI(context) {
@@ -309,6 +313,118 @@ this.kitsuneHome = class extends ExtensionAPI {
       return snapshot(next)
     }
 
+    // Fondos de serie: librería común a todos los perfiles (<carpeta de perfiles>/kitsune-wallpapers).
+    const WALLPAPER_THUMB = [320, 200]
+    const wallpaperDir = () => PathUtils.join(profilesRoot(), 'kitsune-wallpapers')
+    const wallpaperPath = (id, thumb = false) => PathUtils.join(wallpaperDir(), `${id}${thumb ? '-thumb' : ''}.jpg`)
+    let indexCache = null
+    async function readWallpaperIndex() {
+      // La galería pide muchas miniaturas seguidas: el índice se reutiliza un par de segundos.
+      if (indexCache && Date.now() - indexCache.at < 2000) return core.clone(indexCache.index)
+      const index = await loadWallpaperIndex()
+      indexCache = { at: Date.now(), index }
+      return core.clone(index)
+    }
+    async function loadWallpaperIndex() {
+      try {
+        const index = JSON.parse(await readText(PathUtils.join(wallpaperDir(), 'index.json'), 512 * 1024))
+        for (const category of index.categories ?? []) {
+          const present = []
+          for (const item of category.items ?? []) {
+            if (core.validWallpaperId(item?.id) && await IOUtils.exists(wallpaperPath(item.id)) && await IOUtils.exists(wallpaperPath(item.id, true))) present.push(item)
+          }
+          category.items = present
+        }
+        return index
+      } catch { return { version: 1, categories: [] } }
+    }
+    function readCatalog() {
+      const { NetUtil } = ChromeUtils.importESModule('resource://gre/modules/NetUtil.sys.mjs')
+      const channel = NetUtil.newChannel({ uri: core.WALLPAPER_CATALOG, loadUsingSystemPrincipal: true })
+      const stream = channel.open()
+      try { return JSON.parse(core.decodeText(streamBytes(stream))) } finally { stream.close() }
+    }
+    async function download(item) {
+      Cu.importGlobalProperties(['fetch'])
+      const response = await fetch(core.WALLPAPER_CDN + item.location, { credentials: 'omit', cache: 'no-store', redirect: 'error' })
+      if (!response.ok) throw new Error('descarga fallida')
+      const body = new Uint8Array(await response.arrayBuffer())
+      if (body.length !== item.size || sha256(body) !== item.source) throw new Error('no coincide con el catálogo')
+      return body
+    }
+    function wallpaperImages(image) {
+      // La imagen a 2560×1600 como mucho y su miniatura recortada a 320×200, en JPEG nuevo.
+      const scale = Math.min(1, BACKGROUND_BOX[0] / image.width, BACKGROUND_BOX[1] / image.height)
+      const full = streamBytes(imgTools().encodeScaledImage(image, 'image/jpeg', Math.max(1, Math.round(image.width * scale)),
+        Math.max(1, Math.round(image.height * scale)), 'quality=88'))
+      const crop = core.coverCrop(image.width, image.height, ...WALLPAPER_THUMB)
+      const cropped = imgTools().decodeImageFromArrayBuffer(streamBytes(imgTools().encodeCroppedImage(image, 'image/png',
+        crop.x, crop.y, crop.width, crop.height, '')).buffer, 'image/png')
+      const thumb = streamBytes(imgTools().encodeScaledImage(cropped, 'image/jpeg', ...WALLPAPER_THUMB, 'quality=82'))
+      return { full, thumb }
+    }
+    async function solidImages(color) {
+      const paint = async (width, height) => {
+        const canvas = new OffscreenCanvas(width, height)
+        const context = canvas.getContext('2d')
+        context.fillStyle = color
+        context.fillRect(0, 0, width, height)
+        return new Uint8Array(await (await canvas.convertToBlob({ type: 'image/jpeg', quality: 0.88 })).arrayBuffer())
+      }
+      return { full: await paint(64, 40), thumb: await paint(...WALLPAPER_THUMB) }
+    }
+    async function syncWallpapers() {
+      const previous = new Map((await readWallpaperIndex()).categories.flatMap(category => category.items).map(item => [item.id, item]))
+      const categories = []
+      for (const category of core.planWallpapers(readCatalog())) {
+        const items = []
+        for (const item of category.items) {
+          const old = previous.get(item.id)
+          const entry = { id: item.id, source: item.source, credit: item.credit, ...(item.color ? { color: item.color } : {}) }
+          if (old && old.source === item.source && typeof old.sha256 === 'string') { items.push({ ...entry, sha256: old.sha256 }); continue }
+          try {
+            const images = item.color ? await solidImages(item.color)
+              : wallpaperImages(decodeImage({ bytes: await download(item), type: item.mimetype },
+                { maxSide: 12000, maxPixels: 50_000_000, unreadable: 'imagen no válida' }))
+            if (!images.full.length || images.full.length > MAX_BACKGROUND_JPEG) continue
+            await writeAtomic(wallpaperPath(item.id), images.full)
+            await writeAtomic(wallpaperPath(item.id, true), images.thumb)
+            items.push({ ...entry, sha256: sha256(images.full) })
+          } catch { /* ese fondo se intentará en la próxima sesión */ }
+        }
+        if (items.length) categories.push({ id: category.id, name: category.name, items })
+        // La galería va enseñando cada categoría en cuanto está lista.
+        await writeJson(PathUtils.join(wallpaperDir(), 'index.json'), { version: 1, categories: [...categories, ...pendingCategories(previous, categories)] })
+        indexCache = null
+      }
+      await writeJson(PathUtils.join(wallpaperDir(), 'index.json'), { version: 1, categories })
+      indexCache = null
+      const keep = new Set(['index.json', ...categories.flatMap(category => category.items.flatMap(item => [`${item.id}.jpg`, `${item.id}-thumb.jpg`]))])
+      for (const path of await IOUtils.getChildren(wallpaperDir()).catch(() => [])) {
+        if (!keep.has(PathUtils.filename(path))) await IOUtils.remove(path).catch(() => {})
+      }
+    }
+    // Mientras se prepara una categoría, las anteriores (de otra sesión) siguen a la vista.
+    const pendingCategories = (previous, done) => {
+      const ready = new Set(done.flatMap(category => category.items.map(item => item.id)))
+      const rest = [...previous.values()].filter(item => !ready.has(item.id))
+      return rest.length ? [{ id: 'anteriores', name: 'Fondos', items: rest }] : []
+    }
+    function ensureWallpapers() {
+      if (!wallpaperSync) {
+        wallpaperSync = { done: false }
+        wallpaperSync.promise = syncWallpapers().catch(() => {}).finally(() => { wallpaperSync.done = true })
+      }
+      return wallpaperSync
+    }
+    async function presetBackground(id) {
+      const item = (await readWallpaperIndex()).categories.flatMap(category => category.items).find(entry => entry.id === id)
+      if (!core.validWallpaperId(id) || !item) throw new HomeError(400, 'Ese fondo de serie no está disponible.')
+      const jpeg = await readFile(wallpaperPath(id), MAX_BACKGROUND_JPEG)
+      if (sha256(jpeg) !== item.sha256) throw new HomeError(503, 'El fondo de serie está dañado; vuelve a abrir la galería para repararlo.')
+      return jpeg
+    }
+
     async function memory() {
       const info = await ChromeUtils.requestProcInfo()
       const total = info.memory + info.children.reduce((sum, child) => sum + (child.memory || 0), 0)
@@ -317,14 +433,17 @@ this.kitsuneHome = class extends ExtensionAPI {
 
     async function storeBackground(value) {
       if (value === null || typeof value !== 'object' || Array.isArray(value)) throw new HomeError(400, 'La solicitud del fondo no es válida.')
-      if (Object.keys(value).join() === 'preset') throw new HomeError(400, 'Ese fondo de serie no está disponible.')
-      if (Object.keys(value).join() !== 'imageData') throw new HomeError(400, 'La solicitud del fondo no es válida.')
-      const source = decodeDataUrl(value.imageData, { maxBytes: 12 * 1024 * 1024, tooBig: 'La imagen es demasiado grande. Elige una de hasta 12 MB.',
-        wrongType: 'Elige una imagen PNG, JPEG o WebP.', unreadable: 'No se ha podido leer la imagen.' })
-      const image = decodeImage(source, { maxSide: 12000, maxPixels: 50_000_000, unreadable: 'No se ha podido leer la imagen.' })
-      const scale = Math.min(1, BACKGROUND_BOX[0] / image.width, BACKGROUND_BOX[1] / image.height)
-      const jpeg = streamBytes(imgTools().encodeScaledImage(image, 'image/jpeg', Math.max(1, Math.round(image.width * scale)),
-        Math.max(1, Math.round(image.height * scale)), 'quality=88'))
+      let jpeg
+      if (Object.keys(value).join() === 'preset' && typeof value.preset === 'string') {
+        jpeg = await presetBackground(value.preset)
+      } else if (Object.keys(value).join() === 'imageData') {
+        const source = decodeDataUrl(value.imageData, { maxBytes: 12 * 1024 * 1024, tooBig: 'La imagen es demasiado grande. Elige una de hasta 12 MB.',
+          wrongType: 'Elige una imagen PNG, JPEG o WebP.', unreadable: 'No se ha podido leer la imagen.' })
+        const image = decodeImage(source, { maxSide: 12000, maxPixels: 50_000_000, unreadable: 'No se ha podido leer la imagen.' })
+        const scale = Math.min(1, BACKGROUND_BOX[0] / image.width, BACKGROUND_BOX[1] / image.height)
+        jpeg = streamBytes(imgTools().encodeScaledImage(image, 'image/jpeg', Math.max(1, Math.round(image.width * scale)),
+          Math.max(1, Math.round(image.height * scale)), 'quality=88'))
+      } else throw new HomeError(400, 'La solicitud del fondo no es válida.')
       if (!jpeg.length || jpeg.length > MAX_BACKGROUND_JPEG) throw new HomeError(400, 'No se ha podido leer la imagen.')
       const digest = sha256(jpeg)
       await writeAtomic(backgroundPath(digest), jpeg)
@@ -392,7 +511,16 @@ this.kitsuneHome = class extends ExtensionAPI {
           throw new HomeError(404, 'El fondo no está disponible.')
         }
       }
-      if (method === 'GET' && path === '/api/wallpapers') return json(200, { categories: [] })
+      if (method === 'GET' && path === '/api/wallpapers') {
+        const sync = ensureWallpapers()
+        return json(200, { categories: core.publicWallpapers(await readWallpaperIndex()), pending: !sync.done })
+      }
+      const wallpaper = /^\/api\/wallpapers\/([0-9a-f-]{36})\.jpg$/.exec(path)
+      if (method === 'GET' && wallpaper && core.validWallpaperId(wallpaper[1])) {
+        const listed = (await readWallpaperIndex()).categories.some(category => category.items.some(item => item.id === wallpaper[1]))
+        if (!listed) throw new HomeError(404, 'Ese fondo de serie no está disponible.')
+        return bytes(await readFile(wallpaperPath(wallpaper[1], true), 1024 * 1024), 'image/jpeg')
+      }
       if (method === 'GET' && path === '/api/rendimiento') return json(200, await memory())
       if (method === 'GET' && path === '/api/profiles') {
         const { record, currentId } = await loadProfiles()

@@ -277,3 +277,67 @@ export function withProfileBlock(text, privacyMode) {
   if (start !== -1 && end > start) return text.slice(0, start) + block + text.slice(end + USER_JS_END.length).replace(/^\n/, '')
   return (text && !text.endsWith('\n') ? `${text}\n` : text) + block
 }
+
+// Fondos de serie (como install/wallpapers.py): el catálogo de la nueva pestaña de
+// Gecko, sin la categoría «firefox». Las imágenes se bajan del CDN de Remote Settings
+// de Mozilla y solo valen si coinciden en tamaño y sha256 con el catálogo.
+export const WALLPAPER_CDN = 'https://firefox-settings-attachments.cdn.mozilla.net/'
+export const WALLPAPER_CATALOG = 'resource:///defaults/settings/main/newtab-wallpapers-v2.json'
+export const WALLPAPER_CATEGORIES = Object.freeze([['abstracts', 'Abstractos'], ['celestial', 'Espacio'], ['photographs', 'Fotografías'], ['solid-colors', 'Colores']])
+const WALLPAPER_FORMATS = ['image/avif', 'image/jpeg', 'image/png', 'image/webp']
+const WALLPAPER_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
+const WALLPAPER_LOCATION = /^[A-Za-z0-9][A-Za-z0-9/_.%-]{0,300}$/
+export const validWallpaperId = value => typeof value === 'string' && WALLPAPER_ID.test(value)
+
+function wallpaperCredit(entry) {
+  const name = entry?.attribution?.name
+  const author = isObject(name) ? name.string : null
+  return typeof author === 'string' && author.trim() ? `Foto: ${author.slice(0, 60)} · Unsplash` : null
+}
+
+/** Lo que hay que tener: por categoría, cada fondo con su origen (hash del adjunto o color). */
+export function planWallpapers(catalog) {
+  const entries = Array.isArray(catalog?.data) ? catalog.data : null
+  if (!entries) throw new HomeError(503, 'El catálogo de fondos del motor no es válido.')
+  return WALLPAPER_CATEGORIES.map(([key, name]) => {
+    const chosen = entries.filter(entry => isObject(entry) && entry.category === key && entry.visible !== false)
+      .sort((a, b) => (Number.isInteger(a.order) ? a.order : 0) - (Number.isInteger(b.order) ? b.order : 0) || (String(a.title) < String(b.title) ? -1 : String(a.title) > String(b.title) ? 1 : 0))
+    const items = []
+    for (const entry of chosen) {
+      if (!validWallpaperId(entry.id)) continue
+      const color = entry.solid_color
+      const attachment = entry.attachment
+      const item = { id: entry.id, credit: wallpaperCredit(entry) }
+      if (typeof color === 'string' && /^#[0-9a-fA-F]{6}$/.test(color)) {
+        Object.assign(item, { source: `color:${color.toLowerCase()}`, color: color.toLowerCase() })
+      } else if (isObject(attachment) && typeof attachment.location === 'string' && WALLPAPER_LOCATION.test(attachment.location) &&
+                 !attachment.location.includes('..') && typeof attachment.hash === 'string' && HASH.test(attachment.hash) &&
+                 Number.isInteger(attachment.size) && attachment.size > 0 && attachment.size <= 12 * 1024 * 1024 &&
+                 WALLPAPER_FORMATS.includes(attachment.mimetype)) {
+        Object.assign(item, { source: attachment.hash, location: attachment.location, size: attachment.size, mimetype: attachment.mimetype })
+      } else continue
+      items.push(item)
+    }
+    return { id: key, name, items }
+  }).filter(category => category.items.length)
+}
+
+/** La galería que ve la página: solo fondos con su imagen y miniatura ya guardadas. */
+export function publicWallpapers(index) {
+  if (!isObject(index) || !Array.isArray(index.categories)) return []
+  return index.categories.filter(category => isObject(category) && typeof category.id === 'string' && typeof category.name === 'string' && Array.isArray(category.items))
+    .map(category => ({
+      id: category.id.slice(0, 40), name: category.name.slice(0, 40),
+      items: category.items.filter(item => isObject(item) && validWallpaperId(item.id) && typeof item.sha256 === 'string' && HASH.test(item.sha256))
+        .map(item => ({ id: item.id, sha256: item.sha256,
+          ...(typeof item.credit === 'string' && item.credit.length <= 100 ? { credit: item.credit } : {}),
+          ...(typeof item.color === 'string' && item.color.length <= 100 ? { color: item.color } : {}) })),
+    })).filter(category => category.items.length)
+}
+
+/** Recorte centrado con la proporción de la miniatura (como ImageOps.fit). */
+export function coverCrop(width, height, targetWidth, targetHeight) {
+  const scale = Math.min(width / targetWidth, height / targetHeight)
+  const w = Math.max(1, Math.round(targetWidth * scale)), h = Math.max(1, Math.round(targetHeight * scale))
+  return { x: Math.floor((width - w) / 2), y: Math.floor((height - h) / 2), width: w, height: h }
+}

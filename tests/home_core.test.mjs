@@ -146,3 +146,28 @@ test('the privacy mode goes into a managed block of user.js and nothing else is 
   assert.ok(twice.startsWith(mine))
   assert.throws(() => core.withProfileBlock('', 'todo'), /Estricto o Cómodo/)
 })
+
+test('preset backgrounds come from the engine catalogue, without the Firefox ones, checked like wallpapers.py', () => {
+  const id = n => `0000000${n}-0000-4000-8000-000000000000`
+  const attachment = { hash: 'a'.repeat(64), size: 1000, location: 'main-workspace/x/1.avif', mimetype: 'image/avif' }
+  const catalog = { data: [
+    { id: id(1), category: 'abstracts', title: 'b', order: 2, attachment, attribution: { name: { string: 'Ana' } } },
+    { id: id(2), category: 'abstracts', title: 'a', order: 1, attachment },
+    { id: id(3), category: 'firefox', title: 'zorro', attachment },
+    { id: id(4), category: 'solid-colors', title: 'verde', solid_color: '#00AA00' },
+    { id: 'no-es-un-id', category: 'abstracts', attachment },
+    { id: id(5), category: 'celestial', attachment: { ...attachment, location: '../fuera' } },
+    { id: id(6), category: 'celestial', attachment: { ...attachment, mimetype: 'image/svg+xml' } },
+    { id: id(7), category: 'photographs', attachment: { ...attachment, size: 13 * 1024 * 1024 } },
+    { id: id(8), category: 'photographs', visible: false, attachment },
+  ] }
+  const plan = core.planWallpapers(catalog)
+  assert.deepEqual(plan.map(category => category.id), ['abstracts', 'solid-colors'])
+  assert.deepEqual(plan[0].items.map(item => item.id), [id(2), id(1)])
+  assert.equal(plan[0].items[1].credit, 'Foto: Ana · Unsplash')
+  assert.deepEqual(plan[1].items[0], { id: id(4), credit: null, source: 'color:#00aa00', color: '#00aa00' })
+  assert.throws(() => core.planWallpapers({}), error => error.status === 503)
+  const shown = core.publicWallpapers({ categories: [{ id: 'abstracts', name: 'Abstractos', items: [{ id: id(2), sha256: 'b'.repeat(64), source: 'x', credit: null }, { id: id(1) }] }] })
+  assert.deepEqual(shown, [{ id: 'abstracts', name: 'Abstractos', items: [{ id: id(2), sha256: 'b'.repeat(64) }] }])
+  assert.deepEqual(core.coverCrop(1000, 1000, 320, 200), { x: 0, y: 187, width: 1000, height: 625 })
+})
