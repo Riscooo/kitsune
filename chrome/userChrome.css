@@ -52,6 +52,11 @@
   --tab-border-radius: 9px !important;
   --tab-selected-bgcolor: var(--kb-selected) !important;
   --tab-selected-textcolor: var(--kb-text) !important;
+  /* Gecko 157 pinta el título con estos (light-dark() según el sistema): sin ellos, con el
+     sistema oscuro y Kitsune claro, la pestaña activa salía en blanco sobre papel. */
+  --tab-text-color: var(--kb-muted) !important;
+  --tab-text-color-hover: var(--kb-text) !important;
+  --tab-text-color-selected: var(--kb-text) !important;
   --tab-box-shadow-selected: none !important;
   --arrowpanel-background: var(--kb-surface) !important;
   --arrowpanel-color: var(--kb-text) !important;

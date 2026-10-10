@@ -47,6 +47,25 @@ test('the selected tab carries the rust brush stroke on top', async () => {
   assert.match(css, /:is\(\[selected\], \[visually-selected\]\) \.tab-background \{[^}]*url\("assets\/kitsune-stroke\.svg"\)/s);
 });
 
+test('tab titles are Kitsune ink through the Gecko 157 tab text tokens, even when the system is dark', async () => {
+  // Gecko 157 pinta el título con --tab-text-color* (light-dark() según el sistema), no con
+  // --tab-selected-textcolor: sin esto, con el sistema oscuro y Kitsune claro, salía blanco sobre papel.
+  const css = await read('userChrome.css');
+  assert.match(css, /--tab-text-color:\s*var\(--kb-muted\)\s*!important/);
+  assert.match(css, /--tab-text-color-hover:\s*var\(--kb-text\)\s*!important/);
+  assert.match(css, /--tab-text-color-selected:\s*var\(--kb-text\)\s*!important/);
+});
+
+test('address bar results use the Gecko 157 urlbarview tokens in paper and ink, even when the system is dark', async () => {
+  // Gecko 157 dejó --urlbarView-highlight-* por --urlbarview-*: sin estos, el resultado elegido
+  // salía en blanco (SelectedItemText del sistema oscuro) sobre el óxido claro.
+  const css = await read('kitsune-header.css');
+  assert.match(css, /--urlbarview-text-color-selected:\s*var\(--kitsune-text\)\s*!important/);
+  assert.match(css, /--urlbarview-text-color-secondary:\s*var\(--kitsune-quiet\)\s*!important/);
+  assert.match(css, /--urlbarview-text-color-action:\s*var\(--kb-secondary\)\s*!important/);
+  assert.match(css, /--urlbarview-background-color-selected:\s*var\(--kb-primary-container\)\s*!important/);
+});
+
 test('loading tabs spin only the ensō around a still mask, and only pulse with reduced motion', async () => {
   const css = await read('userChrome.css');
   const ring = css.match(/\.tab-throbber\[busy\]::before \{[^}]*\}/s)?.[0] ?? '';

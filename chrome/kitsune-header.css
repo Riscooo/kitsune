@@ -137,6 +137,14 @@
     --urlbarView-highlight-color: var(--kitsune-text) !important;
     --urlbarView-secondary-text-color: var(--kitsune-quiet) !important;
     --urlbarView-action-color: var(--kb-secondary) !important;
+    /* Los mismos con los nombres de Gecko 157: sin ellos, el resultado elegido usaba el
+       color de selección del sistema (blanco en oscuro) sobre el óxido claro. */
+    --urlbarview-text-color-selected: var(--kitsune-text) !important;
+    --urlbarview-text-color-secondary: var(--kitsune-quiet) !important;
+    --urlbarview-text-color-action: var(--kb-secondary) !important;
+    --urlbarview-background-color-selected: var(--kb-primary-container) !important;
+    --urlbarview-background-color-hover: var(--kitsune-hover) !important;
+    --urlbarview-separator-color: var(--kitsune-rule) !important;
     color: var(--kitsune-text) !important;
   }
   #main-window #urlbar .urlbar-background {

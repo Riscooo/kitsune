@@ -1,5 +1,15 @@
 # Kitsune native browser tests
 
+## 0.7: contraste con el sistema oscuro o claro
+
+`python3 tests/contrast_native.py` abre el motor real con el sistema en oscuro y en claro
+(`ui.systemUsesDarkTheme`) y recorre el texto visible de la barra (pestaña y resultados de la
+barra de direcciones), el menú principal y buscar en la página: todo tiene que tener al menos
+3:1 de contraste con su fondo. Gecko calcula algunos colores con `light-dark()` según el
+sistema, y cuando renombra una variable (en la 157, `--tab-text-color-selected` y
+`--urlbarview-text-color-selected`) el texto vuelve al color del sistema: blanco sobre papel.
+Como el motor se actualiza solo, conviene pasarla con cada Gecko nuevo.
+
 ## 0.6: motor propio y modos de privacidad
 
 `python3 -m unittest tests/engine_test.py` cubre el motor propio sin red ni
