@@ -847,8 +847,10 @@ def compile_package(layout: Layout, version: str, source: Path, build_fp: str, l
     if package.is_file():
         log("Paquete ya compilado con esta receta; no hace falta recompilar")
         return package
-    if shutil.disk_usage(layout.cache).free < MIN_FREE_BYTES:
-        raise EngineError("Hacen falta al menos 50 GB libres para compilar Kitsune")
+    # Desde cero hacen falta 50 GB; con la compilación anterior guardada solo se rehace lo que cambia.
+    incremental = (layout.cache / f"obj-{version}").is_dir()
+    if shutil.disk_usage(layout.cache).free < (CROSS_REBUILD_MIN_FREE_BYTES if incremental else MIN_FREE_BYTES):
+        raise EngineError(f"Hacen falta al menos {8 if incremental else 50} GB libres para compilar Kitsune")
     env = mach_environment(write_mozconfig(layout, version), build_tools(layout))
     log(f"Compilando Kitsune sobre Gecko {version} (registro: {logfile})")
     # A compile server left from an earlier build would run compilers outside
