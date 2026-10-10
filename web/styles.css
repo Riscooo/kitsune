@@ -172,6 +172,29 @@ p { margin: 0; text-wrap: pretty; }
 .foot-small { color: var(--tertiary); font-size: 12px; }
 .foot a { text-underline-offset: 3px; }
 
+/* Páginas legales: una columna de lectura, como una hoja. */
+.legal { width: min(720px, calc(100% - 32px)); margin: 0 auto; padding: clamp(40px, 8vh, 88px) 0 0; }
+.legal h1 { font-size: clamp(40px, 5vw, 60px); }
+.legal-date { margin-top: 10px; color: var(--tertiary); font-size: 14px; }
+.legal-nav { display: flex; flex-wrap: wrap; gap: 6px; margin: 26px 0 8px; }
+.legal-nav a { padding: 6px 14px; border: 1px solid var(--line); border-radius: 999px; color: var(--muted); font-size: 14px; text-decoration: none; transition: color .2s, border-color .2s; }
+.legal-nav a:hover { color: var(--text); border-color: var(--accent); }
+.legal-nav a[aria-current=page] { color: var(--accent); border-color: var(--accent); background: var(--accent-soft); }
+.legal-lead { margin-top: 28px; padding: 18px 20px; border-left: 3px solid var(--accent); border-radius: 0 12px 12px 0; background: var(--surface); font-size: 17px; }
+.legal h2 { margin: 44px 0 12px; font-size: clamp(24px, 2.4vw, 30px); }
+.legal p, .legal li { color: var(--muted); }
+.legal p + p { margin-top: 12px; }
+.legal b { color: var(--text); font-weight: 500; }
+.legal ul { display: grid; gap: 10px; margin: 12px 0 0; padding-left: 20px; }
+.legal li::marker { color: var(--accent); }
+.legal a { text-decoration-color: color-mix(in srgb, var(--accent) 55%, transparent); text-underline-offset: 3px; }
+.legal a:hover { color: var(--accent); }
+.legal code { padding: 1px 6px; border-radius: 6px; background: var(--surface-high); font-size: .9em; }
+.legal-table { width: 100%; margin-top: 12px; border-collapse: collapse; font-size: 14px; }
+.legal-table th, .legal-table td { padding: 10px 12px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
+.legal-table th { color: var(--text); font-weight: 500; }
+.legal-table td { color: var(--muted); }
+
 /* Movimiento: el ensō entra girando y el zorro se queda quieto, como en el inicio. */
 @media (prefers-reduced-motion: no-preference) {
   .logo-ring { animation: enso-in 900ms cubic-bezier(.2, .7, .2, 1) backwards; transition: rotate 700ms cubic-bezier(.3, .7, .3, 1); }
@@ -220,4 +243,7 @@ p { margin: 0; text-wrap: pretty; }
   .strip li:nth-child(n+3) { border-top: 1px solid var(--line); }
   .modes, .saver, .grid { grid-template-columns: minmax(0, 1fr); }
   .download-main { width: 100%; }
+  .legal-table thead { display: none; }
+  .legal-table tr { display: grid; padding: 10px 0; border-bottom: 1px solid var(--line); }
+  .legal-table td { padding: 2px 0; border: 0; }
 }

@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="es" data-theme="claro">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Privacidad · Kitsune</title>
+  <meta name="description" content="Qué datos trata la web de Kitsune y a qué servicios se conecta el navegador. Sin telemetría, sin cuentas, sin cookies.">
+  <meta name="color-scheme" content="light dark">
+  <meta name="theme-color" content="#f6f5f1" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#161a19" media="(prefers-color-scheme: dark)">
+  <link rel="canonical" href="https://kitsune-navegador.vercel.app/privacidad">
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml" media="(prefers-color-scheme: light)">
+  <link rel="icon" href="/assets/favicon-dark.svg" type="image/svg+xml" media="(prefers-color-scheme: dark)">
+  <link rel="preload" href="/assets/fuentes/NotoSerif-Regular.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="/assets/fuentes/NotoSans-Regular.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="/styles.css">
+  <script src="/tema.js"></script>
+</head>
+<body>
+  <a class="skip" href="#contenido">Saltar al contenido</a>
+  <header class="top">
+    <a class="brand" href="/" aria-label="Kitsune, inicio">
+      <span class="logo-art logo-light" aria-hidden="true"><img class="logo-ring" src="/assets/logo-ring.svg" alt=""><img class="logo-mask" src="/assets/logo-mask.svg" alt=""></span>
+      <span class="logo-art logo-dark" aria-hidden="true"><img class="logo-ring" src="/assets/logo-ring-dark.svg" alt=""><img class="logo-mask" src="/assets/logo-mask-dark.svg" alt=""></span>
+      <span class="wordmark">kitsune<i aria-hidden="true"></i></span>
+    </a>
+    <a class="ghost-link" href="/">Volver a Kitsune</a>
+  </header>
+
+  <main class="legal" id="contenido">
+    <p class="eyebrow">Legal</p>
+    <h1>Privacidad</h1>
+    <p class="legal-date">Última actualización: 10 de octubre de 2026</p>
+
+    <nav class="legal-nav" aria-label="Páginas legales">
+      <a href="/aviso-legal">Aviso legal</a>
+      <a href="/privacidad" aria-current="page">Privacidad</a>
+      <a href="/cookies">Cookies</a>
+    </nav>
+
+    <p class="legal-lead">En corto: Kitsune no tiene cuentas, no envía datos de uso y esta web no usa cookies ni analítica. Lo que haces en el navegador se queda en tu equipo.</p>
+
+    <h2>Responsable</h2>
+    <p>Manuel Risco, creador de Kitsune. Para cualquier duda sobre privacidad: <a href="mailto:elminirsk@gmail.com">elminirsk@gmail.com</a>.</p>
+
+    <h2>Esta web</h2>
+    <ul>
+      <li><b>No te pide datos.</b> No hay registro, formularios ni boletines.</li>
+      <li><b>Sin cookies ni analítica.</b> No medimos visitas ni usamos herramientas de seguimiento o publicidad.</li>
+      <li><b>Tu tema, en tu navegador.</b> Si cambias entre claro y oscuro, lo recordamos en el almacenamiento local de tu navegador (<code>kitsune-tema</code>). No sale de tu equipo y puedes borrarlo cuando quieras.</li>
+      <li><b>Alojamiento.</b> La web está alojada en Vercel Inc. Como cualquier servidor, recibe tu dirección IP y datos técnicos de la petición para entregarte la página y protegerla de abusos, y los guarda en sus registros durante un tiempo limitado. Vercel está en Estados Unidos y se adhiere al Marco de Privacidad de Datos UE-EE. UU. Más información en su <a href="https://vercel.com/legal/privacy-policy" rel="noopener">política de privacidad</a>.</li>
+      <li><b>Descargas.</b> Los instaladores se sirven desde esta web o desde GitHub. Si descargas desde GitHub, se aplica su <a href="https://docs.github.com/es/site-policy/privacy-policies/github-general-privacy-statement" rel="noopener">declaración de privacidad</a>.</li>
+    </ul>
+
+    <h2>El navegador</h2>
+    <p>Tu historial, marcadores, contraseñas, cookies, perfiles y ajustes se guardan solo en tu equipo. Kitsune no tiene servidor propio ni cuentas, así que no tenemos copia de nada.</p>
+    <p><b>No envía:</b> datos de uso (telemetría), informes de fallos, estudios, contenido patrocinado ni datos a cuentas de Mozilla. Esas funciones están quitadas o bloqueadas.</p>
+    <p><b>Sí se conecta, solo para funcionar y protegerte:</b></p>
+    <ul>
+      <li><b>Tienda de extensiones de Mozilla</b> (addons.mozilla.org): para instalar y actualizar extensiones y comprobar sus firmas y la lista de extensiones bloqueadas.</li>
+      <li><b>Listas de seguridad de Mozilla</b> (Remote Settings): certificados revocados, listas de rastreadores para el bloqueo y otras listas de seguridad.</li>
+      <li><b>Listas de filtros de uBlock Origin:</b> se descargan de los servidores de cada lista para bloquear anuncios y rastreadores.</li>
+      <li><b>Google Safe Browsing:</b> Kitsune descarga listas de webs de estafa y malware. Si una dirección coincide con la lista, envía a Google solo el principio de una huella cifrada de esa dirección, nunca la dirección completa, para confirmarlo. Puedes desactivarlo en los ajustes de privacidad.</li>
+      <li><b>Códecs de vídeo:</b> si una web los necesita, se descargan OpenH264 (de Cisco) y Widevine (de Google, para contenido protegido).</li>
+      <li><b>Lo que tú eliges:</b> las webs que visitas, el buscador que usas y las extensiones que instalas reciben lo que les mandas, según sus propias políticas.</li>
+    </ul>
+    <p>Para identificarse ante las webs, Kitsune usa el mismo agente de usuario que Firefox. Es necesario para que las webs funcionen y no lleva ningún dato tuyo.</p>
+
+    <h2>Tus derechos</h2>
+    <p>Como no guardamos datos tuyos, normalmente no habrá nada que consultar ni borrar. Aun así, puedes escribirnos para ejercer tus derechos de acceso, rectificación, supresión, oposición, limitación y portabilidad. Si crees que no se han respetado, puedes reclamar ante la <a href="https://www.aepd.es" rel="noopener">Agencia Española de Protección de Datos</a>.</p>
+
+    <h2>Cambios</h2>
+    <p>Si cambia algo de lo que hace Kitsune con tus datos, lo contaremos aquí y actualizaremos la fecha de arriba antes de publicar esa versión.</p>
+  </main>
+
+  <footer class="foot">
+    <img src="/assets/mascota/cola.svg" width="110" height="85" alt="">
+    <p>Kitsune · un proyecto de Manuel Risco</p>
+    <p class="foot-small"><a href="/aviso-legal">Aviso legal</a> · <a href="/privacidad">Privacidad</a> · <a href="/cookies">Cookies</a></p>
+  </footer>
+</body>
+</html>
