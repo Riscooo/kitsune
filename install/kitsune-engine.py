@@ -255,6 +255,16 @@ brandShortName=Kitsune
 brandFullName=Kitsune
 """
 BRAND_CONFIGURE = "MOZ_APP_DISPLAYNAME=Kitsune\nMOZ_MACBUNDLE_ID=kitsune\n"
+WINDOWS_BRANDING = BRANDING / "windows"
+WEBSITE = "https://kitsune-navegador.vercel.app"
+# Lo que el instalador de Windows enseña y deja en «Aplicaciones instaladas».
+BRANDING_NSI = {
+    "BrandFullNameInternal": "Kitsune", "BrandFullName": "Kitsune", "CompanyName": "Kitsune",
+    "URLInfoAbout": WEBSITE, "HelpLink": f"{WEBSITE}/#preguntas",
+    "URLStubDownloadX86": f"{WEBSITE}/#descargar", "URLStubDownloadAMD64": f"{WEBSITE}/#descargar",
+    "URLStubDownloadAArch64": f"{WEBSITE}/#descargar", "URLManualDownload": f"{WEBSITE}/#descargar",
+    "URLSystemRequirements": f"{WEBSITE}/#descargar",
+}
 # Gecko's configure insists on an unzip program it barely uses (tests and
 # language repacks). Without root, a minimal stand-in built on Python's zipfile
 # covers its "unzip [-q] [-o] archive [-d dir]" and "-l" forms.
@@ -353,6 +363,8 @@ def input_files():
     if SAFEBROWSING_KEY.is_file():
         files["safebrowsing-api-key"] = SAFEBROWSING_KEY
     files["branding/icon-small.svg"] = BRANDING / "icon-small.svg"
+    for asset in sorted(WINDOWS_BRANDING.iterdir()):
+        files[f"branding/windows/{asset.name}"] = asset
     return files
 
 
@@ -492,6 +504,18 @@ def write_branding(source: Path):
     (target / "configure.sh").write_text(BRAND_CONFIGURE)
     (target / "locales/en-US/brand.ftl").write_text(BRAND_FTL)
     (target / "locales/en-US/brand.properties").write_text(BRAND_PROPERTIES)
+    # Windows: iconos, mosaicos e imágenes del instalador propios (tools/branding/windows.py)
+    # y el nombre, la empresa y los enlaces del instalador.
+    for asset in sorted(WINDOWS_BRANDING.iterdir()):
+        shutil.copyfile(asset, target / asset.name)
+    nsi = target / "branding.nsi"
+    if nsi.is_file():
+        text = nsi.read_text()
+        for key, value in BRANDING_NSI.items():
+            text, count = re.subn(rf'(?m)^(!define {key}\s+)"[^"]*"', lambda match: f'{match.group(1)}"{value}"', text)
+            if count != 1:
+                raise EngineError(f"branding.nsi cambió ({key}); la receta necesita revisión")
+        nsi.write_text(text)
 
 
 def integrate_native(source: Path):
@@ -1126,6 +1150,9 @@ def write_target_mozconfig(layout: Layout, version: str, target: str) -> Path:
     text = ((RECIPE / "mozconfig.in").read_text().replace("@OBJDIR@", str(objdir))
             .replace("@L10NBASE@", str(layout.cache / f"l10n-{version}")))
     text += f"\n# Kitsune para {target}: compilación cruzada desde Linux.\nac_add_options --target={TARGETS[target]}\n"
+    if target == "windows":
+        # Sin el agente del navegador predeterminado (tarea programada que informa a Mozilla).
+        text += "ac_add_options --disable-default-browser-agent\n"
     path = layout.cache / f"mozconfig-{version}-{target}"
     path.write_text(text)
     return path

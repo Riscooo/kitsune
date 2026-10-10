@@ -108,6 +108,9 @@ class RecipeTests(unittest.TestCase):
         (unofficial / "configure.sh").write_text("MOZ_APP_DISPLAYNAME=Nightly\n")
         (unofficial / "locales/en-US/brand.ftl").write_text("-brand-short-name = Nightly\n")
         (unofficial / "locales/en-US/brand.properties").write_text("brandShortName=Nightly\n")
+        (unofficial / "branding.nsi").write_text("".join(f'!define {key:<22} "Mozilla {key}"\n' for key in engine.BRANDING_NSI)
+                                                 + '!define Channel "unofficial"\n')
+        (unofficial / "firefox.ico").write_bytes(b"mozilla")
         content = root / "browser/base/content"
         content.mkdir(parents=True)
         (root / "browser/base/jar.mn").write_text(
@@ -138,6 +141,12 @@ class RecipeTests(unittest.TestCase):
         for name in engine.NATIVE_FILES:
             self.assertEqual((root / "browser/base/content" / name).read_bytes(), (ROOT / "install/native" / name).read_bytes())
         self.assertNotIn("LibreWolf", (brand / "locales/en-US/brand.ftl").read_text())
+        nsi = (brand / "branding.nsi").read_text()
+        self.assertNotIn("Mozilla", nsi)
+        self.assertRegex(nsi, r'(?m)^!define BrandFullName\s+"Kitsune"$')
+        self.assertIn(engine.WEBSITE, nsi)
+        self.assertEqual((brand / "firefox.ico").read_bytes(), (ROOT / "install/branding/windows/firefox.ico").read_bytes())
+        self.assertTrue((brand / "wizWatermark.bmp").is_file())
 
     def rebrand_tree(self):
         root = self.source_tree()
@@ -458,6 +467,7 @@ class TargetTests(unittest.TestCase):
             self.assertIn(f"ac_add_options --target={triple}", text)
             self.assertIn(f"obj-157.0.1-{target}", text)
             self.assertNotIn("safebrowsing-api-keyfile", text)
+            self.assertEqual("--disable-default-browser-agent" in text, target == "windows")
         with self.assertRaises(engine.EngineError):
             engine.build_target(layout, "157.0.1", "beos")
 
