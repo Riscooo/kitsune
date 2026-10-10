@@ -1108,7 +1108,7 @@ def build(layout: Layout, version=None, if_new=False, notify_user=False, log=pri
 # Motores de Kitsune para Windows y macOS, compilados aquí en cruzado: Gecko trae
 # sus herramientas (el kit de Visual Studio y el SDK de macOS de Apple) con
 # --enable-bootstrap. Se empaquetan para la web de descarga; no se instalan ni se
-# prueban en este PC. Sin la clave propia de Safe Browsing (es solo de Risco).
+# prueban en este PC. Con la clave de Safe Browsing de Risco, si está (lo decidió él).
 TARGETS = {"windows": "x86_64-pc-windows-msvc", "macos": "aarch64-apple-darwin"}
 CROSS_MIN_FREE_BYTES = 30 * 2**30
 # Si ya hay una compilación anterior para ese sistema, solo se recompila lo que cambia.
@@ -1244,6 +1244,10 @@ def write_target_mozconfig(layout: Layout, version: str, target: str) -> Path:
     if target == "windows":
         # Sin el agente del navegador predeterminado (tarea programada que informa a Mozilla).
         text += "ac_add_options --disable-default-browser-agent\n"
+    if SAFEBROWSING_KEY.is_file():
+        # Risco decidió (2026-10-10) que las versiones públicas también lleven su clave.
+        text += f"# Avisos de webs peligrosas (clave de Google Safe Browsing de Risco).\n" \
+                f"ac_add_options --with-google-safebrowsing-api-keyfile={SAFEBROWSING_KEY}\n"
     path = layout.cache / f"mozconfig-{version}-{target}"
     path.write_text(text)
     return path

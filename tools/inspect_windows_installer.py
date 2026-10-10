@@ -3,8 +3,8 @@
 
 Abre el .exe (un 7z autoextraíble) con el 7zz que trae Gecko y comprueba que lleva
 lo de Kitsune: kitsune.cfg con su cargador, uBlock Origin firmado, el inicio
-integrado y el estilo dentro del motor, la marca propia, y que la clave personal de
-Safe Browsing de Risco no está en ningún archivo. Sale con error si falta algo.
+integrado y el estilo dentro del motor, la marca propia, y si lleva la clave de
+Safe Browsing. Sale con error si falta algo.
 
     python3 tools/inspect_windows_installer.py <instalador.exe>
 """
@@ -78,10 +78,8 @@ def main(installer: Path) -> int:
             for path in out.rglob("*.ja"):
                 with zipfile.ZipFile(path) as archive:
                     leaked += [f"{path.name}!{name}" for name in archive.namelist() if key in archive.read(name)]
-            if leaked:
-                problems.append(f"¡la clave de Safe Browsing está en {leaked[:3]}!")
-            else:
-                notes.append("la clave de Safe Browsing no está en ningún archivo")
+            # Desde el 2026-10-10 las versiones públicas llevan la clave de Risco (lo decidió él).
+            notes.append("lleva la clave de Safe Browsing" if leaked else "sin clave de Safe Browsing: no habrá avisos de webs peligrosas")
         total = sum(path.stat().st_size for path in out.rglob("*") if path.is_file())
         notes.append(f"{installer.stat().st_size / 2**20:.0f} MB el instalador, {total / 2**20:.0f} MB instalado")
     notes.append("SHA-256 " + hashlib.sha256(installer.read_bytes()).hexdigest())

@@ -488,7 +488,7 @@ class DistributionAddonTests(unittest.TestCase):
 
 
 class TargetTests(unittest.TestCase):
-    def test_cross_mozconfig_targets_the_other_system_in_its_own_objdir_without_the_key(self):
+    def test_cross_mozconfig_targets_the_other_system_in_its_own_objdir_with_risco_s_key(self):
         base = Path(tempfile.mkdtemp())
         layout = engine.Layout(base / "data", base / "state", base / "cache")
         layout.cache.mkdir(parents=True)
@@ -496,7 +496,7 @@ class TargetTests(unittest.TestCase):
             text = engine.write_target_mozconfig(layout, "157.0.1", target).read_text()
             self.assertIn(f"ac_add_options --target={triple}", text)
             self.assertIn(f"obj-157.0.1-{target}", text)
-            self.assertNotIn("safebrowsing-api-keyfile", text)
+            self.assertEqual("safebrowsing-api-keyfile" in text, engine.SAFEBROWSING_KEY.is_file())
             self.assertEqual("--disable-default-browser-agent" in text, target == "windows")
         with self.assertRaises(engine.EngineError):
             engine.build_target(layout, "157.0.1", "beos")
