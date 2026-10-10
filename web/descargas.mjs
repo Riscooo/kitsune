@@ -15,7 +15,7 @@ export function detectPlatform(agent = navigator.userAgent, platform = navigator
   return null
 }
 
-/** downloads.json: solo enlaces del propio sitio o https de GitHub, con versión y tamaño opcionales. */
+/** downloads.json: solo enlaces del propio sitio o https de GitHub, con versión, tamaño y nota opcionales. */
 export function parseDownloads(value, origin) {
   const result = { version: typeof value?.version === 'string' ? value.version.slice(0, 20) : null, files: {} }
   for (const key of Object.keys(PLATFORMS)) {
@@ -25,7 +25,8 @@ export function parseDownloads(value, origin) {
     try { url = new URL(entry.url, origin) } catch { continue }
     const allowed = url.origin === origin || (url.protocol === 'https:' && url.hostname === 'github.com')
     if (!allowed) continue
-    result.files[key] = { url: url.href, size: typeof entry.size === 'string' ? entry.size.slice(0, 20) : '' }
+    result.files[key] = { url: url.href, size: typeof entry.size === 'string' ? entry.size.slice(0, 20) : '',
+      note: typeof entry.note === 'string' ? entry.note.slice(0, 60) : '' }
   }
   return result
 }

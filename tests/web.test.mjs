@@ -16,21 +16,23 @@ test('the big button picks the visitor system and skips phones', () => {
 test('downloads only link to this site or GitHub, and missing ones stay «Próximamente»', () => {
   const parsed = parseDownloads({
     version: '0.7',
-    windows: { url: '/descargas/kitsune-0.7-windows.exe', size: '92 MB' },
+    windows: { url: '/descargas/kitsune-0.7-windows.exe', size: '92 MB', note: 'Beta · sin firmar' },
     macos: { url: 'https://github.com/Riscooo/kitsune/releases/download/v0.7/kitsune.dmg' },
     linux: { url: 'https://evil.example/kitsune.tar.xz' },
   }, ORIGIN)
   assert.equal(parsed.version, '0.7')
-  assert.deepEqual(parsed.files.windows, { url: `${ORIGIN}/descargas/kitsune-0.7-windows.exe`, size: '92 MB' })
+  assert.deepEqual(parsed.files.windows, { url: `${ORIGIN}/descargas/kitsune-0.7-windows.exe`, size: '92 MB', note: 'Beta · sin firmar' })
   assert.equal(parsed.files.macos.size, '')
   assert.equal(parsed.files.linux, undefined)
   assert.deepEqual(parseDownloads({ windows: { url: 'javascript:alert(1)' } }, ORIGIN).files, {})
   assert.deepEqual(parseDownloads(null, ORIGIN), { version: null, files: {} })
 })
 
-test('the published downloads.json has no download yet, and the page has every section it links to', async () => {
+test('published downloads only point at releases of this repository, and the page has every section it links to', async () => {
   const published = JSON.parse(await readFile(new URL('../web/downloads.json', import.meta.url), 'utf8'))
-  assert.deepEqual(parseDownloads(published, ORIGIN).files, {})
+  for (const file of Object.values(parseDownloads(published, ORIGIN).files)) {
+    assert.match(file.url, /^https:\/\/github\.com\/Riscooo\/kitsune\/releases\/download\/v[\w.-]+\/[\w.-]+$/)
+  }
   const html = await readFile(new URL('../web/index.html', import.meta.url), 'utf8')
   for (const [, id] of html.matchAll(/href="#([\w-]+)"/g)) assert.match(html, new RegExp(`id="${id}"`), id)
   for (const [, src] of html.matchAll(/(?:src|href)="\/(assets\/[^"]+)"/g)) {

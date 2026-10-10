@@ -154,6 +154,7 @@ p { margin: 0; text-wrap: pretty; }
 .platform-button[aria-disabled=true] { color: var(--muted); background: var(--surface-high); cursor: default; }
 .platform[data-mine=true] { border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 14%, transparent); }
 .platform[data-mine=true]::after { content: "Tu sistema"; position: absolute; top: 18px; right: 18px; padding: 3px 10px; border-radius: 999px; color: var(--accent); background: var(--accent-soft); font-size: 12px; font-weight: 500; }
+.platform-note { margin: 2px 0 0; color: var(--tertiary); font-size: 12px; text-align: center; }
 .downloads-note { margin-top: 22px; color: var(--tertiary); font-size: 14px; }
 
 /* Preguntas */

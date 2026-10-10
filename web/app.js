@@ -43,6 +43,12 @@ function render({ version, files }) {
     button.removeAttribute('aria-disabled')
     button.textContent = file.size ? `Descargar · ${file.size}` : 'Descargar'
     card.dataset.ready = 'true'
+    if (file.note) {
+      const note = document.createElement('p')
+      note.className = 'platform-note'
+      note.textContent = file.note
+      button.after(note)
+    }
   }
   const ready = Object.keys(files).length
   if (ready) document.querySelector('#downloads-note').textContent = 'Si tu sistema aún pone «Próximamente», ya casi está.'
@@ -57,7 +63,7 @@ function render({ version, files }) {
   const file = mine && files[mine]
   if (file) {
     main.disabled = false
-    mainNote.textContent = file.size || `Versión ${version ?? ''}`.trim()
+    mainNote.textContent = [file.size, file.note].filter(Boolean).join(' · ') || `Versión ${version ?? ''}`.trim()
     main.addEventListener('click', () => { location.href = file.url })
     document.querySelector('#hero-note').hidden = true
   }

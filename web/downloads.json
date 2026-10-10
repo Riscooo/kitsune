@@ -1,1 +1,10 @@
-{"version": "0.7", "windows": null, "macos": null, "linux": null}
+{
+  "version": "0.7 beta",
+  "windows": {
+    "url": "https://github.com/Riscooo/kitsune/releases/download/v0.7.0-beta.1/Kitsune-0.7.0-beta.1-Windows-x64.exe",
+    "size": "88 MB",
+    "note": "Beta · aún sin firmar"
+  },
+  "macos": null,
+  "linux": null
+}
