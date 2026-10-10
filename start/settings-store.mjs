@@ -106,9 +106,10 @@ export function createSettingsStore({ fetcher = (...args) => globalThis.fetch(..
     queue = operation.catch(() => false)
     return operation
   }
-  /** Uploads a new home background. The server normalizes the image and
-   * answers with the new settings snapshot; its error text is shown as is. */
-  function setBackground(imageData) {
+  /** Sets the home background: { imageData } uploads an image, { preset } picks
+   * one of the preset backgrounds. The server normalizes or re-checks the image
+   * and answers with the new settings snapshot; its error text is shown as is. */
+  function setBackground(choice) {
     if (!alive) return Promise.resolve({ ok: false })
     pending++; generation++
     const operation = queue.then(async () => {
@@ -120,7 +121,7 @@ export function createSettingsStore({ fetcher = (...args) => globalThis.fetch(..
         if (!ready) accept((await request()).snapshot)
         const response = await fetcher('/api/background', {
           method: 'POST', credentials: 'omit', cache: 'no-store', signal: controller.signal,
-          headers: { 'Content-Type': 'application/json', 'X-Kitsune-Token': snapshot.token }, body: JSON.stringify({ imageData }),
+          headers: { 'Content-Type': 'application/json', 'X-Kitsune-Token': snapshot.token }, body: JSON.stringify(choice),
         })
         let body
         try { body = await response.json() } catch { body = null }

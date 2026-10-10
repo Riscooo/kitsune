@@ -10,17 +10,18 @@ const LEGACY = 'browser.kitsune.googleRetentionManaged';
 const GOOGLE = ['https://google.com', 'https://accounts.google.com'];
 const PERMISSION = 'persist-data-on-shutdown';
 const SCHEME_PREFS = ['ui.systemUsesDarkTheme'];
+const WEBSITES = 'layout.css.prefers-color-scheme.content-override';
 
-function fixture({ permissions = new Map(), preferences = new Map(), inherited = false } = {}) {
+function fixture({ permissions = new Map(), preferences = new Map(), inherited = false, newTab = null } = {}) {
   const calls = [];
   const prefs = {
     getStringPref: (name, fallback) => preferences.has(name) ? preferences.get(name) : fallback,
     getBoolPref: (name, fallback) => preferences.has(name) ? preferences.get(name) : fallback,
     getIntPref: (name, fallback) => preferences.has(name) ? preferences.get(name) : fallback,
     setIntPref(name, value) { assert.ok(SCHEME_PREFS.includes(name), name); preferences.set(name, value); calls.push(['int', name, value]); },
-    setStringPref(name, value) { assert.equal(name, OWNED); assert.equal(typeof value, 'string'); preferences.set(name, value); calls.push(['pref', name, value]); },
+    setStringPref(name, value) { assert.ok([OWNED, 'kitsune.theme.applied'].includes(name), name); assert.equal(typeof value, 'string'); preferences.set(name, value); calls.push(['pref', name, value]); },
     prefHasUserValue: name => preferences.has(name),
-    clearUserPref(name) { assert.ok([OWNED, LEGACY].includes(name)); preferences.delete(name); calls.push(['clear', name]); },
+    clearUserPref(name) { assert.ok([OWNED, LEGACY, WEBSITES].includes(name), name); preferences.delete(name); calls.push(['clear', name]); },
   };
   const perms = {
     ALLOW_ACTION: 1,
@@ -46,7 +47,10 @@ function fixture({ permissions = new Map(), preferences = new Map(), inherited =
   };
   const sheets = { USER_SHEET: 1 };
   const context = vm.createContext({
-    ChromeUtils: { importESModule(specifier) { assert.equal(specifier, 'resource://gre/modules/Timer.sys.mjs'); return { setInterval() {}, clearInterval() {} }; } },
+    ChromeUtils: { importESModule(specifier) {
+      if (specifier === 'resource:///modules/AboutNewTab.sys.mjs' && newTab) return { AboutNewTab: newTab };
+      assert.equal(specifier, 'resource://gre/modules/Timer.sys.mjs'); return { setInterval() {}, clearInterval() {} };
+    } },
     Cc: { '@mozilla.org/content/style-sheet-service;1': { getService: () => sheets } },
     Ci: { nsIStyleSheetService: {}, nsIFile: {} },
     Services: {
@@ -59,7 +63,7 @@ function fixture({ permissions = new Map(), preferences = new Map(), inherited =
   // Execute only this local trusted source against fake Services. No network,
   // real profile, timers or native browser APIs are available in the context.
   vm.runInContext(source.replace('export const KitsuneAppearance', 'const KitsuneAppearance') +
-    '\nglobalThis.api = { validate, nativeCss, applyGoogle, applyScheme, managedOrigins };', context);
+    '\nglobalThis.api = { validate, nativeCss, applyGoogle, applyScheme, applyNewTab, managedOrigins };', context);
   return { api: context.api, permissions, preferences, calls };
 }
 
@@ -122,6 +126,35 @@ test('the Gecko dark-scheme pref follows the theme and is written only when it c
   assert.equal(f.calls.length, writes);
   f.api.applyScheme('claro');
   assert.deepEqual(SCHEME_PREFS.map(name => f.preferences.get(name)), [0]);
+});
+
+test('new tabs open the profile\'s own Kitsune home, unless an extension already changed them', () => {
+  const tab = (overridden = false, url = 'about:newtab') => ({ newTabURLOverridden: overridden, newTabURL: url });
+  const home = 'http://127.0.0.1:49721/';
+  let newTab = tab();
+  fixture({ newTab, preferences: new Map([['browser.startup.homepage', home]]) }).api.applyNewTab();
+  assert.equal(newTab.newTabURL, home);
+  newTab = tab(true, 'moz-extension://fixture/newtab.html');
+  fixture({ newTab, preferences: new Map([['browser.startup.homepage', home]]) }).api.applyNewTab();
+  assert.equal(newTab.newTabURL, 'moz-extension://fixture/newtab.html');
+  for (const homepage of ['https://example.com/', 'http://127.0.0.1:49721/evil', 'http://localhost:49721/', '']) {
+    newTab = tab();
+    fixture({ newTab, preferences: new Map([['browser.startup.homepage', homepage]]) }).api.applyNewTab();
+    assert.equal(newTab.newTabURL, 'about:newtab', homepage);
+  }
+});
+
+test('switching theme puts websites back on automatic once, so an old forced-light choice cannot win', () => {
+  const f = fixture({ preferences: new Map([[WEBSITES, 1]]) });
+  f.api.applyScheme('oscuro');
+  assert.equal(f.preferences.has(WEBSITES), false);
+  assert.equal(f.preferences.get('kitsune.theme.applied'), 'oscuro');
+  // A later manual choice in Gecko's settings stays until the next theme change.
+  f.preferences.set(WEBSITES, 1);
+  f.api.applyScheme('oscuro');
+  assert.equal(f.preferences.get(WEBSITES), 1);
+  f.api.applyScheme('claro');
+  assert.equal(f.preferences.has(WEBSITES), false);
 });
 
 test('a Nightfall (v1) control is rejected instead of half-applied', () => {

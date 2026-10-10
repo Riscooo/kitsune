@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import argparse
 import copy
+import hashlib
 import importlib.util
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import json
@@ -34,6 +35,7 @@ MAX_BODY = 32 * 1024
 MAX_PROFILE_BODY = 2 * 1024 * 1024
 MAX_BACKGROUND_BODY = 17 * 1024 * 1024
 BACKGROUND_ROUTE = re.compile(r"/api/background/([0-9a-f]{64})\.jpg")
+WALLPAPER_ROUTE = re.compile(r"/api/wallpapers/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\.jpg")
 MAX_REVISION = (2 ** 53) - 1
 ASSETS = {
     "/": ("index.html", "text/html; charset=utf-8"),
@@ -44,6 +46,7 @@ ASSETS = {
     "/app.css": ("app.css", "text/css; charset=utf-8"),
     "/palette.css": ("palette.css", "text/css; charset=utf-8"),
     "/favicon.svg": ("favicon.svg", "image/svg+xml"),
+    "/favicon-dark.svg": ("favicon-dark.svg", "image/svg+xml"),
     "/logo.svg": ("logo.svg", "image/svg+xml"),
     "/logo-dark.svg": ("logo-dark.svg", "image/svg+xml"),
     "/seal.svg": ("seal.svg", "image/svg+xml"),
@@ -313,6 +316,43 @@ class HomeServer(ThreadingHTTPServer):
                 except FileNotFoundError:
                     pass
 
+    def wallpapers(self):
+        """The preset backgrounds prepared by wallpapers.py, only those whose files exist."""
+        if self.appearance is None:
+            return {"categories": []}
+        library = Path(self.appearance.browser_root) / "wallpapers"
+        try:
+            index = json.loads(read_regular(library / "index.json", 512 * 1024))
+            categories = []
+            for category in index["categories"]:
+                items = []
+                for item in category["items"]:
+                    if not (isinstance(item["id"], str) and WALLPAPER_ROUTE.fullmatch(f"/api/wallpapers/{item['id']}.jpg")
+                            and isinstance(item["sha256"], str) and re.fullmatch(r"[0-9a-f]{64}", item["sha256"])):
+                        continue
+                    if (library / f"{item['id']}.jpg").is_file() and (library / f"{item['id']}-thumb.jpg").is_file():
+                        public = {"id": item["id"], "sha256": item["sha256"]}
+                        for key in ("credit", "color"):
+                            if isinstance(item.get(key), str) and len(item[key]) <= 100:
+                                public[key] = item[key]
+                        items.append(public)
+                if items and isinstance(category.get("id"), str) and isinstance(category.get("name"), str):
+                    categories.append({"id": category["id"][:40], "name": category["name"][:40], "items": items})
+            return {"categories": categories, "library": library}
+        except (OSError, ValueError, KeyError, TypeError):
+            return {"categories": []}
+
+    def preset_background(self, identifier):
+        """Bytes and hash of one preset, re-checked against the library index."""
+        index = self.wallpapers()
+        item = next((i for c in index["categories"] for i in c["items"] if i["id"] == identifier), None)
+        if item is None:
+            raise InvalidSettings("Ese fondo de serie no está disponible.")
+        image = read_regular(index["library"] / f"{identifier}.jpg", profiles_module.media.MAX_BACKGROUND_JPEG)
+        if hashlib.sha256(image).hexdigest() != item["sha256"]:
+            raise StateUnavailable("El fondo de serie está dañado; vuelve a instalar Kitsune.")
+        return item["sha256"], image
+
     def store_background(self, digest, image):
         path = self.appearance.background(digest)
         directory = path.parent
@@ -358,6 +398,8 @@ class HomeHandler(BaseHTTPRequestHandler):
                      "/api/background": "background"}.get(path, "unknown")
             if BACKGROUND_ROUTE.fullmatch(path or ""):
                 route = "background"
+            if path == "/api/wallpapers" or WALLPAPER_ROUTE.fullmatch(path or ""):
+                route = "wallpapers"
             if re.fullmatch(r"/api/profiles/(default|p-[0-9a-f]{16})(?:/(open|default))?", path or ""):
                 route = "profile_action"
             if re.fullmatch(r"/api/profile-avatars/(default|p-[0-9a-f]{16})/[0-9a-f]{64}\.png", path or ""):
@@ -430,6 +472,22 @@ class HomeHandler(BaseHTTPRequestHandler):
             except OSError:
                 self.error(503, "No se puede leer la foto del perfil.")
             return
+        if path == "/api/wallpapers":
+            index = self.server.wallpapers()
+            self.json_response(200, {"categories": index["categories"]}, head=head)
+            return
+        wallpaper = WALLPAPER_ROUTE.fullmatch(path or "")
+        if wallpaper:
+            index = self.server.wallpapers()
+            if not any(i["id"] == wallpaper[1] for c in index["categories"] for i in c["items"]):
+                self.error(404, "Ese fondo de serie no está disponible.")
+                return
+            try:
+                body = read_regular(index["library"] / f"{wallpaper[1]}-thumb.jpg", 1024 * 1024)
+                self.respond(200, body, "image/jpeg", head=head)
+            except OSError:
+                self.error(503, "No se puede leer el fondo de serie.")
+            return
         background = BACKGROUND_ROUTE.fullmatch(path or "")
         if background:
             try:
@@ -482,6 +540,7 @@ class HomeHandler(BaseHTTPRequestHandler):
             if dark:
                 body = body.replace(b'<html lang="es">', b'<html lang="es" data-theme="oscuro">', 1)
                 body = body.replace(b'<meta name="theme-color" content="#f6f5f1">', b'<meta name="theme-color" content="#161a19">', 1)
+                body = body.replace(b'<link rel="icon" href="favicon.svg"', b'<link rel="icon" href="favicon-dark.svg"', 1)
         self.respond(200, body, content_type, head=head)
 
     def do_HEAD(self):
@@ -642,9 +701,12 @@ class HomeHandler(BaseHTTPRequestHandler):
             if len(raw) != size:
                 raise ValueError("Incomplete request")
             value = json.loads(raw.decode("utf-8"))
-            if type(value) is not dict or set(value) != {"imageData"}:
+            if type(value) is dict and set(value) == {"imageData"}:
+                digest, image = profiles_module.media.normalize_background(value["imageData"])
+            elif type(value) is dict and set(value) == {"preset"} and isinstance(value["preset"], str):
+                digest, image = self.server.preset_background(value["preset"])
+            else:
                 raise InvalidSettings("La solicitud del fondo no es válida.")
-            digest, image = profiles_module.media.normalize_background(value["imageData"])
             with self.server.background_lock:
                 try:
                     self.server.store_background(digest, image)

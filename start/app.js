@@ -5,11 +5,13 @@ import { createAppearance } from './appearance.mjs'
 import { initializeShortcuts } from './shortcuts.mjs'
 import { $, initializeDialogs } from './dialogs.mjs'
 import { initializeNativeActions } from './native-actions.mjs'
+import { initializePresets } from './presets.mjs'
 
 let toastTimer
 let mode = 'all'
 let shortcuts
 let appearance
+let presets
 const announce = message => {
   clearTimeout(toastTimer)
   $('#status').textContent = message; $('#status').hidden = !message
@@ -24,6 +26,7 @@ const store = createSettingsStore({
     for (const radio of document.querySelectorAll('input[name="theme"]')) { radio.checked = radio.value === settings.theme; radio.disabled = !state.ready }
     $('#background-file').disabled = !state.ready
     $('#background-remove').hidden = !settings.background; $('#background-remove').disabled = !state.ready
+    presets?.sync(settings, state.ready)
     $('#focus-toggle').setAttribute('aria-pressed', String(settings.focus)); $('#focus-toggle').disabled = !state.ready
     $('#focus-toggle').textContent = settings.focus ? 'Salir de enfoque' : 'Enfoque'
     $('#save-state').textContent = state.pending ? 'Guardando…' : state.ready ? 'Guardado en este perfil' : 'Sin conexión'
@@ -38,6 +41,13 @@ const store = createSettingsStore({
 appearance = createAppearance({ getSettings: () => store.data, refreshSettings: () => store.refresh({ quiet: true }), onStatus: message => { $('#theme-status').textContent = message } })
 shortcuts = initializeShortcuts({ store, announce })
 initializeDialogs(); initializeNativeActions({ announce })
+presets = initializePresets({
+  async choose(preset) {
+    const result = preset ? await store.setBackground({ preset }) : { ok: await store.save({ background: null }) }
+    $('#background-status').textContent = result.ok ? BACKGROUND_HINT : result.error ?? 'No se ha podido cambiar el fondo.'
+    if (result.ok) { announce(preset ? 'Fondo puesto.' : 'Fondo original.'); await appearance.refresh() }
+  },
+})
 
 async function save(patch) { if (await store.save(patch)) await appearance.refresh() }
 for (const [id, key] of Object.entries(toggles)) $(`#${id}`).addEventListener('change', event => void save({ [key]: event.target.checked }))
@@ -61,7 +71,7 @@ $('#background-file').addEventListener('change', async event => {
   if (file.size > 12 * 1024 * 1024) { status.textContent = 'La imagen es demasiado grande. Elige una de hasta 12 MB.'; return }
   status.textContent = 'Preparando el fondo…'
   try {
-    const result = await store.setBackground(await readImage(file))
+    const result = await store.setBackground({ imageData: await readImage(file) })
     status.textContent = result.ok ? BACKGROUND_HINT : result.error ?? BACKGROUND_HINT
     if (result.ok) { announce('Fondo puesto.'); await appearance.refresh() }
   } catch { status.textContent = 'No se ha podido leer la imagen.' }
@@ -102,7 +112,7 @@ if (location.protocol === 'file:') {
   document.querySelectorAll('[data-native-action]').forEach(button => { button.disabled = true })
   document.documentElement.dataset.ready = 'true'
 } else {
-  void store.refresh().finally(() => { document.documentElement.dataset.ready = 'true'; appearance.start() })
+  void store.refresh().finally(() => { document.documentElement.dataset.ready = 'true'; appearance.start(); void presets.load().then(() => presets.sync(store.data, store.ready)) })
 }
 void initializeProfiles({ announce })
 window.addEventListener('pagehide', () => { clearInterval(clockTimer); clearTimeout(toastTimer); appearance.destroy(); store.destroy() }, { once: true })

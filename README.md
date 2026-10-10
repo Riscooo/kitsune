@@ -51,6 +51,21 @@ Tipografías: Noto Sans en la interfaz y Noto Serif en títulos, saludo y «kits
   guarda en `<perfil>/chrome/kitsune-background-<sha256>.jpg`; el navegador solo
   recibe el hash. Se ve en el inicio y en la nueva pestaña bajo un velo del color de
   fondo. «Quitar fondo» borra el archivo.
+- **Fondos de serie.** Debajo de «Elegir imagen»: «Original» (el fondo liso de
+  siempre) y 51 fondos de la nueva pestaña de Gecko (abstractos, espacio, fotos de
+  Unsplash con su autor y colores). `install/wallpapers.py sync` (lo llama
+  `install.sh`) lee el catálogo del propio motor (`newtab-wallpapers-v2.json` en
+  `browser/omni.ja`), descarga cada imagen una vez del CDN de Mozilla, la acepta solo
+  si coincide con el sha256 y el tamaño del catálogo y la guarda normalizada en
+  `~/.local/share/kitsune-browser/wallpapers/`. La categoría con la marca Firefox no
+  se usa. Sin conexión quedan «Original» y «Elegir imagen».
+- **La pestaña nueva es el inicio de Kitsune.** El módulo nativo pone el inicio local
+  del perfil (`browser.startup.homepage`) como pestaña nueva, con la barra de
+  direcciones vacía y enfocada; ya no aparece la página de Gecko ni su panel de
+  fondos. Una extensión que cambie la pestaña nueva sigue mandando.
+- **Webs en oscuro.** Al cambiar de tema (y la primera vez), «Apariencia de las webs»
+  vuelve a automático: un «Claro» guardado de antes ya no deja Google en claro.
+- **Icono de pestaña** del inicio en negativo en Oscuro (`favicon-dark.svg`).
 - **Pie del inicio limpio.** Fuera «狐 Kitsune · Tinta» de abajo a la izquierda; solo
   quedan Enfoque y Atajos.
 - Control de apariencia v3 (`theme`, `background`); el motor sigue aceptando el v2.
@@ -202,11 +217,12 @@ python3 tests/native_branding_smoke.py
 Las pruebas nativas usan por defecto el motor activo
 (`~/.local/share/kitsune-browser/engine/current/kitsune`) con perfiles temporales.
 
-Resultado 0.7 (10 de octubre de 2026), con el motor `157.0.1-b7e288ace0fc`:
-89 pruebas JS y 124 Python (6 del fondo propio). Nativas: `theme_native.py` 7/7
-(Oscuro en directo en ventana, nueva pestaña y webs; fondo visible en la nueva
-pestaña y en el inicio, comprobado en píxeles; vuelta a Claro), apariencia 6,
-ajustes, cabecera y navegador.
+Resultado 0.7 (10 de octubre de 2026), con el motor `157.0.1-198fb4ecd63f`:
+92 pruebas JS y 129 Python (fondo propio, fondos de serie y librería). Nativas:
+`theme_native.py` 8/8 (Oscuro en directo en ventana, nueva pestaña y webs, también
+con «Claro» guardado de antes; fondo propio y de serie visibles, comprobado en
+píxeles; vuelta a Claro), `newtab_native.py` 2/2 (Ctrl+T y + abren el inicio),
+apariencia 7, ajustes, cabecera y navegador.
 
 Resultado 0.6 «motor propio» (10 de octubre de 2026), con el motor
 `157.0.1-5d576f85e0ef` (Gecko 157.0.1, canal release, LTO thin para Rust):

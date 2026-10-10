@@ -19,7 +19,7 @@ if [ ! -x "${root}/engine/current/kitsune" ]; then
 fi
 
 backup="$(mktemp -d "${data}/kitsune-0.6-backup.XXXXXX")"
-for item in start templates native branding appearance.py home-server.py media.py profiles.py prepare-runtime.py version.json; do
+for item in start templates native branding appearance.py home-server.py media.py profiles.py wallpapers.py prepare-runtime.py version.json; do
     [ -e "${root}/${item}" ] && cp -a "${root}/${item}" "${backup}/"
 done
 mkdir -p "${backup}/profile" "${backup}/state" "${backup}/systemd"
@@ -35,7 +35,7 @@ printf 'Copia previa a Kitsune 0.6 (%s). El perfil se copia aparte, cerrado, en 
     "$(date -Iseconds)" > "${backup}/LEEME.txt"
 
 # Programa, módulos y receta del motor.
-for file in appearance.py home-server.py media.py profiles.py kitsune-engine.py engine_probe.py version.json; do
+for file in appearance.py home-server.py media.py profiles.py wallpapers.py kitsune-engine.py engine_probe.py version.json; do
     install -m 600 "${repo}/install/${file}" "${root}/${file}"
 done
 chmod 700 "${root}/kitsune-engine.py"
@@ -75,6 +75,10 @@ target.write_text(text)
 target.chmod(0o600)
 PY
 done
+
+# Fondos de serie (los de la nueva pestaña de Gecko, comprobados con su sha256).
+# Sin conexión no pasa nada: se quedan «Original» y «Elegir imagen».
+python3 "${root}/wallpapers.py" sync || printf '%s\n' 'No se han podido preparar los fondos de serie; se reintentará en la próxima instalación.' >&2
 
 # Lanzador y servicios.
 install -m 755 "${repo}/install/kitsune-browser" "${bin}/kitsune-browser"

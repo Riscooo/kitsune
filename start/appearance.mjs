@@ -26,6 +26,10 @@ export function createAppearance({ getSettings, refreshSettings = async () => {}
     const root = document.documentElement
     root.dataset.theme = settings.theme
     document.querySelector('meta[name="theme-color"]')?.setAttribute('content', THEME_COLORS[settings.theme] ?? THEME_COLORS.claro)
+    // El icono de la pestaña también en negativo: la tinta no se ve sobre una pestaña oscura.
+    const icon = document.querySelector('link[rel="icon"]')
+    const href = settings.theme === 'oscuro' ? 'favicon-dark.svg' : 'favicon.svg'
+    if (icon && icon.getAttribute('href') !== href) icon.setAttribute('href', href)
     // Solo un hash validado llega a la URL, y siempre es la ruta local del propio inicio.
     if (settings.background && location.protocol !== 'file:') {
       root.style.setProperty('--home-background', `url("/api/background/${settings.background}.jpg")`)

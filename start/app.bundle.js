@@ -966,9 +966,10 @@
 			queue = operation.catch(() => false);
 			return operation;
 		}
-		/** Uploads a new home background. The server normalizes the image and
-		* answers with the new settings snapshot; its error text is shown as is. */
-		function setBackground(imageData) {
+		/** Sets the home background: { imageData } uploads an image, { preset } picks
+		* one of the preset backgrounds. The server normalizes or re-checks the image
+		* and answers with the new settings snapshot; its error text is shown as is. */
+		function setBackground(choice) {
 			if (!alive) return Promise.resolve({ ok: false });
 			pending++;
 			generation++;
@@ -988,7 +989,7 @@
 							"Content-Type": "application/json",
 							"X-Kitsune-Token": snapshot.token
 						},
-						body: JSON.stringify({ imageData })
+						body: JSON.stringify(choice)
 					});
 					let body;
 					try {
@@ -1080,6 +1081,9 @@
 			const root = document.documentElement;
 			root.dataset.theme = settings.theme;
 			document.querySelector("meta[name=\"theme-color\"]")?.setAttribute("content", THEME_COLORS[settings.theme] ?? THEME_COLORS.claro);
+			const icon = document.querySelector("link[rel=\"icon\"]");
+			const href = settings.theme === "oscuro" ? "favicon-dark.svg" : "favicon.svg";
+			if (icon && icon.getAttribute("href") !== href) icon.setAttribute("href", href);
 			if (settings.background && location.protocol !== "file:") {
 				root.style.setProperty("--home-background", `url("/api/background/${settings.background}.jpg")`);
 				root.dataset.background = "on";
@@ -1421,11 +1425,95 @@
 		});
 	}
 	//#endregion
+	//#region start/presets.mjs
+	const IDENTIFIER = /^[\da-f]{8}-[\da-f]{4}-[\da-f]{4}-[\da-f]{4}-[\da-f]{12}$/u;
+	const DIGEST = /^[\da-f]{64}$/u;
+	/** Only well-formed presets from the local home server become buttons. */
+	function parsePresets(value) {
+		if (!Array.isArray(value?.categories)) return [];
+		return value.categories.filter((category) => typeof category?.name === "string" && Array.isArray(category.items)).map((category) => ({
+			name: category.name.slice(0, 40),
+			items: category.items.filter((item) => IDENTIFIER.test(item?.id) && DIGEST.test(item?.sha256)).map((item) => ({
+				id: item.id,
+				sha256: item.sha256,
+				label: typeof item.credit === "string" ? item.credit.slice(0, 100) : typeof item.color === "string" ? `Color ${item.color.slice(0, 7)}` : ""
+			}))
+		})).filter((category) => category.items.length);
+	}
+	/** Fondos de serie: «Original» (sin imagen) y los de la librería local. */
+	function initializePresets({ choose, fetcher = (...args) => globalThis.fetch(...args) }) {
+		const gallery = $("#preset-gallery");
+		let busy = false;
+		let ready = false;
+		async function pick(button) {
+			if (busy) return;
+			busy = true;
+			for (const tile of gallery.querySelectorAll(".preset-tile")) tile.disabled = true;
+			try {
+				await choose(button.dataset.preset);
+			} finally {
+				busy = false;
+				for (const tile of gallery.querySelectorAll(".preset-tile")) tile.disabled = !ready;
+			}
+		}
+		gallery.querySelector(".preset-original").addEventListener("click", (event) => void pick(event.currentTarget));
+		async function load() {
+			if (location.protocol === "file:" || gallery.dataset.loaded) return;
+			try {
+				const response = await fetcher("/api/wallpapers", {
+					credentials: "omit",
+					cache: "no-store"
+				});
+				if (!response.ok) return;
+				for (const category of parsePresets(await response.json())) {
+					const heading = document.createElement("h4");
+					heading.className = "preset-heading";
+					heading.textContent = category.name;
+					const grid = document.createElement("div");
+					grid.className = "preset-grid";
+					category.items.forEach((item, index) => {
+						const button = document.createElement("button");
+						button.type = "button";
+						button.className = "preset-tile";
+						button.dataset.preset = item.id;
+						button.dataset.sha = item.sha256;
+						button.disabled = true;
+						button.setAttribute("aria-pressed", "false");
+						button.setAttribute("aria-label", `${category.name} ${index + 1}${item.label ? ` · ${item.label}` : ""}`);
+						if (item.label) button.title = item.label;
+						const image = document.createElement("img");
+						image.src = `/api/wallpapers/${item.id}.jpg`;
+						image.alt = "";
+						image.loading = "lazy";
+						image.decoding = "async";
+						button.append(image);
+						button.addEventListener("click", () => void pick(button));
+						grid.append(button);
+					});
+					gallery.append(heading, grid);
+				}
+				gallery.dataset.loaded = "true";
+			} catch {}
+		}
+		function sync(settings, isReady) {
+			ready = isReady;
+			for (const tile of gallery.querySelectorAll(".preset-tile")) {
+				tile.setAttribute("aria-pressed", String(tile.dataset.preset ? tile.dataset.sha === settings.background : !settings.background));
+				if (!busy) tile.disabled = !isReady;
+			}
+		}
+		return {
+			load,
+			sync
+		};
+	}
+	//#endregion
 	//#region start/app.js
 	let toastTimer;
 	let mode = "all";
 	let shortcuts;
 	let appearance;
+	let presets;
 	const announce = (message) => {
 		clearTimeout(toastTimer);
 		$("#status").textContent = message;
@@ -1457,6 +1545,7 @@
 			$("#background-file").disabled = !state.ready;
 			$("#background-remove").hidden = !settings.background;
 			$("#background-remove").disabled = !state.ready;
+			presets?.sync(settings, state.ready);
 			$("#focus-toggle").setAttribute("aria-pressed", String(settings.focus));
 			$("#focus-toggle").disabled = !state.ready;
 			$("#focus-toggle").textContent = settings.focus ? "Salir de enfoque" : "Enfoque";
@@ -1483,6 +1572,14 @@
 	});
 	initializeDialogs();
 	initializeNativeActions({ announce });
+	presets = initializePresets({ async choose(preset) {
+		const result = preset ? await store.setBackground({ preset }) : { ok: await store.save({ background: null }) };
+		$("#background-status").textContent = result.ok ? BACKGROUND_HINT : result.error ?? "No se ha podido cambiar el fondo.";
+		if (result.ok) {
+			announce(preset ? "Fondo puesto." : "Fondo original.");
+			await appearance.refresh();
+		}
+	} });
 	async function save(patch) {
 		if (await store.save(patch)) await appearance.refresh();
 	}
@@ -1519,7 +1616,7 @@
 		}
 		status.textContent = "Preparando el fondo…";
 		try {
-			const result = await store.setBackground(await readImage(file));
+			const result = await store.setBackground({ imageData: await readImage(file) });
 			status.textContent = result.ok ? BACKGROUND_HINT : result.error ?? BACKGROUND_HINT;
 			if (result.ok) {
 				announce("Fondo puesto.");
@@ -1602,6 +1699,7 @@
 	} else store.refresh().finally(() => {
 		document.documentElement.dataset.ready = "true";
 		appearance.start();
+		presets.load().then(() => presets.sync(store.data, store.ready));
 	});
 	initializeProfiles({ announce });
 	window.addEventListener("pagehide", () => {

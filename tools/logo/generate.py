@@ -157,6 +157,7 @@ def build() -> dict[str, bytes]:
     return {
         "chrome/assets/kitsune-dark.svg": _dark(full),
         "start/logo-dark.svg": _dark(full),
+        "start/favicon-dark.svg": _dark(small),
         "chrome/assets/kitsune-throbber-ring-dark.svg": _dark(_svg(SMALL_RING_SVG)),
         "chrome/assets/kitsune-throbber-mask-dark.svg": _dark(_svg(SMALL_MASK_SVG)),
         "chrome/assets/kitsune-stroke-dark.svg": _dark(_stroke()),

@@ -291,3 +291,13 @@ body[data-motion=off] *, body[data-motion=off] *::before, body[data-motion=off] 
 :root[data-theme=oscuro] .profile-swatch[data-profile-swatch=teal] { background: var(--kb-secondary); }
 :root[data-theme=oscuro] .profile-swatch[data-profile-swatch=red] { background: var(--kb-primary); }
 :root[data-theme=oscuro] dialog::backdrop { background: color-mix(in srgb, var(--kb-bg) 62%, transparent); }
+/* Fondos de serie: «Original» y la librería local, en miniaturas 16:10. */
+.preset-gallery { margin-top: 6px; }
+.preset-heading { margin: 16px 0 8px; font-size: 11px; font-weight: 550; color: var(--muted); }
+.preset-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+.preset-tile { position: relative; display: grid; place-items: center; aspect-ratio: 16 / 10; padding: 0; overflow: hidden; border: 1px solid var(--line); border-radius: 9px; background: var(--surface-high); }
+.preset-tile img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.preset-tile:hover:not(:disabled) { border-color: var(--muted); }
+.preset-tile[aria-pressed=true] { outline: 2px solid var(--accent); outline-offset: 2px; }
+.preset-tile:disabled { cursor: wait; opacity: 1; }
+.preset-original { background: var(--bg); color: var(--muted); font-size: 10px; }

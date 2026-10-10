@@ -23,6 +23,9 @@ from browser_smoke import ROOT, WebDriver, prepare_profile, eventually
 spec = importlib.util.spec_from_file_location('appearance', ROOT / 'install/appearance.py')
 appearance = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(appearance)
+wall_spec = importlib.util.spec_from_file_location('native_test_wallpapers', ROOT / 'install/wallpapers.py')
+wallpapers = importlib.util.module_from_spec(wall_spec)
+wall_spec.loader.exec_module(wallpapers)
 home_spec = importlib.util.spec_from_file_location('native_test_home', ROOT / 'install/home-server.py')
 home = importlib.util.module_from_spec(home_spec)
 home_spec.loader.exec_module(home)
@@ -58,6 +61,16 @@ def main():
     state = root / 'state'; state.mkdir()
     profiles = home.profiles_module.ProfileManager(root, state)
     profiles.snapshot()
+    # Librería de fondos de serie mínima: un color, como la deja wallpapers.py.
+    (root / 'wallpapers').mkdir()
+    preset_id = '11111111-2222-4333-8444-555555555555'
+    preset_sha, preset_jpeg, preset_thumb = wallpapers.solid('#1e5aff')
+    (root / 'wallpapers' / f'{preset_id}.jpg').write_bytes(preset_jpeg)
+    (root / 'wallpapers' / f'{preset_id}-thumb.jpg').write_bytes(preset_thumb)
+    (root / 'wallpapers/index.json').write_text(json.dumps({'version': 1, 'categories': [{'id': 'solid-colors', 'name': 'Colores',
+        'items': [{'id': preset_id, 'sha256': preset_sha, 'source': 'color:#1e5aff', 'color': '#1e5aff'}]}]}))
+    # Perfil con «Apariencia de las webs: Claro» guardada de antes, como el de Risco.
+    (profile / 'prefs.js').write_text('user_pref("layout.css.prefers-color-scheme.content-override", 1);\n')
     manager = appearance.AppearanceManager(root, state)
     server = home.create_server(profile / 'start', state / 'home.json', port=0, profiles=profiles, appearance=manager)
     worker = threading.Thread(target=server.serve_forever, daemon=True); worker.start()
@@ -128,7 +141,8 @@ def main():
         check('La nueva pestaña también se pone oscura (también con la protección anti-huella de Estricto)')
         driver.navigate(DARK_PAGE)
         assert eventually(lambda: content("return getComputedStyle(document.body).backgroundColor") == 'rgb(0, 0, 0)', timeout=10)
-        check('Las webs que tienen modo oscuro lo reciben')
+        assert not chrome("return Services.prefs.prefHasUserValue('layout.css.prefers-color-scheme.content-override')")
+        check('Las webs que tienen modo oscuro lo reciben, aunque el perfil las tuviera fijadas en claro')
 
         uploaded = api('/api/background', 'POST', {'imageData': solid_png(RED)})
         digest = uploaded['data']['background']
@@ -146,7 +160,20 @@ def main():
         shot = driver.screenshot('oscuro-fondo-inicio.png')
         assert reddish(pixel(shot, 40, 300)), pixel(shot, 40, 300)
         assert not content("return !!document.querySelector('.footer-note')")
-        check('El inicio sale oscuro, con el fondo propio y sin «Kitsune · Tinta» abajo a la izquierda')
+        assert content("return document.querySelector('link[rel=icon]').getAttribute('href')") == 'favicon-dark.svg'
+        check('El inicio sale oscuro, con el fondo propio, icono de pestaña en negativo y sin «Kitsune · Tinta» abajo a la izquierda')
+        driver.click('#settings-open')
+        eventually(lambda: content(f"return !!document.querySelector('.preset-tile[data-preset=\"{preset_id}\"]:not(:disabled)')"), timeout=10)
+        driver.click(f'.preset-tile[data-preset="{preset_id}"]')
+        eventually(lambda: preset_sha in content("return document.documentElement.style.getPropertyValue('--home-background')"), timeout=10)
+        assert content(f"return document.querySelector('.preset-tile[data-preset=\"{preset_id}\"]').getAttribute('aria-pressed')") == 'true'
+        driver.screenshot('oscuro-fondo-de-serie-ajustes.png')
+        content("document.querySelector('[data-close=settings-dialog]').click()")
+        driver.settle()
+        shot = driver.screenshot('oscuro-fondo-de-serie.png')
+        r, g, b = pixel(shot, 40, 300)
+        assert b > r + 30 and b > g + 10, (r, g, b)
+        check('Un fondo de serie se elige con un clic en «Tu inicio» y se ve al momento')
 
         removed = save_settings(background=None)
         applied(removed['appearance']['fingerprint'])

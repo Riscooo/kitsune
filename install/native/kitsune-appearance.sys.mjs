@@ -8,6 +8,10 @@ const GOOGLE_ORIGINS = Object.freeze(['https://google.com', 'https://accounts.go
 const PERMISSION = 'persist-data-on-shutdown';
 const MANAGED_PREF = 'browser.kitsune.googleRetentionManagedOrigins';
 const LEGACY_MANAGED_PREF = 'browser.kitsune.googleRetentionManaged';
+const THEME_APPLIED_PREF = 'kitsune.theme.applied';
+const WEBSITE_SCHEME_PREF = 'layout.css.prefers-color-scheme.content-override';
+// La página de inicio propia del perfil (solo el inicio local de Kitsune).
+const HOME_URL = /^http:\/\/127\.0\.0\.1:[0-9]{2,5}\/$/;
 let timer = null, busy = false, current = '', sheet = null, lastAck = 0, reportedError = false;
 const sheets = Cc['@mozilla.org/content/style-sheet-service;1'].getService(Ci.nsIStyleSheetService);
 const profileDirectory = () => Services.dirsvc.get('ProfD', Ci.nsIFile).path;
@@ -61,9 +65,15 @@ function nativeCss(value) {
 // El esquema de Gecko sigue al tema: menús, ajustes y las webs que lo admiten
 // se ven oscuros en Oscuro. Con el tema por defecto, browser.theme.* vale 2
 // («como el sistema») y lo reescribe Gecko; manda ui.systemUsesDarkTheme.
+// Al cambiar de tema (y la primera vez), las webs vuelven a «automático» para
+// seguirlo, aunque antes se hubieran fijado en claro u oscuro en los ajustes.
 function applyScheme(theme) {
   const wanted = theme === 'oscuro' ? 1 : 0;
   if (Services.prefs.getIntPref('ui.systemUsesDarkTheme', -1) !== wanted) Services.prefs.setIntPref('ui.systemUsesDarkTheme', wanted);
+  if (Services.prefs.getStringPref(THEME_APPLIED_PREF, '') !== theme) {
+    if (Services.prefs.prefHasUserValue(WEBSITE_SCHEME_PREF)) Services.prefs.clearUserPref(WEBSITE_SCHEME_PREF);
+    Services.prefs.setStringPref(THEME_APPLIED_PREF, theme);
+  }
 }
 
 function googlePrincipals() {
@@ -124,10 +134,21 @@ function applyGoogle(enabled) {
   }
 }
 
+// Las pestañas nuevas abren el inicio de Kitsune del perfil en vez de la página
+// de Gecko. Una extensión que ya haya cambiado la pestaña nueva manda: solo se
+// fija cuando nadie la ha cambiado (Gecko la restablece al iniciar Activity Stream).
+function applyNewTab() {
+  const home = Services.prefs.getStringPref('browser.startup.homepage', '');
+  if (!HOME_URL.test(home)) return;
+  const { AboutNewTab } = ChromeUtils.importESModule('resource:///modules/AboutNewTab.sys.mjs');
+  if (!AboutNewTab.newTabURLOverridden) AboutNewTab.newTabURL = home;
+}
+
 async function update() {
   if (busy) return;
   busy = true;
   try {
+    try { applyNewTab(); } catch { /* sin inicio propio, la pestaña nueva de Gecko sigue funcionando */ }
     const directory = PathUtils.join(profileDirectory(), 'chrome');
     const control = PathUtils.join(directory, 'kitsune-appearance.json');
     const info = await IOUtils.stat(control);

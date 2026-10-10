@@ -96,6 +96,14 @@ def normalize_background(value):
         encoded = base64.b64decode(match[2], validate=True)
     except (ValueError, binascii.Error) as error:
         raise InvalidAvatar("No se ha podido leer la imagen.") from error
+    return background_from_bytes(encoded, {"png": "PNG", "jpeg": "JPEG", "webp": "WEBP"}[match[1]])
+
+
+def background_from_bytes(encoded, image_format, thumbnail=None):
+    """Decode one still image of the stated format into a clean, bounded JPEG.
+
+    With thumbnail=(w, h) it also returns a cropped miniature for galleries.
+    """
     if not encoded or len(encoded) > MAX_BACKGROUND_BYTES:
         raise InvalidAvatar("La imagen es demasiado grande. Elige una de hasta 12 MB.")
     try:
@@ -105,9 +113,8 @@ def normalize_background(value):
     with _DECODERS, warnings.catch_warnings():
         warnings.simplefilter("error", Image.DecompressionBombWarning)
         try:
-            with Image.open(io.BytesIO(encoded), formats=("PNG", "JPEG", "WEBP")) as source:
-                expected_format = {"png": "PNG", "jpeg": "JPEG", "webp": "WEBP"}[match[1]]
-                if source.format != expected_format or getattr(source, "n_frames", 1) != 1:
+            with Image.open(io.BytesIO(encoded), formats=(image_format,)) as source:
+                if source.format != image_format or getattr(source, "n_frames", 1) != 1:
                     raise InvalidAvatar("Usa una imagen estática PNG, JPEG o WebP.")
                 width, height = source.size
                 if not 1 <= width <= MAX_BACKGROUND_SIDE or not 1 <= height <= MAX_BACKGROUND_SIDE or width * height > MAX_BACKGROUND_PIXELS:
@@ -115,16 +122,23 @@ def normalize_background(value):
                 source.load()
                 oriented = ImageOps.exif_transpose(source)
                 rgba = oriented.convert("RGBA")
-                rgba.thumbnail(BACKGROUND_BOX, Image.Resampling.LANCZOS)
-                clean = Image.new("RGB", rgba.size)
-                clean.paste(rgba, mask=rgba.getchannel("A"))
-                output = io.BytesIO()
-                clean.save(output, format="JPEG", quality=88, optimize=True, progressive=True)
-                jpeg = output.getvalue()
+                flat = Image.new("RGB", rgba.size)
+                flat.paste(rgba, mask=rgba.getchannel("A"))
+                full = flat.copy()
+                full.thumbnail(BACKGROUND_BOX, Image.Resampling.LANCZOS)
+                jpeg = _jpeg(full)
                 if len(jpeg) > MAX_BACKGROUND_JPEG:
                     raise InvalidAvatar("No se ha podido reducir la imagen al tamaño permitido.")
+                small = _jpeg(ImageOps.fit(flat, thumbnail, method=Image.Resampling.LANCZOS), quality=82) if thumbnail else None
         except InvalidAvatar:
             raise
         except (OSError, ValueError, SyntaxError, UnidentifiedImageError, Image.DecompressionBombError, Image.DecompressionBombWarning) as error:
             raise InvalidAvatar("No se ha podido leer esta imagen. Elige otra PNG, JPEG o WebP.") from error
-    return hashlib.sha256(jpeg).hexdigest(), jpeg
+    digest = hashlib.sha256(jpeg).hexdigest()
+    return (digest, jpeg, small) if thumbnail else (digest, jpeg)
+
+
+def _jpeg(image, quality=88):
+    output = io.BytesIO()
+    image.save(output, format="JPEG", quality=quality, optimize=True, progressive=True)
+    return output.getvalue()
