@@ -166,6 +166,7 @@ p { margin: 0; text-wrap: pretty; }
 .faq summary::after { content: ""; width: 10px; height: 10px; border-right: 1.7px solid var(--accent); border-bottom: 1.7px solid var(--accent); rotate: 45deg; translate: 0 -3px; transition: rotate .25s, translate .25s; flex-shrink: 0; }
 .faq details[open] summary::after { rotate: 225deg; translate: 0 3px; }
 .faq details p { padding: 0 2px 22px; color: var(--muted); }
+.faq code { padding: 1px 6px; border-radius: 6px; background: var(--surface-high); color: var(--text); font-size: 13px; overflow-wrap: anywhere; }
 
 /* Pie */
 .foot { display: grid; justify-items: center; gap: 6px; width: var(--page); margin: clamp(72px, 12vh, 136px) auto 0; padding: 0 0 48px; color: var(--muted); font-size: 14px; text-align: center; }

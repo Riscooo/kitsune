@@ -58,7 +58,7 @@
           </button>
           <a class="ghost-link" href="#descargar">Otros sistemas</a>
         </div>
-        <p class="hero-note" id="hero-note">Windows ya está en beta; macOS, en camino.</p>
+        <p class="hero-note" id="hero-note">Windows y macOS ya están en beta.</p>
       </div>
       <figure class="hero-shot">
         <div class="window">
@@ -191,6 +191,10 @@
       <details>
         <summary>Windows me avisa al instalarlo. ¿Es seguro?</summary>
         <p>El instalador todavía no lleva firma digital (cuesta dinero y llegará más adelante), así que Windows SmartScreen avisa de que no reconoce la aplicación. Si lo has descargado de esta web, pulsa «Más información» y luego «Ejecutar de todas formas». El código de Kitsune es público en GitHub.</p>
+      </details>
+      <details>
+        <summary>macOS no me deja abrirla. ¿Qué hago?</summary>
+        <p>Todavía no está firmada con un certificado de Apple. La primera vez, ve a Ajustes del Sistema → Privacidad y seguridad y pulsa «Abrir igualmente». Si macOS dice que está dañada, abre la Terminal y escribe <code>xattr -dr com.apple.quarantine /Applications/Kitsune.app</code>.</p>
       </details>
       <details>
         <summary>¿Por qué el modo Estricto me cierra las sesiones?</summary>
