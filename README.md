@@ -71,12 +71,16 @@ Tipografías: Noto Sans en la interfaz y Noto Serif en títulos, saludo y «kits
   usa Kitsune en ese perfil.
 - **Barra de scroll propia:** un trazo de óxido sobre fondo transparente (más claro en
   páginas oscuras), en la ventana y en las webs que no traen la suya.
-- **Safe Browsing (protección contra webs de estafa y malware):** Kitsune no trae la
-  clave de Google de Mozilla, así que esas listas no se descargan hasta que haya una
-  propia. Para tenerla: en https://console.cloud.google.com crea un proyecto, activa
-  «Safe Browsing API» y crea una clave de API (gratis para uso no comercial); guárdala
-  en `~/.config/kitsune-browser/safebrowsing-api-key` (`chmod 600`) y la siguiente
-  compilación del motor la incluye sola.
+- **Safe Browsing (protección contra webs de estafa y malware) con clave propia.** Kitsune
+  no trae la clave de Google de Mozilla: la clave propia va en
+  `~/.config/kitsune-browser/safebrowsing-api-key` (`chmod 600`) y la receta la compila
+  dentro (`--with-google-safebrowsing-api-keyfile`; nunca sale en registros). Solo se
+  piden las listas públicas (phishing, malware, software no deseado, apps dañinas): las
+  de descargas (`mwb-4b`, `csdda-32b`) son exclusivas de la clave de Mozilla y harían
+  fallar toda la descarga, así que esa revisión queda bloqueada en «no» y no sale como
+  aviso en Ajustes. `tests/safebrowsing_native.py` comprueba que la página de prueba de
+  phishing de Google sale bloqueada. Para cambiar de clave: Google Cloud → proyecto →
+  «Safe Browsing API» → clave de API (gratis para uso no comercial).
 - **Pendiente para cuando haya web de Kitsune:** la tarjeta «Soporte de Kitsune» de
   Ajustes (ayuda y «Comparte ideas»), oculta hasta entonces en la receta del motor.
 - **Mascota de Kitsune.** Un zorrito kitsune de papel, tinta y óxido
