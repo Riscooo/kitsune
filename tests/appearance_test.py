@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
-"""Defensive, temporary-file tests for Kitsune's fixed appearance protocol (0.5, papel)."""
+"""Defensive, temporary-file tests for Kitsune's appearance protocol (papel o tinta y fondo propio)."""
 
 import copy
 import importlib.util
 import json
 from pathlib import Path
+import re
 import stat
 import tempfile
 import time
@@ -52,11 +53,36 @@ class AppearanceTests(unittest.TestCase):
         self.assertEqual(appearance.PAPEL, expected)
         self.assertEqual(self.refresh()["palette"], expected)
 
-    def test_control_is_version_2_with_only_paper_fields(self):
+    def test_control_is_version_3_with_theme_and_background(self):
         self.refresh()
         control = json.loads(self.manager.control.read_text())
-        self.assertEqual(control["version"], 2)
-        self.assertEqual(set(control), {"version", "palette", "motion", "googleRemember", "fingerprint"})
+        self.assertEqual(control["version"], 3)
+        self.assertEqual(set(control), {"version", "palette", "motion", "googleRemember", "theme", "background", "fingerprint"})
+        self.assertEqual((control["theme"], control["background"]), ("claro", None))
+
+    def test_dark_theme_uses_the_sumi_palette(self):
+        result = self.refresh(theme="oscuro")
+        self.assertEqual((result["theme"], result["palette"]), ("oscuro", appearance.SUMI))
+        self.assertNotEqual(result["fingerprint"], self.refresh()["fingerprint"])
+
+    def test_home_page_dark_palette_is_the_browser_sumi_palette(self):
+        css = (Path(__file__).resolve().parents[1] / "start/app.css").read_text()
+        block = re.search(r":root\[data-theme=oscuro\] \{([^}]*)\}", css)[1]
+        tokens = dict(re.findall(r"--kb-([a-z-]+): (#[0-9a-f]{6})", block))
+        expected = {re.sub(r"[A-Z]", lambda m: "-" + m[0].lower(), key): value for key, value in appearance.SUMI.items()}
+        self.assertEqual(tokens, expected)
+
+    def test_background_is_announced_only_when_its_normalized_file_exists(self):
+        digest = "ab" * 32
+        self.assertIsNone(self.refresh(background=digest)["background"])
+        path = appearance.background_path(self.manager.profile, digest)
+        path.write_bytes(b"jpeg fixture")
+        self.assertEqual(self.refresh(background=digest)["background"], digest)
+        for value in ("../x", "AB" * 32, 1, ""):
+            with self.subTest(value=value), self.assertRaises((ValueError, TypeError)):
+                self.refresh(background=value)
+        with self.assertRaises(ValueError):
+            self.refresh(theme="nightfall")
 
     def test_legacy_nightfall_settings_are_ignored_not_rejected(self):
         legacy = {"wallpaper": "veil", "accent": "pink", "themeSync": True, "art": False}
@@ -72,11 +98,11 @@ class AppearanceTests(unittest.TestCase):
                 self.refresh(motion=value)
 
     def test_text_muted_and_primary_retain_45_contrast_over_every_surface(self):
-        palette = appearance.PAPEL
-        for foreground in ("text", "muted", "primary"):
-            for surface in ("bg", "surface", "surfaceHigh"):
-                with self.subTest(foreground=foreground, surface=surface):
-                    self.assertGreaterEqual(contrast(palette[foreground], palette[surface]), 4.5)
+        for name, palette in appearance.PALETTES.items():
+            for foreground in ("text", "muted", "primary"):
+                for surface in ("bg", "surface", "surfaceHigh"):
+                    with self.subTest(theme=name, foreground=foreground, surface=surface):
+                        self.assertGreaterEqual(contrast(palette[foreground], palette[surface]), 4.5)
 
     def test_corrupt_derived_control_recovers_and_unchanged_state_does_not_rewrite(self):
         first = self.refresh()

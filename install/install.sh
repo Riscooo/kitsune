@@ -1,5 +1,5 @@
 #!/bin/sh
-# Kitsune 0.6: instala la app en las rutas del usuario (no el motor: ese lo
+# Kitsune 0.7: instala la app en las rutas del usuario (no el motor: ese lo
 # compila y activa kitsune-engine.py). Guarda antes una copia de todo lo que
 # reemplaza. El perfil no se copia aquí: puede estar abierto, y una copia de un
 # perfil en uso deja las bases de datos a medias. Lo copia el lanzador, cerrado,
@@ -85,4 +85,4 @@ systemctl --user daemon-reload
 systemctl --user enable --now kitsune-engine-update.timer
 systemctl --user try-restart kitsune-home.service 'kitsune-home@*.service'
 
-printf 'Kitsune 0.6 instalado. Copia previa: %s\n' "${backup}"
+printf 'Kitsune %s instalado. Copia previa: %s\n' "$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["version"])' "${repo}/install/version.json")" "${backup}"

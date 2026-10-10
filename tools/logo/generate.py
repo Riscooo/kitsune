@@ -139,10 +139,27 @@ def _svg(body: str) -> bytes:
     return f"{HEAD}{body}</svg>\n".encode()
 
 
+# Tema oscuro: la misma pieza en negativo, con los tonos de la paleta sumi
+# (tinta clara, óxido aclarado y la cara de la máscara del color de superficie).
+DARK = {INK: "#ebe8e0", RUST: "#e0806b", PAPER: "#1e2321"}
+
+
+def _dark(svg: bytes) -> bytes:
+    text = svg.decode()
+    for light, dark in DARK.items():
+        text = text.replace(light, dark)
+    return text.encode()
+
+
 def build() -> dict[str, bytes]:
     full = _svg(RING_SVG + MASK_SVG)
     small = _svg(SMALL_SVG)
     return {
+        "chrome/assets/kitsune-dark.svg": _dark(full),
+        "start/logo-dark.svg": _dark(full),
+        "chrome/assets/kitsune-throbber-ring-dark.svg": _dark(_svg(SMALL_RING_SVG)),
+        "chrome/assets/kitsune-throbber-mask-dark.svg": _dark(_svg(SMALL_MASK_SVG)),
+        "chrome/assets/kitsune-stroke-dark.svg": _dark(_stroke()),
         "chrome/assets/kitsune.svg": full,
         "chrome/assets/kitsune-ring.svg": _svg(RING_SVG),
         "chrome/assets/kitsune-mask.svg": _svg(MASK_SVG),

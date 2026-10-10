@@ -9,12 +9,15 @@ const OWNED = 'browser.kitsune.googleRetentionManagedOrigins';
 const LEGACY = 'browser.kitsune.googleRetentionManaged';
 const GOOGLE = ['https://google.com', 'https://accounts.google.com'];
 const PERMISSION = 'persist-data-on-shutdown';
+const SCHEME_PREFS = ['ui.systemUsesDarkTheme'];
 
 function fixture({ permissions = new Map(), preferences = new Map(), inherited = false } = {}) {
   const calls = [];
   const prefs = {
     getStringPref: (name, fallback) => preferences.has(name) ? preferences.get(name) : fallback,
     getBoolPref: (name, fallback) => preferences.has(name) ? preferences.get(name) : fallback,
+    getIntPref: (name, fallback) => preferences.has(name) ? preferences.get(name) : fallback,
+    setIntPref(name, value) { assert.ok(SCHEME_PREFS.includes(name), name); preferences.set(name, value); calls.push(['int', name, value]); },
     setStringPref(name, value) { assert.equal(name, OWNED); assert.equal(typeof value, 'string'); preferences.set(name, value); calls.push(['pref', name, value]); },
     prefHasUserValue: name => preferences.has(name),
     clearUserPref(name) { assert.ok([OWNED, LEGACY].includes(name)); preferences.delete(name); calls.push(['clear', name]); },
@@ -56,7 +59,7 @@ function fixture({ permissions = new Map(), preferences = new Map(), inherited =
   // Execute only this local trusted source against fake Services. No network,
   // real profile, timers or native browser APIs are available in the context.
   vm.runInContext(source.replace('export const KitsuneAppearance', 'const KitsuneAppearance') +
-    '\nglobalThis.api = { validate, nativeCss, applyGoogle, managedOrigins };', context);
+    '\nglobalThis.api = { validate, nativeCss, applyGoogle, applyScheme, managedOrigins };', context);
   return { api: context.api, permissions, preferences, calls };
 }
 
@@ -80,13 +83,54 @@ test('appearance control v2 strictly requires its exact fields, string fingerpri
   }
 });
 
+const controlV3 = (extra = {}) => ({ ...control(), version: 3, theme: 'oscuro', background: null, ...extra });
+
+test('appearance control v3 adds only Claro/Oscuro and a background content hash', () => {
+  const { api } = fixture();
+  assert.equal(api.validate(controlV3()).theme, 'oscuro');
+  assert.equal(api.validate(controlV3({ background: 'ab'.repeat(32) })).background, 'ab'.repeat(32));
+  // A v2 control (Kitsune 0.6) still applies, as paper without background.
+  assert.deepEqual([api.validate(control()).theme, api.validate(control()).background], ['claro', null]);
+  for (const change of [{ theme: 'dark' }, { theme: null }, { background: '../../x' }, { background: 'AB'.repeat(32) },
+    { background: 'file:///etc/passwd' }, { background: 1 }, { version: '3' }, { extra: true }]) {
+    assert.throws(() => api.validate(controlV3(change)), JSON.stringify(change));
+  }
+  const { theme, background, ...withoutTheme } = controlV3();
+  assert.throws(() => api.validate(withoutTheme));
+  assert.throws(() => api.validate({ ...control(), theme: 'oscuro' }));
+});
+
+test('dark controls set the scheme variable, and the background is a file inside the profile chrome folder', () => {
+  const { api } = fixture();
+  const dark = api.nativeCss(api.validate(controlV3()));
+  assert.match(dark, /--kb-scheme:dark !important/);
+  assert.match(dark, /background-image:none/);
+  assert.match(api.nativeCss(api.validate(control())), /--kb-scheme:light !important/);
+  const digest = 'cd'.repeat(32);
+  const withImage = api.nativeCss(api.validate(controlV3({ background: digest })));
+  const urls = [...withImage.matchAll(/url\("(file:[^"]+)"\)/g)].map(match => match[1]);
+  assert.deepEqual(urls, [`file:///temporary-kitsune-profile/profile/chrome/kitsune-background-${digest}.jpg`]);
+  assert.doesNotMatch(withImage, /https?:/);
+});
+
+test('the Gecko dark-scheme pref follows the theme and is written only when it changes', () => {
+  const f = fixture();
+  f.api.applyScheme('oscuro');
+  assert.deepEqual(SCHEME_PREFS.map(name => f.preferences.get(name)), [1]);
+  const writes = f.calls.length;
+  f.api.applyScheme('oscuro');
+  assert.equal(f.calls.length, writes);
+  f.api.applyScheme('claro');
+  assert.deepEqual(SCHEME_PREFS.map(name => f.preferences.get(name)), [0]);
+});
+
 test('a Nightfall (v1) control is rejected instead of half-applied', () => {
   const { api } = fixture();
   assert.throws(() => api.validate({ ...control(), version: 1, wallpaper: 'night', themeSync: false, art: true }));
   assert.throws(() => api.validate({ ...control(), version: 1 }));
 });
 
-test('native styles remain restricted to enumerated internal pages and carry no background images', () => {
+test('native styles remain restricted to enumerated internal pages and carry no background image unless chosen', () => {
   const { api } = fixture();
   const css = api.nativeCss(api.validate(control()));
   assert.match(css, /url\("chrome:\/\/browser\/content\/browser.xhtml"\)/);

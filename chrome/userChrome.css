@@ -6,7 +6,7 @@
    only: native navigation, security indicators, tab sizing and menu behavior
    remain under Gecko's control. */
 :root {
-  color-scheme: light !important;
+  color-scheme: var(--kb-scheme, light) !important;
   --kb-accent: var(--kb-primary);
   --kb-line: var(--kb-outline);
   --kb-hover: color-mix(in srgb, var(--kb-text) 6%, var(--kb-surface));
@@ -357,6 +357,10 @@ findbar .findbar-textbox[status="notfound"] {
   background: url("assets/kitsune-throbber-ring.svg") center / 16px 16px no-repeat !important;
   opacity: 1 !important;
   animation: kitsune-enso-spin 1.1s linear infinite !important;
+}
+@media (prefers-color-scheme: dark) {
+  .tab-throbber[busy] { background-image: url("assets/kitsune-throbber-mask-dark.svg") !important; }
+  .tab-throbber[busy]::before { background-image: url("assets/kitsune-throbber-ring-dark.svg") !important; }
 }
 @keyframes kitsune-enso-spin { to { transform: rotate(1turn); } }
 @keyframes kitsune-enso-pulse { 0%, 100% { opacity: 1; } 50% { opacity: .45; } }

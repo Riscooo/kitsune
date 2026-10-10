@@ -21,6 +21,9 @@ const store = createSettingsStore({
     appearance?.applySettings(settings); shortcuts?.render(settings)
     for (const [id, key] of Object.entries(toggles)) { $(`#${id}`).checked = settings[key]; $(`#${id}`).disabled = !state.ready }
     for (const key of ['clock', 'shortcuts']) { $(`#module-${key}`).checked = settings.modules[key]; $(`#module-${key}`).disabled = !state.ready }
+    for (const radio of document.querySelectorAll('input[name="theme"]')) { radio.checked = radio.value === settings.theme; radio.disabled = !state.ready }
+    $('#background-file').disabled = !state.ready
+    $('#background-remove').hidden = !settings.background; $('#background-remove').disabled = !state.ready
     $('#focus-toggle').setAttribute('aria-pressed', String(settings.focus)); $('#focus-toggle').disabled = !state.ready
     $('#focus-toggle').textContent = settings.focus ? 'Salir de enfoque' : 'Enfoque'
     $('#save-state').textContent = state.pending ? 'Guardando…' : state.ready ? 'Guardado en este perfil' : 'Sin conexión'
@@ -40,6 +43,32 @@ async function save(patch) { if (await store.save(patch)) await appearance.refre
 for (const [id, key] of Object.entries(toggles)) $(`#${id}`).addEventListener('change', event => void save({ [key]: event.target.checked }))
 for (const key of ['clock', 'shortcuts']) $(`#module-${key}`).addEventListener('change', event => void save({ modules: { [key]: event.target.checked } }))
 $('#focus-toggle').addEventListener('click', () => void save({ focus: !store.data.focus }))
+for (const radio of document.querySelectorAll('input[name="theme"]')) radio.addEventListener('change', event => { if (event.target.checked) void save({ theme: event.target.value }) })
+const BACKGROUND_HINT = 'PNG, JPG o WebP · hasta 12 MB. Se ve en el inicio y en las pestañas nuevas.'
+const readImage = file => new Promise((resolve, reject) => {
+  const reader = new FileReader()
+  reader.addEventListener('load', () => resolve(reader.result))
+  reader.addEventListener('error', () => reject(reader.error))
+  reader.readAsDataURL(file)
+})
+$('#background-file').addEventListener('change', async event => {
+  const input = event.target
+  const [file] = input.files
+  input.value = ''
+  if (!file) return
+  const status = $('#background-status')
+  if (!['image/png', 'image/jpeg', 'image/webp'].includes(file.type)) { status.textContent = 'Elige una imagen PNG, JPEG o WebP.'; return }
+  if (file.size > 12 * 1024 * 1024) { status.textContent = 'La imagen es demasiado grande. Elige una de hasta 12 MB.'; return }
+  status.textContent = 'Preparando el fondo…'
+  try {
+    const result = await store.setBackground(await readImage(file))
+    status.textContent = result.ok ? BACKGROUND_HINT : result.error ?? BACKGROUND_HINT
+    if (result.ok) { announce('Fondo puesto.'); await appearance.refresh() }
+  } catch { status.textContent = 'No se ha podido leer la imagen.' }
+})
+$('#background-remove').addEventListener('click', async () => {
+  if (await store.save({ background: null })) { $('#background-status').textContent = BACKGROUND_HINT; announce('Fondo quitado.'); await appearance.refresh() }
+})
 $('#settings-retry').addEventListener('click', async () => {
   $('#settings-retry').disabled = true
   try { if (await store.refresh()) { await appearance.refresh(); announce('Conectado. Puedes volver a guardar.') } }

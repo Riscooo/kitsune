@@ -3,13 +3,11 @@
 // cookies, anti-huella, telemetría…) la aplica el motor con su kitsune.cfg
 // según el modo del perfil, Estricto o Cómodo: no se repite aquí.
 
-// Native chrome and wallpaper-derived palette.
+// Native chrome. Claro u Oscuro lo aplica el módulo nativo según «Tu inicio»
+// (ui.systemUsesDarkTheme): no se fija aquí.
 user_pref("toolkit.legacyUserProfileCustomizations.stylesheets", true);
 // Browser-owned close/maximize controls live inside the tab strip.
 user_pref("browser.tabs.inTitlebar", 1);
-user_pref("ui.systemUsesDarkTheme", 0);
-user_pref("browser.theme.content-theme", 1);
-user_pref("browser.theme.toolbar-theme", 1);
 user_pref("browser.compactmode.show", true);
 user_pref("svg.context-properties.content.enabled", true);
 

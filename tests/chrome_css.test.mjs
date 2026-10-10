@@ -27,14 +27,16 @@ test('every literal color in the browser chrome is a paper token (homogeneous, n
       const base = hex.length === 9 ? hex.slice(0, 7) : hex;
       assert.ok(ALLOWED.has(base.toLowerCase()), `${name}: ${hex} no es un token de papel`);
     }
-    assert.doesNotMatch(css, /color-scheme:\s*dark/, `${name} sigue en modo oscuro`);
+    // Oscuro solo llega por --kb-scheme del módulo nativo, nunca fijo en el CSS.
+    assert.doesNotMatch(css, /(?<!prefers-)color-scheme:\s*dark/, `${name} fija el modo oscuro`);
     assert.doesNotMatch(css, /rgba?\(|hsla?\(/, `${name} usa colores fuera de los tokens`);
   }
 });
 
-test('the chrome uses the light color scheme and InkShadow typography', async () => {
+test('the chrome follows the Kitsune theme (light unless the native module says dark) and InkShadow typography', async () => {
   const css = await read('userChrome.css');
-  assert.match(css, /color-scheme:\s*light\s*!important/);
+  assert.match(css, /color-scheme:\s*var\(--kb-scheme, light\)\s*!important/);
+  assert.doesNotMatch(css, /color-scheme:\s*light\s*!important/);
   assert.doesNotMatch(css, /"Inter"/);
   assert.match(css, /font-family:\s*"Noto Sans"/);
 });
@@ -59,9 +61,9 @@ test('loading tabs spin only the ensō around a still mask, and only pulse with 
   assert.doesNotMatch(css.match(/@keyframes kitsune-enso-pulse \{[\s\S]*?\n\}/)?.[0] ?? '', /rotate/);
 });
 
-test('internal pages are paper: light scheme, paper fallback tokens, no Nightfall art', async () => {
+test('internal pages are paper unless the theme says dark: paper fallback tokens, no Nightfall art', async () => {
   const css = (await read('userContent.css')).replace(/\/\*[\s\S]*?\*\//g, '');
-  assert.doesNotMatch(css, /color-scheme:\s*dark/);
+  assert.doesNotMatch(css, /(?<!prefers-)color-scheme:\s*dark/);
   assert.doesNotMatch(css, /kitsune-night|anime-veil/);
   assert.doesNotMatch(css, /rgba?\(|hsla?\(/);
   for (const [hex] of css.matchAll(/#[0-9a-fA-F]{3,8}\b/g)) {
@@ -103,7 +105,7 @@ test('every chrome panel maps Gecko 154 accent, primary button and focus tokens 
 test('the private browsing page is paper and jade: search field, info box and promo never keep Gecko purple', async () => {
   const css = await read('userContent.css');
   const block = css.match(/@-moz-document url\("about:privatebrowsing"\) \{([\s\S]*?)\n\}/)?.[1] ?? '';
-  assert.match(block, /html\.private \{[^}]*color-scheme:\s*light[^}]*background:\s*var\(--kb-bg\)/s);
+  assert.match(block, /html\.private \{[^}]*color-scheme:\s*var\(--kb-scheme, light\)[^}]*background:\s*var\(--kb-bg\)/s);
   assert.match(block, /content-search-handoff-ui \{[^}]*--content-search-handoff-ui-background-color:\s*var\(--kb-surface\)[^}]*--content-search-handoff-ui-color:\s*var\(--kb-text\)/s);
   assert.match(block, /\.info \{[^}]*background(-color)?:\s*var\(--kb-surface\)/s);
   assert.match(block, /\.info-border \{[^}]*background:\s*(transparent|none)/s);

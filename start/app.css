@@ -1,5 +1,5 @@
-/* Kitsune 0.5 «Tinta»: portada de papel, tinta y óxido (diseño B · Caligrafía).
- * Solo tokens de papel (--kb-*) y las tintas de identidad de los perfiles. */
+/* Kitsune «Tinta»: portada de papel, tinta y óxido (diseño B · Caligrafía), o de
+ * tinta sumi en Oscuro. Solo tokens --kb-* y las tintas de identidad de los perfiles. */
 :root {
   color-scheme: light;
   --bg: var(--kb-bg); --surface: var(--kb-surface); --surface-high: var(--kb-surface-high);
@@ -13,6 +13,17 @@
   font-family: "Noto Sans", system-ui, sans-serif;
   font-synthesis: none; scrollbar-width: thin; scrollbar-color: var(--outline) var(--bg);
 }
+/* Oscuro: la paleta sumi de install/appearance.py (SUMI), la misma que recibe el navegador. */
+:root[data-theme=oscuro] {
+  color-scheme: dark;
+  --kb-bg: #161a19; --kb-surface: #1e2321; --kb-surface-high: #2a302d; --kb-text: #ebe8e0; --kb-muted: #a9b0a8;
+  --kb-outline: #3f4743; --kb-primary: #e0806b; --kb-primary-container: #4b2a23; --kb-secondary: #8fb8aa; --kb-tertiary: #8d9389;
+}
+.brand .logo-dark, :root[data-theme=oscuro] .brand .logo-light { display: none !important; }
+:root[data-theme=oscuro] .brand .logo-dark { display: block !important; }
+/* Fondo propio: la imagen bajo un velo del color de fondo, para que todo se lea. */
+:root[data-background=on] body { background: linear-gradient(color-mix(in srgb, var(--bg) 30%, transparent), color-mix(in srgb, var(--bg) 62%, transparent)), var(--home-background) center / cover no-repeat fixed, var(--bg); }
+:root[data-background=on] :is(.welcome-line, .clock-module, .section-head h2, .search-modes button, .footer button) { text-shadow: 0 0 3px var(--bg), 0 0 14px var(--bg); }
 * { box-sizing: border-box; }
 body { margin: 0; min-width: 320px; min-height: 100svh; color: var(--text); background: var(--bg); }
 button, input, a, summary { -webkit-tap-highlight-color: transparent; }
@@ -79,12 +90,8 @@ input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .link-edit svg { width: 12px; height: 12px; }
 body[data-clock=off] .clock-module, body[data-shortcuts=off] .favorites, body[data-focus=on] .favorites { display: none; }
 body[data-clock=off] .dashboard { margin-top: clamp(110px, 23vh, 220px); }
-.footer { position: fixed; inset: auto 0 0; z-index: 1; display: flex; align-items: center; justify-content: space-between; gap: 15px; padding: 20px 32px; color: var(--muted); font-size: 10px; background: linear-gradient(0deg, var(--bg) 55%, transparent); }
-.footer-note { font: 500 11px var(--serif); letter-spacing: .3px; }
-/* Sello de la familia InkShadow: 狐 sobre el hanko, con la misma máscara mordida que los accesos. */
-.footer-note { display: inline-flex; align-items: center; gap: 9px; }
-.footer-seal { position: relative; isolation: isolate; display: inline-grid; place-items: center; width: 20px; height: 20px; rotate: -5deg; color: var(--surface); font: 600 12px/1 var(--serif); letter-spacing: 0; }
-.footer-seal::before { content: ""; position: absolute; inset: 0; z-index: -1; background: var(--kb-hanko); mask: url("seal.svg") center / 100% 100% no-repeat; }
+.footer { position: fixed; inset: auto 0 0; z-index: 1; display: flex; align-items: center; justify-content: flex-end; gap: 15px; padding: 20px 32px; color: var(--muted); font-size: 10px; background: linear-gradient(0deg, var(--bg) 55%, transparent); }
+:root[data-background=on] .footer { background: linear-gradient(0deg, color-mix(in srgb, var(--bg) 72%, transparent), transparent); }
 .footer > div { display: flex; align-items: center; gap: 18px; }
 .footer button { display: inline-flex; align-items: center; gap: 7px; color: var(--muted); font-size: 11px; padding: 5px 0; }
 .footer svg { width: 15px; height: 15px; }
@@ -215,6 +222,25 @@ input::placeholder { color: var(--muted); opacity: .8; }
 .privacy-mode small { color: var(--muted); font-size: 10px; line-height: 1.5; }
 .privacy-mode input { accent-color: var(--accent); margin: 1px 0 0; flex-shrink: 0; }
 @media (max-width: 520px) { .privacy-modes { grid-template-columns: 1fr; } }
+.theme-modes { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.theme-mode { display: flex; align-items: center; gap: 10px; padding: 11px 12px; border: 1px solid var(--line); border-radius: 12px; cursor: pointer; font-size: 12px; }
+.theme-mode:has(input:checked) { border-color: var(--accent); background: var(--surface-high); }
+.theme-mode:has(input:disabled) { cursor: not-allowed; opacity: .6; }
+.theme-mode > span:last-child { display: flex; flex-direction: column; gap: 3px; }
+.theme-mode b { font-size: 12px; font-weight: 550; }
+.theme-mode small { color: var(--muted); font-size: 10px; }
+.theme-mode input { accent-color: var(--accent); margin: 0; flex-shrink: 0; }
+.theme-swatch { width: 26px; height: 26px; flex-shrink: 0; border-radius: 50%; border: 1px solid var(--line); background: linear-gradient(135deg, #f6f5f1 50%, #963d32 50%); }
+.theme-swatch[data-swatch=oscuro] { background: linear-gradient(135deg, #161a19 50%, #e0806b 50%); }
+.background-field { display: flex; align-items: center; gap: 15px; }
+.background-preview { display: grid; place-items: center; width: 132px; aspect-ratio: 16 / 10; flex-shrink: 0; overflow: hidden; border: 1px solid var(--line); border-radius: 12px; background: var(--surface-high); color: var(--muted); font-size: 10px; }
+:root[data-background=on] .background-preview { background: var(--home-background) center / cover no-repeat, var(--surface-high); }
+:root[data-background=on] .background-preview > span { display: none; }
+.background-actions { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; }
+.background-actions label { position: relative; cursor: pointer; }
+.background-actions label:focus-within { outline: 2px solid var(--accent); outline-offset: 3px; }
+.background-actions label:has(input:disabled) { cursor: not-allowed; opacity: .6; }
+.background-actions input { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
 .profile-colors legend { font-size: 12px; padding: 0; margin-bottom: 13px; }
 .profile-colors > div { display: flex; gap: 10px; flex-wrap: wrap; }
 .profile-swatch { width: 32px; height: 32px; padding: 4px; background: #35587a; border: 3px solid var(--surface); outline: 1px solid var(--line); border-radius: 11px; color: var(--surface); }
@@ -251,3 +277,17 @@ body[data-motion=off] *, body[data-motion=off] *::before, body[data-motion=off] 
   #profiles-dialog[data-view=form] .profiles-layout { gap: 0; padding-top: 17px; }.profile-identity h3 { font-size: 21px; }.compact-guide { padding-left: 0; }
 }
 @media (max-height: 720px) and (min-width: 741px) { .topbar { padding-block: 16px; }.dashboard { margin-top: 0; gap: 22px; }.brand img { width: 92px; height: 92px; }.greeting { gap: 10px; }.quick-link > a, .add-link { min-height: 93px; } }
+/* Oscuro: las tintas de los perfiles, aclaradas para leerse sobre sumi. */
+:root[data-theme=oscuro] .profile-avatar { --profile-color: #8fb0d4; }
+:root[data-theme=oscuro] .profile-avatar[data-profile-color=pink] { --profile-color: #e09ab3; }
+:root[data-theme=oscuro] .profile-avatar[data-profile-color=violet] { --profile-color: #b4a3d6; }
+:root[data-theme=oscuro] .profile-avatar[data-profile-color=amber] { --profile-color: #d9ac62; }
+:root[data-theme=oscuro] .profile-avatar[data-profile-color=teal] { --profile-color: var(--kb-secondary); }
+:root[data-theme=oscuro] .profile-avatar[data-profile-color=red] { --profile-color: var(--kb-primary); }
+:root[data-theme=oscuro] .profile-swatch { background: #8fb0d4; }
+:root[data-theme=oscuro] .profile-swatch[data-profile-swatch=pink] { background: #e09ab3; }
+:root[data-theme=oscuro] .profile-swatch[data-profile-swatch=violet] { background: #b4a3d6; }
+:root[data-theme=oscuro] .profile-swatch[data-profile-swatch=amber] { background: #d9ac62; }
+:root[data-theme=oscuro] .profile-swatch[data-profile-swatch=teal] { background: var(--kb-secondary); }
+:root[data-theme=oscuro] .profile-swatch[data-profile-swatch=red] { background: var(--kb-primary); }
+:root[data-theme=oscuro] dialog::backdrop { background: color-mix(in srgb, var(--kb-bg) 62%, transparent); }

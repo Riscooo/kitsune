@@ -9,9 +9,16 @@ const snapshot = (data = normalizeSettings(), revision = 0, token = 'local-token
 const response = (body, status = 200) => ({ ok: status >= 200 && status < 300, status, json: async () => clone(body) })
 const deferred = () => { let resolve; const promise = new Promise(done => { resolve = done }); return { promise, resolve } }
 
+test('theme and background accept only their enumerated values and a content hash', () => {
+  assert.equal(normalizeSettings({ theme: 'oscuro' }).theme, 'oscuro')
+  for (const theme of ['dark', 'nightfall', 1, null]) assert.equal(normalizeSettings({ theme }).theme, 'claro')
+  assert.equal(normalizeSettings({ background: 'ab'.repeat(32) }).background, 'ab'.repeat(32))
+  for (const background of ['../x.jpg', 'url(https://example.com)', 'AB'.repeat(32), 7]) assert.equal(normalizeSettings({ background }).background, null)
+})
+
 test('legacy preferences keep their values and receive safe module/wallpaper defaults', () => {
   const state = normalizeSettings({ art: false, motion: false, newTab: true, accent: 'pink', focus: true, links: [] })
-  assert.deepEqual(state, { art: false, motion: false, newTab: true, accent: 'pink', focus: true, links: [], wallpaper: 'night', themeSync: false, modules: { clock: true, shortcuts: true } })
+  assert.deepEqual(state, { art: false, motion: false, newTab: true, accent: 'pink', focus: true, links: [], wallpaper: 'night', themeSync: false, modules: { clock: true, shortcuts: true }, theme: 'claro', background: null })
   assert.equal(normalizeSettings({ wallpaper: 'javascript:bad', accent: 'bad', themeSync: 'true' }).wallpaper, 'night')
   assert.equal(normalizeSettings({ themeSync: 'true' }).themeSync, false)
 })

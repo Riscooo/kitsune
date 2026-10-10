@@ -229,4 +229,12 @@
   @media (prefers-reduced-motion: reduce) {
     #main-window { --kitsune-motion: 0ms; }
   }
+  /* Tema oscuro (lo activa el módulo nativo desde «Tu inicio»): logo y trazo en negativo. */
+  @media (prefers-color-scheme: dark) {
+    #main-window #TabsToolbar::before { background-image: url("assets/kitsune-dark.svg"); }
+    #main-window #navigator-toolbox[tabs-hidden] > #nav-bar::before { background-image: url("assets/kitsune-dark.svg"); }
+    #main-window #tabbrowser-tabs[orient="horizontal"] .tabbrowser-tab:is([selected], [visually-selected]) .tab-background {
+      background: url("assets/kitsune-stroke-dark.svg") top 1px center / calc(100% - 16px) 4px no-repeat, var(--kitsune-sheet) !important;
+    }
+  }
 }

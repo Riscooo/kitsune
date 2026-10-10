@@ -114,8 +114,8 @@ def main():
         assert js("""return getComputedStyle(document.documentElement).getPropertyValue('--accent').trim()==='#963d32'
           && getComputedStyle(document.body).backgroundColor==='rgb(246, 245, 241)'
           && !document.querySelector('.scene,[data-wallpaper],[data-accent],#art-toggle,#theme-sync-toggle')
-          && [...document.querySelectorAll('#settings-panel-appearance input')].map(input=>input.id).join()==='motion-toggle'""")
-        for path, status in (('/logo.svg', 200), ('/seal.svg', 200)):
+          && [...document.querySelectorAll('#settings-panel-appearance input')].map(input=>input.id).join()==='theme-claro,theme-oscuro,background-file,motion-toggle'""")
+        for path, status in (('/logo.svg', 200), ('/logo-dark.svg', 200), ('/seal.svg', 200)):
             with urllib.request.urlopen(origin + path) as response:
                 assert response.status == status and response.headers['Content-Type'].startswith('image/svg+xml'), path
         try:

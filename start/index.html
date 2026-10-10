@@ -36,7 +36,7 @@
   <main id="main" class="dashboard">
     <h1 class="sr-only" id="welcome-title">Kitsune, inicio</h1>
     <section class="greeting" aria-label="Bienvenida">
-      <a class="brand" href="index.html" aria-label="Kitsune, inicio"><img src="logo.svg" width="120" height="120" alt=""></a>
+      <a class="brand" href="index.html" aria-label="Kitsune, inicio"><img class="logo-light" src="logo.svg" width="120" height="120" alt=""><img class="logo-dark" src="logo-dark.svg" width="120" height="120" alt=""></a>
       <p class="welcome-line" id="welcome-line">Bienvenido</p>
       <p class="clock-module" aria-label="Fecha y hora"><time id="date"></time><span class="clock-dot" aria-hidden="true">·</span><time id="clock-time"></time></p>
     </section>
@@ -48,7 +48,7 @@
     <section class="favorites" aria-labelledby="favorites-title"><div class="section-head"><h2 id="favorites-title">Accesos</h2><button type="button" id="edit-links" disabled><svg><use href="#i-edit"/></svg><span>Editar</span></button></div><nav id="quick-links" aria-label="Accesos rápidos"></nav></section>
     <p id="offline-home" class="offline-home" hidden><a href="http://127.0.0.1:49721/">Abrir el inicio completo de Kitsune →</a></p>
   </main>
-  <footer class="footer"><span class="footer-note"><span class="footer-seal" aria-hidden="true">狐</span>Kitsune · Tinta</span><div><button id="focus-toggle" type="button" aria-pressed="false" disabled>Enfoque</button><button id="help-open" type="button"><svg><use href="#i-keyboard"/></svg>Atajos</button></div></footer>
+  <footer class="footer"><div><button id="focus-toggle" type="button" aria-pressed="false" disabled>Enfoque</button><button id="help-open" type="button"><svg><use href="#i-keyboard"/></svg>Atajos</button></div></footer>
 
   <dialog id="link-dialog" aria-labelledby="link-title"><form id="link-form" novalidate><header class="dialog-head"><h2 id="link-title">Nuevo acceso</h2><button class="icon-button" type="button" data-close="link-dialog" aria-label="Cerrar"><svg><use href="#i-close"/></svg></button></header><label for="link-name">Nombre<input id="link-name" maxlength="36" placeholder="Mi sitio" required></label><label for="link-url">Dirección<input id="link-url" placeholder="https://example.com" maxlength="4096" required spellcheck="false" autocomplete="url"></label><p class="field-error" id="link-error" role="alert" hidden></p><div class="dialog-actions"><button type="button" class="danger-button" id="delete-link" hidden>Eliminar</button><button class="primary-button" type="submit">Guardar<svg><use href="#i-check"/></svg></button></div></form></dialog>
 
@@ -57,9 +57,14 @@
     <div class="settings-tabs" role="tablist" aria-label="Ajustes del inicio"><button id="settings-tab-appearance" type="button" role="tab" data-settings-tab="appearance" aria-controls="settings-panel-appearance" aria-selected="true">Apariencia</button><button id="settings-tab-modules" type="button" role="tab" data-settings-tab="modules" aria-controls="settings-panel-modules" aria-selected="false" tabindex="-1">Módulos</button><button id="settings-tab-navigation" type="button" role="tab" data-settings-tab="navigation" aria-controls="settings-panel-navigation" aria-selected="false" tabindex="-1">Navegación</button></div>
     <div id="settings-notice" class="settings-notice" role="status" hidden><p id="settings-message"></p><button type="button" id="settings-retry" class="text-button" hidden>Reintentar conexión</button></div>
     <section id="settings-panel-appearance" role="tabpanel" aria-labelledby="settings-tab-appearance" data-settings-panel="appearance">
+      <h3 class="setting-label" id="theme-label">Tema</h3>
+      <div class="theme-modes" role="radiogroup" aria-labelledby="theme-label"><label class="theme-mode" for="theme-claro"><input id="theme-claro" type="radio" name="theme" value="claro" checked disabled><span class="theme-swatch" data-swatch="claro" aria-hidden="true"></span><span><b>Claro</b><small>Papel y tinta</small></span></label><label class="theme-mode" for="theme-oscuro"><input id="theme-oscuro" type="radio" name="theme" value="oscuro" disabled><span class="theme-swatch" data-swatch="oscuro" aria-hidden="true"></span><span><b>Oscuro</b><small>Tinta sumi</small></span></label></div>
+      <p class="fineprint">Se aplica a todo el navegador: barras, menús, ajustes y las webs que tienen modo oscuro.</p>
+      <h3 class="setting-label">Fondo</h3>
+      <div class="background-field"><span id="background-preview" class="background-preview" aria-hidden="true"><span>Sin fondo</span></span><div class="background-actions"><label class="secondary-button" for="background-file">Elegir imagen<input id="background-file" type="file" accept="image/png,image/jpeg,image/webp" disabled aria-describedby="background-status"></label><button type="button" id="background-remove" class="text-button" disabled hidden>Quitar fondo</button></div></div>
+      <p id="background-status" class="fineprint" aria-live="polite">PNG, JPG o WebP · hasta 12 MB. Se ve en el inicio y en las pestañas nuevas.</p>
       <h3 class="setting-label">Movimiento</h3>
       <label class="setting-row" for="motion-toggle"><span><b>Animaciones suaves</b><small>La tinta se posa al abrir el inicio y el ensō gira mientras carga una pestaña.</small></span><input id="motion-toggle" type="checkbox" checked disabled></label>
-      <p class="fineprint">Kitsune tiene una sola estética, la de InkShadow: papel, tinta y óxido.</p>
       <p id="theme-status" class="fineprint" aria-live="polite"></p>
     </section>
     <section id="settings-panel-modules" role="tabpanel" aria-labelledby="settings-tab-modules" data-settings-panel="modules" hidden><h3 class="setting-label">Mostrar en el inicio</h3><label class="setting-row" for="module-clock"><span>Reloj y fecha</span><input id="module-clock" type="checkbox" checked disabled></label><label class="setting-row" for="module-shortcuts"><span>Accesos rápidos</span><input id="module-shortcuts" type="checkbox" checked disabled></label></section>

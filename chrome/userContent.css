@@ -20,7 +20,7 @@
    «kitsune» en Noto Serif. Sin avisos de seguridad ni barra de direcciones falsa. */
 @-moz-document url("about:newtab"), url("about:home") {
   :root {
-    color-scheme: light !important;
+    color-scheme: var(--kb-scheme, light) !important;
     --newtab-background-color: var(--kb-bg) !important;
     --newtab-background-color-secondary: var(--kb-surface) !important;
     --newtab-background-card: var(--kb-surface) !important;
@@ -76,6 +76,9 @@
     width: 64px !important;
     height: 64px !important;
     background: url("assets/kitsune.svg") center / contain no-repeat !important;
+  }
+  @media (prefers-color-scheme: dark) {
+    .logo-and-wordmark .logo { background-image: url("assets/kitsune-dark.svg") !important; }
   }
   .logo-and-wordmark .wordmark {
     display: flex !important;
@@ -204,7 +207,7 @@
 /* Navegación privada: se distingue con jade, sobre papel. */
 @-moz-document url("about:privatebrowsing") {
   :root {
-    color-scheme: light !important;
+    color-scheme: var(--kb-scheme, light) !important;
     --in-content-page-background: var(--kb-bg) !important;
     --in-content-page-color: var(--kb-text) !important;
     --in-content-box-background: var(--kb-surface) !important;
@@ -221,7 +224,7 @@
   /* Gecko 154 fija morados y color-scheme oscuro en html.private (modo clásico y
      Nova): se pasan a papel con el jade del modo privado para que todo se lea. */
   html.private {
-    color-scheme: light !important;
+    color-scheme: var(--kb-scheme, light) !important;
     background: var(--kb-bg) !important;
     color: var(--kb-text) !important;
     --background-color-canvas: var(--kb-bg) !important;
@@ -279,7 +282,7 @@
 
 @-moz-document url("about:downloads"), url-prefix("about:preferences"), url-prefix("about:addons"), url("about:protections"), url("about:logins") {
   :root {
-    color-scheme: light !important;
+    color-scheme: var(--kb-scheme, light) !important;
     --in-content-page-background: var(--kb-bg) !important;
     --in-content-page-color: var(--kb-text) !important;
     --in-content-box-background: var(--kb-surface) !important;
@@ -318,7 +321,7 @@
 /* Modo lectura: papel, tinta y cuerpo en serif. */
 @-moz-document url-prefix("about:reader") {
   :root, body.light, body.sepia, body.dark, body.contrast, body.custom {
-    color-scheme: light !important;
+    color-scheme: var(--kb-scheme, light) !important;
     --main-background: var(--kb-bg) !important;
     --main-foreground: var(--kb-text) !important;
     --link-foreground: var(--kb-secondary) !important;

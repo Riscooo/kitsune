@@ -1,4 +1,4 @@
-# Kitsune 0.6 · Tinta · motor propio
+# Kitsune 0.7 · Tinta · motor propio
 
 Kitsune es un navegador propio: se compila en este PC desde el código fuente
 oficial y firmado de Gecko (Mozilla), con su nombre, su marca, su módulo nativo
@@ -9,8 +9,9 @@ y herramientas de desarrollo son las funciones nativas de Gecko.
 
 ## Estética «Tinta»
 
-Una sola estética en todo el navegador, la misma de InkShadow: papel, tinta y
-óxido. Sin variantes, fondos ni acentos que elegir. Los colores salen de la fuente
+La estética de InkShadow en todo el navegador: papel, tinta y óxido en **Claro**
+y su negativo, tinta sumi, en **Oscuro** (ver «Qué cambia en 0.7»). Los colores
+claros salen de la fuente
 única de InkShadow (`design/tokens.json`): `chrome/palette.css` y
 `start/palette.css` se generan con `python3 tools/design_tokens.py --kitsune
 ~/Projects/kitsune` desde el repo de InkShadow y no se editan a mano.
@@ -27,12 +28,32 @@ Una sola estética en todo el navegador, la misma de InkShadow: papel, tinta y
 | óxido suave | `#eadfda` | selección |
 | jade | `#496b60` | modo privado y enlaces |
 | apagado | `#73786f` | iconos secundarios |
-| hanko | `#a8432f` | sello 狐 del pie del inicio (familia InkShadow) |
+| hanko | `#a8432f` | reservado para marcas de la familia InkShadow |
 | bermellón | `#db452e` | reservado para marcas de la familia |
 
 Las páginas internas y el módulo nativo usan solo los diez primeros.
 
 Tipografías: Noto Sans en la interfaz y Noto Serif en títulos, saludo y «kitsune».
+
+## Qué cambia en 0.7
+
+- **Modo oscuro.** «Tu inicio» → Apariencia → Tema: Claro (papel) u Oscuro (sumi:
+  `#161a19` de fondo, `#ebe8e0` de texto, óxido `#e0806b` y jade `#8fb8aa`, con
+  los mismos contrastes AA que el papel). Se guarda por perfil y llega a la ventana
+  abierta sin reiniciar: el módulo nativo publica `--kb-scheme` (el CSS usa
+  `color-scheme: var(--kb-scheme, light)`) y fija `ui.systemUsesDarkTheme`, así que
+  menús, ajustes y las webs que tienen modo oscuro también se ponen oscuros (también
+  en Estricto). `browser.theme.*` ya no va en `user.js`: Gecko lo deja en «como el
+  sistema». Los logos tienen variante en negativo (`*-dark.svg`, de
+  `tools/logo/generate.py`).
+- **Fondo propio.** Apariencia → Fondo → «Elegir imagen» (PNG, JPEG o WebP, hasta
+  12 MB). El inicio lo reduce a un JPEG de 2560×1600 como mucho, sin metadatos, y lo
+  guarda en `<perfil>/chrome/kitsune-background-<sha256>.jpg`; el navegador solo
+  recibe el hash. Se ve en el inicio y en la nueva pestaña bajo un velo del color de
+  fondo. «Quitar fondo» borra el archivo.
+- **Pie del inicio limpio.** Fuera «狐 Kitsune · Tinta» de abajo a la izquierda; solo
+  quedan Enfoque y Atajos.
+- Control de apariencia v3 (`theme`, `background`); el motor sigue aceptando el v2.
 
 ## Qué cambia en 0.6
 
@@ -180,6 +201,12 @@ python3 tests/native_branding_smoke.py
 
 Las pruebas nativas usan por defecto el motor activo
 (`~/.local/share/kitsune-browser/engine/current/kitsune`) con perfiles temporales.
+
+Resultado 0.7 (10 de octubre de 2026), con el motor `157.0.1-b7e288ace0fc`:
+89 pruebas JS y 124 Python (6 del fondo propio). Nativas: `theme_native.py` 7/7
+(Oscuro en directo en ventana, nueva pestaña y webs; fondo visible en la nueva
+pestaña y en el inicio, comprobado en píxeles; vuelta a Claro), apariencia 6,
+ajustes, cabecera y navegador.
 
 Resultado 0.6 «motor propio» (10 de octubre de 2026), con el motor
 `157.0.1-5d576f85e0ef` (Gecko 157.0.1, canal release, LTO thin para Rust):
@@ -333,7 +360,7 @@ y `~/.local/state/kitsune-browser/engine/`.
 - Copia de los estilos previos al logo animado: `/home/risco/.local/share/kitsune-logo-backup.zmcq6K`.
 - Copia previa a 0.2: `/home/risco/.local/share/kitsune-redesign-backup.n1vv7x`.
 
-`sh install/install.sh` instala 0.6 cuando el motor propio ya está activo: guarda
+`sh install/install.sh` instala la versión de `install/version.json` cuando el motor propio ya está activo: guarda
 antes en `~/.local/share/kitsune-0.6-backup.*` el inicio, las plantillas, los
 módulos, el estado, el lanzador y los servicios; copia los módulos, la receta del
 motor, el inicio y las plantillas; deja el `user.js` de cada perfil como la

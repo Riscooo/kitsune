@@ -2,6 +2,7 @@ import { cleanLinks } from './navigation.mjs'
 
 export const WALLPAPERS = Object.freeze(['night', 'veil', 'dusk', 'ember'])
 export const ACCENTS = Object.freeze(['blue', 'pink', 'system'])
+export const THEMES = Object.freeze(['claro', 'oscuro'])
 const copy = value => JSON.parse(JSON.stringify(value))
 
 export function normalizeSettings(value = {}) {
@@ -11,6 +12,8 @@ export function normalizeSettings(value = {}) {
     focus: value?.focus === true, wallpaper: WALLPAPERS.includes(value?.wallpaper) ? value.wallpaper : 'night',
     themeSync: value?.themeSync === true,
     modules: { clock: value?.modules?.clock !== false, shortcuts: value?.modules?.shortcuts !== false },
+    theme: THEMES.includes(value?.theme) ? value.theme : 'claro',
+    background: typeof value?.background === 'string' && /^[a-f\d]{64}$/u.test(value.background) ? value.background : null,
   }
 }
 
@@ -103,8 +106,37 @@ export function createSettingsStore({ fetcher = (...args) => globalThis.fetch(..
     queue = operation.catch(() => false)
     return operation
   }
+  /** Uploads a new home background. The server normalizes the image and
+   * answers with the new settings snapshot; its error text is shown as is. */
+  function setBackground(imageData) {
+    if (!alive) return Promise.resolve({ ok: false })
+    pending++; generation++
+    const operation = queue.then(async () => {
+      if (!alive) return { ok: false }
+      const controller = new AbortController()
+      controllers.add(controller)
+      const timeout = setTimeout(() => controller.abort(), 30000)
+      try {
+        if (!ready) accept((await request()).snapshot)
+        const response = await fetcher('/api/background', {
+          method: 'POST', credentials: 'omit', cache: 'no-store', signal: controller.signal,
+          headers: { 'Content-Type': 'application/json', 'X-Kitsune-Token': snapshot.token }, body: JSON.stringify({ imageData }),
+        })
+        let body
+        try { body = await response.json() } catch { body = null }
+        if (!response.ok) return { ok: false, error: typeof body?.error === 'string' ? body.error : 'No se ha podido guardar el fondo.' }
+        if (!alive) return { ok: false }
+        accept(parseSettingsSnapshot(body))
+        return { ok: true }
+      } catch {
+        return { ok: false, error: 'No se ha confirmado el fondo. Vuelve a intentarlo.' }
+      } finally { clearTimeout(timeout); controllers.delete(controller) }
+    }).finally(() => { pending--; notify() })
+    queue = operation.catch(() => ({ ok: false }))
+    return operation
+  }
   return {
-    refresh, save, get data() { return copy(snapshot.data) }, get ready() { return ready },
+    refresh, save, setBackground, get data() { return copy(snapshot.data) }, get ready() { return ready },
     destroy() { alive = false; generation++; for (const controller of controllers) controller.abort() },
   }
 }

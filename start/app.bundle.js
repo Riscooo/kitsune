@@ -800,6 +800,7 @@
 		"pink",
 		"system"
 	]);
+	const THEMES = Object.freeze(["claro", "oscuro"]);
 	const copy = (value) => JSON.parse(JSON.stringify(value));
 	function normalizeSettings(value = {}) {
 		return {
@@ -814,7 +815,9 @@
 			modules: {
 				clock: value?.modules?.clock !== false,
 				shortcuts: value?.modules?.shortcuts !== false
-			}
+			},
+			theme: THEMES.includes(value?.theme) ? value.theme : "claro",
+			background: typeof value?.background === "string" && /^[a-f\d]{64}$/u.test(value.background) ? value.background : null
 		};
 	}
 	function mergeSettings(current, patch) {
@@ -963,9 +966,63 @@
 			queue = operation.catch(() => false);
 			return operation;
 		}
+		/** Uploads a new home background. The server normalizes the image and
+		* answers with the new settings snapshot; its error text is shown as is. */
+		function setBackground(imageData) {
+			if (!alive) return Promise.resolve({ ok: false });
+			pending++;
+			generation++;
+			const operation = queue.then(async () => {
+				if (!alive) return { ok: false };
+				const controller = new AbortController();
+				controllers.add(controller);
+				const timeout = setTimeout(() => controller.abort(), 3e4);
+				try {
+					if (!ready) accept((await request()).snapshot);
+					const response = await fetcher("/api/background", {
+						method: "POST",
+						credentials: "omit",
+						cache: "no-store",
+						signal: controller.signal,
+						headers: {
+							"Content-Type": "application/json",
+							"X-Kitsune-Token": snapshot.token
+						},
+						body: JSON.stringify({ imageData })
+					});
+					let body;
+					try {
+						body = await response.json();
+					} catch {
+						body = null;
+					}
+					if (!response.ok) return {
+						ok: false,
+						error: typeof body?.error === "string" ? body.error : "No se ha podido guardar el fondo."
+					};
+					if (!alive) return { ok: false };
+					accept(parseSettingsSnapshot(body));
+					return { ok: true };
+				} catch {
+					return {
+						ok: false,
+						error: "No se ha confirmado el fondo. Vuelve a intentarlo."
+					};
+				} finally {
+					clearTimeout(timeout);
+					controllers.delete(controller);
+				}
+			}).finally(() => {
+				pending--;
+				notify();
+			});
+			queue = operation.catch(() => ({ ok: false }));
+			return operation;
+		}
 		return {
 			refresh,
 			save,
+			setBackground,
 			get data() {
 				return copy(snapshot.data);
 			},
@@ -993,20 +1050,13 @@
 		"secondary",
 		"tertiary"
 	];
-	const CSS_KEYS = {
-		bg: "--bg",
-		surface: "--surface",
-		surfaceHigh: "--surface-high",
-		text: "--text",
-		muted: "--muted",
-		outline: "--outline",
-		primary: "--accent",
-		primaryContainer: "--accent-dark",
-		secondary: "--secondary",
-		tertiary: "--tertiary"
-	};
+	const THEME_COLORS = Object.freeze({
+		claro: "#f6f5f1",
+		oscuro: "#161a19"
+	});
 	function parseAppearance(value) {
-		if (value?.version !== 2 || typeof value.fingerprint !== "string" || !/^[a-f\d]{64}$/iu.test(value.fingerprint) || typeof value.motion !== "boolean" || !value.palette || PALETTE_KEYS.some((key) => typeof value.palette[key] !== "string" || !/^#[a-f\d]{6}$/iu.test(value.palette[key]))) throw new Error("Paleta no válida.");
+		if (![2, 3].includes(value?.version) || typeof value.fingerprint !== "string" || !/^[a-f\d]{64}$/iu.test(value.fingerprint) || typeof value.motion !== "boolean" || !value.palette || PALETTE_KEYS.some((key) => typeof value.palette[key] !== "string" || !/^#[a-f\d]{6}$/iu.test(value.palette[key]))) throw new Error("Paleta no válida.");
+		if (value.version === 3 && (!Object.hasOwn(THEME_COLORS, value.theme) || value.background !== null && (typeof value.background !== "string" || !/^[a-f\d]{64}$/u.test(value.background)))) throw new Error("Tema no válido.");
 		return value;
 	}
 	function appearanceStatus(value) {
@@ -1027,6 +1077,16 @@
 				clock: settings.modules.clock ? "on" : "off",
 				shortcuts: settings.modules.shortcuts ? "on" : "off"
 			})) document.body.dataset[key] = value;
+			const root = document.documentElement;
+			root.dataset.theme = settings.theme;
+			document.querySelector("meta[name=\"theme-color\"]")?.setAttribute("content", THEME_COLORS[settings.theme] ?? THEME_COLORS.claro);
+			if (settings.background && location.protocol !== "file:") {
+				root.style.setProperty("--home-background", `url("/api/background/${settings.background}.jpg")`);
+				root.dataset.background = "on";
+			} else {
+				root.style.removeProperty("--home-background");
+				root.dataset.background = "off";
+			}
 		}
 		async function refresh() {
 			if (!alive || document.hidden || location.protocol === "file:") return false;
@@ -1034,7 +1094,11 @@
 			controller?.abort();
 			const requestController = new AbortController();
 			controller = requestController;
-			const relevant = (settings) => JSON.stringify([settings.motion]);
+			const relevant = (settings) => JSON.stringify([
+				settings.motion,
+				settings.theme,
+				settings.background
+			]);
 			const startedWith = relevant(getSettings());
 			const timeout = setTimeout(() => requestController.abort(), 4e3);
 			try {
@@ -1048,11 +1112,6 @@
 				if (!alive || run !== generation) return false;
 				const settings = getSettings();
 				if (startedWith !== relevant(settings) || result.motion !== settings.motion) return false;
-				for (const key of PALETTE_KEYS) {
-					document.documentElement.style.setProperty(CSS_KEYS[key], result.palette[key]);
-					document.documentElement.style.setProperty(`--kb-${key.replace(/[A-Z]/gu, (char) => `-${char.toLowerCase()}`)}`, result.palette[key]);
-				}
-				document.querySelector("meta[name=\"theme-color\"]")?.setAttribute("content", result.palette.bg);
 				onStatus(appearanceStatus(result));
 				return true;
 			} catch (error) {
@@ -1391,6 +1450,13 @@
 				$(`#module-${key}`).checked = settings.modules[key];
 				$(`#module-${key}`).disabled = !state.ready;
 			}
+			for (const radio of document.querySelectorAll("input[name=\"theme\"]")) {
+				radio.checked = radio.value === settings.theme;
+				radio.disabled = !state.ready;
+			}
+			$("#background-file").disabled = !state.ready;
+			$("#background-remove").hidden = !settings.background;
+			$("#background-remove").disabled = !state.ready;
 			$("#focus-toggle").setAttribute("aria-pressed", String(settings.focus));
 			$("#focus-toggle").disabled = !state.ready;
 			$("#focus-toggle").textContent = settings.focus ? "Salir de enfoque" : "Enfoque";
@@ -1423,6 +1489,53 @@
 	for (const [id, key] of Object.entries(toggles)) $(`#${id}`).addEventListener("change", (event) => void save({ [key]: event.target.checked }));
 	for (const key of ["clock", "shortcuts"]) $(`#module-${key}`).addEventListener("change", (event) => void save({ modules: { [key]: event.target.checked } }));
 	$("#focus-toggle").addEventListener("click", () => void save({ focus: !store.data.focus }));
+	for (const radio of document.querySelectorAll("input[name=\"theme\"]")) radio.addEventListener("change", (event) => {
+		if (event.target.checked) save({ theme: event.target.value });
+	});
+	const BACKGROUND_HINT = "PNG, JPG o WebP · hasta 12 MB. Se ve en el inicio y en las pestañas nuevas.";
+	const readImage = (file) => new Promise((resolve, reject) => {
+		const reader = new FileReader();
+		reader.addEventListener("load", () => resolve(reader.result));
+		reader.addEventListener("error", () => reject(reader.error));
+		reader.readAsDataURL(file);
+	});
+	$("#background-file").addEventListener("change", async (event) => {
+		const input = event.target;
+		const [file] = input.files;
+		input.value = "";
+		if (!file) return;
+		const status = $("#background-status");
+		if (![
+			"image/png",
+			"image/jpeg",
+			"image/webp"
+		].includes(file.type)) {
+			status.textContent = "Elige una imagen PNG, JPEG o WebP.";
+			return;
+		}
+		if (file.size > 12582912) {
+			status.textContent = "La imagen es demasiado grande. Elige una de hasta 12 MB.";
+			return;
+		}
+		status.textContent = "Preparando el fondo…";
+		try {
+			const result = await store.setBackground(await readImage(file));
+			status.textContent = result.ok ? BACKGROUND_HINT : result.error ?? BACKGROUND_HINT;
+			if (result.ok) {
+				announce("Fondo puesto.");
+				await appearance.refresh();
+			}
+		} catch {
+			status.textContent = "No se ha podido leer la imagen.";
+		}
+	});
+	$("#background-remove").addEventListener("click", async () => {
+		if (await store.save({ background: null })) {
+			$("#background-status").textContent = BACKGROUND_HINT;
+			announce("Fondo quitado.");
+			await appearance.refresh();
+		}
+	});
 	$("#settings-retry").addEventListener("click", async () => {
 		$("#settings-retry").disabled = true;
 		try {

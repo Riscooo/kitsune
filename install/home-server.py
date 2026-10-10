@@ -32,6 +32,8 @@ _profile_spec.loader.exec_module(profiles_module)
 
 MAX_BODY = 32 * 1024
 MAX_PROFILE_BODY = 2 * 1024 * 1024
+MAX_BACKGROUND_BODY = 17 * 1024 * 1024
+BACKGROUND_ROUTE = re.compile(r"/api/background/([0-9a-f]{64})\.jpg")
 MAX_REVISION = (2 ** 53) - 1
 ASSETS = {
     "/": ("index.html", "text/html; charset=utf-8"),
@@ -43,6 +45,7 @@ ASSETS = {
     "/palette.css": ("palette.css", "text/css; charset=utf-8"),
     "/favicon.svg": ("favicon.svg", "image/svg+xml"),
     "/logo.svg": ("logo.svg", "image/svg+xml"),
+    "/logo-dark.svg": ("logo-dark.svg", "image/svg+xml"),
     "/seal.svg": ("seal.svg", "image/svg+xml"),
 }
 CSP = ("default-src 'self'; script-src 'self'; style-src 'self'; "
@@ -59,6 +62,8 @@ DEFAULT_DATA = {
     ],
     "art": True, "motion": True, "newTab": False, "accent": "blue", "focus": False,
     "wallpaper": "night", "themeSync": False, "modules": {"clock": True, "shortcuts": True},
+    # Tema del navegador y del inicio, y el hash de la imagen de fondo propia.
+    "theme": "claro", "background": None,
 }
 LEGACY_SETTINGS_KEYS = {"links", "art", "motion", "newTab", "accent", "focus"}
 
@@ -88,6 +93,11 @@ def validate_data(value, base=None):
         raise InvalidSettings("El color de acento no es válido.")
     if value["wallpaper"] not in ("night", "veil", "dusk", "ember"):
         raise InvalidSettings("El fondo seleccionado no es válido.")
+    if value["theme"] not in ("claro", "oscuro"):
+        raise InvalidSettings("El tema no es válido.")
+    background = value["background"]
+    if background is not None and (type(background) is not str or not re.fullmatch(r"[0-9a-f]{64}", background)):
+        raise InvalidSettings("El fondo no es válido.")
     if type(value["modules"]) is not dict or set(value["modules"]) != {"clock", "shortcuts"} or any(type(flag) is not bool for flag in value["modules"].values()):
         raise InvalidSettings("Los módulos de inicio no son válidos.")
     links = value["links"]
@@ -164,7 +174,9 @@ class SettingsStore:
                 raise StateUnavailable("Los ajustes locales no están disponibles.")
             return {"version": 2, "data": copy.deepcopy(self.data), "revision": self.revision}
 
-    def update(self, data, revision):
+    def update(self, data, revision, new_background=None):
+        """Replace the settings. The background may only stay, be removed, or
+        become the image the caller has just stored (new_background)."""
         validated = validate_data(data)
         if not valid_revision(revision):
             raise InvalidSettings("La revisión de los ajustes no es válida.")
@@ -176,6 +188,8 @@ class SettingsStore:
             if self.revision == MAX_REVISION:
                 raise StateUnavailable("No se puede incrementar la revisión de los ajustes.")
             validated = validate_data(data, base=self.data)
+            if validated["background"] not in (None, self.data["background"], new_background):
+                raise InvalidSettings("El fondo no es válido.")
             record = {"version": 2, "data": validated, "revision": self.revision + 1}
             encoded = json.dumps(record, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
             if len(encoded) > MAX_BODY:
@@ -232,6 +246,7 @@ class HomeServer(ThreadingHTTPServer):
         self.appearance_stop = threading.Event()
         self.appearance_thread = None
         self.appearance_failed = False
+        self.background_lock = threading.Lock()
         super().__init__(("127.0.0.1", port), HomeHandler)
         self.host = f"127.0.0.1:{self.server_address[1]}"
         self.origin = f"http://{self.host}"
@@ -283,6 +298,42 @@ class HomeServer(ThreadingHTTPServer):
         # in-memory settings or write that profile's home.json from here.
         return appearance.refresh(SettingsStore(resolved["state"]).snapshot()["data"])
 
+    def prune_backgrounds(self):
+        """Delete every stored background except the one the settings use."""
+        if self.appearance is None:
+            return
+        try:
+            keep = self.store.snapshot()["data"]["background"]
+        except StateUnavailable:
+            return
+        for path in (Path(self.appearance.profile) / "chrome").glob("kitsune-background-*.jpg"):
+            if keep is None or path != self.appearance.background(keep):
+                try:
+                    path.unlink()
+                except FileNotFoundError:
+                    pass
+
+    def store_background(self, digest, image):
+        path = self.appearance.background(digest)
+        directory = path.parent
+        if directory.is_symlink() or not directory.is_dir() or directory.stat().st_uid != os.getuid():
+            raise StateUnavailable("La carpeta del perfil no es válida.")
+        descriptor, temporary = tempfile.mkstemp(prefix=".background-", suffix=".tmp", dir=directory)
+        try:
+            with os.fdopen(descriptor, "wb") as handle:
+                os.fchmod(handle.fileno(), 0o600)
+                handle.write(image)
+                handle.flush()
+                os.fsync(handle.fileno())
+            os.replace(temporary, path)
+            temporary = None
+        finally:
+            if temporary is not None:
+                try:
+                    os.unlink(temporary)
+                except FileNotFoundError:
+                    pass
+
     def handle_error(self, request, client_address):
         # Request bodies, tokens and private links must never enter the logs.
         self.event("request_failed", "unknown", 500)
@@ -303,7 +354,10 @@ class HomeHandler(BaseHTTPRequestHandler):
     def respond(self, status, body, content_type="application/json; charset=utf-8", head=False):
         if status >= 400 or self.command in ("PUT", "POST", "PATCH"):
             path = self.request_path()
-            route = {"/api/settings": "settings", "/api/profiles": "profiles", "/api/appearance": "appearance"}.get(path, "unknown")
+            route = {"/api/settings": "settings", "/api/profiles": "profiles", "/api/appearance": "appearance",
+                     "/api/background": "background"}.get(path, "unknown")
+            if BACKGROUND_ROUTE.fullmatch(path or ""):
+                route = "background"
             if re.fullmatch(r"/api/profiles/(default|p-[0-9a-f]{16})(?:/(open|default))?", path or ""):
                 route = "profile_action"
             if re.fullmatch(r"/api/profile-avatars/(default|p-[0-9a-f]{16})/[0-9a-f]{64}\.png", path or ""):
@@ -376,6 +430,18 @@ class HomeHandler(BaseHTTPRequestHandler):
             except OSError:
                 self.error(503, "No se puede leer la foto del perfil.")
             return
+        background = BACKGROUND_ROUTE.fullmatch(path or "")
+        if background:
+            try:
+                if self.server.appearance is None or self.server.store.snapshot()["data"]["background"] != background[1]:
+                    raise FileNotFoundError(path)
+                body = read_regular(self.server.appearance.background(background[1]), profiles_module.media.MAX_BACKGROUND_JPEG)
+                self.respond(200, body, "image/jpeg", head=head)
+            except FileNotFoundError:
+                self.error(404, "El fondo no está disponible.")
+            except (OSError, StateUnavailable):
+                self.error(503, "No se puede leer el fondo.")
+            return
         if path == "/api/settings":
             try:
                 value = self.server.store.snapshot()
@@ -407,6 +473,15 @@ class HomeHandler(BaseHTTPRequestHandler):
         except OSError:
             self.error(503, "El recurso local no está disponible.")
             return
+        if filename == "index.html":
+            # El tema llega ya en el HTML: el inicio en Oscuro no parpadea en claro al abrirse.
+            try:
+                dark = self.server.store.snapshot()["data"]["theme"] == "oscuro"
+            except StateUnavailable:
+                dark = False
+            if dark:
+                body = body.replace(b'<html lang="es">', b'<html lang="es" data-theme="oscuro">', 1)
+                body = body.replace(b'<meta name="theme-color" content="#f6f5f1">', b'<meta name="theme-color" content="#161a19">', 1)
         self.respond(200, body, content_type, head=head)
 
     def do_HEAD(self):
@@ -440,7 +515,11 @@ class HomeHandler(BaseHTTPRequestHandler):
             value = json.loads(raw.decode("utf-8"))
             if type(value) is not dict or set(value) != {"data", "revision"}:
                 raise InvalidSettings("La estructura de la solicitud no es válida.")
-            updated, snapshot = self.server.store.update(value["data"], value["revision"])
+            with self.server.background_lock:
+                before = self.server.store.snapshot()["data"]["background"]
+                updated, snapshot = self.server.store.update(value["data"], value["revision"])
+                if updated and snapshot["data"]["background"] != before:
+                    self.server.prune_backgrounds()
             snapshot["token"] = self.server.token
             if not updated:
                 snapshot["error"] = "Los ajustes han cambiado en otra pestaña."
@@ -539,7 +618,70 @@ class HomeHandler(BaseHTTPRequestHandler):
         except OSError:
             self.error(503, "No se ha podido completar la operación local. Tus datos siguen guardados.")
 
+    def background_upload(self):
+        """Store a new home background: normalized here, never the uploaded file."""
+        if not self.trusted_request(mutation=True):
+            return
+        if self.server.appearance is None:
+            self.error(503, "El fondo propio no está disponible en esta instalación.")
+            return
+        types = self.headers.get_all("Content-Type", [])
+        if len(types) != 1 or self.headers.get_content_type() != "application/json" or self.headers.get_content_charset("utf-8").lower() != "utf-8":
+            self.error(415, "Se requiere JSON UTF-8.")
+            return
+        lengths = self.headers.get_all("Content-Length", [])
+        if self.headers.get_all("Transfer-Encoding") or len(lengths) != 1 or not lengths[0].isdigit():
+            self.error(400, "Longitud de solicitud no válida.")
+            return
+        if len(lengths[0]) > 10 or int(lengths[0]) > MAX_BACKGROUND_BODY:
+            self.error(413, "La imagen es demasiado grande. Elige una de hasta 12 MB.")
+            return
+        try:
+            size = int(lengths[0])
+            raw = self.rfile.read(size)
+            if len(raw) != size:
+                raise ValueError("Incomplete request")
+            value = json.loads(raw.decode("utf-8"))
+            if type(value) is not dict or set(value) != {"imageData"}:
+                raise InvalidSettings("La solicitud del fondo no es válida.")
+            digest, image = profiles_module.media.normalize_background(value["imageData"])
+            with self.server.background_lock:
+                try:
+                    self.server.store_background(digest, image)
+                    for _ in range(3):
+                        current = self.server.store.snapshot()
+                        updated, snapshot = self.server.store.update({**current["data"], "background": digest},
+                                                                     current["revision"], new_background=digest)
+                        if updated:
+                            break
+                    else:
+                        raise StateUnavailable("Los ajustes cambian sin parar.")
+                finally:
+                    self.server.prune_backgrounds()
+            snapshot["token"] = self.server.token
+            try:
+                snapshot["appearance"] = self.server.refresh_appearance()
+            except (OSError, ValueError, TypeError):
+                snapshot["warning"] = "El fondo está guardado; el navegador lo aplicará cuando esté disponible."
+                self.server.event("appearance_unavailable", "appearance", 503)
+            self.json_response(200, snapshot)
+        except profiles_module.media.InvalidAvatar as error:
+            self.error(400, str(error))
+        except profiles_module.media.AvatarUnavailable as error:
+            self.error(503, str(error))
+        except (TimeoutError, ConnectionError):
+            self.error(408, "La solicitud no se ha recibido a tiempo.")
+        except InvalidSettings as error:
+            self.error(400, str(error))
+        except (ValueError, UnicodeError, TypeError, RecursionError):
+            self.error(400, "JSON no válido.")
+        except (StateUnavailable, OSError):
+            self.error(503, "No se ha podido guardar el fondo. Tus ajustes siguen como estaban.")
+
     def do_POST(self):
+        if self.request_path() == "/api/background":
+            self.background_upload()
+            return
         self.profile_mutation()
 
     def do_PATCH(self):

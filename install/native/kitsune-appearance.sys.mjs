@@ -12,27 +12,58 @@ let timer = null, busy = false, current = '', sheet = null, lastAck = 0, reporte
 const sheets = Cc['@mozilla.org/content/style-sheet-service;1'].getService(Ci.nsIStyleSheetService);
 const profileDirectory = () => Services.dirsvc.get('ProfD', Ci.nsIFile).path;
 
-const CONTROL_KEYS = Object.freeze(['version', 'fingerprint', 'palette', 'motion', 'googleRemember']);
+const CONTROL_KEYS = Object.freeze({
+  2: Object.freeze(['version', 'fingerprint', 'palette', 'motion', 'googleRemember']),
+  // 0.7: tema claro u oscuro y fondo propio (solo el hash de una imagen ya
+  // normalizada por el inicio en <perfil>/chrome; nunca una URL ni una ruta).
+  3: Object.freeze(['version', 'fingerprint', 'palette', 'motion', 'googleRemember', 'theme', 'background']),
+});
+const SCHEMES = Object.freeze({claro:'light', oscuro:'dark'});
 
 function validate(value) {
-  if (!value || typeof value !== 'object' || Array.isArray(value) || value.version !== 2 ||
-      Object.keys(value).length !== CONTROL_KEYS.length || CONTROL_KEYS.some(key => !Object.hasOwn(value, key)) ||
+  const keys = value && typeof value === 'object' && !Array.isArray(value) && Number.isInteger(value.version) && Object.hasOwn(CONTROL_KEYS, value.version) ? CONTROL_KEYS[value.version] : null;
+  if (!keys || Object.keys(value).length !== keys.length || keys.some(key => !Object.hasOwn(value, key)) ||
+      (value.version === 3 && (!Object.hasOwn(SCHEMES, value.theme) ||
+        (value.background !== null && (typeof value.background !== 'string' || !/^[a-f0-9]{64}$/.test(value.background))))) ||
       typeof value.fingerprint !== 'string' || !/^[a-f0-9]{64}$/.test(value.fingerprint) ||
       ['motion','googleRemember'].some(key => typeof value[key] !== 'boolean') ||
       !value.palette || typeof value.palette !== 'object' || Array.isArray(value.palette) ||
       Object.keys(value.palette).length !== Object.keys(TOKENS).length ||
       Object.keys(TOKENS).some(key => typeof value.palette[key] !== 'string' || !/^#[0-9a-f]{6}$/.test(value.palette[key]))) throw Error('Invalid local appearance control');
-  return value;
+  // Un control v2 (Kitsune 0.6) es papel claro y sin fondo.
+  return value.version === 2 ? {...value, theme:'claro', background:null} : value;
 }
 
-// Kitsune 0.5 «Tinta»: papel liso, sin imágenes de fondo.
+function backgroundUri(hash) {
+  const file = Services.dirsvc.get('ProfD', Ci.nsIFile);
+  file.append('chrome');
+  file.append(`kitsune-background-${hash}.jpg`);
+  return Services.io.newFileURI(file).spec;
+}
+
+// Papel o tinta según el tema; la nueva pestaña lleva el fondo propio, si lo hay,
+// bajo un velo del color de fondo para que el texto se siga leyendo. «:root body»
+// gana al body de userContent.css, que va detrás en la cascada y queda de respaldo.
 function nativeCss(value) {
-  const variables = Object.entries(TOKENS).map(([key, name]) => `--kb-${name}:${value.palette[key]} !important;`).join('');
-  return `@-moz-document url("chrome://browser/content/browser.xhtml"),url("about:newtab"),url("about:home"),url("about:privatebrowsing"),url("about:downloads"),url-prefix("about:preferences"),url-prefix("about:addons"),url("about:protections"),url("about:logins"){ :root{${variables}} }
+  const scheme = SCHEMES[value.theme];
+  const variables = Object.entries(TOKENS).map(([key, name]) => `--kb-${name}:${value.palette[key]} !important;`).join('') +
+    `--kb-scheme:${scheme} !important;`;
+  const background = value.background
+    ? `background:linear-gradient(color-mix(in srgb,var(--kb-bg) 30%,transparent),color-mix(in srgb,var(--kb-bg) 62%,transparent)),url("${backgroundUri(value.background)}") center/cover no-repeat fixed var(--kb-bg)!important;`
+    : 'background-color:var(--kb-bg)!important;background-image:none!important;';
+  return `@-moz-document url("chrome://browser/content/browser.xhtml"),url("about:newtab"),url("about:home"),url("about:privatebrowsing"),url("about:downloads"),url-prefix("about:preferences"),url-prefix("about:addons"),url("about:protections"),url("about:logins"),url-prefix("about:reader"){ :root{${variables}} }
     @-moz-document url("about:newtab"),url("about:home"){
-      body{background-color:var(--kb-bg)!important;background-image:none!important;}
+      :root body{${background}}
       ${!value.motion ? '.logo-and-wordmark,.logo-and-wordmark .logo,.search-inner-wrapper{animation:none!important;transition:none!important;scale:none!important;}' : ''}
     }`;
+}
+
+// El esquema de Gecko sigue al tema: menús, ajustes y las webs que lo admiten
+// se ven oscuros en Oscuro. Con el tema por defecto, browser.theme.* vale 2
+// («como el sistema») y lo reescribe Gecko; manda ui.systemUsesDarkTheme.
+function applyScheme(theme) {
+  const wanted = theme === 'oscuro' ? 1 : 0;
+  if (Services.prefs.getIntPref('ui.systemUsesDarkTheme', -1) !== wanted) Services.prefs.setIntPref('ui.systemUsesDarkTheme', wanted);
 }
 
 function googlePrincipals() {
@@ -107,6 +138,7 @@ async function update() {
       sheets.loadAndRegisterSheet(next, sheets.USER_SHEET);
       if (sheet && sheets.sheetRegistered(sheet, sheets.USER_SHEET)) sheets.unregisterSheet(sheet, sheets.USER_SHEET);
       sheet = next;
+      applyScheme(value.theme);
       applyGoogle(value.googleRemember);
       current = value.fingerprint;
       lastAck = 0;

@@ -17,8 +17,20 @@ import threading
 import time
 
 KEYS = ('bg', 'surface', 'surfaceHigh', 'text', 'muted', 'outline', 'primary', 'primaryContainer', 'secondary', 'tertiary')
-# Kitsune 0.5 «Tinta»: una sola paleta, la de InkShadow (src/theme/InkTheme.qml).
+# Kitsune «Tinta»: papel de InkShadow (src/theme/InkTheme.qml) en Claro y su
+# negativo, tinta sumi con el óxido y el jade aclarados, en Oscuro. Mismos
+# contrastes de texto que el papel (WCAG AA o más).
 PAPEL = dict(zip(KEYS, ('#f6f5f1', '#fbfaf7', '#e8ece4', '#252d2b', '#59625c', '#c7cdc4', '#963d32', '#eadfda', '#496b60', '#73786f')))
+SUMI = dict(zip(KEYS, ('#161a19', '#1e2321', '#2a302d', '#ebe8e0', '#a9b0a8', '#3f4743', '#e0806b', '#4b2a23', '#8fb8aa', '#8d9389')))
+PALETTES = {'claro': PAPEL, 'oscuro': SUMI}
+BACKGROUND = re.compile(r'[0-9a-f]{64}')
+
+
+def background_path(profile, digest):
+    """The one place a home background lives: next to the profile's chrome CSS."""
+    if not isinstance(digest, str) or not BACKGROUND.fullmatch(digest):
+        raise ValueError('Invalid background')
+    return Path(profile) / 'chrome' / f'kitsune-background-{digest}.jpg'
 
 def read_json(path, maximum=262144):
     descriptor = os.open(path, os.O_RDONLY | os.O_NOFOLLOW | os.O_CLOEXEC)
@@ -69,6 +81,9 @@ class AppearanceManager:
         self.ack = self.profile / 'chrome/kitsune-appearance-ack.json'
         self.lock = threading.Lock()
 
+    def background(self, digest):
+        return background_path(self.profile, digest)
+
     def refresh(self, settings):
         with self.lock:
             directories = [self.browser_root, self.profile.parent, self.profile, self.profile / 'chrome']
@@ -79,9 +94,13 @@ class AppearanceManager:
                     raise ValueError('Invalid private appearance directory')
             # Las opciones de Nightfall (fondo, acento, sincronía, arte) ya no existen: se ignoran.
             motion = settings.get('motion', True)
-            if type(motion) is not bool:
+            theme = settings.get('theme', 'claro')
+            background = settings.get('background')
+            if type(motion) is not bool or theme not in PALETTES or (background is not None and (type(background) is not str or not BACKGROUND.fullmatch(background))):
                 raise ValueError('Invalid appearance option')
-            palette = PAPEL.copy()
+            if background is not None and not background_path(self.profile, background).is_file():
+                background = None
+            palette = PALETTES[theme].copy()
             remember = False
             try:
                 registry = read_json(self.state_root / 'profiles.json', 1048576)
@@ -96,7 +115,7 @@ class AppearanceManager:
                     raise ValueError('Invalid Google retention policy')
             except FileNotFoundError:
                 pass
-            value = {'version': 2, 'palette': palette, 'motion': motion, 'googleRemember': remember}
+            value = {'version': 3, 'palette': palette, 'motion': motion, 'googleRemember': remember, 'theme': theme, 'background': background}
             value['fingerprint'] = hashlib.sha256(json.dumps(value, sort_keys=True).encode()).hexdigest()
             private_write(self.control, value)
             native = {'available': (self.browser_root / 'native/kitsune-appearance.sys.mjs').is_file(), 'status': 'queued'}
