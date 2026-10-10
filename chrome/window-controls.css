@@ -78,6 +78,24 @@
   .titlebar-min > .toolbarbutton-icon { background-color: var(--ink-window-minimize) !important; }
   .titlebar-max, .titlebar-restore { order: 2 !important; }
 
+  /* Windows: Gecko esconde ese icono y pinta el símbolo (–, □, ✕) con la letra Segoe
+     en ::before. Aquí manda el punto de Kitsune y el símbolo solo asoma encima al pasar
+     el ratón, como el de GTK en Linux (donde ::before no tiene contenido). */
+  .titlebar-button { position: relative !important; }
+  .titlebar-button > .toolbarbutton-icon { display: flex !important; }
+  .titlebar-button::before { display: none !important; }
+  .titlebar-button:is(:hover, :focus-visible)::before {
+    display: block !important;
+    position: absolute !important;
+    inset: 0 !important;
+    font-size: 6px !important;
+    line-height: var(--ink-window-hit-height) !important;
+    text-align: center !important;
+    color: var(--kb-text) !important;
+    pointer-events: none !important;
+    transform: none !important;
+  }
+
   .titlebar-button:is(:hover, :focus-visible) > .toolbarbutton-icon {
     background-size: 9px !important;
     filter: brightness(1.12);
