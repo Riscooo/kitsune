@@ -584,7 +584,7 @@ class TargetTests(unittest.TestCase):
                     (staging / "rcodesign").write_text("#!/bin/sh\n")
                 return types.SimpleNamespace(returncode=0, stdout="")
             pinned = hashlib.sha256(b"rcodesign").hexdigest() if good else "0" * 64
-            with mock.patch.object(engine, "RCODESIGN_SHA256", pinned):
+            with mock.patch.object(engine, "RCODESIGN_SHA256", pinned), mock.patch.dict(engine.ARCH_TOOLS, {"macos": ()}):
                 if good:
                     engine.cross_tools(layout, tools, "macos", log=lambda *_: None, run=run)
                     self.assertTrue((tools / "rcodesign").resolve().is_file())

@@ -1141,6 +1141,10 @@ ARCH_TOOLS = {
     "windows": (
         ("msitools", ("msitools", "gcab"), ("msiextract",)),
     ),
+    # macOS: Gecko monta el .app con rsync.
+    "macos": (
+        ("rsync", ("rsync",), ("rsync",)),
+    ),
 }
 # rcodesign (apple-platform-rs) firma la app de macOS desde Linux. Versión y suma fijadas.
 RCODESIGN_VERSION = "0.29.0"
