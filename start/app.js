@@ -17,7 +17,7 @@ const announce = message => {
   $('#status').textContent = message; $('#status').hidden = !message
   toastTimer = setTimeout(() => { $('#status').hidden = true }, 4000)
 }
-const toggles = { 'motion-toggle': 'motion', 'newtab-toggle': 'newTab', 'brand-toggle': 'brand' }
+const toggles = { 'motion-toggle': 'motion', 'newtab-toggle': 'newTab', 'brand-toggle': 'brand', 'minimize-toggle': 'minimize' }
 const store = createSettingsStore({
   onChange(settings, state) {
     appearance?.applySettings(settings); shortcuts?.render(settings)

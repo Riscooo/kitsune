@@ -151,6 +151,16 @@ def _dark(svg: bytes) -> bytes:
     return text.encode()
 
 
+# Icono del lanzador de InkShadow: el mismo logo en el tratamiento monocromo de
+# sus iconos (trazo claro #eeeae3 sobre el fondo del lanzador).
+SHELL = "#eeeae3"
+
+
+def _appmark() -> bytes:
+    body = (RING_SVG + MASK_SVG).replace(INK, SHELL).replace(PAPER, "none").replace(RUST, SHELL)
+    return _svg(body.replace(f'fill="{SHELL}" d="{_brush(TIP, 3)}"', f'fill="{SHELL}" opacity=".7" d="{_brush(TIP, 3)}"'))
+
+
 def build() -> dict[str, bytes]:
     full = _svg(RING_SVG + MASK_SVG)
     small = _svg(SMALL_SVG)
@@ -158,6 +168,7 @@ def build() -> dict[str, bytes]:
         "chrome/assets/kitsune-dark.svg": _dark(full),
         "start/logo-dark.svg": _dark(full),
         "start/favicon-dark.svg": _dark(small),
+        "install/inkshadow-appmark.svg": _appmark(),
         # El logo del inicio en dos capas: el ensō gira, la máscara del zorro no.
         "start/logo-ring.svg": _svg(RING_SVG),
         "start/logo-mask.svg": _svg(MASK_SVG),

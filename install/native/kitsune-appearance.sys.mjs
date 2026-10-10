@@ -26,6 +26,9 @@ const CONTROL_KEYS = Object.freeze({
   // Modo ahorro, como en Opera GX: pestañas dormidas, límite de RAM, 60 fps.
   5: Object.freeze(['version', 'fingerprint', 'palette', 'motion', 'googleRemember', 'theme', 'background', 'windowControls', 'brand',
                     'performance', 'ramLimit']),
+  // Botón de minimizar (en Niri no hace nada: se puede ocultar).
+  6: Object.freeze(['version', 'fingerprint', 'palette', 'motion', 'googleRemember', 'theme', 'background', 'windowControls', 'brand',
+                    'performance', 'ramLimit', 'minimize']),
 });
 const PERFORMANCE = Object.freeze(['normal', 'ahorro']);
 const RAM_LIMITS = Object.freeze([1024, 2048, 4096]);
@@ -38,14 +41,15 @@ function validate(value) {
       (value.version >= 3 && (!Object.hasOwn(SCHEMES, value.theme) ||
         (value.background !== null && (typeof value.background !== 'string' || !/^[a-f0-9]{64}$/.test(value.background))))) ||
       (value.version >= 4 && (!CONTROL_SIDES.includes(value.windowControls) || typeof value.brand !== 'boolean')) ||
-      (value.version === 5 && (!PERFORMANCE.includes(value.performance) || !RAM_LIMITS.includes(value.ramLimit))) ||
+      (value.version >= 5 && (!PERFORMANCE.includes(value.performance) || !RAM_LIMITS.includes(value.ramLimit))) ||
+      (value.version === 6 && typeof value.minimize !== 'boolean') ||
       typeof value.fingerprint !== 'string' || !/^[a-f0-9]{64}$/.test(value.fingerprint) ||
       ['motion','googleRemember'].some(key => typeof value[key] !== 'boolean') ||
       !value.palette || typeof value.palette !== 'object' || Array.isArray(value.palette) ||
       Object.keys(value.palette).length !== Object.keys(TOKENS).length ||
       Object.keys(TOKENS).some(key => typeof value.palette[key] !== 'string' || !/^#[0-9a-f]{6}$/.test(value.palette[key]))) throw Error('Invalid local appearance control');
   // Un control v2 (0.6) es papel claro y sin fondo; v2 y v3, botones a la izquierda y con logo.
-  return {theme:'claro', background:null, windowControls:'izquierda', brand:true, performance:'normal', ramLimit:2048, ...value};
+  return {theme:'claro', background:null, windowControls:'izquierda', brand:true, performance:'normal', ramLimit:2048, minimize:true, ...value};
 }
 
 function backgroundUri(hash) {
@@ -78,10 +82,14 @@ function windowCss(value) {
   const right = value.windowControls === 'derecha' ? `
     :root#main-window #TabsToolbar>.titlebar-buttonbox-container,:root#main-window .titlebar-buttonbox-container{order:999!important;padding-inline:8px 2px!important;}
     :root#main-window #navigator-toolbox[tabs-hidden]>#nav-bar>.titlebar-buttonbox-container{order:999!important;}
+    :root#main-window .titlebar-buttonbox .titlebar-min{order:0!important;}
+    :root#main-window .titlebar-buttonbox :is(.titlebar-max,.titlebar-restore){order:1!important;}
     :root#main-window .titlebar-buttonbox .titlebar-close{order:2!important;}` : '';
+  const noMinimize = value.minimize ? '' : `
+    :root#main-window .titlebar-buttonbox .titlebar-min{display:none!important;}`;
   const hidden = value.brand ? '' : `
     :root#main-window #TabsToolbar::before,:root#main-window #navigator-toolbox[tabs-hidden]>#nav-bar::before{display:none!important;}`;
-  return right + hidden;
+  return right + hidden + noMinimize;
 }
 
 // Sin rastro de Mozilla: fuera las entradas de Ayuda que llevan a sus webs o

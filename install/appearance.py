@@ -106,6 +106,9 @@ class AppearanceManager:
             ram_limit = settings.get('ramLimit', 2048)
             if performance not in ('normal', 'ahorro') or ram_limit not in (1024, 2048, 4096) or type(ram_limit) is not int:
                 raise ValueError('Invalid performance option')
+            minimize = settings.get('minimize', True)
+            if type(minimize) is not bool:
+                raise ValueError('Invalid window option')
             if background is not None and not background_path(self.profile, background).is_file():
                 background = None
             palette = PALETTES[theme].copy()
@@ -123,9 +126,9 @@ class AppearanceManager:
                     raise ValueError('Invalid Google retention policy')
             except FileNotFoundError:
                 pass
-            value = {'version': 5, 'palette': palette, 'motion': motion, 'googleRemember': remember, 'theme': theme,
+            value = {'version': 6, 'palette': palette, 'motion': motion, 'googleRemember': remember, 'theme': theme,
                      'background': background, 'windowControls': controls, 'brand': brand,
-                     'performance': performance, 'ramLimit': ram_limit}
+                     'performance': performance, 'ramLimit': ram_limit, 'minimize': minimize}
             value['fingerprint'] = hashlib.sha256(json.dumps(value, sort_keys=True).encode()).hexdigest()
             private_write(self.control, value)
             native = {'available': (self.browser_root / 'native/kitsune-appearance.sys.mjs').is_file(), 'status': 'queued'}

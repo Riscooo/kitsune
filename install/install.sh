@@ -80,6 +80,14 @@ done
 # Sin conexión no pasa nada: se quedan «Original» y «Elegir imagen».
 python3 "${root}/wallpapers.py" sync || printf '%s\n' 'No se han podido preparar los fondos de serie; se reintentará en la próxima instalación.' >&2
 
+# Icono del escritorio: el logo actual de Kitsune (antes quedaba el de Nightfall).
+icons="${data}/icons/hicolor"
+install -D -m 644 "${repo}/install/branding/icon.svg" "${icons}/scalable/apps/kitsune-browser.svg"
+for size in 16 22 24 32 48 64 128 256; do
+    install -D -m 644 "${repo}/install/branding/icon-${size}.png" "${icons}/${size}x${size}/apps/kitsune-browser.png"
+done
+command -v gtk-update-icon-cache >/dev/null 2>&1 && gtk-update-icon-cache -q -f -t "${icons}" 2>/dev/null || :
+
 # Lanzador y servicios.
 install -m 755 "${repo}/install/kitsune-browser" "${bin}/kitsune-browser"
 for unit in kitsune-home.service kitsune-home@.service kitsune-engine-update.service kitsune-engine-update.timer; do

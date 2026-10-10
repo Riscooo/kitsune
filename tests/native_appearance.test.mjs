@@ -133,6 +133,17 @@ test('v5 adds the saver mode with a RAM limit of 1, 2 or 4 GB', () => {
   for (const change of [{ performance: 'turbo' }, { ramLimit: 3000 }, { ramLimit: '1024' }]) assert.throws(() => api.validate(v5(change)));
 });
 
+test('v6 shows the minimize button unless hidden, and on the right it goes first, like Windows', () => {
+  const { api } = fixture();
+  const v6 = (extra = {}) => ({ ...controlV3(), version: 6, windowControls: 'derecha', brand: true, performance: 'normal', ramLimit: 2048, minimize: true, ...extra });
+  const shown = api.nativeCss(api.validate(v6()));
+  assert.doesNotMatch(shown, /\.titlebar-min\{display:none/);
+  assert.match(shown, /\.titlebar-min\{order:0!important/);
+  assert.match(api.nativeCss(api.validate(v6({ minimize: false }))), /\.titlebar-min\{display:none!important/);
+  assert.throws(() => api.validate(v6({ minimize: 'no' })));
+  assert.equal(api.validate(control()).minimize, true);
+});
+
 test('dark controls set the scheme variable, and the background is a file inside the profile chrome folder', () => {
   const { api } = fixture();
   const dark = api.nativeCss(api.validate(controlV3()));

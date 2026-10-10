@@ -75,22 +75,22 @@ def main():
             box = normal['boxes'][0]
             buttons = box['buttons']
             assert [b['command'] for b in sorted(buttons, key=lambda b: b['rect']['x'])] == [
-                'cmd_closeWindow', 'cmd_maximizeWindow'], normal
+                'cmd_closeWindow', 'cmd_minimizeWindow', 'cmd_maximizeWindow'], normal
             for button in buttons:
                 assert button['rect']['width'] == 26 and button['rect']['height'] == 28, button
                 assert button['dot']['width'] == 12 and button['dot']['height'] == 12, button
                 assert button['label'], button
             assert box['rect']['right'] <= normal['tabLeft'], normal
-            assert {b['color'] for b in buttons} == {'rgb(150, 61, 50)', 'rgb(115, 120, 111)'}, normal  # óxido y apagado de Tinta
+            assert {b['color'] for b in buttons} == {'rgb(150, 61, 50)', 'rgb(73, 107, 96)', 'rgb(115, 120, 111)'}, normal  # óxido, jade y apagado de Tinta
             assert normal['fullscreenKey'] == 'View:FullScreen', normal
             assert not normal['hasGlobalOverlay'], normal
-            report['checks'].append('native close/maximize, left order, 26x28 hit targets, 12px dots, localization, F11 preserved')
+            report['checks'].append('native close/minimize/maximize, left order like macOS, 26x28 hit targets, 12px dots, localization, F11 preserved')
             report['normal'] = normal
             report['screenshots'].append(browser.screenshot('native-chrome-normal.png', chrome=True))
 
             browser.click('#TabsToolbar .titlebar-max')
             maximized = eventually(lambda: when(lambda value: value['mode'] == 'maximized'))
-            assert {b['command'] for b in maximized['boxes'][0]['buttons']} == {'cmd_closeWindow', 'cmd_restoreWindow'}, maximized
+            assert {b['command'] for b in maximized['boxes'][0]['buttons']} == {'cmd_closeWindow', 'cmd_minimizeWindow', 'cmd_restoreWindow'}, maximized
             report['checks'].append('native maximize command and restore-button state in headless Gecko')
             browser.click('#TabsToolbar .titlebar-restore')
             eventually(lambda: snapshot()['mode'] == 'normal')
@@ -103,8 +103,9 @@ def main():
             report['checks'].append('native F11 enters and exits fullscreen')
 
             browser.script('Services.prefs.setIntPref("ui.GtkCSDMaximizeButton", 0);')
-            eventually(lambda: len(snapshot()['boxes'][0]['buttons']) == 1)
-            assert snapshot()['boxes'][0]['buttons'][0]['command'] == 'cmd_closeWindow'
+            # Ampliar sigue lo que diga GTK; minimizar lo muestra Kitsune siempre (Ventana lo oculta).
+            eventually(lambda: len(snapshot()['boxes'][0]['buttons']) == 2)
+            assert {b['command'] for b in snapshot()['boxes'][0]['buttons']} == {'cmd_closeWindow', 'cmd_minimizeWindow'}
             browser.script('Services.prefs.setIntPref("ui.GtkCSDMaximizeButton", 1);')
             eventually(lambda: value_check(snapshot()))
             browser.script('Services.prefs.setIntPref("browser.tabs.inTitlebar", 0);')
@@ -140,7 +141,7 @@ def main():
 
 
 def value_check(value):
-    return value['customTitlebar'] and len(value['boxes']) == 1 and len(value['boxes'][0]['buttons']) == 2
+    return value['customTitlebar'] and len(value['boxes']) == 1 and len(value['boxes'][0]['buttons']) == 3
 
 
 if __name__ == '__main__':

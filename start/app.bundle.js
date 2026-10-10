@@ -872,7 +872,8 @@
 				1024,
 				2048,
 				4096
-			].includes(value?.ramLimit) ? value.ramLimit : 2048
+			].includes(value?.ramLimit) ? value.ramLimit : 2048,
+			minimize: value?.minimize !== false
 		};
 	}
 	function mergeSettings(current, patch) {
@@ -1115,7 +1116,8 @@
 			2,
 			3,
 			4,
-			5
+			5,
+			6
 		].includes(value?.version) || typeof value.fingerprint !== "string" || !/^[a-f\d]{64}$/iu.test(value.fingerprint) || typeof value.motion !== "boolean" || !value.palette || PALETTE_KEYS.some((key) => typeof value.palette[key] !== "string" || !/^#[a-f\d]{6}$/iu.test(value.palette[key]))) throw new Error("Paleta no válida.");
 		if (value.version >= 3 && (!Object.hasOwn(THEME_COLORS, value.theme) || value.background !== null && (typeof value.background !== "string" || !/^[a-f\d]{64}$/u.test(value.background)))) throw new Error("Tema no válido.");
 		return value;
@@ -1585,7 +1587,8 @@
 	const toggles = {
 		"motion-toggle": "motion",
 		"newtab-toggle": "newTab",
-		"brand-toggle": "brand"
+		"brand-toggle": "brand",
+		"minimize-toggle": "minimize"
 	};
 	const store = createSettingsStore({
 		onChange(settings, state) {

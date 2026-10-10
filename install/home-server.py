@@ -82,6 +82,8 @@ DEFAULT_DATA = {
     "windowControls": "izquierda", "brand": True,
     # Modo ahorro (pestañas dormidas, límite de RAM en MB, 60 fps).
     "performance": "normal", "ramLimit": 2048,
+    # Botón de minimizar en la ventana.
+    "minimize": True,
 }
 LEGACY_SETTINGS_KEYS = {"links", "art", "motion", "newTab", "accent", "focus"}
 
@@ -114,6 +116,8 @@ def validate_data(value, base=None):
     if value["theme"] not in ("claro", "oscuro"):
         raise InvalidSettings("El tema no es válido.")
     if value["windowControls"] not in ("izquierda", "derecha") or type(value["brand"]) is not bool:
+        raise InvalidSettings("Las opciones de la ventana no son válidas.")
+    if type(value["minimize"]) is not bool:
         raise InvalidSettings("Las opciones de la ventana no son válidas.")
     if value["performance"] not in ("normal", "ahorro") or type(value["ramLimit"]) is not int or value["ramLimit"] not in (1024, 2048, 4096):
         raise InvalidSettings("El modo de rendimiento no es válido.")

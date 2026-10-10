@@ -18,7 +18,7 @@ test('theme and background accept only their enumerated values and a content has
 
 test('legacy preferences keep their values and receive safe module/wallpaper defaults', () => {
   const state = normalizeSettings({ art: false, motion: false, newTab: true, accent: 'pink', focus: true, links: [] })
-  assert.deepEqual(state, { art: false, motion: false, newTab: true, accent: 'pink', focus: true, links: [], wallpaper: 'night', themeSync: false, modules: { clock: true, shortcuts: true }, theme: 'claro', background: null, windowControls: 'izquierda', brand: true, performance: 'normal', ramLimit: 2048 })
+  assert.deepEqual(state, { art: false, motion: false, newTab: true, accent: 'pink', focus: true, links: [], wallpaper: 'night', themeSync: false, modules: { clock: true, shortcuts: true }, theme: 'claro', background: null, windowControls: 'izquierda', brand: true, performance: 'normal', ramLimit: 2048, minimize: true })
   assert.equal(normalizeSettings({ wallpaper: 'javascript:bad', accent: 'bad', themeSync: 'true' }).wallpaper, 'night')
   assert.equal(normalizeSettings({ themeSync: 'true' }).themeSync, false)
 })
