@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="es" data-theme="claro">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Kitsune · navegador de papel y tinta</title>
+  <meta name="description" content="Kitsune es un navegador privado de serie: sin telemetría, con bloqueador incluido, perfiles Estricto y Cómodo, modo ahorro y un inicio que es tuyo.">
+  <meta name="color-scheme" content="light dark">
+  <meta name="theme-color" content="#f6f5f1" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#161a19" media="(prefers-color-scheme: dark)">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Kitsune · navegador de papel y tinta">
+  <meta property="og:description" content="Privado de serie, sin telemetría y con un inicio que es tuyo.">
+  <meta property="og:image" content="/assets/og.png">
+  <meta property="og:locale" content="es_ES">
+  <meta name="twitter:card" content="summary_large_image">
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml" media="(prefers-color-scheme: light)">
+  <link rel="icon" href="/assets/favicon-dark.svg" type="image/svg+xml" media="(prefers-color-scheme: dark)">
+  <link rel="preload" href="/assets/fuentes/NotoSerif-Regular.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="/assets/fuentes/NotoSans-Regular.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="/styles.css">
+  <script src="/tema.js"></script>
+  <script src="/app.js" type="module"></script>
+</head>
+<body>
+  <a class="skip" href="#contenido">Saltar al contenido</a>
+  <header class="top">
+    <a class="brand" href="/" aria-label="Kitsune, inicio">
+      <span class="logo-art logo-light" aria-hidden="true"><img class="logo-ring" src="/assets/logo-ring.svg" alt=""><img class="logo-mask" src="/assets/logo-mask.svg" alt=""></span>
+      <span class="logo-art logo-dark" aria-hidden="true"><img class="logo-ring" src="/assets/logo-ring-dark.svg" alt=""><img class="logo-mask" src="/assets/logo-mask-dark.svg" alt=""></span>
+      <span class="wordmark">kitsune<i aria-hidden="true"></i></span>
+    </a>
+    <nav class="top-nav" aria-label="Secciones">
+      <a href="#privacidad">Privacidad</a>
+      <a href="#inicio">Tu inicio</a>
+      <a href="#ahorro">Ahorro</a>
+      <a href="#preguntas">Preguntas</a>
+    </nav>
+    <button class="theme-toggle" id="theme-toggle" type="button" aria-label="Cambiar a tema oscuro" title="Cambiar tema">
+      <svg class="theme-sun" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2.2M12 19.3v2.2M4.6 4.6l1.6 1.6M17.8 17.8l1.6 1.6M2.5 12h2.2M19.3 12h2.2M4.6 19.4l1.6-1.6M17.8 6.2l1.6-1.6"/></svg>
+      <svg class="theme-moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M19.5 14.6A8 8 0 0 1 9.4 4.5a8 8 0 1 0 10.1 10.1Z"/></svg>
+    </button>
+    <a class="top-download" href="#descargar">Descargar</a>
+  </header>
+
+  <main id="contenido">
+    <section class="hero" aria-labelledby="hero-title">
+      <div class="hero-copy">
+        <p class="eyebrow">Navegador · versión <span data-version>0.7</span></p>
+        <h1 id="hero-title">Navega en papel<br>y <em>tinta</em>.</h1>
+        <p class="lead">Kitsune es un navegador privado de serie. Sin telemetría, con bloqueador incluido y un inicio que es tuyo: tu fondo, tus accesos, tu tema.</p>
+        <div class="hero-actions">
+          <button class="download-main" id="download-main" type="button" disabled>
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11m0 0-4.5-4.5M12 15l4.5-4.5M5 19.5h14"/></svg>
+            <span><b id="download-main-label">Descargar Kitsune</b><small id="download-main-note">Próximamente</small></span>
+          </button>
+          <a class="ghost-link" href="#descargar">Otros sistemas</a>
+        </div>
+        <p class="hero-note" id="hero-note">Estamos terminando los instaladores para Windows y macOS.</p>
+      </div>
+      <figure class="hero-shot">
+        <div class="window">
+          <img class="shot-light" src="/assets/capturas/inicio-claro.webp" srcset="/assets/capturas/inicio-claro-720.webp 720w, /assets/capturas/inicio-claro.webp 1440w" sizes="(max-width: 900px) 92vw, 56vw" width="1440" height="900" alt="El inicio de Kitsune en tema claro: el ensō con el zorro, el saludo, el buscador y los accesos.">
+          <img class="shot-dark" src="/assets/capturas/inicio-oscuro.webp" srcset="/assets/capturas/inicio-oscuro-720.webp 720w, /assets/capturas/inicio-oscuro.webp 1440w" sizes="(max-width: 900px) 92vw, 56vw" width="1440" height="900" alt="El inicio de Kitsune en tema oscuro, con una aurora de fondo.">
+        </div>
+        <img class="hero-fox" src="/assets/mascota/hola.svg" width="240" height="200" alt="">
+      </figure>
+    </section>
+
+    <section class="strip" aria-label="Lo esencial">
+      <ul>
+        <li><b>0</b> datos de uso enviados</li>
+        <li><b>uBlock Origin</b> de serie</li>
+        <li><b>2</b> modos de privacidad por perfil</li>
+        <li><b>Castellano</b> e inglés</li>
+      </ul>
+    </section>
+
+    <section class="feature" id="privacidad" aria-labelledby="privacidad-title">
+      <div class="feature-copy">
+        <img class="feature-fox" src="/assets/mascota/guardia.svg" width="240" height="200" alt="">
+        <p class="eyebrow">Privacidad</p>
+        <h2 id="privacidad-title">Estricto o Cómodo, tú decides en cada perfil.</h2>
+        <p>Cada perfil guarda sus propias cuentas y su propio modo. Lo cambias desde su ficha, y antes de aplicarlo Kitsune te cuenta en dos líneas lo que supone.</p>
+        <div class="modes">
+          <article class="mode">
+            <h3>Estricto</h3>
+            <p>Borra cookies, sesiones y caché al cerrar. Bloqueo estricto de rastreadores, anti-huella y solo HTTPS.</p>
+          </article>
+          <article class="mode">
+            <h3>Cómodo</h3>
+            <p>Conserva sesiones y cookies al cerrar. Bloqueo estándar que rompe menos webs. Sin telemetría.</p>
+          </article>
+        </div>
+      </div>
+      <figure class="feature-shot">
+        <div class="window"><img src="/assets/capturas/privacidad.webp" srcset="/assets/capturas/privacidad-720.webp 390w, /assets/capturas/privacidad.webp 780w" sizes="(max-width: 900px) 92vw, 46vw" width="780" height="640" loading="lazy" alt="El aviso «¿Pasar a Cómodo?» con las dos opciones comparadas y los botones Cancelar y Aceptar."></div>
+      </figure>
+    </section>
+
+    <section class="feature feature-flip" id="inicio" aria-labelledby="inicio-title">
+      <div class="feature-copy">
+        <p class="eyebrow">Tu inicio</p>
+        <h2 id="inicio-title">Una página de inicio que es tuya.</h2>
+        <ul class="ticks">
+          <li><b>Claro u oscuro.</b> El cambio cruza la pantalla con una veta de tinta. Pruébalo con el botón de arriba.</li>
+          <li><b>Tu fondo.</b> Elige uno de serie o sube tu imagen. También sale en cada pestaña nueva.</li>
+          <li><b>Tus accesos</b> a mano, el reloj y un buscador sin distracciones.</li>
+          <li><b>La ventana a tu manera:</b> botones a la izquierda o a la derecha, y el logo si quieres.</li>
+        </ul>
+      </div>
+      <figure class="feature-shot">
+        <div class="window"><img src="/assets/capturas/ajustes.webp" srcset="/assets/capturas/ajustes-720.webp 460w, /assets/capturas/ajustes.webp 920w" sizes="(max-width: 900px) 92vw, 46vw" width="920" height="802" loading="lazy" alt="El panel «Tu inicio»: tema Claro u Oscuro, fondo propio y la galería de fondos de serie."></div>
+      </figure>
+    </section>
+
+    <section class="feature" id="ahorro" aria-labelledby="ahorro-title">
+      <div class="feature-copy">
+        <img class="feature-fox" src="/assets/mascota/dormido.svg" width="240" height="200" alt="">
+        <p class="eyebrow">Modo ahorro</p>
+        <h2 id="ahorro-title">Ligero cuando lo necesitas.</h2>
+        <p>Un botón en los ajustes del inicio y Kitsune gasta menos memoria y menos batería. Sin reiniciar, y se quita igual de rápido.</p>
+      </div>
+      <dl class="saver">
+        <div><dt>60 fps</dt><dd>Animaciones a 60 imágenes por segundo como mucho.</dd></div>
+        <div><dt>Menos procesos</dt><dd>Las webs abiertas comparten procesos y ocupan menos memoria.</dd></div>
+        <div><dt>15 min</dt><dd>Las pestañas que llevan 15 minutos sin usarse se duermen.</dd></div>
+        <div><dt>1, 2 o 4 GB</dt><dd>Tú pones el límite de memoria. Si lo pasa, duerme las pestañas más antiguas.</dd></div>
+      </dl>
+    </section>
+
+    <section class="grid-section" aria-labelledby="mas-title">
+      <h2 id="mas-title">Y además</h2>
+      <div class="grid">
+        <article><h3>Bloqueador incluido</h3><p>uBlock Origin viene instalado. Sin anuncios ni rastreadores desde el primer minuto.</p></article>
+        <article><h3>Sin telemetría</h3><p>Kitsune no envía datos de uso, informes ni estudios. Los ajustes que lo harían están bloqueados.</p></article>
+        <article><h3>Perfiles separados</h3><p>Trabajo, casa, pruebas: cada perfil con su nombre, su color, sus cuentas y su modo.</p></article>
+        <article><h3>Motor propio</h3><p>Compilamos el motor Gecko con nuestra receta: nombre, ajustes y servicios de Kitsune.</p></article>
+        <article><h3>En castellano</h3><p>Todo el navegador en castellano, y en inglés si lo prefieres.</p></article>
+        <article><h3>Extensiones</h3><p>Instala extensiones y temas de la tienda, igual que siempre.</p></article>
+      </div>
+    </section>
+
+    <section class="downloads" id="descargar" aria-labelledby="descargar-title">
+      <img class="downloads-fox" src="/assets/mascota/cara.svg" width="142" height="140" alt="">
+      <h2 id="descargar-title">Descargar Kitsune</h2>
+      <p class="downloads-lead">Gratis. Elige tu sistema.</p>
+      <div class="platforms">
+        <article class="platform" data-platform="windows">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 5.8 10.6 4.8v6.7H3.5zM12 4.6l8.5-1.2v8.1H12zM3.5 12.9h7.1v6.7l-7.1-1zM12 12.9h8.5v8.1L12 19.8z"/></svg>
+          <h3>Windows</h3>
+          <p class="platform-req">Windows 10 y 11 · 64 bits</p>
+          <a class="platform-button" href="#" aria-disabled="true">Próximamente</a>
+        </article>
+        <article class="platform" data-platform="macos">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16.4 12.6c0-2.3 1.9-3.4 2-3.5a4.3 4.3 0 0 0-3.4-1.8c-1.4-.1-2.8.9-3.5.9s-1.8-.8-3-.8a4.5 4.5 0 0 0-3.8 2.3c-1.6 2.8-.4 7 1.2 9.3.8 1.1 1.7 2.4 2.9 2.3 1.2 0 1.6-.7 3-.7s1.8.7 3 .7c1.3 0 2.1-1.1 2.8-2.3a10 10 0 0 0 1.3-2.6 3.9 3.9 0 0 1-2.5-3.8ZM14.2 5.8a3.9 3.9 0 0 0 .9-2.9 4 4 0 0 0-2.6 1.4 3.7 3.7 0 0 0-.9 2.8 3.3 3.3 0 0 0 2.6-1.3Z"/></svg>
+          <h3>macOS</h3>
+          <p class="platform-req">Mac con Apple Silicon (M1 o posterior)</p>
+          <a class="platform-button" href="#" aria-disabled="true">Próximamente</a>
+        </article>
+        <article class="platform" data-platform="linux">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2.8" y="4.2" width="18.4" height="15.6" rx="3"/><path d="m7 9.6 3 2.6-3 2.6M12.4 15h4.6"/></svg>
+          <h3>Linux</h3>
+          <p class="platform-req">64 bits · paquete .tar.xz</p>
+          <a class="platform-button" href="#" aria-disabled="true">Próximamente</a>
+        </article>
+      </div>
+      <p class="downloads-note" id="downloads-note">Avisaremos aquí en cuanto estén listos.</p>
+    </section>
+
+    <section class="faq" id="preguntas" aria-labelledby="preguntas-title">
+      <h2 id="preguntas-title">Preguntas</h2>
+      <details>
+        <summary>¿Cuánto cuesta?</summary>
+        <p>Nada. Kitsune es gratis y no lleva publicidad.</p>
+      </details>
+      <details>
+        <summary>¿En qué se basa?</summary>
+        <p>En Gecko, el motor de código abierto que también usa Firefox. Lo compilamos nosotros, con nuestro nombre, nuestros ajustes de privacidad y sin los servicios de Mozilla (cuentas, telemetría, estudios). El código de Gecko se distribuye bajo la licencia MPL 2.0.</p>
+      </details>
+      <details>
+        <summary>¿Qué datos envía Kitsune?</summary>
+        <p>Kitsune no envía datos de uso, informes de fallos ni estudios. Sí se conecta para mantener al día tus extensiones y las listas de uBlock Origin.</p>
+      </details>
+      <details>
+        <summary>¿Puedo traer mis marcadores y contraseñas?</summary>
+        <p>Sí. En los ajustes puedes importar marcadores, historial y contraseñas de otro navegador.</p>
+      </details>
+      <details>
+        <summary>¿Por qué el modo Estricto me cierra las sesiones?</summary>
+        <p>Porque borra cookies al cerrar Kitsune: así ninguna web te reconoce entre visitas. Si prefieres seguir con tus cuentas abiertas, pasa ese perfil a Cómodo.</p>
+      </details>
+    </section>
+  </main>
+
+  <footer class="foot">
+    <img src="/assets/mascota/cola.svg" width="110" height="85" alt="">
+    <p>Kitsune <span data-version>0.7</span> · navegador de papel y tinta</p>
+    <p class="foot-small">Motor Gecko bajo licencia <a href="https://www.mozilla.org/MPL/2.0/" rel="noopener">MPL 2.0</a> · Fuentes Noto (OFL)</p>
+  </footer>
+</body>
+</html>
