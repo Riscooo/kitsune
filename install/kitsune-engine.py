@@ -63,8 +63,13 @@ START = HERE / "start" if (HERE / "start").is_dir() else HERE.parent / "start"
 HOME_PAGE_FILES = ("index.html", "app.bundle.js", "app.css", "palette.css", "favicon.svg", "favicon-dark.svg",
                    "logo.svg", "logo-dark.svg", "logo-ring.svg", "logo-ring-dark.svg", "logo-mask.svg",
                    "logo-mask-dark.svg", "seal.svg", "veta-mascara-ltr.svg", "veta-mascara-rtl.svg",
-                   "veta-tinta-ltr.svg", "veta-tinta-rtl.svg", "ayuda.html", "ayuda.js", "tema-inicio.js")
+                   "veta-tinta-ltr.svg", "veta-tinta-rtl.svg", "ayuda.html", "ayuda.js", "tema-inicio.js",
+                   "fuentes/NotoSerif-Regular.woff2", "fuentes/NotoSerif-Medium.woff2", "fuentes/NotoSerif-Italic.woff2", "fuentes/NotoSans-Regular.woff2", "fuentes/NotoSans-Medium.woff2", "fuentes/LICENCIA.txt")
 HOME_JAR = "browser.jar:\n    builtin-addons/kitsune-home/ (extension/**)\n"
+# El aspecto de Kitsune (pestañas, barras, páginas internas): en Linux cada perfil trae
+# su copia de chrome/; en Windows y macOS viene del motor (chrome://browser/content/kitsune-chrome/).
+CHROME_STYLE = HERE / "templates/chrome" if (HERE / "templates/chrome").is_dir() else HERE.parent / "chrome"
+CHROME_JAR_ENTRY = "content/browser/kitsune-chrome/ (content/kitsune-chrome/**)"
 ICON_SIZES = (16, 22, 24, 32, 48, 64, 128, 256)
 BRAND_CONTENT = {
     "about-logo.png": "icon-192.png", "about-logo@2x.png": "icon-384.png",
@@ -387,6 +392,8 @@ def input_files():
         files[f"home-extension/{name}"] = HOME_EXTENSION / name
     for name in HOME_PAGE_FILES:
         files[f"start/{name}"] = START / name
+    for name in chrome_style_files():
+        files[f"chrome/{name}"] = CHROME_STYLE / name
     return files
 
 
@@ -557,6 +564,7 @@ def stage_home_extension(destination: Path, version: str) -> Path:
     manifest.write_text(manifest.read_text().replace("@VERSION@", version))
     (destination / "start").mkdir()
     for name in HOME_PAGE_FILES:
+        (destination / "start" / name).parent.mkdir(parents=True, exist_ok=True)
         shutil.copyfile(START / name, destination / "start" / name)
     # La ayuda usa rutas del servidor (/app.css, /): aquí vive junto al inicio, en start/.
     help_page = destination / "start/ayuda.html"
@@ -578,11 +586,21 @@ def integrate_home(source: Path, build_fp: str):
                                            "La lista de extensiones de Gecko"))
 
 
+def chrome_style_files():
+    return sorted(path.relative_to(CHROME_STYLE).as_posix() for path in CHROME_STYLE.rglob("*") if path.is_file())
+
+
 def integrate_native(source: Path):
     """Build the native module in. Idempotent, so a recipe change reuses extracted source."""
     content = source / "browser/base/content"
     for name in NATIVE_FILES:
         shutil.copyfile(NATIVE / name, content / name)
+    style = content / "kitsune-chrome"
+    if style.exists():
+        shutil.rmtree(style)
+    for name in chrome_style_files():
+        (style / name).parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(CHROME_STYLE / name, style / name)
     jar = source / "browser/base/jar.mn"
     text = jar.read_text()
     if f"content/browser/{NATIVE_FILES[0]} " not in text:
@@ -591,6 +609,7 @@ def integrate_native(source: Path):
             raise EngineError("El manifiesto de la ventana cambió; la integración de Kitsune necesita revisión")
         indent = matches[0][0]
         entries = "".join(f"{indent}content/browser/{name} (content/{name})\n" for name in NATIVE_FILES)
+        entries += f"{indent}{CHROME_JAR_ENTRY}\n"
         jar.write_text(JAR_ANCHOR.sub(lambda match: match.group(0) + entries, text, count=1))
     window = source / "browser/base/content/browser.xhtml"
     text = window.read_text()

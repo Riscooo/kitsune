@@ -55,7 +55,7 @@
     border-inline-end: 1px solid var(--kitsune-rule);
     background: url("assets/kitsune.svg") left center / 28px 28px no-repeat;
     color: var(--kitsune-quiet);
-    font: 600 10px "Noto Sans", sans-serif;
+    font: 600 10px "Noto Sans", "Kitsune Sans", sans-serif;
     letter-spacing: 1.75px;
     pointer-events: none;
     -moz-window-dragging: drag;
@@ -103,7 +103,7 @@
   #main-window #tabbrowser-tabs[orient="horizontal"] .tabbrowser-tab:not([pinned]) .tab-content {
     padding-inline: 13px !important;
   }
-  #main-window .tab-label { font: 500 12px "Noto Sans", sans-serif !important; }
+  #main-window .tab-label { font: 500 12px "Noto Sans", "Kitsune Sans", sans-serif !important; }
   #main-window .tabbrowser-tab[selected] .tab-label { font-weight: 600 !important; }
   #main-window .tab-close-button { border-radius: 50% !important; }
   #main-window .tab-close-button:hover { background: var(--kb-primary-container) !important; color: var(--kb-primary) !important; }
@@ -157,7 +157,7 @@
     box-shadow: 0 8px 24px color-mix(in srgb, var(--kb-text) 14%, transparent) !important;
   }
   #main-window #urlbar-input {
-    font: 450 12px "Noto Sans", sans-serif !important;
+    font: 450 12px "Noto Sans", "Kitsune Sans", sans-serif !important;
     color: var(--kitsune-text) !important;
     caret-color: var(--kb-primary) !important;
   }

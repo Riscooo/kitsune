@@ -1,5 +1,12 @@
 /* Kitsune «Tinta»: portada de papel, tinta y óxido (diseño B · Caligrafía), o de
  * tinta sumi en Oscuro. Solo tokens --kb-* y las tintas de identidad de los perfiles. */
+/* Letras de Kitsune para Windows y macOS (Noto, licencia OFL, solo alfabeto latino),
+   con nombre propio: van detrás de «Noto Serif» y «Noto Sans», que en Linux están instaladas. */
+@font-face { font-family: "Kitsune Serif"; src: url("fuentes/NotoSerif-Regular.woff2") format("woff2"); font-weight: 400; font-style: normal; font-display: swap; }
+@font-face { font-family: "Kitsune Serif"; src: url("fuentes/NotoSerif-Medium.woff2") format("woff2"); font-weight: 500; font-style: normal; font-display: swap; }
+@font-face { font-family: "Kitsune Serif"; src: url("fuentes/NotoSerif-Italic.woff2") format("woff2"); font-weight: 400; font-style: italic; font-display: swap; }
+@font-face { font-family: "Kitsune Sans"; src: url("fuentes/NotoSans-Regular.woff2") format("woff2"); font-weight: 400; font-style: normal; font-display: swap; }
+@font-face { font-family: "Kitsune Sans"; src: url("fuentes/NotoSans-Medium.woff2") format("woff2"); font-weight: 500 700; font-style: normal; font-display: swap; }
 :root {
   color-scheme: light;
   --bg: var(--kb-bg); --surface: var(--kb-surface); --surface-high: var(--kb-surface-high);
@@ -9,8 +16,8 @@
   --soft: var(--kb-surface);
   --hover: color-mix(in srgb, var(--kb-text) 5%, var(--kb-surface));
   --shadow: color-mix(in srgb, var(--kb-text) 12%, transparent);
-  --serif: "Noto Serif", "Noto Serif CJK JP", Georgia, serif;
-  font-family: "Noto Sans", system-ui, sans-serif;
+  --serif: "Noto Serif", "Kitsune Serif", "Noto Serif CJK JP", Georgia, serif;
+  font-family: "Noto Sans", "Kitsune Sans", system-ui, sans-serif;
   font-synthesis: none; scrollbar-width: thin; scrollbar-color: var(--outline) var(--bg);
 }
 /* Oscuro: la paleta sumi de install/appearance.py (SUMI), la misma que recibe el navegador. */

@@ -133,6 +133,10 @@ class RecipeTests(unittest.TestCase):
         self.assertEqual((brand / "content/about-logo.svg").read_bytes(), (ROOT / "install/branding/icon.svg").read_bytes())
         jar = (root / "browser/base/jar.mn").read_text()
         self.assertIn("        content/browser/kitsune-appearance.sys.mjs (content/kitsune-appearance.sys.mjs)\n", jar)
+        self.assertIn("        content/browser/kitsune-chrome/ (content/kitsune-chrome/**)\n", jar)
+        style = root / "browser/base/content/kitsune-chrome"
+        self.assertEqual((style / "userChrome.css").read_bytes(), (ROOT / "chrome/userChrome.css").read_bytes())
+        self.assertTrue((style / "assets").is_dir())
         self.assertLess(jar.index("browser-main.js"), jar.index("kitsune-bootstrap.js"))
         self.assertIn(engine.KITSUNE_BOOTSTRAP, (root / "browser/base/content/browser.xhtml").read_text())
         about = (root / "browser/base/content/aboutDialog.xhtml").read_text()

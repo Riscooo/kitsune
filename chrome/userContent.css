@@ -1,3 +1,4 @@
+@import url("fuentes.css");
 /* Kitsune 0.5 «Tinta». Solo páginas internas del navegador: nunca se publican
    variables ni estilos de Kitsune a webs normales. El módulo nativo reemplaza
    estos tokens en directo; aquí quedan como respaldo (los de InkShadow). */
@@ -47,7 +48,7 @@
     --text-color-deemphasized: var(--kb-muted) !important;
     --focus-outline-color: var(--kb-primary) !important;
     --link-color: var(--kb-secondary) !important;
-    font-family: "Noto Sans", system-ui, sans-serif !important;
+    font-family: "Noto Sans", "Kitsune Sans", system-ui, sans-serif !important;
   }
   moz-button {
     --button-border-color: var(--kb-outline) !important;
@@ -91,7 +92,7 @@
   .logo-and-wordmark .wordmark::after {
     content: "kitsune";
     color: var(--kb-text);
-    font: 400 clamp(32px, 4vw, 42px)/1 "Noto Serif", serif;
+    font: 400 clamp(32px, 4vw, 42px)/1 "Noto Serif", "Kitsune Serif", serif;
     letter-spacing: .06em;
   }
 
@@ -126,7 +127,7 @@
     border-radius: 12px !important;
     color: var(--kb-text) !important;
     background-color: var(--kb-surface) !important;
-    font: 14px "Noto Sans", sans-serif !important;
+    font: 14px "Noto Sans", "Kitsune Sans", sans-serif !important;
   }
   .search-handoff-button:focus-visible,
   .search-wrapper input:focus-visible {
@@ -219,7 +220,7 @@
     color: var(--kb-text) !important;
     background: var(--kb-bg) !important;
     border-top: 4px solid var(--kb-secondary) !important;
-    font-family: "Noto Sans", system-ui, sans-serif !important;
+    font-family: "Noto Sans", "Kitsune Sans", system-ui, sans-serif !important;
   }
   /* Gecko 154 fija morados y color-scheme oscuro en html.private (modo clásico y
      Nova): se pasan a papel con el jade del modo privado para que todo se lea. */
@@ -307,7 +308,7 @@
     --link-color: var(--kb-secondary) !important;
     --link-color-hover: color-mix(in srgb, var(--kb-secondary) 80%, var(--kb-text)) !important;
     --border-color-interactive: var(--kb-outline) !important;
-    font-family: "Noto Sans", system-ui, sans-serif !important;
+    font-family: "Noto Sans", "Kitsune Sans", system-ui, sans-serif !important;
   }
   body { color: var(--kb-text) !important; background-color: var(--kb-bg) !important; }
   button,
@@ -334,10 +335,10 @@
     background-color: var(--kb-bg) !important;
   }
   .moz-reader-content, .moz-reader-content p, .moz-reader-content li {
-    font-family: "Noto Serif", Georgia, serif !important;
+    font-family: "Noto Serif", "Kitsune Serif", Georgia, serif !important;
   }
   .reader-title, .moz-reader-content h1, .moz-reader-content h2, .moz-reader-content h3 {
-    font-family: "Noto Serif", Georgia, serif !important;
+    font-family: "Noto Serif", "Kitsune Serif", Georgia, serif !important;
     color: var(--kb-text) !important;
   }
   .moz-reader-content a { color: var(--kb-secondary) !important; }

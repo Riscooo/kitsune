@@ -1,0 +1,7 @@
+/* Letras de Kitsune para Windows y macOS (Noto, licencia OFL, solo alfabeto latino),
+   con nombre propio: van detrás de «Noto Serif» y «Noto Sans», que en Linux están instaladas. */
+@font-face { font-family: "Kitsune Serif"; src: url("assets/fuentes/NotoSerif-Regular.woff2") format("woff2"); font-weight: 400; font-style: normal; font-display: swap; }
+@font-face { font-family: "Kitsune Serif"; src: url("assets/fuentes/NotoSerif-Medium.woff2") format("woff2"); font-weight: 500; font-style: normal; font-display: swap; }
+@font-face { font-family: "Kitsune Serif"; src: url("assets/fuentes/NotoSerif-Italic.woff2") format("woff2"); font-weight: 400; font-style: italic; font-display: swap; }
+@font-face { font-family: "Kitsune Sans"; src: url("assets/fuentes/NotoSans-Regular.woff2") format("woff2"); font-weight: 400; font-style: normal; font-display: swap; }
+@font-face { font-family: "Kitsune Sans"; src: url("assets/fuentes/NotoSans-Medium.woff2") format("woff2"); font-weight: 500 700; font-style: normal; font-display: swap; }

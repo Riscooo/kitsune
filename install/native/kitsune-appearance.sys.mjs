@@ -328,6 +328,22 @@ async function update() {
   } finally { busy = false; }
 }
 
+// Windows y macOS: sin copia de chrome/ en el perfil, el aspecto de Kitsune viene del
+// propio motor. userContent.css para todo (como el del perfil) y userChrome.css en
+// cada ventana. En Linux el perfil trae su copia y manda esa.
+const BUILTIN_STYLE = 'chrome://browser/content/kitsune-chrome/';
+function profileHasStyle(name) {
+  const file = Services.dirsvc.get('ProfD', Ci.nsIFile);
+  file.append('chrome');
+  file.append(name);
+  return file.exists();
+}
+function registerBuiltinContent() {
+  if (profileHasStyle('userContent.css')) return;
+  const uri = Services.io.newURI(BUILTIN_STYLE + 'userContent.css');
+  if (!sheets.sheetRegistered(uri, sheets.USER_SHEET)) sheets.loadAndRegisterSheet(uri, sheets.USER_SHEET);
+}
+
 // Siempre, haya o no ajustes de apariencia: la identidad no depende del inicio.
 function registerIdentity() {
   const uri = Services.io.newURI('data:text/css;charset=utf-8,' + encodeURIComponent(IDENTITY_CSS + FADE_CSS));
@@ -336,9 +352,16 @@ function registerIdentity() {
 
 export const KitsuneAppearance = {
   integratedHome: INTEGRATED_HOME,
+  // Cada ventana nueva: el aspecto de Kitsune del motor si el perfil no trae el suyo.
+  decorate(window) {
+    try {
+      if (!profileHasStyle('userChrome.css')) window.windowUtils.loadSheetUsingURIString(BUILTIN_STYLE + 'userChrome.css', window.windowUtils.USER_SHEET);
+    } catch { /* la ventana sigue con el aspecto de Gecko */ }
+  },
   start() {
     if (timer !== null) return;
     try { registerIdentity(); } catch { /* el resto de Kitsune sigue */ }
+    try { registerBuiltinContent(); } catch { /* sin estilo propio, Gecko sigue con el suyo */ }
     void update();
     timer = setInterval(update, 2000);
     Services.obs.addObserver(this, 'quit-application-granted');

@@ -60,6 +60,11 @@ ASSETS = {
     "/seal.svg": ("seal.svg", "image/svg+xml"),
     "/ayuda.js": ("ayuda.js", "text/javascript; charset=utf-8"),
     "/tema-inicio.js": ("tema-inicio.js", "text/javascript; charset=utf-8"),
+    "/fuentes/NotoSerif-Regular.woff2": ("fuentes/NotoSerif-Regular.woff2", "font/woff2"),
+    "/fuentes/NotoSerif-Medium.woff2": ("fuentes/NotoSerif-Medium.woff2", "font/woff2"),
+    "/fuentes/NotoSerif-Italic.woff2": ("fuentes/NotoSerif-Italic.woff2", "font/woff2"),
+    "/fuentes/NotoSans-Regular.woff2": ("fuentes/NotoSans-Regular.woff2", "font/woff2"),
+    "/fuentes/NotoSans-Medium.woff2": ("fuentes/NotoSans-Medium.woff2", "font/woff2"),
 }
 # Ayuda de Kitsune: los enlaces de ayuda del motor llegan aquí (app.support.baseURL).
 HELP_ROUTE = re.compile(r"/ayuda/(?:[A-Za-z0-9][A-Za-z0-9._-]{0,120})?")

@@ -1,4 +1,5 @@
 @import url("palette.css");
+@import url("fuentes.css");
 @import url("window-controls.css");
 @import url("kitsune-header.css");
 
@@ -69,7 +70,7 @@
   --sidebar-border-color: var(--kb-line) !important;
   --focus-outline-color: var(--kb-accent) !important;
   --chrome-content-separator-color: var(--kb-line) !important;
-  font-family: "Noto Sans", system-ui, sans-serif !important;
+  font-family: "Noto Sans", "Kitsune Sans", system-ui, sans-serif !important;
 }
 
 /* A quiet, unified frame. No pseudo-element overlays or running effects. */
@@ -161,7 +162,7 @@ tab-group > .tab-group-label-container > label { border-radius: 8px !important; 
 }
 
 #urlbar-input {
-  font-family: "Noto Sans", system-ui, sans-serif !important;
+  font-family: "Noto Sans", "Kitsune Sans", system-ui, sans-serif !important;
   font-size: 13px !important;
   letter-spacing: normal !important;
 }
@@ -319,7 +320,7 @@ findbar .findbar-textbox[status="notfound"] {
   border-radius: 0 10px 0 0 !important;
   color: var(--kb-text) !important;
   background-color: var(--kb-bg) !important;
-  font: 11px "Noto Sans", sans-serif !important;
+  font: 11px "Noto Sans", "Kitsune Sans", sans-serif !important;
 }
 
 #browser { background-color: var(--kb-bg) !important; }
