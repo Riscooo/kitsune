@@ -687,6 +687,7 @@ class TargetTests(unittest.TestCase):
             self.assertIn("kitsune/distribution/extensions/uBlock0@raymondhill.net.xpi", names)
             self.assertEqual(len(names), len(set(names)))
             self.assertEqual(archive.read("kitsune/uninstall/helper.exe"), b"MZ castellano")
+            self.assertIn(b'pref("kitsune.release", "', archive.read("kitsune/defaults/pref/kitsune-release.js"))
         makes = [command for command in calls if command[0] == "make"]
         self.assertTrue(makes and all("AB_CD=es-ES" in command for command in makes))
         repackages = [command for command in calls if "repackage" in command]
@@ -715,6 +716,7 @@ class TargetTests(unittest.TestCase):
         self.assertEqual((resources / "kitsune.cfg").read_bytes(), (ROOT / "install/recipe/kitsune.cfg").read_bytes())
         self.assertTrue((resources / "defaults/pref/autoconfig.js").is_file())
         self.assertTrue((resources / "distribution/extensions/uBlock0@raymondhill.net.xpi").is_file())
+        self.assertIn('pref("kitsune.release", "', (resources / "defaults/pref/kitsune-release.js").read_text())
         self.assertFalse((dist / "bin/Kitsune.app/Contents/Resources/kitsune.cfg").exists())
         signed, made = calls
         self.assertEqual(signed[:2], ["rcodesign", "sign"])

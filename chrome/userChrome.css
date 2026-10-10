@@ -416,3 +416,13 @@ findbar .findbar-textbox[status="notfound"] {
 :root {
   scrollbar-color: color-mix(in srgb, var(--kb-primary) 62%, transparent) transparent;
 }
+
+/* Barras de aviso (como «Hay una versión nueva de Kitsune»): papel y tinta, con el icono
+   en óxido. La franja de color de la izquierda la cambia la receta del motor. */
+notification-message {
+  --info-bar-background-color: var(--kb-surface) !important;
+  --info-bar-text-color: var(--kb-text) !important;
+  --message-bar-border-color: var(--kb-outline) !important;
+  --icon-color-information: var(--kb-primary) !important;
+  --message-bar-icon-color: var(--kb-primary) !important;
+}

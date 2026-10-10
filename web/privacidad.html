@@ -61,6 +61,7 @@
       <li><b>Listas de seguridad de Mozilla</b> (Remote Settings): certificados revocados, listas de rastreadores para el bloqueo y otras listas de seguridad.</li>
       <li><b>Listas de filtros de uBlock Origin:</b> se descargan de los servidores de cada lista para bloquear anuncios y rastreadores.</li>
       <li><b>Google Safe Browsing:</b> Kitsune descarga listas de webs de estafa y malware. Si una dirección coincide con la lista, envía a Google solo el principio de una huella cifrada de esa dirección, nunca la dirección completa, para confirmarlo. Puedes desactivarlo en los ajustes de privacidad.</li>
+      <li><b>Aviso de versión nueva</b> (Windows y macOS): una vez al día, Kitsune mira la lista de descargas de esta web (<code>downloads.json</code>) para decirte si hay una versión nueva. No envía cookies ni ningún dato tuyo; como cualquier petición, Vercel ve la dirección IP. Se apaga poniendo <code>kitsune.update.check</code> a <code>false</code> en <code>about:config</code>.</li>
       <li><b>Códecs de vídeo:</b> si una web los necesita, se descargan OpenH264 (de Cisco) y Widevine (de Google, para contenido protegido).</li>
       <li><b>Lo que tú eliges:</b> las webs que visitas, el buscador que usas y las extensiones que instalas reciben lo que les mandas, según sus propias políticas.</li>
     </ul>

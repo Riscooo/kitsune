@@ -52,7 +52,7 @@ UA_ANCHOR = 'imply_option("MOZ_DEVTOOLS", "all")'
 UA_FIREFOX = 'imply_option("MOZ_APP_UA_NAME", "Firefox")'
 HERE = Path(__file__).resolve().parent
 RECIPE, BRANDING, NATIVE = HERE / "recipe", HERE / "branding", HERE / "native"
-NATIVE_FILES = ("kitsune-bootstrap.js", "kitsune-appearance.sys.mjs")
+NATIVE_FILES = ("kitsune-bootstrap.js", "kitsune-appearance.sys.mjs", "kitsune-updates.sys.mjs")
 # Inicio integrado (Windows y macOS, sin servidor local): la extensión inicio@kitsune
 # con la API del inicio (install/home-extension) y las páginas de start/, dentro del
 # motor en resource://builtin-addons/kitsune-home/. En el PC de Risco start/ está junto
@@ -87,6 +87,11 @@ ABOUT_CREDIT = '<label id="kitsune-engine-credit" class="text-blurb">Tinta · mo
 # defecto llamado Kitsune y ningún marcador, tema ni enlace de ayuda de Firefox.
 # Cada texto se comprueba: si Gecko lo cambia, la receta avisa en vez de seguir.
 TEXT_PATCHES = {
+    # Las barras de aviso llevaban el degradado de la marca Firefox: óxido y jade de Kitsune.
+    "toolkit/content/widgets/infobar.css": [
+        ("background-image: linear-gradient(0deg, #9059ff 0%, #ff4aa2 52.08%, #ffbd4f 100%);",
+         "background-image: linear-gradient(0deg, var(--kb-secondary, #496b60), var(--kb-primary, #963d32));"),
+    ],
     # Gecko 157: la primera sincronización de una colección cuya copia de serie viene vacía
     # (search-config-overrides-v2) verifica la firma con la lista local a null y se rompe.
     # Una lista vacía tiene su firma de lista vacía.
@@ -627,17 +632,19 @@ def integrate_native(source: Path):
         shutil.copyfile(CHROME_STYLE / name, style / name)
     jar = source / "browser/base/jar.mn"
     text = jar.read_text()
-    if f"content/browser/{NATIVE_FILES[0]} " not in text:
+    # Cada archivo nativo con su línea (un código preparado antes puede tener solo algunos).
+    missing = [name for name in NATIVE_FILES if f"content/browser/{name} " not in text]
+    if missing:
         matches = JAR_ANCHOR.findall(text)
         if len(matches) != 1:
             raise EngineError("El manifiesto de la ventana cambió; la integración de Kitsune necesita revisión")
         indent = matches[0][0]
-        entries = "".join(f"{indent}content/browser/{name} (content/{name})\n" for name in NATIVE_FILES)
+        entries = "".join(f"{indent}content/browser/{name} (content/{name})\n" for name in missing)
         jar.write_text(JAR_ANCHOR.sub(lambda match: match.group(0) + entries, text, count=1))
         text = jar.read_text()
     # El estilo de chrome/ va aparte: un código ya preparado de antes tiene el módulo pero no esta línea.
     if CHROME_JAR_ENTRY not in text:
-        anchor = f"content/browser/{NATIVE_FILES[-1]} (content/{NATIVE_FILES[-1]})\n"
+        anchor = f"content/browser/{NATIVE_FILES[1]} (content/{NATIVE_FILES[1]})\n"
         line = next(line for line in text.splitlines(True) if line.strip() == anchor.strip())
         indent = line[:len(line) - len(line.lstrip())]
         jar.write_text(text.replace(line, line + f"{indent}{CHROME_JAR_ENTRY}\n", 1))
@@ -1308,6 +1315,16 @@ def write_target_mozconfig(layout: Layout, version: str, target: str) -> Path:
     return path
 
 
+def release_prefs(folder: Path) -> Path:
+    """defaults/pref/kitsune-release.js: la versión de este instalador, para el aviso de versión nueva."""
+    release = json.loads((HERE / "version.json").read_text()).get("release")
+    if not isinstance(release, str) or not re.fullmatch(r"\d+\.\d+\.\d+(?:-beta\.\d+)?", release):
+        raise EngineError("version.json no dice qué versión se publica (release)")
+    path = folder / "kitsune-release.js"
+    path.write_text(f'// Kitsune {release}: el aviso de versión nueva compara con esto.\npref("kitsune.release", "{release}");\n')
+    return path
+
+
 def finish_windows_package(layout: Layout, version: str, source: Path, env, logfile: Path, log=print, run=subprocess.run,
                            addons=distribution_addons):
     """Lo que en Linux se añade al instalar el motor, dentro del paquete de Windows:
@@ -1342,6 +1359,7 @@ def finish_windows_package(layout: Layout, version: str, source: Path, env, logf
             extras[f"kitsune/distribution/extensions/{xpi.name}"] = xpi
         if not any(name.endswith(".xpi") for name in extras):
             raise EngineError("No hay copia de uBlock Origin para el paquete de Windows")
+        extras["kitsune/defaults/pref/kitsune-release.js"] = release_prefs(Path(folder))
         # Se reescribe el .zip: lo de Gecko tal cual y lo de Kitsune encima.
         rewritten = package.with_suffix(".kitsune.zip")
         with zipfile.ZipFile(package) as original, zipfile.ZipFile(rewritten, "w", zipfile.ZIP_DEFLATED) as archive:
@@ -1377,6 +1395,7 @@ def finish_macos_package(layout: Layout, version: str, source: Path, env, logfil
         target.parent.mkdir(parents=True, exist_ok=True)
         shutil.copyfile(path, target)
     addons(layout, resources / "distribution/extensions", log)
+    release_prefs(resources / "defaults/pref")
     if not any((resources / "distribution/extensions").glob("*.xpi")):
         raise EngineError("No hay copia de uBlock Origin para la app de macOS")
     # Firma ad hoc de toda la app (con sus librerías) con rcodesign, como Mozilla desde Linux:
