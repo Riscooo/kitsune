@@ -1104,7 +1104,10 @@ def build(layout: Layout, version=None, if_new=False, notify_user=False, log=pri
 # prueban en este PC. Sin la clave propia de Safe Browsing (es solo de Risco).
 TARGETS = {"windows": "x86_64-pc-windows-msvc", "macos": "aarch64-apple-darwin"}
 CROSS_MIN_FREE_BYTES = 30 * 2**30
-TARGET_ARTIFACTS = {"windows": ("*.win64.zip", "install/sea/*.exe"), "macos": ("*.mac.dmg",)}
+# Si ya hay una compilación anterior para ese sistema, solo se recompila lo que cambia.
+CROSS_REBUILD_MIN_FREE_BYTES = 8 * 2**30
+# Windows: el paquete .zip y el instalador .exe que arma `mach package` (NSIS).
+TARGET_ARTIFACTS = {"windows": ("*.win64.zip", "*.win64.installer.exe"), "macos": ("*.mac.dmg",)}
 
 
 # Programas de Arch que solo hacen falta al compilar para Windows: msiextract
@@ -1246,8 +1249,9 @@ def build_target(layout: Layout, version: str, target: str, log=print, run=subpr
     version_key(version)
     with build_lock(layout):
         layout.private(layout.cache)
-        if shutil.disk_usage(layout.cache).free < CROSS_MIN_FREE_BYTES:
-            raise EngineError("Hacen falta al menos 30 GB libres para compilar Kitsune para otro sistema")
+        incremental = (layout.cache / f"obj-{version}-{target}").is_dir()
+        if shutil.disk_usage(layout.cache).free < (CROSS_REBUILD_MIN_FREE_BYTES if incremental else CROSS_MIN_FREE_BYTES):
+            raise EngineError(f"Hacen falta al menos {8 if incremental else 30} GB libres para compilar Kitsune para otro sistema")
         build_fp = build_fingerprint(version)
         logfile = layout.private(layout.state) / f"build-{version}-{target}.log"
         write_status(layout, building={"version": version, "target": target, "since": now(), "pid": os.getpid()})
@@ -1267,9 +1271,6 @@ def build_target(layout: Layout, version: str, target: str, log=print, run=subpr
             log(f"Compilando Kitsune para {target} sobre Gecko {version} con {jobs} tareas (registro: {logfile})")
             mach(source, ["build", f"-j{jobs}"], env, logfile, run)
             mach(source, ["package-multi-locale", "--locales", "en-US", *L10N_LOCALES], env, logfile, run)
-            if target == "windows":
-                # El instalador .exe (NSIS) con el mismo paquete en inglés y castellano.
-                mach(source, ["build", "installer"], {**env, "MOZ_CHROME_MULTILOCALE": " ".join(L10N_LOCALES)}, logfile, run)
             dist = layout.cache / f"obj-{version}-{target}" / "dist"
             out = layout.private(layout.cache / "packages" / target)
             ready = []
