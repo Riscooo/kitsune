@@ -153,6 +153,20 @@ class RecipeTests(unittest.TestCase):
         self.assertEqual((brand / "firefox.ico").read_bytes(), (ROOT / "install/branding/windows/firefox.ico").read_bytes())
         self.assertTrue((brand / "wizWatermark.bmp").is_file())
 
+    def test_a_source_prepared_before_chrome_style_existed_gets_its_jar_line(self):
+        root = self.source_tree()
+        jar = root / "browser/base/jar.mn"
+        jar.write_text(jar.read_text().replace(
+            "        content/browser/browser-main.js       (content/browser-main.js)\n",
+            "        content/browser/browser-main.js       (content/browser-main.js)\n"
+            "        content/browser/kitsune-bootstrap.js (content/kitsune-bootstrap.js)\n"
+            "        content/browser/kitsune-appearance.sys.mjs (content/kitsune-appearance.sys.mjs)\n"))
+        engine.integrate_native(root)
+        engine.integrate_native(root)
+        text = jar.read_text()
+        self.assertEqual(text.count(engine.CHROME_JAR_ENTRY), 1)
+        self.assertLess(text.index("kitsune-appearance.sys.mjs"), text.index(engine.CHROME_JAR_ENTRY))
+
     def test_the_integrated_home_is_packaged_as_a_builtin_extension(self):
         root = self.source_tree()
         extensions = root / "browser/extensions"

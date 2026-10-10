@@ -420,12 +420,13 @@ def fingerprint(version: str, files: dict, revision: int, parent: str = "") -> s
 def recipe_code() -> str:
     """Hash of the code that shapes the compiled engine, so changing it always rebuilds."""
     parts = [inspect.getsource(function) for function in (write_branding, integrate_native, rebrand_source, prepare_l10n,
-                                                          tune_build, write_mozconfig)]
+                                                          tune_build, write_mozconfig, integrate_home, stage_home_extension)]
     parts += [BRAND_FTL, BRAND_PROPERTIES, BRAND_CONFIGURE, KITSUNE_BOOTSTRAP, ABOUT_CREDIT, RUST_THIN_LTO,
               json.dumps(TEXT_PATCHES, sort_keys=True), KITSUNE_BOOKMARKS, SUPPORT_LINK_HIDDEN,
               json.dumps(MASCOT_POSES, sort_keys=True), repr(KITSUNE_LOGOS), json.dumps(L10N_PATCHES, sort_keys=True),
               repr(L10N_LOCALES), L10N_REPO,
-              UA_FIREFOX, json.dumps(BRAND_CONTENT, sort_keys=True), repr(ICON_SIZES), repr(NATIVE_FILES)]
+              UA_FIREFOX, json.dumps(BRAND_CONTENT, sort_keys=True), repr(ICON_SIZES), repr(NATIVE_FILES),
+              HOME_JAR, CHROME_JAR_ENTRY, json.dumps(BRANDING_NSI, sort_keys=True), repr(HOME_PAGE_FILES)]
     return hashlib.sha256("\0".join(parts).encode()).hexdigest()
 
 
@@ -616,8 +617,14 @@ def integrate_native(source: Path):
             raise EngineError("El manifiesto de la ventana cambió; la integración de Kitsune necesita revisión")
         indent = matches[0][0]
         entries = "".join(f"{indent}content/browser/{name} (content/{name})\n" for name in NATIVE_FILES)
-        entries += f"{indent}{CHROME_JAR_ENTRY}\n"
         jar.write_text(JAR_ANCHOR.sub(lambda match: match.group(0) + entries, text, count=1))
+        text = jar.read_text()
+    # El estilo de chrome/ va aparte: un código ya preparado de antes tiene el módulo pero no esta línea.
+    if CHROME_JAR_ENTRY not in text:
+        anchor = f"content/browser/{NATIVE_FILES[-1]} (content/{NATIVE_FILES[-1]})\n"
+        line = next(line for line in text.splitlines(True) if line.strip() == anchor.strip())
+        indent = line[:len(line) - len(line.lstrip())]
+        jar.write_text(text.replace(line, line + f"{indent}{CHROME_JAR_ENTRY}\n", 1))
     window = source / "browser/base/content/browser.xhtml"
     text = window.read_text()
     if KITSUNE_BOOTSTRAP not in text:
@@ -1329,6 +1336,11 @@ def build_target(layout: Layout, version: str, target: str, log=print, run=subpr
             if sccache.is_file():
                 run([str(sccache), "--stop-server"], env=env, stdin=subprocess.DEVNULL,
                     stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            if target == "windows":
+                # Los iconos van dentro de recursos compilados (.res) y Gecko no los rehace al cambiar
+                # la marca: se borran y se vuelven a hacer (segundos) con los iconos de Kitsune.
+                for resource in (layout.cache / f"obj-{version}-{target}" / "browser").rglob("*.res"):
+                    resource.unlink()
             jobs = build_jobs(limit=cgroup_memory_limit())
             log(f"Compilando Kitsune para {target} sobre Gecko {version} con {jobs} tareas (registro: {logfile})")
             mach(source, ["build", f"-j{jobs}"], env, logfile, run)
