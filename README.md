@@ -65,6 +65,10 @@ Tipografías: Noto Sans en la interfaz y Noto Serif en títulos, saludo y «kits
   fondos. Una extensión que cambie la pestaña nueva sigue mandando.
 - **Webs en oscuro.** Al cambiar de tema (y la primera vez), «Apariencia de las webs»
   vuelve a automático: un «Claro» guardado de antes ya no deja Google en claro.
+- **Estricto ⇄ Cómodo desde la ficha del perfil.** Perfiles → el perfil → Privacidad:
+  Estricto | Cómodo, sin entrar en Editar. Al cambiar sale una ventana breve con lo
+  que hace cada modo y lo que supone el cambio (Aceptar / Cancelar); en Editar, el
+  mismo aviso y Cancelar devuelve la opción. Se aplica al volver a abrir Kitsune.
 - **Icono de pestaña** del inicio en negativo en Oscuro (`favicon-dark.svg`).
 - **Pie del inicio limpio.** Fuera «狐 Kitsune · Tinta» de abajo a la izquierda; solo
   quedan Enfoque y Atajos.
@@ -222,6 +226,7 @@ Resultado 0.7 (10 de octubre de 2026), con el motor `157.0.1-198fb4ecd63f`:
 `theme_native.py` 8/8 (Oscuro en directo en ventana, nueva pestaña y webs, también
 con «Claro» guardado de antes; fondo propio y de serie visibles, comprobado en
 píxeles; vuelta a Claro), `newtab_native.py` 2/2 (Ctrl+T y + abren el inicio),
+`privacy_switch_native.py` 4/4 (ventana de Estricto/Cómodo con Aceptar y Cancelar),
 apariencia 7, ajustes, cabecera y navegador.
 
 Resultado 0.6 «motor propio» (10 de octubre de 2026), con el motor

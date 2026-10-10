@@ -321,6 +321,10 @@
 		estricto: "Estricto",
 		comodo: "Cómodo"
 	});
+	const PRIVACY_EFFECTS = Object.freeze({
+		comodo: "Seguirás con tus cuentas abiertas al volver, pero las webs podrán reconocerte entre visitas.",
+		estricto: "Al cerrar Kitsune se cerrarán tus sesiones: tendrás que volver a entrar en tus cuentas. Alguna web puede fallar."
+	});
 	function privacyMode(profile) {
 		return Object.hasOwn(PRIVACY_MODES, profile?.privacyMode) ? profile.privacyMode : "estricto";
 	}
@@ -369,6 +373,23 @@
 			return svg;
 		};
 		const avatar = (node, profile, draft) => paintAvatar(node, profile, profileInitials(profile.name), draft);
+		let formPrivacy = "estricto";
+		/** Ventana breve con lo que hace cada modo y lo que supone el cambio. */
+		function confirmPrivacy(to) {
+			const popup = $("#privacy-dialog");
+			if (!popup) return Promise.resolve(true);
+			$("#privacy-dialog-title").textContent = `¿Pasar a ${PRIVACY_MODES[to]}?`;
+			$("#privacy-dialog-effect").textContent = PRIVACY_EFFECTS[to];
+			popup.querySelectorAll(".privacy-card").forEach((card) => {
+				card.dataset.target = String(card.dataset.mode === to);
+			});
+			popup.returnValue = "";
+			return new Promise((resolve) => {
+				popup.addEventListener("close", () => resolve(popup.returnValue === "accept"), { once: true });
+				popup.showModal();
+				$("#privacy-cancel").focus();
+			});
+		}
 		function photoMessage(message = "PNG, JPG o WebP · hasta 8 MB", error = false) {
 			const status = $("#profile-photo-status"), problem = $("#profile-photo-error");
 			if (status) status.textContent = error ? "" : message;
@@ -443,6 +464,9 @@
 		}
 		function renderControls() {
 			const blocked = busy || !ready;
+			dialog.querySelectorAll("[data-privacy-switch]").forEach((button) => {
+				button.disabled = blocked;
+			});
 			dialog.setAttribute("aria-busy", String(busy || photoBusy));
 			$("#profile-create").disabled = blocked || Boolean(formMode) || snapshot?.profiles.length >= 24;
 			$("#profile-create").title = snapshot?.profiles.length >= 24 ? "Has llegado al límite de 24 perfiles." : "";
@@ -545,6 +569,7 @@
 				$("#profile-open span").textContent = profile.id === snapshot.currentId ? "Abrir este perfil" : "Cambiar a este perfil";
 				$("#profile-make-default").hidden = profile.id === snapshot.defaultId;
 				$("#profile-default-copy").textContent = profile.id === snapshot.defaultId ? "Kitsune usa este perfil cuando lo abres sin elegir otro." : "Puedes usar este perfil al abrir Kitsune sin elegir otro.";
+				dialog.querySelectorAll("[data-privacy-switch]").forEach((button) => button.setAttribute("aria-pressed", String(button.dataset.privacySwitch === privacyMode(profile))));
 			}
 			renderControls();
 			updateGoogleStatus();
@@ -651,6 +676,7 @@
 			photoMessage();
 			if ($("#profile-remember-google")) $("#profile-remember-google").checked = profile?.rememberGoogle === true;
 			const mode = privacyMode(profile);
+			formPrivacy = mode;
 			dialog.querySelectorAll("input[name=\"profile-privacy\"]").forEach((input) => {
 				input.checked = input.value === mode;
 			});
@@ -695,7 +721,27 @@
 			$("#profile-edit").focus();
 		});
 		$("#profile-name").addEventListener("input", preview);
-		dialog.querySelectorAll("input[name=\"profile-privacy\"]").forEach((input) => input.addEventListener("change", updatePrivacyForm));
+		dialog.querySelectorAll("input[name=\"profile-privacy\"]").forEach((input) => input.addEventListener("change", async () => {
+			const to = selectedPrivacy();
+			if (formMode === "edit" && to !== formPrivacy && !await confirmPrivacy(to)) dialog.querySelectorAll("input[name=\"profile-privacy\"]").forEach((other) => {
+				other.checked = other.value === formPrivacy;
+			});
+			else formPrivacy = to;
+			updatePrivacyForm();
+		}));
+		dialog.querySelectorAll("[data-privacy-switch]").forEach((button) => button.addEventListener("click", async () => {
+			const profile = selectedProfile();
+			const to = button.dataset.privacySwitch;
+			if (!profile || busy || !ready || to === privacyMode(profile) || !await confirmPrivacy(to)) return;
+			if (!await mutate(`/api/profiles/${encodeURIComponent(profile.id)}`, "PATCH", {
+				name: profile.name,
+				email: profile.email || "",
+				color: profile.color,
+				privacyMode: to
+			}, `Pasando a ${PRIVACY_MODES[to]}…`)) return;
+			$("#profiles-operation").textContent = profile.id === snapshot.currentId ? `${profile.name}: modo ${PRIVACY_MODES[to]}. Se aplica al volver a abrir Kitsune.` : `${profile.name}: modo ${PRIVACY_MODES[to]}. Se aplica al abrir este perfil.`;
+			dialog.querySelector(`[data-privacy-switch="${to}"]`)?.focus({ preventScroll: true });
+		}));
 		$("#profile-photo")?.addEventListener("change", async (event) => {
 			const file = event.target.files?.[0];
 			if (!file || busy || !formMode || !dialog.open) return;

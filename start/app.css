@@ -301,3 +301,23 @@ body[data-motion=off] *, body[data-motion=off] *::before, body[data-motion=off] 
 .preset-tile[aria-pressed=true] { outline: 2px solid var(--accent); outline-offset: 2px; }
 .preset-tile:disabled { cursor: wait; opacity: 1; }
 .preset-original { background: var(--bg); color: var(--muted); font-size: 10px; }
+/* Privacidad en la ficha del perfil: Estricto | Cómodo, con confirmación breve. */
+.privacy-switch { display: flex; align-items: center; justify-content: space-between; gap: 14px; margin-top: 18px; padding: 12px 14px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); }
+.privacy-switch-label { display: inline-flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 550; }
+.privacy-switch-label svg { width: 16px; height: 16px; color: var(--accent); }
+.privacy-segment { display: inline-flex; padding: 3px; gap: 3px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface-high); }
+.privacy-segment button { padding: 6px 13px; border-radius: 8px; font-size: 11px; color: var(--muted); }
+.privacy-segment button:hover:not(:disabled) { color: var(--text); }
+.privacy-segment button[aria-pressed=true] { background: var(--surface); color: var(--text); font-weight: 550; box-shadow: 0 1px 0 var(--shadow), inset 0 0 0 1px var(--line); }
+.privacy-dialog { width: min(470px, calc(100vw - 32px)); }
+.privacy-dialog form { margin: 0; }
+.privacy-dialog .dialog-head { margin-bottom: 16px; }
+.privacy-dialog-seal { display: inline-grid; place-items: center; width: 38px; height: 38px; border-radius: 12px; color: var(--accent); background: var(--accent-soft); }
+.privacy-dialog-seal svg { width: 19px; height: 19px; }
+.privacy-compare { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.privacy-card { padding: 12px 13px; border: 1px solid var(--line); border-radius: 12px; opacity: .62; }
+.privacy-card[data-target=true] { opacity: 1; border-color: var(--accent); background: var(--surface-high); }
+.privacy-card b { display: block; margin-bottom: 6px; font: 500 15px var(--serif); }
+.privacy-card p { margin: 0; color: var(--muted); font-size: 11px; line-height: 1.55; }
+.privacy-effect { margin: 16px 0 4px; padding-left: 11px; border-left: 2px solid var(--accent); font-size: 12px; line-height: 1.6; color: var(--text); }
+@media (max-width: 520px) { .privacy-compare { grid-template-columns: 1fr; } }
