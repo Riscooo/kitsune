@@ -53,6 +53,18 @@ UA_FIREFOX = 'imply_option("MOZ_APP_UA_NAME", "Firefox")'
 HERE = Path(__file__).resolve().parent
 RECIPE, BRANDING, NATIVE = HERE / "recipe", HERE / "branding", HERE / "native"
 NATIVE_FILES = ("kitsune-bootstrap.js", "kitsune-appearance.sys.mjs")
+# Inicio integrado (Windows y macOS, sin servidor local): la extensión inicio@kitsune
+# con la API del inicio (install/home-extension) y las páginas de start/, dentro del
+# motor en resource://builtin-addons/kitsune-home/. En el PC de Risco start/ está junto
+# a kitsune-engine.py (instalado) o en la raíz del repositorio.
+HOME_EXTENSION = HERE / "home-extension"
+HOME_EXTENSION_FILES = ("manifest.json", "api/schema.json", "api/parent.js", "api/core.sys.mjs")
+START = HERE / "start" if (HERE / "start").is_dir() else HERE.parent / "start"
+HOME_PAGE_FILES = ("index.html", "app.bundle.js", "app.css", "palette.css", "favicon.svg", "favicon-dark.svg",
+                   "logo.svg", "logo-dark.svg", "logo-ring.svg", "logo-ring-dark.svg", "logo-mask.svg",
+                   "logo-mask-dark.svg", "seal.svg", "veta-mascara-ltr.svg", "veta-mascara-rtl.svg",
+                   "veta-tinta-ltr.svg", "veta-tinta-rtl.svg", "ayuda.html", "ayuda.js", "tema-inicio.js")
+HOME_JAR = "browser.jar:\n    builtin-addons/kitsune-home/ (extension/**)\n"
 ICON_SIZES = (16, 22, 24, 32, 48, 64, 128, 256)
 BRAND_CONTENT = {
     "about-logo.png": "icon-192.png", "about-logo@2x.png": "icon-384.png",
@@ -70,6 +82,12 @@ ABOUT_CREDIT = '<label id="kitsune-engine-credit" class="text-blurb">Tinta · mo
 # defecto llamado Kitsune y ningún marcador, tema ni enlace de ayuda de Firefox.
 # Cada texto se comprueba: si Gecko lo cambia, la receta avisa en vez de seguir.
 TEXT_PATCHES = {
+    # El inicio integrado se presenta como el inicio de Gecko: «Kitsune», no «Extensión (…)».
+    "browser/base/content/browser-siteIdentity.js": [
+        ("    if (this._isSecureInternalUI) {\n      // This is a secure internal Firefox page.",
+         '    if (this._isSecureInternalUI || this._pageExtensionPolicy?.id === "inicio@kitsune") {\n'
+         "      // This is a secure internal Firefox page (or Kitsune's integrated home)."),
+    ],
     "toolkit/locales/en-US/toolkit/branding/brandings.ftl": (
         ("-monitor-brand-name = Firefox Monitor", "-monitor-brand-name = Monitor"),
         ("-mozmonitor-brand-name = Mozilla Monitor", "-mozmonitor-brand-name = Monitor"),
@@ -365,6 +383,10 @@ def input_files():
     files["branding/icon-small.svg"] = BRANDING / "icon-small.svg"
     for asset in sorted(WINDOWS_BRANDING.iterdir()):
         files[f"branding/windows/{asset.name}"] = asset
+    for name in HOME_EXTENSION_FILES:
+        files[f"home-extension/{name}"] = HOME_EXTENSION / name
+    for name in HOME_PAGE_FILES:
+        files[f"start/{name}"] = START / name
     return files
 
 
@@ -518,6 +540,44 @@ def write_branding(source: Path):
         nsi.write_text(text)
 
 
+def home_extension_version(build_fp: str) -> str:
+    """Versión de la extensión por receta: Gecko solo relee su manifiesto si cambia."""
+    return f"0.7.{int(build_fp[:7], 16)}"
+
+
+def stage_home_extension(destination: Path, version: str) -> Path:
+    """Monta la extensión del inicio integrado en `destination` (vacía o inexistente)."""
+    if destination.exists():
+        shutil.rmtree(destination)
+    for name in HOME_EXTENSION_FILES:
+        target = destination / name
+        target.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(HOME_EXTENSION / name, target)
+    manifest = destination / "manifest.json"
+    manifest.write_text(manifest.read_text().replace("@VERSION@", version))
+    (destination / "start").mkdir()
+    for name in HOME_PAGE_FILES:
+        shutil.copyfile(START / name, destination / "start" / name)
+    # La ayuda usa rutas del servidor (/app.css, /): aquí vive junto al inicio, en start/.
+    help_page = destination / "start/ayuda.html"
+    text = help_page.read_text().replace('href="/"', 'href="index.html"')
+    help_page.write_text(re.sub(r'(src|href)="/(?=[A-Za-z])', r'\1="', text))
+    return destination
+
+
+def integrate_home(source: Path, build_fp: str):
+    """La extensión del inicio, como las de Gecko en browser/extensions. Idempotente."""
+    folder = source / "browser/extensions/kitsune-home"
+    stage_home_extension(folder / "extension", home_extension_version(build_fp))
+    (folder / "jar.mn").write_text(HOME_JAR)
+    (folder / "moz.build").write_text('JAR_MANIFESTS += ["jar.mn"]\n')
+    extensions = source / "browser/extensions/moz.build"
+    text = extensions.read_text()
+    if '"kitsune-home",' not in text:
+        extensions.write_text(replace_once(text, 'DIRS += [\n', 'DIRS += [\n    "kitsune-home",\n',
+                                           "La lista de extensiones de Gecko"))
+
+
 def integrate_native(source: Path):
     """Build the native module in. Idempotent, so a recipe change reuses extracted source."""
     content = source / "browser/base/content"
@@ -638,6 +698,7 @@ def prepare_source(layout: Layout, version: str, tarball: Path, build_fp: str, l
             log("La receta de Kitsune cambió: se aplica sobre el código ya extraído")
             write_branding(source)
             integrate_native(source)
+            integrate_home(source, build_fp)
             rebrand_source(source)
             tune_build(source)
             marker.write_text(json.dumps({**prepared, "buildFingerprint": build_fp, "preparedAt": now()}))
@@ -656,6 +717,7 @@ def prepare_source(layout: Layout, version: str, tarball: Path, build_fp: str, l
         raise EngineError("El código fuente no tiene la estructura esperada")
     write_branding(top)
     integrate_native(top)
+    integrate_home(top, build_fp)
     rebrand_source(top)
     tune_build(top)
     (top / ".kitsune-source.json").write_text(json.dumps({"version": version, "buildFingerprint": build_fp, "preparedAt": now()}))

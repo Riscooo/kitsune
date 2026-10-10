@@ -1,0 +1,23 @@
+{
+  "manifest_version": 2,
+  "name": "Inicio de Kitsune",
+  "description": "La página de inicio y la pestaña nueva de Kitsune, con sus ajustes y perfiles.",
+  "version": "@VERSION@",
+  "hidden": true,
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "inicio@kitsune"
+    }
+  },
+  "experiment_apis": {
+    "kitsuneHome": {
+      "schema": "api/schema.json",
+      "parent": {
+        "scopes": ["addon_parent"],
+        "script": "api/parent.js",
+        "paths": [["kitsuneHome"]]
+      }
+    }
+  },
+  "content_security_policy": "script-src 'self'; object-src 'none'; frame-ancestors 'none'; base-uri 'none'"
+}

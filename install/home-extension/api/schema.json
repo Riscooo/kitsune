@@ -1,0 +1,19 @@
+[
+  {
+    "namespace": "kitsuneHome",
+    "description": "Lo que el inicio de Kitsune pedía al servidor local, dentro del motor.",
+    "functions": [
+      {
+        "name": "request",
+        "type": "function",
+        "async": true,
+        "description": "Una petición a /api/… con método, ruta y cuerpo JSON; responde con el estado y el cuerpo.",
+        "parameters": [
+          { "name": "method", "type": "string" },
+          { "name": "path", "type": "string" },
+          { "name": "body", "type": "string", "optional": true }
+        ]
+      }
+    ]
+  }
+]

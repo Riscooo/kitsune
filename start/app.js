@@ -1,3 +1,5 @@
+// Primero el puente: en el inicio integrado responde a /api/ antes de que nadie pregunte.
+import './bridge.mjs'
 import { resolveNavigation } from './navigation.mjs'
 import { initializeProfiles } from './profiles.mjs'
 import { createSettingsStore } from './settings-store.mjs'

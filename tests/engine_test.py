@@ -3,6 +3,7 @@ import importlib.util
 import contextlib
 import io
 import json
+import re
 import os
 from pathlib import Path
 import subprocess
@@ -147,6 +148,31 @@ class RecipeTests(unittest.TestCase):
         self.assertIn(engine.WEBSITE, nsi)
         self.assertEqual((brand / "firefox.ico").read_bytes(), (ROOT / "install/branding/windows/firefox.ico").read_bytes())
         self.assertTrue((brand / "wizWatermark.bmp").is_file())
+
+    def test_the_integrated_home_is_packaged_as_a_builtin_extension(self):
+        root = self.source_tree()
+        extensions = root / "browser/extensions"
+        extensions.mkdir(parents=True)
+        (extensions / "moz.build").write_text('DIRS += [\n    "formautofill",\n]\n\nJAR_MANIFESTS += ["jar.mn"]\n')
+        engine.integrate_home(root, "abc1234" + "0" * 57)
+        engine.integrate_home(root, "abc1234" + "0" * 57)
+        folder = extensions / "kitsune-home"
+        self.assertEqual((extensions / "moz.build").read_text().count('"kitsune-home",'), 1)
+        self.assertEqual((folder / "jar.mn").read_text(), "browser.jar:\n    builtin-addons/kitsune-home/ (extension/**)\n")
+        manifest = json.loads((folder / "extension/manifest.json").read_text())
+        self.assertEqual(manifest["browser_specific_settings"]["gecko"]["id"], "inicio@kitsune")
+        self.assertEqual(manifest["version"], f"0.7.{int('abc1234', 16)}")
+        self.assertTrue(manifest["hidden"])
+        for name in engine.HOME_EXTENSION_FILES + tuple(f"start/{page}" for page in engine.HOME_PAGE_FILES):
+            self.assertTrue((folder / "extension" / name).is_file(), name)
+        help_page = (folder / "extension/start/ayuda.html").read_text()
+        self.assertNotRegex(help_page, r'(?:src|href)="/')
+        self.assertIn('href="index.html"', help_page)
+        # Lo que sirve el servidor de Linux también va en el motor (salvo los módulos sin empaquetar).
+        home = (ROOT / "install/home-server.py").read_text()
+        for asset in re.findall(r'"/([\w.-]+)": \("', home):
+            if asset not in ("index.html", "app.js", "navigation.mjs"):
+                self.assertIn(asset, engine.HOME_PAGE_FILES)
 
     def rebrand_tree(self):
         root = self.source_tree()

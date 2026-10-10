@@ -9,7 +9,8 @@ const TOPICS = [
   [/home|new-?tab|wallpaper|customiz|toolbar|appearance/u, 'apariencia'],
   [/keyboard|shortcut/u, 'atajos'],
 ]
-const topic = decodeURIComponent(location.pathname.split('/').filter(Boolean).slice(1).join('/')).toLowerCase()
+// /ayuda/<tema> en el servidor de Linux; ayuda.html?tema=<tema> en el inicio integrado.
+const topic = (new URLSearchParams(location.search).get('tema') ?? decodeURIComponent(location.pathname.split('/').filter(Boolean).slice(1).join('/'))).toLowerCase()
 const match = topic && !location.hash ? TOPICS.find(([pattern]) => pattern.test(topic)) : null
 if (match) {
   const section = document.getElementById(match[1])

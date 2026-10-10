@@ -59,6 +59,7 @@ ASSETS = {
     "/logo-mask-dark.svg": ("logo-mask-dark.svg", "image/svg+xml"),
     "/seal.svg": ("seal.svg", "image/svg+xml"),
     "/ayuda.js": ("ayuda.js", "text/javascript; charset=utf-8"),
+    "/tema-inicio.js": ("tema-inicio.js", "text/javascript; charset=utf-8"),
 }
 # Ayuda de Kitsune: los enlaces de ayuda del motor llegan aquí (app.support.baseURL).
 HELP_ROUTE = re.compile(r"/ayuda/(?:[A-Za-z0-9][A-Za-z0-9._-]{0,120})?")

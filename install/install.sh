@@ -40,7 +40,7 @@ for file in appearance.py home-server.py media.py profiles.py wallpapers.py kits
 done
 chmod 700 "${root}/kitsune-engine.py"
 rm -f "${root}/prepare-runtime.py"
-for directory in native branding recipe mascot; do
+for directory in native branding recipe mascot home-extension; do
     rm -rf "${root:?}/${directory}.new"
     cp -r "${repo}/install/${directory}" "${root}/${directory}.new"
     rm -rf "${root:?}/${directory}"

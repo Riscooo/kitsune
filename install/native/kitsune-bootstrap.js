@@ -1,2 +1,7 @@
 /* Trusted Kitsune UI entry point. Never loaded in web content. */
-ChromeUtils.importESModule('chrome://browser/content/kitsune-appearance.sys.mjs').KitsuneAppearance.start();
+{
+  const { KitsuneAppearance } = ChromeUtils.importESModule('chrome://browser/content/kitsune-appearance.sys.mjs');
+  KitsuneAppearance.start();
+  // El inicio integrado (Windows y macOS), como about:home: sin su dirección en la barra.
+  if (!gInitialPages.includes(KitsuneAppearance.integratedHome)) gInitialPages.push(KitsuneAppearance.integratedHome);
+}

@@ -1,3 +1,4 @@
+import { imageUrl } from './bridge.mjs'
 /** Local raster-only avatar preparation. No URLs, SVG, metadata or remote fetch. */
 export const MAX_PHOTO_BYTES = 8 * 1024 * 1024
 export const MAX_AVATAR_DATA = 128 * 1024
@@ -105,5 +106,6 @@ export function paintAvatar(node, profile, initials, previewData) {
   image.addEventListener('load', () => { if (node.contains(image)) { image.hidden = false; node.replaceChildren(image) } }, { once: true })
   image.addEventListener('error', () => { if (node.contains(image)) node.textContent = initials }, { once: true })
   node.append(image)
-  image.src = source
+  if (source.startsWith('/api/')) void imageUrl(source).then(url => { image.src = url }).catch(() => { if (node.contains(image)) node.textContent = initials })
+  else image.src = source
 }

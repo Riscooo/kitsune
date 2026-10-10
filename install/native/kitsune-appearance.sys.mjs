@@ -10,8 +10,11 @@ const MANAGED_PREF = 'browser.kitsune.googleRetentionManagedOrigins';
 const LEGACY_MANAGED_PREF = 'browser.kitsune.googleRetentionManaged';
 const THEME_APPLIED_PREF = 'kitsune.theme.applied';
 const WEBSITE_SCHEME_PREF = 'layout.css.prefers-color-scheme.content-override';
-// La página de inicio propia del perfil (solo el inicio local de Kitsune).
-const HOME_URL = /^http:\/\/127\.0\.0\.1:[0-9]{2,5}\/$/;
+// La página de inicio propia del perfil: el servidor local de Linux o el inicio
+// integrado (extensión inicio@kitsune, con el UUID fijo de kitsune.cfg).
+const SERVER_HOME = /^http:\/\/127\.0\.0\.1:[0-9]{2,5}\/$/;
+const INTEGRATED_HOME = 'moz-extension://4b1d7c2e-9a3f-4e6b-8c51-2f7a0d9e6b13/start/index.html';
+const isHome = url => SERVER_HOME.test(url) || url === INTEGRATED_HOME;
 let timer = null, busy = false, current = '', sheet = null, lastAck = 0, reportedError = false;
 const sheets = Cc['@mozilla.org/content/style-sheet-service;1'].getService(Ci.nsIStyleSheetService);
 const profileDirectory = () => Services.dirsvc.get('ProfD', Ci.nsIFile).path;
@@ -253,7 +256,7 @@ function applyGoogle(enabled) {
 // fija cuando nadie la ha cambiado (Gecko la restablece al iniciar Activity Stream).
 function applyNewTab() {
   const home = Services.prefs.getStringPref('browser.startup.homepage', '');
-  if (!HOME_URL.test(home)) return;
+  if (!isHome(home)) return;
   const { AboutNewTab } = ChromeUtils.importESModule('resource:///modules/AboutNewTab.sys.mjs');
   if (!AboutNewTab.newTabURLOverridden) AboutNewTab.newTabURL = home;
 }
@@ -265,14 +268,20 @@ const MOZILLA_SUPPORT = /^https:\/\/support\.mozilla\.org\//;
 let supportHome = '';
 function applySupportUrl() {
   const home = Services.prefs.getStringPref('browser.startup.homepage', '');
-  if (!HOME_URL.test(home) || supportHome === home) return;
+  if (!isHome(home) || supportHome === home) return;
+  // Servidor: <inicio>/ayuda/<tema>. Integrado: start/ayuda.html?tema=<tema>. Gecko pone
+  // el tema detrás de app.support.baseURL, así que esa acaba justo antes del tema.
+  const integrated = home === INTEGRATED_HOME;
+  const page = home.replace(/index\.html$/, 'ayuda.html');
+  const help = (topic, base) => integrated ? (base || topic ? `${page}?tema=${topic}` : page) : `${home}ayuda/${topic}`;
   const defaults = Services.prefs.getDefaultBranch('');
   for (const name of defaults.getChildList('')) {
     if (defaults.getPrefType(name) !== defaults.PREF_STRING) continue;
     const value = defaults.getStringPref(name, '');
     if (!MOZILLA_SUPPORT.test(value)) continue;
     const topic = value.split(/[?#]/)[0].replace(/\/+$/, '').split('/').pop().replace(/[^A-Za-z0-9._-]/g, '');
-    defaults.setStringPref(name, name === 'app.support.baseURL' || !topic ? `${home}ayuda/` : `${home}ayuda/${topic}`);
+    const base = name === 'app.support.baseURL';
+    defaults.setStringPref(name, help(base ? '' : topic, base));
   }
   supportHome = home;
 }
@@ -326,6 +335,7 @@ function registerIdentity() {
 }
 
 export const KitsuneAppearance = {
+  integratedHome: INTEGRATED_HOME,
   start() {
     if (timer !== null) return;
     try { registerIdentity(); } catch { /* el resto de Kitsune sigue */ }

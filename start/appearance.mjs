@@ -1,3 +1,4 @@
+import { imageUrl, integrated } from './bridge.mjs'
 const PALETTE_KEYS = ['bg', 'surface', 'surfaceHigh', 'text', 'muted', 'outline', 'primary', 'primaryContainer', 'secondary', 'tertiary']
 const THEME_COLORS = Object.freeze({ claro: '#f6f5f1', oscuro: '#161a19' })
 
@@ -25,6 +26,7 @@ export function createAppearance({ getSettings, refreshSettings = async () => {}
     for (const [key, value] of Object.entries({ motion: settings.motion ? 'on' : 'off', focus: settings.focus ? 'on' : 'off', clock: settings.modules.clock ? 'on' : 'off', shortcuts: settings.modules.shortcuts ? 'on' : 'off' })) document.body.dataset[key] = value
     const root = document.documentElement
     root.dataset.theme = settings.theme
+    try { localStorage.setItem('kitsune-tema', settings.theme) } catch { /* sin almacenamiento */ }
     document.querySelector('meta[name="theme-color"]')?.setAttribute('content', THEME_COLORS[settings.theme] ?? THEME_COLORS.claro)
     // El icono de la pestaña también en negativo: la tinta no se ve sobre una pestaña oscura.
     const icon = document.querySelector('link[rel="icon"]')
@@ -32,9 +34,21 @@ export function createAppearance({ getSettings, refreshSettings = async () => {}
     if (icon && icon.getAttribute('href') !== href) icon.setAttribute('href', href)
     // Solo un hash validado llega a la URL, y siempre es la ruta local del propio inicio.
     if (settings.background && location.protocol !== 'file:') {
-      root.style.setProperty('--home-background', `url("/api/background/${settings.background}.jpg")`)
-      root.dataset.background = 'on'
+      const path = `/api/background/${settings.background}.jpg`
+      if (integrated) {
+        // Sin servidor: la imagen llega como blob; mientras, el fondo de siempre.
+        void imageUrl(path).then(url => {
+          if (root.dataset.backgroundPath !== path) return
+          root.style.setProperty('--home-background', `url("${url}")`)
+          root.dataset.background = 'on'
+        }).catch(() => {})
+        root.dataset.backgroundPath = path
+      } else {
+        root.style.setProperty('--home-background', `url("${path}")`)
+        root.dataset.background = 'on'
+      }
     } else {
+      delete root.dataset.backgroundPath
       root.style.removeProperty('--home-background')
       root.dataset.background = 'off'
     }
