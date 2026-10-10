@@ -87,6 +87,13 @@ ABOUT_CREDIT = '<label id="kitsune-engine-credit" class="text-blurb">Tinta · mo
 # defecto llamado Kitsune y ningún marcador, tema ni enlace de ayuda de Firefox.
 # Cada texto se comprueba: si Gecko lo cambia, la receta avisa en vez de seguir.
 TEXT_PATCHES = {
+    # Gecko 157: la primera sincronización de una colección cuya copia de serie viene vacía
+    # (search-config-overrides-v2) verifica la firma con la lista local a null y se rompe.
+    # Una lista vacía tiene su firma de lista vacía.
+    "services/settings/RemoteSettings.worker.mjs": [
+        ("    let allRecords = records.sort((a, b) => {",
+         "    let allRecords = (records ?? []).sort((a, b) => {"),
+    ],
     # macOS: el icono de la app sale de firefox.icns (el de Kitsune), no del catálogo
     # Assets.car de la marca genérica de Gecko.
     "browser/app/macbuild/Contents/Info.plist.in": [
