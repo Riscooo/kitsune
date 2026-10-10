@@ -36,9 +36,11 @@ def patched_engine(dest):
     with zipfile.ZipFile(omni) as source:
         identity = source.read(base + 'browser-siteIdentity.js').decode()
         (old, new), = engine.TEXT_PATCHES['browser/base/content/browser-siteIdentity.js']
-        assert old in identity
+        # Un motor compilado con la receta actual ya trae el parche y la extensión.
+        assert old in identity or new in identity
         replace[base + 'browser-siteIdentity.js'] = identity.replace(old, new).encode()
         builtins = json.loads(source.read(base + 'built_in_addons.json'))
+        builtins['builtins'] = [b for b in builtins['builtins'] if b['addon_id'] != 'inicio@kitsune']
         builtins['builtins'].append({'addon_id': 'inicio@kitsune', 'addon_version': '0.7.2', 'res_url': 'resource://builtin-addons/kitsune-home/'})
         replace[base + 'built_in_addons.json'] = json.dumps(builtins).encode()
         patched = omni.with_suffix('.new')
