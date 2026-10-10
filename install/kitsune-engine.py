@@ -19,6 +19,7 @@ import json
 import os
 from pathlib import Path
 import re
+import shlex
 import shutil
 import subprocess
 import sys
@@ -991,6 +992,117 @@ def build(layout: Layout, version=None, if_new=False, notify_user=False, log=pri
         return engine
 
 
+# ------------------------------------------------------------ otros sistemas
+# Motores de Kitsune para Windows y macOS, compilados aquí en cruzado: Gecko trae
+# sus herramientas (el kit de Visual Studio y el SDK de macOS de Apple) con
+# --enable-bootstrap. Se empaquetan para la web de descarga; no se instalan ni se
+# prueban en este PC. Sin la clave propia de Safe Browsing (es solo de Risco).
+TARGETS = {"windows": "x86_64-pc-windows-msvc", "macos": "aarch64-apple-darwin"}
+CROSS_MIN_FREE_BYTES = 30 * 2**30
+TARGET_ARTIFACTS = {"windows": ("*.win64.zip", "install/sea/*.exe"), "macos": ("*.mac.dmg",)}
+
+
+# El SDK de Windows viene en .msi: Gecko los abre con msiextract (msitools). Si no
+# está instalado, se bajan msitools y gcab de los repos de Arch, se comprueba su
+# firma con el llavero del sistema y se usan desde la caché, sin sudo.
+MSITOOLS_PACKAGES = ("msitools", "gcab")
+MSIEXTRACT_SHIM = """#!/bin/sh
+# Kitsune: msiextract de la caché (msitools sin instalar en el sistema).
+here=@ROOT@
+LD_LIBRARY_PATH="$here/usr/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}" exec "$here/usr/bin/msiextract" "$@"
+"""
+
+
+def cross_tools(layout: Layout, tools: Path, target: str, log=print, run=subprocess.run) -> None:
+    """Programas que solo hacen falta al compilar para otro sistema."""
+    if target != "windows" or shutil.which("msiextract"):
+        return
+    root = layout.cache / "toolchain/msitools"
+    shim = tools / "msiextract"
+    text = MSIEXTRACT_SHIM.replace("@ROOT@", shlex.quote(str(root)))
+    if not (root / "usr/bin/msiextract").is_file():
+        log("Preparando msitools (para abrir el SDK de Windows) sin instalar nada en el sistema")
+        urls = run(["pacman", "-Sp", *MSITOOLS_PACKAGES], capture_output=True, text=True, check=True).stdout.split()
+        downloads = layout.private(layout.cache / "downloads/msitools")
+        staging = layout.cache / "toolchain/msitools.part"
+        shutil.rmtree(staging, ignore_errors=True)
+        staging.mkdir(parents=True)
+        for url in urls:
+            if not url.startswith("https://") or not url.endswith(".pkg.tar.zst"):
+                raise EngineError(f"Dirección de paquete inesperada: {url}")
+            package = downloads / url.rsplit("/", 1)[1]
+            for suffix in ("", ".sig"):
+                run(["curl", "-fsSL", "-o", f"{package}{suffix}", url + suffix], check=True)
+            if run(["pacman-key", "--verify", f"{package}.sig", str(package)], stdout=subprocess.DEVNULL,
+                   stderr=subprocess.DEVNULL).returncode != 0:
+                raise EngineError(f"La firma de {package.name} no es válida")
+            run(["tar", "--zstd", "-xf", str(package), "-C", str(staging), "usr"], check=True)
+        shutil.rmtree(root, ignore_errors=True)
+        staging.rename(root)
+    if not shim.is_file() or shim.read_text() != text:
+        shim.write_text(text)
+        shim.chmod(0o700)
+
+
+def write_target_mozconfig(layout: Layout, version: str, target: str) -> Path:
+    objdir = layout.cache / f"obj-{version}-{target}"
+    text = ((RECIPE / "mozconfig.in").read_text().replace("@OBJDIR@", str(objdir))
+            .replace("@L10NBASE@", str(layout.cache / f"l10n-{version}")))
+    text += f"\n# Kitsune para {target}: compilación cruzada desde Linux.\nac_add_options --target={TARGETS[target]}\n"
+    path = layout.cache / f"mozconfig-{version}-{target}"
+    path.write_text(text)
+    return path
+
+
+def build_target(layout: Layout, version: str, target: str, log=print, run=subprocess.run) -> list:
+    """Compila y empaqueta el motor para otro sistema; devuelve los archivos listos."""
+    if target not in TARGETS:
+        raise EngineError(f"Sistema desconocido: {target}")
+    version_key(version)
+    with build_lock(layout):
+        layout.private(layout.cache)
+        if shutil.disk_usage(layout.cache).free < CROSS_MIN_FREE_BYTES:
+            raise EngineError("Hacen falta al menos 30 GB libres para compilar Kitsune para otro sistema")
+        build_fp = build_fingerprint(version)
+        logfile = layout.private(layout.state) / f"build-{version}-{target}.log"
+        write_status(layout, building={"version": version, "target": target, "since": now(), "pid": os.getpid()})
+        try:
+            tarball = fetch(layout, version, log)
+            source = prepare_source(layout, version, tarball, build_fp, log)
+            prepare_l10n(layout, source, log, run)
+            tools = build_tools(layout)
+            cross_tools(layout, tools, target, log, run)
+            env = mach_environment(write_target_mozconfig(layout, version, target), tools)
+            sccache = Path(env["MOZBUILD_STATE_PATH"]) / "sccache/sccache"
+            if sccache.is_file():
+                run([str(sccache), "--stop-server"], env=env, stdin=subprocess.DEVNULL,
+                    stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            jobs = build_jobs(limit=cgroup_memory_limit())
+            log(f"Compilando Kitsune para {target} sobre Gecko {version} con {jobs} tareas (registro: {logfile})")
+            mach(source, ["build", f"-j{jobs}"], env, logfile, run)
+            mach(source, ["package-multi-locale", "--locales", "en-US", *L10N_LOCALES], env, logfile, run)
+            dist = layout.cache / f"obj-{version}-{target}" / "dist"
+            out = layout.private(layout.cache / "packages" / target)
+            ready = []
+            for pattern in TARGET_ARTIFACTS[target]:
+                for artifact in sorted(dist.glob(pattern)):
+                    destination = out / artifact.name.replace("kitsune-", f"kitsune-{build_fp[:8]}-", 1)
+                    shutil.copyfile(artifact, destination)
+                    ready.append(destination)
+            if not ready:
+                raise EngineError(f"No se encontró el paquete de Kitsune para {target} tras compilar")
+        except Exception as error:
+            message = str(error) if isinstance(error, EngineError) else f"{type(error).__name__}: {error}"
+            write_status(layout, building=None, lastTarget={"target": target, "version": version, "result": "error",
+                                                           "message": message, "at": now(), "log": str(logfile)})
+            raise
+        write_status(layout, building=None, lastTarget={"target": target, "version": version, "result": "ok",
+                                                       "files": [str(path) for path in ready], "at": now()})
+        for path in ready:
+            log(f"Listo: {path}")
+        return ready
+
+
 def process_alive(pid) -> bool:
     if not isinstance(pid, int) or pid <= 0:
         return False
@@ -1028,6 +1140,7 @@ def main(argv=None):
     builder.add_argument("--version")
     builder.add_argument("--if-new", action="store_true", help="solo si hay una versión o receta nueva")
     builder.add_argument("--notify", action="store_true", help="avisa con una notificación del escritorio")
+    builder.add_argument("--target", choices=sorted(TARGETS), help="compila para otro sistema (no se instala aquí)")
     commands.add_parser("current", help="ruta del ejecutable del motor activo")
     commands.add_parser("status", help="estado del motor y de la última compilación")
     commands.add_parser("prune", help="borra motores antiguos que no estén en uso")
@@ -1040,6 +1153,8 @@ def main(argv=None):
             version = latest_version()
             write_status(layout, lastCheck=now(), latest=version)
             print(version)
+        elif args.command == "build" and args.target:
+            build_target(layout, args.version or latest_version(), args.target)
         elif args.command == "build":
             build(layout, args.version, args.if_new, args.notify)
         elif args.command == "current":

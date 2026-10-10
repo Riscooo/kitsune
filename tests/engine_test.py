@@ -11,6 +11,7 @@ import tarfile
 import tempfile
 import types
 import unittest
+from unittest import mock
 import zipfile
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -445,6 +446,57 @@ class DistributionAddonTests(unittest.TestCase):
         bad = self.xpi("other@example.com")
         engine.distribution_addons(layout, base / "out", log=lambda *_: None, opener=lambda url, timeout: contextlib.closing(io.BytesIO(bad)))
         self.assertFalse((base / "out/uBlock0@raymondhill.net.xpi").exists())
+
+
+class TargetTests(unittest.TestCase):
+    def test_cross_mozconfig_targets_the_other_system_in_its_own_objdir_without_the_key(self):
+        base = Path(tempfile.mkdtemp())
+        layout = engine.Layout(base / "data", base / "state", base / "cache")
+        layout.cache.mkdir(parents=True)
+        for target, triple in engine.TARGETS.items():
+            text = engine.write_target_mozconfig(layout, "157.0.1", target).read_text()
+            self.assertIn(f"ac_add_options --target={triple}", text)
+            self.assertIn(f"obj-157.0.1-{target}", text)
+            self.assertNotIn("safebrowsing-api-keyfile", text)
+        with self.assertRaises(engine.EngineError):
+            engine.build_target(layout, "157.0.1", "beos")
+
+
+    def test_windows_gets_msiextract_from_signed_packages_in_the_cache(self):
+        base = Path(tempfile.mkdtemp())
+        layout = engine.Layout(base / "data", base / "state", base / "cache")
+        tools = layout.private(layout.cache / "bin")
+        calls = []
+
+        def run(command, **kwargs):
+            calls.append(command)
+            if command[:2] == ["pacman", "-Sp"]:
+                return types.SimpleNamespace(returncode=0, stdout="https://m/extra/os/x86_64/msitools-1-x86_64.pkg.tar.zst\n")
+            if command[0] == "tar":
+                staging = Path(command[command.index("-C") + 1])
+                (staging / "usr/bin").mkdir(parents=True)
+                (staging / "usr/bin/msiextract").write_text("")
+            return types.SimpleNamespace(returncode=0, stdout="")
+        with mock.patch.object(engine.shutil, "which", return_value=None):
+            engine.cross_tools(layout, tools, "macos", log=lambda *_: None, run=run)
+            self.assertEqual(calls, [])
+            engine.cross_tools(layout, tools, "windows", log=lambda *_: None, run=run)
+        self.assertTrue(any(command[0] == "pacman-key" for command in calls))
+        self.assertTrue((layout.cache / "toolchain/msitools/usr/bin/msiextract").is_file())
+        self.assertIn("toolchain/msitools", (tools / "msiextract").read_text())
+
+    def test_a_bad_signature_stops_the_windows_tools(self):
+        base = Path(tempfile.mkdtemp())
+        layout = engine.Layout(base / "data", base / "state", base / "cache")
+        tools = layout.private(layout.cache / "bin")
+
+        def run(command, **kwargs):
+            if command[:2] == ["pacman", "-Sp"]:
+                return types.SimpleNamespace(returncode=0, stdout="https://m/extra/os/x86_64/gcab-1-x86_64.pkg.tar.zst\n")
+            return types.SimpleNamespace(returncode=1 if command[0] == "pacman-key" else 0, stdout="")
+        with mock.patch.object(engine.shutil, "which", return_value=None), self.assertRaises(engine.EngineError):
+            engine.cross_tools(layout, tools, "windows", log=lambda *_: None, run=run)
+        self.assertFalse((tools / "msiextract").exists())
 
 
 class L10nTests(unittest.TestCase):

@@ -318,10 +318,13 @@ body[data-motion=off] *, body[data-motion=off] *::before, body[data-motion=off] 
 .privacy-dialog-seal { display: inline-grid; place-items: center; width: 38px; height: 38px; border-radius: 12px; color: var(--accent); background: var(--accent-soft); }
 .privacy-dialog-seal svg { width: 19px; height: 19px; }
 .privacy-compare { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-.privacy-card { padding: 12px 13px; border: 1px solid var(--line); border-radius: 12px; opacity: .62; }
-.privacy-card[data-target=true] { opacity: 1; border-color: var(--accent); background: var(--surface-high); }
+/* Atenuada con color, sin opacity: una capa con opacidad dentro de dos <dialog> modales
+   la recorta el compositor de Gecko. */
+.privacy-card { padding: 12px 13px; border: 1px solid var(--line); border-radius: 12px; color: color-mix(in srgb, var(--text) 62%, transparent); }
+.privacy-card[data-target=true] { color: var(--text); border-color: var(--accent); background: var(--surface-high); }
 .privacy-card b { display: block; margin-bottom: 6px; font: 500 15px var(--serif); }
-.privacy-card p { margin: 0; color: var(--muted); font-size: 11px; line-height: 1.55; }
+.privacy-card p { margin: 0; color: color-mix(in srgb, var(--muted) 62%, transparent); font-size: 11px; line-height: 1.55; }
+.privacy-card[data-target=true] p { color: var(--muted); }
 .privacy-effect { margin: 16px 0 4px; padding-left: 11px; border-left: 2px solid var(--accent); font-size: 12px; line-height: 1.6; color: var(--text); }
 @media (max-width: 520px) { .privacy-compare { grid-template-columns: 1fr; } }
 /* Ayuda de Kitsune (/ayuda/…): adonde llevan los enlaces de ayuda del motor. */
