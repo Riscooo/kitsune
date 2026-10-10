@@ -625,10 +625,13 @@ class TargetTests(unittest.TestCase):
         base = Path(tempfile.mkdtemp())
         layout = engine.Layout(base / "data", base / "state", base / "cache")
         dist = layout.cache / "obj-157.0.1-windows/dist"
-        dist.mkdir(parents=True)
+        (dist / "bin/uninstall").mkdir(parents=True)
+        (dist / "bin/uninstall/helper.exe").write_bytes(b"MZ castellano")
+        (layout.cache / "obj-157.0.1-windows/browser/locales/merge-dir/es-ES/browser/installer").mkdir(parents=True)
         package = dist / "kitsune-157.0.1.en-US.win64.zip"
         with zipfile.ZipFile(package, "w") as archive:
             archive.writestr("kitsune/kitsune.exe", b"MZ")
+            archive.writestr("kitsune/uninstall/helper.exe", b"MZ english")
         calls = []
 
         def addons(layout, target, log):
@@ -644,8 +647,12 @@ class TargetTests(unittest.TestCase):
             self.assertIn("kitsune/defaults/pref/autoconfig.js", names)
             self.assertIn("kitsune/distribution/extensions/uBlock0@raymondhill.net.xpi", names)
             self.assertEqual(len(names), len(set(names)))
-        self.assertTrue(all("repackage" in command and "installer" in command for command in calls))
-        self.assertIn("--use-upx", calls[0])
+            self.assertEqual(archive.read("kitsune/uninstall/helper.exe"), b"MZ castellano")
+        makes = [command for command in calls if command[0] == "make"]
+        self.assertTrue(makes and all("AB_CD=es-ES" in command for command in makes))
+        repackages = [command for command in calls if "repackage" in command]
+        self.assertEqual(len(repackages), 2)
+        self.assertIn("--use-upx", repackages[0])
 
 
 class L10nTests(unittest.TestCase):

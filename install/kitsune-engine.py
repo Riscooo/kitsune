@@ -87,6 +87,13 @@ ABOUT_CREDIT = '<label id="kitsune-engine-credit" class="text-blurb">Tinta · mo
 # defecto llamado Kitsune y ningún marcador, tema ni enlace de ayuda de Firefox.
 # Cada texto se comprueba: si Gecko lo cambia, la receta avisa en vez de seguir.
 TEXT_PATCHES = {
+    # Al desinstalar, Gecko ofrece abrir una encuesta de Mozilla: fuera.
+    "browser/installer/windows/nsis/uninstaller.nsi": [
+        ("!define MUI_FINISHPAGE_SHOWREADME\n!define MUI_FINISHPAGE_SHOWREADME_NOTCHECKED\n"
+         "!define MUI_FINISHPAGE_SHOWREADME_TEXT $(UN_SURVEY_CHECKBOX_LABEL)\n"
+         "!define MUI_FINISHPAGE_SHOWREADME_FUNCTION un.Survey\n",
+         "; Kitsune: sin la encuesta de Mozilla al desinstalar.\n"),
+    ],
     # El inicio integrado se presenta como el inicio de Gecko: «Kitsune», no «Extensión (…)».
     "browser/base/content/browser-siteIdentity.js": [
         ("    if (this._isSecureInternalUI) {\n      // This is a secure internal Firefox page.",
@@ -1248,20 +1255,43 @@ def finish_windows_package(layout: Layout, version: str, source: Path, env, logf
     kitsune.cfg con su cargador y uBlock Origin firmado. Luego se rehace el instalador."""
     objdir = layout.cache / f"obj-{version}-windows"
     package = objdir / "dist" / f"kitsune-{version}.en-US.win64.zip"
+    nsis_dir = objdir / "browser/installer/windows"
+    # El instalador y el desinstalador en castellano, con los textos de es-ES que ha
+    # preparado package-multi-locale. Si algo falla, se rehacen en inglés.
+    merge = objdir / "browser/locales/merge-dir/es-ES"
+
+    def nsis(target, spanish):
+        (nsis_dir / "instgen/helper.exe").unlink(missing_ok=True)
+        locale = ["AB_CD=es-ES", f"REAL_LOCALE_MERGEDIR={merge}"] if spanish else []
+        with logfile.open("a") as handle:
+            handle.write(f"\n=== {now()} make {target} {'es-ES' if spanish else 'en-US'}\n")
+            handle.flush()
+            return run(["make", "-C", str(nsis_dir), *locale, target], env=env, stdin=subprocess.DEVNULL,
+                       stdout=handle, stderr=subprocess.STDOUT).returncode == 0
+    spanish = (merge / "browser/installer").is_dir() and nsis("uninstaller", True) and nsis("instgen/setup.exe", True)
+    if not spanish:
+        log("El instalador se queda en inglés: no se pudieron preparar los textos en castellano")
+        if not (nsis("uninstaller", False) and nsis("instgen/setup.exe", False)):
+            raise EngineError(f"No se pudo preparar el instalador de Windows; detalles en {logfile}")
     extras = {f"kitsune/defaults/pref/{name}" if name == "autoconfig.js" else f"kitsune/{name}": path
               for name, path in install_files().items()}
+    extras["kitsune/uninstall/helper.exe"] = objdir / "dist/bin/uninstall/helper.exe"
     with tempfile.TemporaryDirectory(dir=layout.cache) as folder:
         bundled = Path(folder) / "extensions"
         addons(layout, bundled, log)
         for xpi in sorted(bundled.glob("*.xpi")):
             extras[f"kitsune/distribution/extensions/{xpi.name}"] = xpi
-        with zipfile.ZipFile(package, "a", zipfile.ZIP_DEFLATED) as archive:
-            present = set(archive.namelist())
+        if not any(name.endswith(".xpi") for name in extras):
+            raise EngineError("No hay copia de uBlock Origin para el paquete de Windows")
+        # Se reescribe el .zip: lo de Gecko tal cual y lo de Kitsune encima.
+        rewritten = package.with_suffix(".kitsune.zip")
+        with zipfile.ZipFile(package) as original, zipfile.ZipFile(rewritten, "w", zipfile.ZIP_DEFLATED) as archive:
+            for info in original.infolist():
+                if info.filename not in extras:
+                    archive.writestr(info, original.read(info.filename))
             for name, path in extras.items():
-                if name not in present:
-                    archive.write(path, name)
-    if not any(name.endswith(".xpi") for name in extras):
-        raise EngineError("No hay copia de uBlock Origin para el paquete de Windows")
+                archive.write(path, name)
+        os.replace(rewritten, package)
     installer = objdir / "dist" / f"kitsune-{version}.en-US.win64.installer.exe"
     mach(source, ["repackage", "installer", "-o", str(installer), "--package-name", "kitsune", "--package", str(package),
                   "--tag", str(source / "browser/installer/windows/app.tag"),
