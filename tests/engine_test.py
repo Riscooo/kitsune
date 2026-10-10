@@ -717,7 +717,7 @@ class TargetTests(unittest.TestCase):
         self.assertTrue((resources / "distribution/extensions/uBlock0@raymondhill.net.xpi").is_file())
         self.assertFalse((dist / "bin/Kitsune.app/Contents/Resources/kitsune.cfg").exists())
         signed, made = calls
-        self.assertIn("macos-sign", signed)
+        self.assertEqual(signed[:2], ["rcodesign", "sign"])
         self.assertIn("mozbuild.action.make_dmg", made)
         self.assertEqual(dmg.name, "kitsune-157.0.1.en-US.mac.dmg")
 
