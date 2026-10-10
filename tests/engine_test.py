@@ -621,6 +621,33 @@ class TargetTests(unittest.TestCase):
             self.assertFalse((layout.cache / "toolchain/rust-1.98.0").exists())
 
 
+    def test_the_windows_package_gets_kitsune_cfg_and_ublock_and_a_new_installer(self):
+        base = Path(tempfile.mkdtemp())
+        layout = engine.Layout(base / "data", base / "state", base / "cache")
+        dist = layout.cache / "obj-157.0.1-windows/dist"
+        dist.mkdir(parents=True)
+        package = dist / "kitsune-157.0.1.en-US.win64.zip"
+        with zipfile.ZipFile(package, "w") as archive:
+            archive.writestr("kitsune/kitsune.exe", b"MZ")
+        calls = []
+
+        def addons(layout, target, log):
+            target.mkdir(parents=True, exist_ok=True)
+            (target / "uBlock0@raymondhill.net.xpi").write_bytes(b"xpi")
+        run = lambda command, **kwargs: calls.append(command) or types.SimpleNamespace(returncode=0)
+        logfile = base / "build.log"
+        for _ in range(2):
+            engine.finish_windows_package(layout, "157.0.1", base / "src", {}, logfile, log=lambda *_: None, run=run, addons=addons)
+        with zipfile.ZipFile(package) as archive:
+            names = archive.namelist()
+            self.assertEqual(archive.read("kitsune/kitsune.cfg"), (ROOT / "install/recipe/kitsune.cfg").read_bytes())
+            self.assertIn("kitsune/defaults/pref/autoconfig.js", names)
+            self.assertIn("kitsune/distribution/extensions/uBlock0@raymondhill.net.xpi", names)
+            self.assertEqual(len(names), len(set(names)))
+        self.assertTrue(all("repackage" in command and "installer" in command for command in calls))
+        self.assertIn("--use-upx", calls[0])
+
+
 class L10nTests(unittest.TestCase):
     def setup(self, head=None):
         base = Path(tempfile.mkdtemp())

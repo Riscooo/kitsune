@@ -1242,6 +1242,34 @@ def write_target_mozconfig(layout: Layout, version: str, target: str) -> Path:
     return path
 
 
+def finish_windows_package(layout: Layout, version: str, source: Path, env, logfile: Path, log=print, run=subprocess.run,
+                           addons=distribution_addons):
+    """Lo que en Linux se añade al instalar el motor, dentro del paquete de Windows:
+    kitsune.cfg con su cargador y uBlock Origin firmado. Luego se rehace el instalador."""
+    objdir = layout.cache / f"obj-{version}-windows"
+    package = objdir / "dist" / f"kitsune-{version}.en-US.win64.zip"
+    extras = {f"kitsune/defaults/pref/{name}" if name == "autoconfig.js" else f"kitsune/{name}": path
+              for name, path in install_files().items()}
+    with tempfile.TemporaryDirectory(dir=layout.cache) as folder:
+        bundled = Path(folder) / "extensions"
+        addons(layout, bundled, log)
+        for xpi in sorted(bundled.glob("*.xpi")):
+            extras[f"kitsune/distribution/extensions/{xpi.name}"] = xpi
+        with zipfile.ZipFile(package, "a", zipfile.ZIP_DEFLATED) as archive:
+            present = set(archive.namelist())
+            for name, path in extras.items():
+                if name not in present:
+                    archive.write(path, name)
+    if not any(name.endswith(".xpi") for name in extras):
+        raise EngineError("No hay copia de uBlock Origin para el paquete de Windows")
+    installer = objdir / "dist" / f"kitsune-{version}.en-US.win64.installer.exe"
+    mach(source, ["repackage", "installer", "-o", str(installer), "--package-name", "kitsune", "--package", str(package),
+                  "--tag", str(source / "browser/installer/windows/app.tag"),
+                  "--setupexe", str(objdir / "browser/installer/windows/instgen/setup.exe"),
+                  "--sfx-stub", str(source / "other-licenses/7zstub/firefox/7zSD.Win32.sfx"), "--use-upx"], env, logfile, run)
+    return installer
+
+
 def build_target(layout: Layout, version: str, target: str, log=print, run=subprocess.run) -> list:
     """Compila y empaqueta el motor para otro sistema; devuelve los archivos listos."""
     if target not in TARGETS:
@@ -1271,6 +1299,8 @@ def build_target(layout: Layout, version: str, target: str, log=print, run=subpr
             log(f"Compilando Kitsune para {target} sobre Gecko {version} con {jobs} tareas (registro: {logfile})")
             mach(source, ["build", f"-j{jobs}"], env, logfile, run)
             mach(source, ["package-multi-locale", "--locales", "en-US", *L10N_LOCALES], env, logfile, run)
+            if target == "windows":
+                finish_windows_package(layout, version, source, env, logfile, log, run)
             dist = layout.cache / f"obj-{version}-{target}" / "dist"
             out = layout.private(layout.cache / "packages" / target)
             ready = []
