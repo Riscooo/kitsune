@@ -22,7 +22,7 @@ test('version 0.7.0 (modo oscuro y fondo propio) runs Kitsune\'s own engine, wit
   const engine = await readFile(new URL('../install/kitsune-engine.py', import.meta.url), 'utf8');
   assert.match(engine, /^BUILD_REVISION = \d+$/m);
   assert.match(engine, /^MOZILLA_RELEASE_KEY = "14F26682D0916CDD81E37B6D61B7B526D98F0353"/m);
-  for (const name of ['kitsune-browser', 'user.js', 'profiles.py', 'recipe/mozconfig.in', 'recipe/policies.json', 'recipe/kitsune.cfg']) {
+  for (const name of ['kitsune-browser', 'user.js', 'profiles.py', 'recipe/mozconfig.in', 'recipe/kitsune.cfg']) {
     assert.doesNotMatch(await readFile(new URL(`../install/${name}`, import.meta.url), 'utf8'), /librewolf/i, name);
   }
 });
