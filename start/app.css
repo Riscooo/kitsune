@@ -365,3 +365,6 @@ body[data-motion=off] *, body[data-motion=off] *::before, body[data-motion=off] 
 .ink-vein[data-dir=rtl] { background-image: url("veta-tinta-rtl.svg"); background-position: 0% 0; }
 @keyframes veta-ltr { from { mask-position: 100% 0; } to { mask-position: 0% 0; } }
 @keyframes veta-rtl { from { mask-position: 0% 0; } to { mask-position: 100% 0; } }
+
+/* macOS: los botones de la ventana son los semáforos nativos; no se pueden mover ni quitar. */
+:root[data-platform=mac] :is(.setting-row:has([data-window-controls]), .setting-row[for=minimize-toggle]) { display: none; }

@@ -100,7 +100,8 @@ def main():
         eventually(lambda: content("return !document.querySelector('#theme-oscuro').disabled"), timeout=10)
         content("document.querySelector('label[for=theme-oscuro]').click()")
         eventually(lambda: content("return document.documentElement.dataset.inkDir || ''") == 'ltr', timeout=3)
-        assert content("return !!document.querySelector('.ink-vein')")
+        # La veta entra en la llamada de la transición, un instante después de marcar la dirección.
+        eventually(lambda: content("return !!document.querySelector('.ink-vein')"), timeout=3)
         time.sleep(0.5)
         driver.screenshot('veta-a-medias.png', chrome=True)
         eventually(lambda: not content("return !!document.querySelector('.ink-vein')"), timeout=5)

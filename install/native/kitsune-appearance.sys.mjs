@@ -92,7 +92,8 @@ function windowCss(value) {
     :root#main-window .titlebar-buttonbox .titlebar-min{display:none!important;}`;
   const hidden = value.brand ? '' : `
     :root#main-window #TabsToolbar::before,:root#main-window #navigator-toolbox[tabs-hidden]>#nav-bar::before{display:none!important;}`;
-  return right + hidden + noMinimize;
+  // macOS tiene los semáforos nativos: ni lado ni minimizar; el logo, sí.
+  return `@media not (-moz-platform: macos){${right}${noMinimize}}` + hidden;
 }
 
 // Sin rastro de Mozilla: fuera las entradas de Ayuda que llevan a sus webs o
