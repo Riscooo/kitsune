@@ -136,6 +136,19 @@ class BackgroundTests(backend.BackendV04Tests):
         for path in ("/ayuda/../index.html", "/ayuda/a/b", "/ayuda/%2e%2e"):
             self.assertEqual(self.request(path=path)[0], 404, path)
 
+    def test_memory_endpoint_reports_nothing_when_kitsune_is_closed(self):
+        status, value, _ = self.request(path="/api/rendimiento")
+        self.assertEqual((status, value), (200, {"memoryMB": None, "processes": 0}))
+
+    def test_saver_mode_settings_are_validated(self):
+        snapshot = self.server.store.snapshot()
+        data = copy.deepcopy(snapshot["data"])
+        data.update(performance="ahorro", ramLimit=1024)
+        self.assertEqual(self.request("PUT", "/api/settings", {"data": data, "revision": snapshot["revision"]})[0], 200)
+        self.assertEqual(self.control()["performance"], "ahorro")
+        data["ramLimit"] = 999
+        self.assertEqual(self.request("PUT", "/api/settings", {"data": data, "revision": snapshot["revision"] + 1})[0], 400)
+
     def test_rejected_uploads_change_nothing(self):
         for image in ("data:image/svg+xml;base64,PHN2Zy8+", "data:image/png;base64,bm90IGFuIGltYWdl", "x" * 64):
             status, _, _ = self.upload(image)

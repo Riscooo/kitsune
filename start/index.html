@@ -66,6 +66,10 @@
       <h3 class="setting-label" id="window-label">Ventana</h3>
       <div class="setting-row"><span><b>Botones de cerrar y ampliar</b><small>A qué lado de la barra de pestañas van.</small></span><div class="privacy-segment" role="group" aria-labelledby="window-label"><button type="button" data-window-controls="izquierda" aria-pressed="true" disabled>Izquierda</button><button type="button" data-window-controls="derecha" aria-pressed="false" disabled>Derecha</button></div></div>
       <label class="setting-row" for="brand-toggle"><span><b>Logo de Kitsune en la barra</b><small>El ensō y «KITSUNE» junto a las pestañas.</small></span><input id="brand-toggle" type="checkbox" checked disabled></label>
+      <h3 class="setting-label" id="performance-label">Rendimiento</h3>
+      <div class="setting-row"><span><b>Modo</b><small>Ahorro duerme las pestañas que no usas, pone un límite de RAM y limita a 60 fps.</small></span><div class="privacy-segment" role="group" aria-labelledby="performance-label"><button type="button" data-performance="normal" aria-pressed="true" disabled>Normal</button><button type="button" data-performance="ahorro" aria-pressed="false" disabled>Ahorro</button></div></div>
+      <div class="setting-row" id="ram-row" hidden><span><b>Límite de RAM</b><small>Al pasarlo, Kitsune duerme las pestañas más antiguas (vuelven al abrirlas).</small></span><div class="privacy-segment" role="group" aria-label="Límite de RAM"><button type="button" data-ram-limit="1024" aria-pressed="false" disabled>1 GB</button><button type="button" data-ram-limit="2048" aria-pressed="true" disabled>2 GB</button><button type="button" data-ram-limit="4096" aria-pressed="false" disabled>4 GB</button></div></div>
+      <p id="memory-status" class="fineprint" aria-live="polite"></p>
       <h3 class="setting-label">Movimiento</h3>
       <label class="setting-row" for="motion-toggle"><span><b>Animaciones suaves</b><small>La tinta se posa al abrir el inicio y el ensō gira mientras carga una pestaña.</small></span><input id="motion-toggle" type="checkbox" checked disabled></label>
       <p id="theme-status" class="fineprint" aria-live="polite"></p>

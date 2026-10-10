@@ -339,3 +339,19 @@ body[data-motion=off] *, body[data-motion=off] *::before, body[data-motion=off] 
 .help p { margin: 0; font-size: 13px; line-height: 1.7; }
 .help-back { margin-top: 22px !important; }
 .help-back a { color: var(--accent); }
+/* Cambio de tema con la veta de tinta de Hakufu e InkShadow: la foto del tema viejo
+   (view transition) se va tapando tras un borde diagonal y deshilachado, con la
+   tinta justo detrás; hacia la derecha al pasar a Oscuro, hacia la izquierda a Claro. */
+::view-transition-old(root), ::view-transition-new(root) { animation: none; mix-blend-mode: normal; }
+::view-transition-old(root) {
+  z-index: 1; mask-image: url("veta-mascara-ltr.svg"); mask-size: 300% 100%; mask-repeat: no-repeat; mask-position: 100% 0;
+  animation: veta-ltr 1200ms cubic-bezier(.65, 0, .35, 1) both;
+}
+:root[data-ink-dir=rtl]::view-transition-old(root) { mask-image: url("veta-mascara-rtl.svg"); mask-position: 0% 0; animation-name: veta-rtl; }
+.ink-vein {
+  position: fixed; inset: 0; z-index: 2147483647; pointer-events: none;
+  background: url("veta-tinta-ltr.svg") no-repeat 100% 0 / 300% 100%;
+}
+.ink-vein[data-dir=rtl] { background-image: url("veta-tinta-rtl.svg"); background-position: 0% 0; }
+@keyframes veta-ltr { from { mask-position: 100% 0; } to { mask-position: 0% 0; } }
+@keyframes veta-rtl { from { mask-position: 0% 0; } to { mask-position: 100% 0; } }

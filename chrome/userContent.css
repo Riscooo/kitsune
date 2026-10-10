@@ -345,3 +345,9 @@
 
 /* about:certerror, about:neterror y about:blocked usan a propósito la UX de
    seguridad nativa sin cambios: un tema nunca debe suavizarla ni taparla. */
+
+/* Barra de scroll de Kitsune: un trazo de óxido sobre fondo transparente, más
+   claro en las páginas oscuras. Solo en las webs que no traen la suya. */
+:root {
+  scrollbar-color: light-dark(color-mix(in srgb, #963d32 62%, transparent), color-mix(in srgb, #e0806b 72%, transparent)) transparent;
+}

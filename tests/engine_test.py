@@ -447,6 +447,49 @@ class DistributionAddonTests(unittest.TestCase):
         self.assertFalse((base / "out/uBlock0@raymondhill.net.xpi").exists())
 
 
+class L10nTests(unittest.TestCase):
+    def setup(self, head=None):
+        base = Path(tempfile.mkdtemp())
+        self.layout = engine.Layout(base / "data", base / "state", base / "cache")
+        self.layout.cache.mkdir(parents=True)
+        self.source = self.layout.cache / "src-157.0.1"
+        (self.source / "browser/locales").mkdir(parents=True)
+        self.rev = "a" * 40
+        (self.source / "browser/locales/l10n-changesets.json").write_text(json.dumps({"es-ES": {"revision": self.rev}}))
+        self.calls = []
+        repo = self.layout.cache / "l10n"
+
+        def run(command, **kwargs):
+            self.calls.append(command)
+            if command[:2] == ["git", "clone"]:
+                (repo / ".git").mkdir(parents=True)
+            if "checkout" in command:
+                for relative, patches in engine.L10N_PATCHES.items():
+                    path = repo / relative
+                    path.parent.mkdir(parents=True, exist_ok=True)
+                    path.write_text("\n".join(old for old, _ in patches) + "\n")
+            out = (head or self.rev) + "\n" if "rev-parse" in command else ""
+            return types.SimpleNamespace(returncode=0, stdout=out, stderr="")
+        return run
+
+    def test_spanish_is_fetched_at_the_pinned_revision_and_gets_kitsune_names(self):
+        run = self.setup()
+        result = engine.prepare_l10n(self.layout, self.source, log=lambda *_: None, run=run)
+        self.assertEqual(result, self.layout.cache / "l10n-157.0.1")
+        self.assertTrue(any(self.rev in command for command in self.calls))
+        for relative, patches in engine.L10N_PATCHES.items():
+            text = (result / relative).read_text()
+            for old, new in patches:
+                self.assertIn(new, text)
+                self.assertNotIn(old, text)
+        self.assertNotIn("Firefox", (result / "es-ES/toolkit/toolkit/branding/brandings.ftl").read_text())
+
+    def test_a_checkout_at_another_revision_is_rejected(self):
+        run = self.setup(head="b" * 40)
+        with self.assertRaises(engine.EngineError):
+            engine.prepare_l10n(self.layout, self.source, log=lambda *_: None, run=run)
+
+
 class SmokeCheckTests(unittest.TestCase):
     GOOD = {"name": "Kitsune", "version": "157.0.1", "brand": "Kitsune", "nativeEntry": True, "nativeModule": True,
             "policies": False, "fxaccounts": False, "privacyMode": "estricto", "signaturesRequired": True, "sandboxLevel": 6,

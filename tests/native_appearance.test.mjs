@@ -119,8 +119,18 @@ test('v4 moves the window buttons to the right and hides the brand only when ask
   assert.match(api.IDENTITY_CSS, /url-prefix\("about:preferences"\)[^{]*\{#category-sync,#category-experimental,#category-more-from-mozilla\{display:none/);
   const right = api.nativeCss(api.validate(v4({ windowControls: 'derecha', brand: false })));
   assert.match(right, /\.titlebar-buttonbox-container\{order:999!important/);
+  // Más específico que «#main-window #TabsToolbar > .titlebar-buttonbox-container» de kitsune-header.css.
+  assert.match(right, /:root#main-window #TabsToolbar>\.titlebar-buttonbox-container/);
   assert.match(right, /#TabsToolbar::before[^{]*\{display:none!important/);
   for (const change of [{ windowControls: 'arriba' }, { brand: 'no' }, { brand: undefined }]) assert.throws(() => api.validate(v4(change)));
+});
+
+test('v5 adds the saver mode with a RAM limit of 1, 2 or 4 GB', () => {
+  const { api } = fixture();
+  const v5 = (extra = {}) => ({ ...controlV3(), version: 5, windowControls: 'izquierda', brand: true, performance: 'ahorro', ramLimit: 1024, ...extra });
+  assert.equal(api.validate(v5()).performance, 'ahorro');
+  assert.deepEqual([api.validate(control()).performance, api.validate(control()).ramLimit], ['normal', 2048]);
+  for (const change of [{ performance: 'turbo' }, { ramLimit: 3000 }, { ramLimit: '1024' }]) assert.throws(() => api.validate(v5(change)));
 });
 
 test('dark controls set the scheme variable, and the background is a file inside the profile chrome folder', () => {

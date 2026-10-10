@@ -103,6 +103,11 @@ TEXT_PATCHES = {
         ("login-intro-instructions-fxa-settings = Go to Settings > Sync > Turn on syncing… Select the Logins and passwords checkbox.",
          "login-intro-instructions-fxa-settings = You can also import them from a file in the ⋯ menu."),
     ),
+    # Tarjeta «Soporte de Kitsune» de Ajustes: pendiente de la web de Kitsune.
+    "browser/components/preferences/config/about-firefox.mjs": (
+        ("  support: {\n    inProgress: true,",
+         "  support: {\n    // Kitsune: soporte y opiniones, pendientes de su propia web.\n    hidden: true,\n    inProgress: true,"),
+    ),
     "browser/components/aboutlogins/content/aboutLogins.html": (
         ('href="https://support.mozilla.org/kb/import-login-data-file"', 'href=""'),
         ('href="https://support.mozilla.org/kb/firefox-password-manager-alerts-breached-websites"', 'href=""'),
@@ -178,6 +183,50 @@ MASCOT_POSES = {
 KITSUNE_LOGOS = ("browser/base/content/logos/share-firefox.svg", "browser/themes/shared/sidebar/firefox.svg",
                  "browser/extensions/newtab/data/content/assets/firefox.svg", "browser/themes/shared/icons/firefox-view.svg")
 MASCOT = HERE / "mascot"
+# Clave de Google Safe Browsing (protección contra webs de estafa y malware). Si
+# existe este archivo, se compila dentro; la clave nunca sale en registros.
+SAFEBROWSING_KEY = Path(os.environ.get("XDG_CONFIG_HOME") or Path.home() / ".config") / "kitsune-browser/safebrowsing-api-key"
+# Kitsune en castellano: la traducción es-ES de Mozilla en la revisión que fija esta
+# versión de Gecko (browser/locales/l10n-changesets.json; git la comprueba por su
+# hash) con la misma capa de identidad que el inglés. El motor lleva en-US y es-ES.
+L10N_REPO = "https://github.com/mozilla-l10n/firefox-l10n.git"
+L10N_LOCALES = ("es-ES",)
+L10N_PATCHES = {
+    "es-ES/toolkit/toolkit/branding/brandings.ftl": (
+        ("-monitor-brand-name = Firefox Monitor", "-monitor-brand-name = Monitor"),
+        ("-mozmonitor-brand-name = Mozilla Monitor", "-mozmonitor-brand-name = Monitor"),
+        ("-send-brand-name = Firefox Send", "-send-brand-name = Send"),
+        ("-screenshots-brand-name = Firefox Screenshots", "-screenshots-brand-name = Capturas de pantalla"),
+        ("-mozilla-vpn-brand-name = Mozilla VPN", "-mozilla-vpn-brand-name = VPN"),
+        ("-profiler-brand-name = Firefox Profiler", "-profiler-brand-name = Profiler"),
+        ("-translations-brand-name = Firefox Translations", "-translations-brand-name = Traducciones de Kitsune"),
+        ("-relay-brand-name = Firefox Relay", "-relay-brand-name = Relay"),
+        ("-firefox-suggest-brand-name = Firefox Suggest", "-firefox-suggest-brand-name = Sugerencias de Kitsune"),
+        ("-firefox-home-brand-name = Página de inicio de Firefox", "-firefox-home-brand-name = Página de inicio de Kitsune"),
+        ("-firefoxview-brand-name = Firefox View", "-firefoxview-brand-name = Vista de Kitsune"),
+        ("-firefoxlabs-brand-name = Firefox Labs", "-firefoxlabs-brand-name = Laboratorio de Kitsune"),
+    ),
+    "es-ES/toolkit/toolkit/about/aboutAddons.ftl": (
+        ("Buscar en addons.mozilla.org", "Buscar extensiones y temas"),
+        ('Obtenga extensiones y temas en <a data-l10n-name="get-extensions">{ $domain }</a>',
+         'Obtenga extensiones y temas en la <a data-l10n-name="get-extensions">tienda de extensiones</a>'),
+        ('Obtenga diccionarios en <a data-l10n-name="get-extensions">{ $domain }</a>',
+         'Obtenga diccionarios en la <a data-l10n-name="get-extensions">tienda de extensiones</a>'),
+        ('Obtenga paquetes de idiomas en <a data-l10n-name="get-extensions">{ $domain }</a>',
+         'Obtenga paquetes de idiomas en la <a data-l10n-name="get-extensions">tienda de extensiones</a>'),
+        ("    .title = Firefox solo recomienda extensiones que cumplen estándares de seguridad y rendimiento.",
+         "    .title = { -brand-product-name } solo recomienda extensiones que cumplen estándares de seguridad y rendimiento."),
+    ),
+    "es-ES/browser/browser/appExtensionFields.ftl": (
+        ("extension-default-theme-name-auto = Tema del sistema — automático", "extension-default-theme-name-auto = Kitsune"),
+    ),
+    "es-ES/browser/browser/aboutLogins.ftl": (
+        ("login-intro-instructions-fxa2 = Cree o inicie sesión en su cuenta en el dispositivo donde se guardan sus inicios de sesión",
+         "login-intro-instructions-fxa2 = Guarde una contraseña al iniciar sesión en una web, o añádala con el botón +."),
+        ("login-intro-instructions-fxa-settings = Ir a Ajustes > Sync > Activar la sincronización… Seleccionar la casilla Inicios de sesión y contraseñas.",
+         "login-intro-instructions-fxa-settings = También puede importarlas desde un archivo en el menú ⋯."),
+    ),
+}
 THEMES_MAP = re.compile(r"export const BuiltInThemeConfig = new Map\(\[.*?\n\]\);", re.S)
 SUPPORT_LINK = "  connectedCallback() {\n    this.#register();"
 SUPPORT_LINK_HIDDEN = ("  connectedCallback() {\n    // Kitsune: sin enlaces a la ayuda de Mozilla.\n"
@@ -300,6 +349,8 @@ def input_files():
         files[f"native/{name}"] = NATIVE / name
     for pose in MASCOT_POSES:
         files[f"mascot/{pose}.svg"] = MASCOT / f"{pose}.svg"
+    if SAFEBROWSING_KEY.is_file():
+        files["safebrowsing-api-key"] = SAFEBROWSING_KEY
     files["branding/icon-small.svg"] = BRANDING / "icon-small.svg"
     return files
 
@@ -319,10 +370,12 @@ def fingerprint(version: str, files: dict, revision: int, parent: str = "") -> s
 
 def recipe_code() -> str:
     """Hash of the code that shapes the compiled engine, so changing it always rebuilds."""
-    parts = [inspect.getsource(function) for function in (write_branding, integrate_native, rebrand_source, tune_build, write_mozconfig)]
+    parts = [inspect.getsource(function) for function in (write_branding, integrate_native, rebrand_source, prepare_l10n,
+                                                          tune_build, write_mozconfig)]
     parts += [BRAND_FTL, BRAND_PROPERTIES, BRAND_CONFIGURE, KITSUNE_BOOTSTRAP, ABOUT_CREDIT, RUST_THIN_LTO,
               json.dumps(TEXT_PATCHES, sort_keys=True), KITSUNE_BOOKMARKS, SUPPORT_LINK_HIDDEN,
-              json.dumps(MASCOT_POSES, sort_keys=True), repr(KITSUNE_LOGOS),
+              json.dumps(MASCOT_POSES, sort_keys=True), repr(KITSUNE_LOGOS), json.dumps(L10N_PATCHES, sort_keys=True),
+              repr(L10N_LOCALES), L10N_REPO,
               UA_FIREFOX, json.dumps(BRAND_CONTENT, sort_keys=True), repr(ICON_SIZES), repr(NATIVE_FILES)]
     return hashlib.sha256("\0".join(parts).encode()).hexdigest()
 
@@ -498,6 +551,44 @@ def rebrand_source(source: Path):
         link.write_text(replace_once(text, SUPPORT_LINK, SUPPORT_LINK_HIDDEN, "El enlace de ayuda de Gecko"))
 
 
+def prepare_l10n(layout: Layout, source: Path, log=print, run=subprocess.run) -> Path:
+    """Traducciones fijadas por la versión, copiadas aparte y con la capa de Kitsune."""
+    changesets = json.loads((source / "browser/locales/l10n-changesets.json").read_text())
+    revisions = {changesets[locale]["revision"] for locale in L10N_LOCALES}
+    if len(revisions) != 1 or not re.fullmatch(r"[0-9a-f]{40}", next(iter(revisions))):
+        raise EngineError("Las traducciones de esta versión de Gecko no tienen una revisión válida")
+    revision = revisions.pop()
+    repo = layout.cache / "l10n"
+    git = ["git", "-C", str(repo)]
+    steps = [] if (repo / ".git").is_dir() else [["git", "clone", "--quiet", "--filter=blob:none", "--no-checkout", "--sparse", L10N_REPO, str(repo)]]
+    steps += [git + ["sparse-checkout", "set", *L10N_LOCALES],
+              git + ["fetch", "--quiet", "--depth", "1", "--filter=blob:none", "origin", revision],
+              git + ["checkout", "--quiet", "--force", revision]]
+    log(f"Traducciones {', '.join(L10N_LOCALES)} en la revisión {revision[:12]}")
+    for step in steps:
+        result = run(step, capture_output=True, text=True)
+        if result.returncode != 0:
+            raise EngineError(f"No se pudieron descargar las traducciones: {result.stderr.strip()[-300:]}")
+    head = run(git + ["rev-parse", "HEAD"], capture_output=True, text=True).stdout.strip()
+    if head != revision:
+        raise EngineError("La revisión de las traducciones no es la que pide esta versión de Gecko")
+    base = layout.cache / f"l10n-{source.name.removeprefix('src-')}"
+    if base.exists():
+        shutil.rmtree(base)
+    base.mkdir(parents=True)
+    for locale in L10N_LOCALES:
+        shutil.copytree(repo / locale, base / locale)
+    for relative, patches in L10N_PATCHES.items():
+        path = base / relative
+        text = path.read_text()
+        for old, new in patches:
+            if old not in text:
+                raise EngineError(f"La traducción «{old[:40]}» cambió; la receta necesita revisión")
+            text = text.replace(old, new)
+        path.write_text(text)
+    return base
+
+
 def tune_build(source: Path):
     """Build-system settings for this PC's memory. Idempotent."""
     rules = source / "config/makefiles/rust.mk"
@@ -550,7 +641,11 @@ def prepare_source(layout: Layout, version: str, tarball: Path, build_fp: str, l
 
 def write_mozconfig(layout: Layout, version: str) -> Path:
     objdir = layout.cache / f"obj-{version}"
-    text = (RECIPE / "mozconfig.in").read_text().replace("@OBJDIR@", str(objdir))
+    text = ((RECIPE / "mozconfig.in").read_text().replace("@OBJDIR@", str(objdir))
+            .replace("@L10NBASE@", str(layout.cache / f"l10n-{version}")))
+    if SAFEBROWSING_KEY.is_file():
+        text += f"\n# Protección contra webs de estafa y malware (clave propia de Google Safe Browsing).\n" \
+                f"ac_add_options --with-google-safebrowsing-api-keyfile={SAFEBROWSING_KEY}\n"
     path = layout.cache / f"mozconfig-{version}"
     path.write_text(text)
     return path
@@ -626,10 +721,12 @@ def compile_package(layout: Layout, version: str, source: Path, build_fp: str, l
     if sccache.is_file():
         run([str(sccache), "--stop-server"], env=env, stdin=subprocess.DEVNULL,
             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    prepare_l10n(layout, source, log, run)
     jobs = build_jobs(limit=cgroup_memory_limit())
     log(f"Compilando con {jobs} tareas en paralelo (según la memoria libre)")
     mach(source, ["build", f"-j{jobs}"], env, logfile, run)
-    mach(source, ["package"], env, logfile, run)
+    # Un solo paquete con inglés y castellano.
+    mach(source, ["package-multi-locale", "--locales", "en-US", *L10N_LOCALES], env, logfile, run)
     candidates = sorted((layout.cache / f"obj-{version}" / "dist").glob(f"kitsune-{version}.*.linux-*.tar.*"))
     if len(candidates) != 1:
         raise EngineError("No se encontró el paquete de Kitsune tras compilar")

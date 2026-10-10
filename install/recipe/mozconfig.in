@@ -18,6 +18,9 @@ ac_add_options --disable-tests
 ac_add_options --disable-updater
 ac_add_options --disable-crashreporter
 
+# Traducciones (castellano) preparadas por kitsune-engine.py junto al código.
+ac_add_options --with-l10n-base=@L10NBASE@
+
 # Herramientas de Mozilla descargadas en ~/.mozbuild (sin sudo) y caché de compilación.
 ac_add_options --enable-bootstrap
 ac_add_options --with-ccache=sccache

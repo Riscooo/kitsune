@@ -10,7 +10,8 @@ const INTERFACE = {
 };
 // Plus the InkShadow seal colours, for the hanko marks.
 const PAPEL = { ...INTERFACE, hanko: '#a8432f', vermilion: '#db452e' };
-const ALLOWED = new Set(Object.values(PAPEL));
+// Y el óxido de la paleta sumi (Oscuro), para la barra de scroll de las páginas oscuras.
+const ALLOWED = new Set([...Object.values(PAPEL), '#e0806b']);
 const CHROME = ['userChrome.css', 'kitsune-header.css', 'window-controls.css'];
 
 test('the chrome palette is exactly the InkShadow paper tokens, generated from their single source', async () => {
@@ -72,6 +73,12 @@ test('internal pages are paper unless the theme says dark: paper fallback tokens
   }
   const fallback = Object.fromEntries([...css.matchAll(/--kb-([a-z-]+):\s*(#[0-9a-f]{6});/g)].map(m => [m[1], m[2]]));
   assert.deepEqual(fallback, INTERFACE);
+});
+
+test('scrollbars are a rust stroke on a transparent track, lighter on dark pages', async () => {
+  const content = await read('userContent.css');
+  assert.match(content, /:root \{\s*scrollbar-color: light-dark\(color-mix\(in srgb, #963d32 62%, transparent\), color-mix\(in srgb, #e0806b 72%, transparent\)\) transparent;/);
+  assert.match(await read('userChrome.css'), /scrollbar-color: color-mix\(in srgb, var\(--kb-primary\) 62%, transparent\) transparent;/);
 });
 
 test('reader view is paper and ink with a serif body', async () => {

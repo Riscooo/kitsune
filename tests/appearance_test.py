@@ -53,12 +53,18 @@ class AppearanceTests(unittest.TestCase):
         self.assertEqual(appearance.PAPEL, expected)
         self.assertEqual(self.refresh()["palette"], expected)
 
-    def test_control_is_version_4_with_theme_background_and_window_options(self):
+    def test_control_is_version_5_with_theme_background_window_and_saver_options(self):
         self.refresh()
         control = json.loads(self.manager.control.read_text())
-        self.assertEqual(control["version"], 4)
+        self.assertEqual(control["version"], 5)
         self.assertEqual(set(control), {"version", "palette", "motion", "googleRemember", "theme", "background",
-                                        "windowControls", "brand", "fingerprint"})
+                                        "windowControls", "brand", "performance", "ramLimit", "fingerprint"})
+        self.assertEqual((control["performance"], control["ramLimit"]), ("normal", 2048))
+        saver = self.refresh(performance="ahorro", ramLimit=1024)
+        self.assertEqual((saver["performance"], saver["ramLimit"]), ("ahorro", 1024))
+        for change in ({"performance": "turbo"}, {"ramLimit": 3000}, {"ramLimit": "2048"}):
+            with self.subTest(change=change), self.assertRaises(ValueError):
+                self.refresh(**change)
         self.assertEqual((control["theme"], control["background"], control["windowControls"], control["brand"]),
                          ("claro", None, "izquierda", True))
         result = self.refresh(windowControls="derecha", brand=False)

@@ -23,7 +23,12 @@ const CONTROL_KEYS = Object.freeze({
   3: Object.freeze(['version', 'fingerprint', 'palette', 'motion', 'googleRemember', 'theme', 'background']),
   // Botones de la ventana a la izquierda o a la derecha y el logo «KITSUNE», a elegir.
   4: Object.freeze(['version', 'fingerprint', 'palette', 'motion', 'googleRemember', 'theme', 'background', 'windowControls', 'brand']),
+  // Modo ahorro, como en Opera GX: pestañas dormidas, límite de RAM, 60 fps.
+  5: Object.freeze(['version', 'fingerprint', 'palette', 'motion', 'googleRemember', 'theme', 'background', 'windowControls', 'brand',
+                    'performance', 'ramLimit']),
 });
+const PERFORMANCE = Object.freeze(['normal', 'ahorro']);
+const RAM_LIMITS = Object.freeze([1024, 2048, 4096]);
 const CONTROL_SIDES = Object.freeze(['izquierda', 'derecha']);
 const SCHEMES = Object.freeze({claro:'light', oscuro:'dark'});
 
@@ -32,14 +37,15 @@ function validate(value) {
   if (!keys || Object.keys(value).length !== keys.length || keys.some(key => !Object.hasOwn(value, key)) ||
       (value.version >= 3 && (!Object.hasOwn(SCHEMES, value.theme) ||
         (value.background !== null && (typeof value.background !== 'string' || !/^[a-f0-9]{64}$/.test(value.background))))) ||
-      (value.version === 4 && (!CONTROL_SIDES.includes(value.windowControls) || typeof value.brand !== 'boolean')) ||
+      (value.version >= 4 && (!CONTROL_SIDES.includes(value.windowControls) || typeof value.brand !== 'boolean')) ||
+      (value.version === 5 && (!PERFORMANCE.includes(value.performance) || !RAM_LIMITS.includes(value.ramLimit))) ||
       typeof value.fingerprint !== 'string' || !/^[a-f0-9]{64}$/.test(value.fingerprint) ||
       ['motion','googleRemember'].some(key => typeof value[key] !== 'boolean') ||
       !value.palette || typeof value.palette !== 'object' || Array.isArray(value.palette) ||
       Object.keys(value.palette).length !== Object.keys(TOKENS).length ||
       Object.keys(TOKENS).some(key => typeof value.palette[key] !== 'string' || !/^#[0-9a-f]{6}$/.test(value.palette[key]))) throw Error('Invalid local appearance control');
   // Un control v2 (0.6) es papel claro y sin fondo; v2 y v3, botones a la izquierda y con logo.
-  return {theme:'claro', background:null, windowControls:'izquierda', brand:true, ...value};
+  return {theme:'claro', background:null, windowControls:'izquierda', brand:true, performance:'normal', ramLimit:2048, ...value};
 }
 
 function backgroundUri(hash) {
@@ -70,7 +76,7 @@ function nativeCss(value) {
 // Más específico que userChrome.css, que va detrás en la cascada.
 function windowCss(value) {
   const right = value.windowControls === 'derecha' ? `
-    :root#main-window .titlebar-buttonbox-container{order:999!important;padding-inline:8px 2px!important;}
+    :root#main-window #TabsToolbar>.titlebar-buttonbox-container,:root#main-window .titlebar-buttonbox-container{order:999!important;padding-inline:8px 2px!important;}
     :root#main-window #navigator-toolbox[tabs-hidden]>#nav-bar>.titlebar-buttonbox-container{order:999!important;}
     :root#main-window .titlebar-buttonbox .titlebar-close{order:2!important;}` : '';
   const hidden = value.brand ? '' : `
@@ -87,6 +93,80 @@ const IDENTITY_CSS = '@-moz-document url("chrome://browser/content/browser.xhtml
     .map(id => `#${id},#appMenu_${id}`).join(',') + '{display:none!important;}}' +
   '@-moz-document url-prefix("about:preferences"),url-prefix("about:settings"){' +
   '#category-sync,#category-experimental,#category-more-from-mozilla{display:none!important;}}';
+
+// Al cambiar de tema, la barra funde sus colores mientras el inicio pasa la veta de tinta.
+let lastTheme = '';
+function fadeChrome(theme) {
+  if (!lastTheme || lastTheme === theme) { lastTheme = theme; return; }
+  lastTheme = theme;
+  for (const win of Services.wm.getEnumerator('navigator:browser')) {
+    const root = win.document.documentElement;
+    root.setAttribute('kitsune-theme-changing', 'true');
+    win.setTimeout(() => root.removeAttribute('kitsune-theme-changing'), 1300);
+  }
+}
+const FADE_CSS = '@-moz-document url("chrome://browser/content/browser.xhtml"){' +
+  ':root[kitsune-theme-changing] :is(#navigator-toolbox,#TabsToolbar,#nav-bar,#urlbar-background,.urlbar-background,' +
+  '.tab-background,#sidebar-box,#PersonalToolbar,toolbarbutton,.toolbarbutton-icon,#TabsToolbar::before){' +
+  'transition:background-color 1100ms cubic-bezier(.65,0,.35,1),color 1100ms cubic-bezier(.65,0,.35,1),' +
+  'border-color 1100ms cubic-bezier(.65,0,.35,1),fill 1100ms ease!important;}}';
+
+// Modo ahorro. Ajustes de Gecko con menos memoria y CPU (solo mientras dure el
+// modo: al volver a Normal se quitan los que puso Kitsune) y un vigilante que
+// duerme pestañas: las que llevan 15 min sin usarse y, si Kitsune pasa del límite
+// de RAM, las más antiguas hasta bajar. Nunca la activa, las fijadas ni las que suenan.
+const SAVER_PREFS = Object.freeze({
+  'layout.frame_rate': 60,
+  'dom.ipc.processCount': 2,
+  'dom.ipc.processCount.webIsolated': 1,
+  'browser.sessionhistory.max_total_viewers': 0,
+  'browser.cache.memory.capacity': 32768,
+  'image.mem.surfacecache.max_size_kb': 262144,
+});
+const SAVER_IDLE_MS = 15 * 60 * 1000;
+let saver = null;
+function setPrefValue(name, value) {
+  if (typeof value === 'number') Services.prefs.setIntPref(name, value);
+}
+function applyPerformance(mode, ramLimit) {
+  const applied = Services.prefs.getStringPref('kitsune.performance.applied', 'normal');
+  if (mode === 'ahorro') {
+    for (const [name, value] of Object.entries(SAVER_PREFS)) {
+      if (Services.prefs.getIntPref(name, -999) !== value) setPrefValue(name, value);
+    }
+  } else if (applied === 'ahorro') {
+    for (const [name, value] of Object.entries(SAVER_PREFS)) {
+      if (Services.prefs.prefHasUserValue(name) && Services.prefs.getIntPref(name, -999) === value) Services.prefs.clearUserPref(name);
+    }
+  }
+  if (applied !== mode) Services.prefs.setStringPref('kitsune.performance.applied', mode);
+  saver = mode === 'ahorro' ? { limit: ramLimit * 1024 * 1024, last: 0 } : null;
+}
+function sleepingCandidates() {
+  const tabs = [];
+  for (const win of Services.wm.getEnumerator('navigator:browser')) {
+    for (const tab of win.gBrowser?.tabs ?? []) {
+      if (tab.selected || tab.pinned || tab.soundPlaying || tab.hasAttribute('pending') || !tab.linkedPanel) continue;
+      tabs.push({ win, tab });
+    }
+  }
+  return tabs.sort((a, b) => (a.tab.lastAccessed || 0) - (b.tab.lastAccessed || 0));
+}
+async function watchMemory() {
+  if (!saver || Date.now() - saver.last < 30000) return;
+  saver.last = Date.now();
+  const now = Date.now();
+  for (const { win, tab } of sleepingCandidates()) {
+    if (now - (tab.lastAccessed || now) > SAVER_IDLE_MS) win.gBrowser.discardBrowser(tab);
+  }
+  // Memoria real de todos los procesos de Kitsune; si pasa del límite, duerme
+  // hasta dos de las pestañas más antiguas y lo vuelve a medir en la siguiente vuelta.
+  const info = await ChromeUtils.requestProcInfo();
+  const used = info.memory + info.children.reduce((sum, child) => sum + (child.memory || 0), 0);
+  if (used > saver.limit) {
+    for (const { win, tab } of sleepingCandidates().slice(0, 2)) win.gBrowser.discardBrowser(tab);
+  }
+}
 
 // El esquema de Gecko sigue al tema: menús, ajustes y las webs que lo admiten
 // se ven oscuros en Oscuro. Con el tema por defecto, browser.theme.* vale 2
@@ -204,7 +284,9 @@ async function update() {
       sheets.loadAndRegisterSheet(next, sheets.USER_SHEET);
       if (sheet && sheets.sheetRegistered(sheet, sheets.USER_SHEET)) sheets.unregisterSheet(sheet, sheets.USER_SHEET);
       sheet = next;
+      fadeChrome(value.theme);
       applyScheme(value.theme);
+      applyPerformance(value.performance, value.ramLimit);
       applyGoogle(value.googleRemember);
       current = value.fingerprint;
       lastAck = 0;
@@ -219,6 +301,7 @@ async function update() {
       lastAck = ack.at;
     }
     reportedError = false;
+    void watchMemory().catch(() => {});
   } catch (error) {
     // No payload, profile path or private state enters the browser log.
     if (error.name !== 'NotFoundError' && !reportedError) {
@@ -230,7 +313,7 @@ async function update() {
 
 // Siempre, haya o no ajustes de apariencia: la identidad no depende del inicio.
 function registerIdentity() {
-  const uri = Services.io.newURI('data:text/css;charset=utf-8,' + encodeURIComponent(IDENTITY_CSS));
+  const uri = Services.io.newURI('data:text/css;charset=utf-8,' + encodeURIComponent(IDENTITY_CSS + FADE_CSS));
   if (!sheets.sheetRegistered(uri, sheets.USER_SHEET)) sheets.loadAndRegisterSheet(uri, sheets.USER_SHEET);
 }
 

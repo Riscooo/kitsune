@@ -16,6 +16,8 @@ export function normalizeSettings(value = {}) {
     background: typeof value?.background === 'string' && /^[a-f\d]{64}$/u.test(value.background) ? value.background : null,
     windowControls: value?.windowControls === 'derecha' ? 'derecha' : 'izquierda',
     brand: value?.brand !== false,
+    performance: value?.performance === 'ahorro' ? 'ahorro' : 'normal',
+    ramLimit: [1024, 2048, 4096].includes(value?.ramLimit) ? value.ramLimit : 2048,
   }
 }
 

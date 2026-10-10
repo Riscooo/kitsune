@@ -24,9 +24,27 @@ const store = createSettingsStore({
     for (const [id, key] of Object.entries(toggles)) { $(`#${id}`).checked = settings[key]; $(`#${id}`).disabled = !state.ready }
     for (const key of ['clock', 'shortcuts']) { $(`#module-${key}`).checked = settings.modules[key]; $(`#module-${key}`).disabled = !state.ready }
     for (const button of document.querySelectorAll('[data-window-controls]')) button.addEventListener('click', () => void save({ windowControls: button.dataset.windowControls }))
+for (const button of document.querySelectorAll('[data-performance]')) button.addEventListener('click', () => void save({ performance: button.dataset.performance }))
+for (const button of document.querySelectorAll('[data-ram-limit]')) button.addEventListener('click', () => void save({ ramLimit: Number(button.dataset.ramLimit) }))
+// Cuánta memoria usa ahora Kitsune en este perfil (mientras el panel está abierto).
+async function updateMemory() {
+  if (!$('#settings-dialog').open || location.protocol === 'file:') return
+  try {
+    const response = await fetch('/api/rendimiento', { credentials: 'omit', cache: 'no-store' })
+    const value = await response.json()
+    $('#memory-status').textContent = Number.isFinite(value?.memoryMB)
+      ? `Ahora Kitsune usa ${value.memoryMB >= 1024 ? `${(value.memoryMB / 1024).toLocaleString('es-ES', { maximumFractionDigits: 1 })} GB` : `${value.memoryMB} MB`} de RAM en este perfil (${value.processes} procesos).`
+      : ''
+  } catch { $('#memory-status').textContent = '' }
+}
+setInterval(() => void updateMemory(), 5000)
+$('#settings-open').addEventListener('click', () => setTimeout(() => void updateMemory(), 50))
 for (const radio of document.querySelectorAll('input[name="theme"]')) { radio.checked = radio.value === settings.theme; radio.disabled = !state.ready }
     $('#background-file').disabled = !state.ready
     for (const button of document.querySelectorAll('[data-window-controls]')) { button.setAttribute('aria-pressed', String(button.dataset.windowControls === settings.windowControls)); button.disabled = !state.ready }
+    for (const button of document.querySelectorAll('[data-performance]')) { button.setAttribute('aria-pressed', String(button.dataset.performance === settings.performance)); button.disabled = !state.ready }
+    for (const button of document.querySelectorAll('[data-ram-limit]')) { button.setAttribute('aria-pressed', String(Number(button.dataset.ramLimit) === settings.ramLimit)); button.disabled = !state.ready }
+    $('#ram-row').hidden = settings.performance !== 'ahorro'
     $('#background-remove').hidden = !settings.background; $('#background-remove').disabled = !state.ready
     presets?.sync(settings, state.ready)
     $('#focus-toggle').setAttribute('aria-pressed', String(settings.focus)); $('#focus-toggle').disabled = !state.ready
@@ -55,7 +73,28 @@ async function save(patch) { if (await store.save(patch)) await appearance.refre
 for (const [id, key] of Object.entries(toggles)) $(`#${id}`).addEventListener('change', event => void save({ [key]: event.target.checked }))
 for (const key of ['clock', 'shortcuts']) $(`#module-${key}`).addEventListener('change', event => void save({ modules: { [key]: event.target.checked } }))
 $('#focus-toggle').addEventListener('click', () => void save({ focus: !store.data.focus }))
-for (const radio of document.querySelectorAll('input[name="theme"]')) radio.addEventListener('change', event => { if (event.target.checked) void save({ theme: event.target.value }) })
+// La veta de tinta, como en Hakufu: 1,2 s, la misma curva y en espejo al volver a Claro.
+const INK_MS = 1200
+const INK_EASING = 'cubic-bezier(.65, 0, .35, 1)'
+function playInk(theme, apply) {
+  const still = document.body.dataset.motion === 'off' || matchMedia('(prefers-reduced-motion: reduce)').matches
+  if (still || typeof document.startViewTransition !== 'function' || document.documentElement.dataset.theme === theme) { apply(); return }
+  const dir = theme === 'oscuro' ? 'ltr' : 'rtl'
+  const vein = document.createElement('div')
+  vein.className = 'ink-vein'; vein.dataset.dir = dir
+  document.documentElement.dataset.inkDir = dir
+  const transition = document.startViewTransition(() => { apply(); document.body.append(vein) })
+  transition.ready.then(() => vein.animate(
+    { backgroundPosition: dir === 'ltr' ? ['100% 0', '0% 0'] : ['0% 0', '100% 0'] },
+    { duration: INK_MS, easing: INK_EASING, fill: 'both' })).catch(() => {})
+  transition.finished.finally(() => { vein.remove(); delete document.documentElement.dataset.inkDir })
+}
+for (const radio of document.querySelectorAll('input[name="theme"]')) radio.addEventListener('change', event => {
+  if (!event.target.checked) return
+  const theme = event.target.value
+  playInk(theme, () => { document.documentElement.dataset.theme = theme })
+  void save({ theme })
+})
 const BACKGROUND_HINT = 'PNG, JPG o WebP · hasta 12 MB. Se ve en el inicio y en las pestañas nuevas.'
 const readImage = file => new Promise((resolve, reject) => {
   const reader = new FileReader()

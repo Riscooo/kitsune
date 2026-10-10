@@ -93,7 +93,9 @@ def main():
         driver.context("content")
         driver.command("POST", "/actions", {"actions": [{"type": "pointer", "id": "logo-mouse", "parameters": {"pointerType": "mouse"}, "actions": [{"type": "pointerMove", "duration": 100, "origin": {"element-6066-11e4-a52e-4f735466cecf": driver.element(selector)}, "x": 0, "y": 0}]}]})
         driver.command("DELETE", "/actions")
-        eventually(lambda: js("return getComputedStyle(document.querySelector('.brand img')).rotate") == target)
+        eventually(lambda: js("return getComputedStyle(document.querySelector('.logo-light .logo-ring')).rotate") == target)
+        # Solo gira el ensō: la máscara del zorro se queda quieta.
+        assert js("return getComputedStyle(document.querySelector('.logo-light .logo-mask')).rotate") == "none"
 
     def unhover():
         driver.command("POST", "/actions", {"actions": [{"type": "pointer", "id": "logo-mouse", "parameters": {"pointerType": "mouse"}, "actions": [{"type": "pointerMove", "duration": 0, "origin": "viewport", "x": 1, "y": 1}]}]})
@@ -115,12 +117,12 @@ def main():
         wait_start(driver)
         reduced(False)
         assert js("return document.body.dataset.motion") == "on"
-        assert js("return document.querySelector('.brand img').complete && document.querySelector('.brand img').naturalWidth>0")
+        assert js("return [...document.querySelectorAll('.logo-light img')].every(i => i.complete && i.naturalWidth > 0)")
         favicon = js("return document.querySelector('link[rel=icon]').href")
         settle(".greeting", "ink-settle", "home")
         capture("home-motion-1540.png")
-        hover(".brand", "-8deg")
-        report["samples"]["homeHover"] = sample(".brand img")
+        hover(".brand", "-24deg")
+        report["samples"]["homeHover"] = sample(".logo-light .logo-ring")
         capture("home-hover-1540.png")
         unhover()
         driver.click("#query")
@@ -129,8 +131,9 @@ def main():
             if js("return document.activeElement.matches('.brand')"):
                 break
         assert js("return document.activeElement.matches('.brand:focus-visible')")
-        eventually(lambda: js("return getComputedStyle(document.querySelector('.brand img')).rotate") == "-8deg")
-        report["checks"].append("Home hover and keyboard focus turn the ensō slightly without changing the image asset")
+        eventually(lambda: js("return getComputedStyle(document.querySelector('.logo-light .logo-ring')).rotate") == "-24deg")
+        assert js("return getComputedStyle(document.querySelector('.logo-light .logo-mask')).rotate") == "none"
+        report["checks"].append("Home hover and keyboard focus turn only the ensō; the fox mask stays still")
         driver.click("#query")
         width(390, 844)
         settle(".greeting", "ink-settle", "home390")
@@ -145,7 +148,7 @@ def main():
         driver.command("POST", "/refresh", {})
         wait_start(driver)
         assert js("return document.body.dataset.motion") == "off"
-        assert sample(".greeting")["animation"] == "none" and sample(".brand img")["transition"] == "0s"
+        assert sample(".greeting")["animation"] == "none" and sample(".logo-light .logo-ring")["transition"] == "0s"
         report["samples"]["homeOffAfterReload"] = sample(".greeting")
         report["checks"].append("Disabling motion in the UI stops the ink animation and persists after reload")
         driver.click("#settings-open")
@@ -154,7 +157,7 @@ def main():
         eventually(lambda: api_settings(origin)["data"]["motion"] is True)
         reduced(True)
         assert sample(".greeting")["animation"] == "none"
-        assert sample(".brand img")["transition"] == "0s"
+        assert sample(".logo-light .logo-ring")["transition"] == "0s"
         report["samples"]["homeReduced"] = sample(".greeting")
         capture("home-reduced-390.png")
         assert js("return document.querySelector('link[rel=icon]').href") == favicon

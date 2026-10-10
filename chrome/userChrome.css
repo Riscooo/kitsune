@@ -410,3 +410,8 @@ findbar .findbar-textbox[status="notfound"] {
 #trustpanel-graphic-section * {
   color: var(--kb-text) !important;
 }
+
+/* Barra de scroll de la propia ventana (pestañas, menús, barra lateral): el mismo trazo de óxido. */
+:root {
+  scrollbar-color: color-mix(in srgb, var(--kb-primary) 62%, transparent) transparent;
+}

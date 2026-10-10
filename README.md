@@ -54,6 +54,31 @@ Tipografías: Noto Sans en la interfaz y Noto Serif en títulos, saludo y «kits
   seguridad y de rastreadores (Remote Settings), los códecs de vídeo (OpenH264/Widevine),
   los avisos legales de la licencia (`about:license`), la página técnica `about:support`
   y el «Mozilla/5.0 … Firefox/157.0» del agente de usuario, que las webs necesitan.
+- **En castellano.** El motor lleva inglés y castellano (`mach package-multi-locale`):
+  la traducción es-ES de Mozilla en la revisión que fija la versión de Gecko
+  (`l10n-changesets.json`, comprobada por git), con la misma capa de identidad en
+  español («Página de inicio de Kitsune», «tienda de extensiones»…). Arranca en
+  castellano (`intl.locale.requested`) y se cambia en Ajustes → Idioma.
+- **Cambio de tema con la veta de tinta** de Hakufu e InkShadow: al pasar a Oscuro
+  (o a Claro, en espejo) el inicio destapa el tema nuevo tras un borde diagonal y
+  deshilachado con la tinta detrás (view transition, 1,2 s; `tools/veta/generate.py`),
+  y la barra funde sus colores a la vez. Respeta «Animaciones suaves» y el movimiento
+  reducido del sistema.
+- **Modo ahorro**, como en Opera GX: «Tu inicio» → Apariencia → Rendimiento. Duerme las
+  pestañas sin usar 15 min, mantiene la RAM por debajo del límite elegido (1, 2 o 4 GB)
+  durmiendo las más antiguas, limita a 60 fps y usa menos procesos, sin bfcache y con
+  menos caché; al volver a Normal se quitan sus ajustes. El panel dice cuánta memoria
+  usa Kitsune en ese perfil.
+- **Barra de scroll propia:** un trazo de óxido sobre fondo transparente (más claro en
+  páginas oscuras), en la ventana y en las webs que no traen la suya.
+- **Safe Browsing (protección contra webs de estafa y malware):** Kitsune no trae la
+  clave de Google de Mozilla, así que esas listas no se descargan hasta que haya una
+  propia. Para tenerla: en https://console.cloud.google.com crea un proyecto, activa
+  «Safe Browsing API» y crea una clave de API (gratis para uso no comercial); guárdala
+  en `~/.config/kitsune-browser/safebrowsing-api-key` (`chmod 600`) y la siguiente
+  compilación del motor la incluye sola.
+- **Pendiente para cuando haya web de Kitsune:** la tarjeta «Soporte de Kitsune» de
+  Ajustes (ayuda y «Comparte ideas»), oculta hasta entonces en la receta del motor.
 - **Mascota de Kitsune.** Un zorrito kitsune de papel, tinta y óxido
   (`tools/mascot/generate.py` → `install/mascot/`) sustituye a los 55 zorros de Firefox
   del motor (panel de protección, páginas de error, contraseñas, privacidad…) en cinco
@@ -249,12 +274,14 @@ python3 tests/native_branding_smoke.py
 Las pruebas nativas usan por defecto el motor activo
 (`~/.local/share/kitsune-browser/engine/current/kitsune`) con perfiles temporales.
 
-Resultado 0.7 (10 de octubre de 2026), con el motor `157.0.1-9d145f908173`:
+Resultado 0.7 (10 de octubre de 2026), con el motor `157.0.1-4c85e49904f7` (en-US y es-ES):
 92 pruebas JS y 129 Python (fondo propio, fondos de serie y librería). Nativas:
 `theme_native.py` 8/8 (Oscuro en directo en ventana, nueva pestaña y webs, también
 con «Claro» guardado de antes; fondo propio y de serie visibles, comprobado en
 píxeles; vuelta a Claro), `newtab_native.py` 2/2 (Ctrl+T y + abren el inicio),
 `privacy_switch_native.py` 4/4 (ventana de Estricto/Cómodo con Aceptar y Cancelar),
+`window_saver_native.py` 4/4 (botones a la derecha, modo ahorro, memoria y veta de tinta),
+`tools/mozilla_audit.py --check` limpio también en castellano,
 apariencia 7, ajustes, cabecera y navegador.
 
 Resultado 0.6 «motor propio» (10 de octubre de 2026), con el motor

@@ -50,6 +50,10 @@ ASSETS = {
     "/logo.svg": ("logo.svg", "image/svg+xml"),
     "/logo-dark.svg": ("logo-dark.svg", "image/svg+xml"),
     "/logo-ring.svg": ("logo-ring.svg", "image/svg+xml"),
+    "/veta-mascara-ltr.svg": ("veta-mascara-ltr.svg", "image/svg+xml"),
+    "/veta-mascara-rtl.svg": ("veta-mascara-rtl.svg", "image/svg+xml"),
+    "/veta-tinta-ltr.svg": ("veta-tinta-ltr.svg", "image/svg+xml"),
+    "/veta-tinta-rtl.svg": ("veta-tinta-rtl.svg", "image/svg+xml"),
     "/logo-mask.svg": ("logo-mask.svg", "image/svg+xml"),
     "/logo-ring-dark.svg": ("logo-ring-dark.svg", "image/svg+xml"),
     "/logo-mask-dark.svg": ("logo-mask-dark.svg", "image/svg+xml"),
@@ -76,6 +80,8 @@ DEFAULT_DATA = {
     "theme": "claro", "background": None,
     # Botones de la ventana (izquierda o derecha) y el logo «KITSUNE» de la barra.
     "windowControls": "izquierda", "brand": True,
+    # Modo ahorro (pestañas dormidas, límite de RAM en MB, 60 fps).
+    "performance": "normal", "ramLimit": 2048,
 }
 LEGACY_SETTINGS_KEYS = {"links", "art", "motion", "newTab", "accent", "focus"}
 
@@ -109,6 +115,8 @@ def validate_data(value, base=None):
         raise InvalidSettings("El tema no es válido.")
     if value["windowControls"] not in ("izquierda", "derecha") or type(value["brand"]) is not bool:
         raise InvalidSettings("Las opciones de la ventana no son válidas.")
+    if value["performance"] not in ("normal", "ahorro") or type(value["ramLimit"]) is not int or value["ramLimit"] not in (1024, 2048, 4096):
+        raise InvalidSettings("El modo de rendimiento no es válido.")
     background = value["background"]
     if background is not None and (type(background) is not str or not re.fullmatch(r"[0-9a-f]{64}", background)):
         raise InvalidSettings("El fondo no es válido.")
@@ -327,6 +335,43 @@ class HomeServer(ThreadingHTTPServer):
                 except FileNotFoundError:
                     pass
 
+    def memory(self):
+        """Memoria real (PSS) de los procesos de Kitsune de este perfil, sin leer su contenido."""
+        if self.appearance is None:
+            return {"memoryMB": None, "processes": 0}
+        profile = str(Path(self.appearance.profile))
+        main, parents = None, {}
+        for entry in Path("/proc").iterdir():
+            if not entry.name.isdigit():
+                continue
+            try:
+                if "/kitsune-browser/engine/" not in os.readlink(entry / "exe"):
+                    continue
+                arguments = (entry / "cmdline").read_bytes().split(b"\0")
+                status = (entry / "status").read_text()
+            except OSError:
+                continue
+            parent = re.search(r"^PPid:\s+(\d+)", status, re.M)
+            parents[int(entry.name)] = int(parent[1]) if parent else 0
+            if b"-contentproc" not in arguments and profile.encode() in arguments:
+                main = int(entry.name)
+        if main is None:
+            return {"memoryMB": None, "processes": 0}
+        # Toda la familia: en Linux las pestañas cuelgan de un proceso intermedio (forkserver).
+        family, grown = {main}, True
+        while grown:
+            children = {pid for pid, parent in parents.items() if parent in family} - family
+            family |= children
+            grown = bool(children)
+        total = 0
+        for pid in family:
+            try:
+                rollup = (Path("/proc") / str(pid) / "smaps_rollup").read_text()
+                total += int(re.search(r"^Pss:\s+(\d+)", rollup, re.M)[1])
+            except (OSError, TypeError):
+                continue
+        return {"memoryMB": round(total / 1024), "processes": len(family)}
+
     def wallpapers(self):
         """The preset backgrounds prepared by wallpapers.py, only those whose files exist."""
         if self.appearance is None:
@@ -482,6 +527,9 @@ class HomeHandler(BaseHTTPRequestHandler):
                 self.error(404, "La foto del perfil no está disponible.")
             except OSError:
                 self.error(503, "No se puede leer la foto del perfil.")
+            return
+        if path == "/api/rendimiento":
+            self.json_response(200, self.server.memory(), head=head)
             return
         if path == "/api/wallpapers":
             index = self.server.wallpapers()

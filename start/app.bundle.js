@@ -866,7 +866,13 @@
 			theme: THEMES.includes(value?.theme) ? value.theme : "claro",
 			background: typeof value?.background === "string" && /^[a-f\d]{64}$/u.test(value.background) ? value.background : null,
 			windowControls: value?.windowControls === "derecha" ? "derecha" : "izquierda",
-			brand: value?.brand !== false
+			brand: value?.brand !== false,
+			performance: value?.performance === "ahorro" ? "ahorro" : "normal",
+			ramLimit: [
+				1024,
+				2048,
+				4096
+			].includes(value?.ramLimit) ? value.ramLimit : 2048
 		};
 	}
 	function mergeSettings(current, patch) {
@@ -1108,7 +1114,8 @@
 		if (![
 			2,
 			3,
-			4
+			4,
+			5
 		].includes(value?.version) || typeof value.fingerprint !== "string" || !/^[a-f\d]{64}$/iu.test(value.fingerprint) || typeof value.motion !== "boolean" || !value.palette || PALETTE_KEYS.some((key) => typeof value.palette[key] !== "string" || !/^#[a-f\d]{6}$/iu.test(value.palette[key]))) throw new Error("Paleta no válida.");
 		if (value.version >= 3 && (!Object.hasOwn(THEME_COLORS, value.theme) || value.background !== null && (typeof value.background !== "string" || !/^[a-f\d]{64}$/u.test(value.background)))) throw new Error("Tema no válido.");
 		return value;
@@ -1593,6 +1600,22 @@
 				$(`#module-${key}`).disabled = !state.ready;
 			}
 			for (const button of document.querySelectorAll("[data-window-controls]")) button.addEventListener("click", () => void save({ windowControls: button.dataset.windowControls }));
+			for (const button of document.querySelectorAll("[data-performance]")) button.addEventListener("click", () => void save({ performance: button.dataset.performance }));
+			for (const button of document.querySelectorAll("[data-ram-limit]")) button.addEventListener("click", () => void save({ ramLimit: Number(button.dataset.ramLimit) }));
+			async function updateMemory() {
+				if (!$("#settings-dialog").open || location.protocol === "file:") return;
+				try {
+					const value = await (await fetch("/api/rendimiento", {
+						credentials: "omit",
+						cache: "no-store"
+					})).json();
+					$("#memory-status").textContent = Number.isFinite(value?.memoryMB) ? `Ahora Kitsune usa ${value.memoryMB >= 1024 ? `${(value.memoryMB / 1024).toLocaleString("es-ES", { maximumFractionDigits: 1 })} GB` : `${value.memoryMB} MB`} de RAM en este perfil (${value.processes} procesos).` : "";
+				} catch {
+					$("#memory-status").textContent = "";
+				}
+			}
+			setInterval(() => void updateMemory(), 5e3);
+			$("#settings-open").addEventListener("click", () => setTimeout(() => void updateMemory(), 50));
 			for (const radio of document.querySelectorAll("input[name=\"theme\"]")) {
 				radio.checked = radio.value === settings.theme;
 				radio.disabled = !state.ready;
@@ -1602,6 +1625,15 @@
 				button.setAttribute("aria-pressed", String(button.dataset.windowControls === settings.windowControls));
 				button.disabled = !state.ready;
 			}
+			for (const button of document.querySelectorAll("[data-performance]")) {
+				button.setAttribute("aria-pressed", String(button.dataset.performance === settings.performance));
+				button.disabled = !state.ready;
+			}
+			for (const button of document.querySelectorAll("[data-ram-limit]")) {
+				button.setAttribute("aria-pressed", String(Number(button.dataset.ramLimit) === settings.ramLimit));
+				button.disabled = !state.ready;
+			}
+			$("#ram-row").hidden = settings.performance !== "ahorro";
 			$("#background-remove").hidden = !settings.background;
 			$("#background-remove").disabled = !state.ready;
 			presets?.sync(settings, state.ready);
@@ -1645,8 +1677,39 @@
 	for (const [id, key] of Object.entries(toggles)) $(`#${id}`).addEventListener("change", (event) => void save({ [key]: event.target.checked }));
 	for (const key of ["clock", "shortcuts"]) $(`#module-${key}`).addEventListener("change", (event) => void save({ modules: { [key]: event.target.checked } }));
 	$("#focus-toggle").addEventListener("click", () => void save({ focus: !store.data.focus }));
+	const INK_MS = 1200;
+	const INK_EASING = "cubic-bezier(.65, 0, .35, 1)";
+	function playInk(theme, apply) {
+		if (document.body.dataset.motion === "off" || matchMedia("(prefers-reduced-motion: reduce)").matches || typeof document.startViewTransition !== "function" || document.documentElement.dataset.theme === theme) {
+			apply();
+			return;
+		}
+		const dir = theme === "oscuro" ? "ltr" : "rtl";
+		const vein = document.createElement("div");
+		vein.className = "ink-vein";
+		vein.dataset.dir = dir;
+		document.documentElement.dataset.inkDir = dir;
+		const transition = document.startViewTransition(() => {
+			apply();
+			document.body.append(vein);
+		});
+		transition.ready.then(() => vein.animate({ backgroundPosition: dir === "ltr" ? ["100% 0", "0% 0"] : ["0% 0", "100% 0"] }, {
+			duration: INK_MS,
+			easing: INK_EASING,
+			fill: "both"
+		})).catch(() => {});
+		transition.finished.finally(() => {
+			vein.remove();
+			delete document.documentElement.dataset.inkDir;
+		});
+	}
 	for (const radio of document.querySelectorAll("input[name=\"theme\"]")) radio.addEventListener("change", (event) => {
-		if (event.target.checked) save({ theme: event.target.value });
+		if (!event.target.checked) return;
+		const theme = event.target.value;
+		playInk(theme, () => {
+			document.documentElement.dataset.theme = theme;
+		});
+		save({ theme });
 	});
 	const BACKGROUND_HINT = "PNG, JPG o WebP · hasta 12 MB. Se ve en el inicio y en las pestañas nuevas.";
 	const readImage = (file) => new Promise((resolve, reject) => {
