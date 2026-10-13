@@ -89,6 +89,21 @@
   #main-window #tabbrowser-tabs[orient="horizontal"] .tabbrowser-tab:hover .tab-background:not([selected], [multiselected]) {
     background: var(--kitsune-wash-hover) !important;
   }
+  /* Usuarios en la misma ventana: la línea del color del usuario va abajo (arriba está el
+     trazo de pincel de la pestaña activa). Personal no lleva. */
+  #main-window #tabbrowser-tabs[orient="horizontal"] .tabbrowser-tab[usercontextid] .tab-background {
+    position: relative !important;
+  }
+  #main-window #tabbrowser-tabs[orient="horizontal"] .tabbrowser-tab[usercontextid] .tab-context-line {
+    position: absolute !important;
+    inset-inline: 12px !important;
+    bottom: 3px !important;
+    height: 2px !important;
+    margin: 0 !important;
+    border-radius: 1px !important;
+    background-color: var(--identity-icon-color) !important;
+    background-image: none !important;
+  }
   /* Pestaña activa: hoja de papel con un trazo óxido de pincel arriba. */
   #main-window #tabbrowser-tabs[orient="horizontal"] .tabbrowser-tab:is([selected], [visually-selected]) .tab-background {
     background: url("assets/kitsune-stroke.svg") top 1px center / calc(100% - 16px) 4px no-repeat, var(--kitsune-sheet) !important;

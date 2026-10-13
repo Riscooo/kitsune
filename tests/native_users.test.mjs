@@ -5,10 +5,14 @@ import * as users from '../install/native/kitsune-users.sys.mjs'
 const P1 = 'p-0123456789abcdef'
 const P2 = 'p-fedcba9876543210'
 
-test('the six Kitsune user colors map to Gecko container colors', () => {
+test('the six Kitsune user colors map to Gecko 157 container colors, and to the old names before it', () => {
   assert.deepEqual(Object.keys(users.GECKO_COLORS).sort(), ['amber', 'blue', 'pink', 'red', 'teal', 'violet'])
-  assert.equal(users.GECKO_COLORS.violet, 'purple')
-  assert.equal(users.GECKO_COLORS.teal, 'turquoise')
+  const gecko157 = ['blue', 'cyan', 'green', 'yellow', 'orange', 'red', 'pink', 'purple', 'violet', 'gray']
+  for (const color of Object.keys(users.GECKO_COLORS)) assert.ok(gecko157.includes(users.geckoColor(color, gecko157)), color)
+  assert.equal(users.geckoColor('teal', gecko157), 'cyan')
+  assert.equal(users.geckoColor('teal', ['blue', 'turquoise', 'purple']), 'turquoise')
+  assert.equal(users.geckoColor('violet', ['blue', 'turquoise', 'purple']), 'purple')
+  assert.equal(users.geckoColor('teal'), 'cyan')
 })
 
 test('the container map is read strictly: anything odd is an empty map', () => {
@@ -90,7 +94,7 @@ function fakeGecko(registry) {
     update(id, name, icon, color) { Object.assign(identities.get(id), { name, color }); calls.push(['update', id, name, color]) },
   } }) }
   const window = { PrivateBrowsingUtils: { isWindowPrivate: () => false } }
-  const tab = (context, position) => ({ userContextId: context, _tPos: position, pinned: false, ownerGlobal: window, linkedBrowser: { tab: null, ownerGlobal: window } })
+  const tab = (context, position) => ({ userContextId: context, _tPos: position, pinned: false, documentGlobal: window, linkedBrowser: { tab: null, documentGlobal: window } })
   const gBrowser = {
     tabs: [tab(0, 0), tab(0, 1)],
     addTab(url, options) { calls.push(['addTab', url, options.userContextId, options.tabIndex, options.triggeringPrincipal]); const fresh = tab(options.userContextId, options.tabIndex); this.tabs.splice(options.tabIndex, 0, fresh); return fresh },
@@ -107,7 +111,7 @@ test('switching replaces only that tab, in its place, with the home in the user 
   const gecko = fakeGecko({ version: 2, profiles: [{ id: 'default', name: 'Personal', color: 'blue' }, { id: P1, name: 'Insti', color: 'violet' }] })
   const [first, second] = gecko.gBrowser.tabs
   assert.equal(await users.KitsuneUsers.switchBrowser(second.linkedBrowser, P1), true)
-  assert.deepEqual(gecko.calls, [['create', 'Insti', 'purple'], ['addTab', 'http://127.0.0.1:49721/', 10, 2, 'sistema'], ['removeTab', 1, false]])
+  assert.deepEqual(gecko.calls, [['create', 'Insti', 'violet'], ['addTab', 'http://127.0.0.1:49721/', 10, 2, 'sistema'], ['removeTab', 1, false]])
   assert.equal(gecko.gBrowser.tabs[0], first)
   assert.equal(gecko.gBrowser.tabs.length, 2)
   assert.equal(gecko.gBrowser.selectedTab.userContextId, 10)
@@ -115,7 +119,7 @@ test('switching replaces only that tab, in its place, with the home in the user 
   // El mismo usuario: nada. Un usuario que no existe: nada.
   gecko.calls.length = 0
   const current = gecko.gBrowser.selectedTab
-  current.linkedBrowser = { tab: current, ownerGlobal: current.ownerGlobal }
+  current.linkedBrowser = { tab: current, documentGlobal: current.documentGlobal }
   assert.equal(await users.KitsuneUsers.switchBrowser(current.linkedBrowser, P1), false)
   assert.equal(await users.KitsuneUsers.switchBrowser(current.linkedBrowser, P2), false)
   assert.deepEqual(gecko.calls, [])
@@ -133,4 +137,11 @@ test('switching replaces only that tab, in its place, with the home in the user 
     { id: 'default', name: 'Personal', color: 'blue' }, { id: P1, name: 'Instituto', color: 'red' }] }))
   await users.KitsuneUsers.refresh()
   assert.deepEqual(gecko.calls, [['update', 10, 'Instituto', 'red']])
+})
+
+test('the window of a tab is documentGlobal in Gecko 157 and ownerGlobal before it', () => {
+  const window = {}
+  assert.equal(users.windowOf({ documentGlobal: window }), window)
+  assert.equal(users.windowOf({ ownerGlobal: window }), window)
+  assert.equal(users.windowOf(null), null)
 })

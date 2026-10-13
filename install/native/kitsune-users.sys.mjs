@@ -23,8 +23,14 @@ const HEADER = 'X-Kitsune-Usuario';
 const MAP_FILE = 'kitsune-users.json';
 const SAMPLES_PREF = 'kitsune.users.samplesRemoved';
 const SAMPLES = Object.freeze(['user-context-personal', 'user-context-work', 'user-context-banking', 'user-context-shopping']);
-// Los seis colores de los usuarios de Kitsune, en los de los contenedores de Gecko.
-export const GECKO_COLORS = Object.freeze({ blue: 'blue', pink: 'pink', violet: 'purple', teal: 'turquoise', amber: 'orange', red: 'red' });
+// Los seis colores de los usuarios de Kitsune, en los de los contenedores de Gecko 157 (que
+// renombró turquoise a cyan y añadió violet). Con un Gecko anterior, sus nombres de entonces.
+export const GECKO_COLORS = Object.freeze({ blue: 'blue', pink: 'pink', violet: 'violet', teal: 'cyan', amber: 'orange', red: 'red' });
+const OLDER_GECKO = Object.freeze({ cyan: 'turquoise', violet: 'purple' });
+export function geckoColor(color, known = null) {
+  const name = GECKO_COLORS[color] ?? 'blue';
+  return !known || known.includes(name) ? name : OLDER_GECKO[name] ?? name;
+}
 
 /** <perfil>/kitsune-users.json → Map(id → userContextId). Si no se entiende, vacío. */
 export function parseContainerMap(text) {
@@ -67,6 +73,9 @@ export function userForContainer(map, context) {
   for (const [id, value] of map) if (value === context) return id;
   return null;
 }
+
+// La ventana de una pestaña o un <browser>: Gecko 157 llama documentGlobal a lo que antes era ownerGlobal.
+export const windowOf = node => node?.documentGlobal ?? node?.ownerGlobal ?? null;
 
 const samePath = (a, b) => String(a).replace(/[\\/]+$/, '').toLowerCase() === String(b).replace(/[\\/]+$/, '').toLowerCase();
 
@@ -118,7 +127,7 @@ function syncContainers() {
   let changed = false;
   for (const user of state.users) {
     if (user.id === state.baseId) continue;
-    const color = GECKO_COLORS[user.color];
+    const color = geckoColor(user.color, service.containerColors ?? null);
     const context = state.map.get(user.id);
     const identity = context ? service.getPublicIdentityFromId(context) : null;
     if (identity) {
@@ -165,10 +174,11 @@ function removeSamples() {
 
 /** Sustituye la pestaña por el inicio del usuario `id`, en su sitio. false si no hay nada que hacer. */
 function switchTab(tab, id) {
-  const gBrowser = tab?.ownerGlobal?.gBrowser;
+  const window = windowOf(tab);
+  const gBrowser = window?.gBrowser;
   if (!gBrowser || !state.users.some(user => user.id === id)) return false;
   // En una ventana privada no hay contenedores.
-  if (tab.ownerGlobal.PrivateBrowsingUtils?.isWindowPrivate(tab.ownerGlobal)) return false;
+  if (window.PrivateBrowsingUtils?.isWindowPrivate(window)) return false;
   if (id !== state.baseId) syncContainers();
   const context = id === state.baseId ? 0 : state.map.get(id);
   if (context === undefined || tab.userContextId === context) return false;
@@ -201,7 +211,7 @@ const httpObserver = {
     if (!target) return;
     channel.cancel(Cr.NS_BINDING_ABORTED);
     const browser = info.browsingContext?.top?.embedderElement;
-    const tab = browser?.ownerGlobal?.gBrowser?.getTabForBrowser(browser);
+    const tab = windowOf(browser)?.gBrowser?.getTabForBrowser(browser);
     // Un usuario recién creado puede no estar aún en la lista: se relee el registro antes.
     if (tab) void refresh(true).then(() => switchTab(tab, target)).catch(() => {});
   },
@@ -241,7 +251,7 @@ export const KitsuneUsers = {
   /** Cambia la pestaña de ese <browser> al usuario `id`. */
   async switchBrowser(browser, id) {
     await refresh(true);
-    const tab = browser?.ownerGlobal?.gBrowser?.getTabForBrowser(browser);
+    const tab = windowOf(browser)?.gBrowser?.getTabForBrowser(browser);
     return tab ? switchTab(tab, id) : false;
   },
 };

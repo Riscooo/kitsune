@@ -40,6 +40,20 @@ def load_home():
     return module
 
 
+def start_driver(profile, evidence, browser, env):
+    """geckodriver no pasa al navegador el entorno de moz:firefoxOptions: lo hereda de este proceso."""
+    saved = {key: os.environ.get(key) for key in env}
+    os.environ.update(env)
+    try:
+        return WebDriver(profile, evidence, browser=browser)
+    finally:
+        for key, value in saved.items():
+            if value is None:
+                os.environ.pop(key, None)
+            else:
+                os.environ[key] = value
+
+
 class Session:
     def __init__(self, driver):
         self.driver = driver
@@ -52,6 +66,10 @@ class Session:
         self.driver.context('content')
         return self.driver.script(script, values, asynchronous)
 
+    def click(self, selector):
+        self.driver.context('content')
+        self.driver.click(selector)
+
     def fetch(self, method, path, body=None, headers=None):
         return self.page("""const [method, path, body, headers, done] = arguments;
           fetch(path, {method, headers: {'Content-Type': 'application/json', ...headers}, body: body === null ? undefined : JSON.stringify(body)})
@@ -62,12 +80,14 @@ class Session:
         return self.chrome("""const g = Services.wm.getMostRecentWindow('navigator:browser').gBrowser;
           return g.tabs.map(t => ({ucid: t.userContextId, url: t.linkedBrowser.currentURI.spec, selected: t.selected}));""")
 
-    def follow_selected_tab(self):
-        """Marionette pasa a la pestaña seleccionada (la nueva, tras un cambio de usuario).
-        Su identificador de ventana es el browserId de la pestaña."""
-        handle = str(self.chrome("return Services.wm.getMostRecentWindow('navigator:browser').gBrowser.selectedBrowser.browserId"))
-        handles = self.driver.command('GET', '/window/handles')
-        assert handle in handles, (handle, handles)
+    def handles(self):
+        return set(self.driver.command('GET', '/window/handles'))
+
+    def follow_new_tab(self, before=None):
+        """Marionette pasa a la pestaña seleccionada (la nueva, tras un cambio de usuario), con el
+        identificador que le da el propio agente remoto."""
+        handle = self.chrome("""const { NavigableManager } = ChromeUtils.importESModule('chrome://remote/content/shared/NavigableManager.sys.mjs');
+          return NavigableManager.getIdForBrowser(Services.wm.getMostRecentWindow('navigator:browser').gBrowser.selectedBrowser);""")
         self.driver.command('POST', '/window', {'handle': handle})
         return handle
 
@@ -81,7 +101,7 @@ def integrated(args, root, checks):
         prefs.write(f'user_pref("browser.startup.homepage", {json.dumps(HOME)});\n')
     evidence = root / 'integrado/evidence'
     evidence.mkdir()
-    driver = WebDriver(profile, evidence, browser=args.browser, env={'HOME': str(root / 'integrado/home')})
+    driver = start_driver(profile, evidence, args.browser, {'HOME': str(root / 'integrado/home')})
     session = Session(driver)
     try:
         driver.navigate(HOME)
@@ -93,6 +113,7 @@ def integrated(args, root, checks):
         session.chrome("""const g = Services.wm.getMostRecentWindow('navigator:browser').gBrowser;
           g.addTab('about:robots', {triggeringPrincipal: Services.scriptSecurityManager.getSystemPrincipal()});""")
         before = session.tabs()
+        handles = session.handles()
         session.page("fetch(arguments[0], {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({action: 'switch'})}); return true",
                      f'/api/profiles/{user}/open')
         eventually(lambda: any(tab['selected'] and tab['ucid'] and tab['url'] == HOME for tab in session.tabs()))
@@ -102,7 +123,7 @@ def integrated(args, root, checks):
         assert after[1] == {**before[1], 'selected': False}, (before, after)
         checks.append('integrado: la pestaña del inicio pasa al otro usuario en su sitio; las demás no se tocan')
 
-        session.follow_selected_tab()
+        session.follow_new_tab(handles)
         eventually(lambda: session.page("return document.documentElement.dataset.profilesReady === 'true'"))
         mine = session.fetch('GET', '/api/profiles')['body']
         assert mine['currentId'] == user and mine['baseId'] == first['baseId'], mine
@@ -118,7 +139,7 @@ def integrated(args, root, checks):
 
         identities = session.chrome("""const { ContextualIdentityService } = ChromeUtils.importESModule('moz-src:///toolkit/components/contextualidentity/ContextualIdentityService.sys.mjs');
           return ContextualIdentityService.getPublicIdentities().map(i => ({id: i.userContextId, name: i.name ?? null, l10n: i.l10nId ?? null, color: i.color}));""")
-        assert identities == [{'id': context, 'name': 'Insti', 'l10n': None, 'color': 'turquoise'}], identities
+        assert identities == [{'id': context, 'name': 'Insti', 'l10n': None, 'color': 'cyan'}], identities
         checks.append('integrado: un contenedor por usuario con su nombre y color, sin los de ejemplo')
 
         buttons = session.chrome("return Services.wm.getMostRecentWindow('navigator:browser').document.documentElement.getAttribute('kitsune-window-buttons')")
@@ -158,7 +179,7 @@ def server_home(args, root, checks):
         prefs.write(f'user_pref("browser.startup.homepage", {json.dumps(origin + "/")});\n')
     evidence = root / 'servidor/evidence'
     evidence.mkdir()
-    driver = WebDriver(profile, evidence, browser=args.browser, env={'KITSUNE_STATE_ROOT': str(state)})
+    driver = start_driver(profile, evidence, args.browser, {'KITSUNE_STATE_ROOT': str(state)})
     session = Session(driver)
     try:
         driver.navigate(origin + '/')
@@ -170,20 +191,27 @@ def server_home(args, root, checks):
         checks.append('servidor: la página no puede falsear la cabecera del usuario')
 
         before = session.tabs()
-        session.page("location.assign('/?cambiar=' + arguments[0]); return true", user)
+        handles = session.handles()
+        # Como una persona: el avatar abre la tarjeta y se elige al otro usuario.
+        session.click('#profiles-open')
+        eventually(lambda: session.page("return document.querySelector('#users-card').matches(':popover-open')"))
+        session.click(f'[data-user-id="{user}"]')
         eventually(lambda: any(tab['selected'] and tab['ucid'] for tab in session.tabs()))
         after = session.tabs()
         assert len(after) == len(before) and after[0]['url'] == origin + '/', after
-        session.follow_selected_tab()
+        session.follow_new_tab(handles)
         eventually(lambda: session.page("return document.documentElement.dataset.profilesReady === 'true'"))
         assert session.fetch('GET', '/api/profiles')['body']['currentId'] == user
         assert session.page("return document.querySelector('#welcome-line').textContent") == 'Bienvenido, Insti'
         checks.append('servidor: /?cambiar=<id> desde el inicio cambia la pestaña y el servidor ve al usuario')
 
         # Y de vuelta al principal desde el inicio de otro usuario (su origen lleva el sufijo del contenedor).
-        session.page("location.assign('/?cambiar=default'); return true")
+        handles = session.handles()
+        session.click('#profiles-open')
+        eventually(lambda: session.page("return document.querySelector('#users-card').matches(':popover-open')"))
+        session.click('[data-user-id="default"]')
         eventually(lambda: any(tab['selected'] and tab['ucid'] == 0 and tab['url'] == origin + '/' for tab in session.tabs()))
-        session.follow_selected_tab()
+        session.follow_new_tab(handles)
         eventually(lambda: session.page("return document.documentElement.dataset.profilesReady === 'true'"))
         assert session.fetch('GET', '/api/profiles')['body']['currentId'] == 'default'
         checks.append('servidor: desde el inicio de otro usuario se vuelve al principal')

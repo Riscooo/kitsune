@@ -229,7 +229,9 @@ this.kitsuneHome = class extends ExtensionAPI {
     // Las acciones de una ficha se abren en esta ventana. Google y el inicio, con el usuario de la
     // ficha (su contenedor); contraseñas, ajustes, descargas y extensiones son de todo Kitsune.
     async function openHere(profile, action, baseId) {
-      const window = context.xulBrowser?.ownerGlobal ?? Services.wm.getMostRecentWindow('navigator:browser')
+      // Gecko 157 llama documentGlobal a lo que antes era ownerGlobal.
+      const browser = context.xulBrowser
+      const window = browser?.documentGlobal ?? browser?.ownerGlobal ?? Services.wm.getMostRecentWindow('navigator:browser')
       if (!window?.openTrustedLinkIn) throw new Error('Sin ventana')
       const url = core.ACTIONS[action]
       const own = !url || action === 'google'
