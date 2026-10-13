@@ -271,7 +271,8 @@ class BackendV04Tests(unittest.TestCase):
         self.assertEqual(self.server.store.snapshot()["data"]["wallpaper"], "ember")
         self.assertEqual(self.request(path="/api/appearance")[0], 503)
 
-    def test_profile_remember_changes_refresh_only_target_control_and_preserve_home(self):
+    def test_google_retention_is_kitsune_wide_and_only_the_base_user_changes_it(self):
+        # Usuarios en la misma ventana: Google y el modo son de todo Kitsune (los del usuario base).
         self.manager.snapshot()
         self.server.appearance = home.make_appearance(self.browser, self.state, "default")
         default_control = self.browser / "profile/chrome/kitsune-appearance.json"
@@ -282,16 +283,13 @@ class BackendV04Tests(unittest.TestCase):
         status, result, _ = self.request("POST", value=values)
         self.assertEqual(status, 200)
         identifier = result["createdId"]
-        resolved = self.manager.resolve(identifier)
-        target_control = resolved["profile"] / "chrome/kitsune-appearance.json"
-        self.assertTrue(json.loads(target_control.read_text())["googleRemember"])
+        self.assertFalse((self.browser / "profiles" / identifier).exists())
         self.assertFalse(json.loads(default_control.read_text())["googleRemember"])
-        self.assertFalse(resolved["state"].exists())
-        values.update(revision=result["revision"], rememberGoogle=False)
-        status, _, _ = self.request("PATCH", "/api/profiles/" + identifier, values)
+        base = next(p for p in result["profiles"] if p["id"] == "default")
+        status, _, _ = self.request("PATCH", "/api/profiles/default",
+                                    {"name": base["name"], "email": "", "color": base["color"], "revision": result["revision"], "rememberGoogle": True})
         self.assertEqual(status, 200)
-        self.assertFalse(json.loads(target_control.read_text())["googleRemember"])
-        self.assertFalse(resolved["state"].exists())
+        self.assertTrue(json.loads(default_control.read_text())["googleRemember"])
 
     def test_avatar_missing_processor_or_mismatched_file_reports_clear_failure(self):
         with mock.patch.object(profiles.media, "normalize_avatar", side_effect=profiles.media.AvatarUnavailable("Componente de fotos no disponible.")):

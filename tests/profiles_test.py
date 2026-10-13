@@ -217,12 +217,16 @@ class ProfileTests(unittest.TestCase):
             self.manager.open("default", "home")
         self.assertEqual(self.manager.registry.read_bytes(), before)
 
-    def test_missing_template_fails_without_publishing_profile(self):
-        self.manager.snapshot()
+    def test_new_users_live_in_the_base_profile_without_a_gecko_folder(self):
+        # Usuarios en la misma ventana: un usuario nuevo es un contenedor del perfil base.
         (self.browser / "templates/user.js").unlink()
+        result = self.create()
+        self.assertEqual(result["baseId"], "default")
+        self.assertFalse((self.browser / "profiles" / result["createdId"]).exists())
+        self.assertEqual(len(self.manager.snapshot()["profiles"]), 2)
+        # Abrirlo aparte (solo por compatibilidad del lanzador) sigue exigiendo la plantilla.
         with self.assertRaises(profiles.ProfilesUnavailable):
-            self.create()
-        self.assertEqual(len(self.manager.snapshot()["profiles"]), 1)
+            self.manager.resolve(result["createdId"])
 
     def test_gui_environment_only_refreshes_allowlisted_values(self):
         fixture = mock.Mock(stdout="WAYLAND_DISPLAY=wayland-new\nDISPLAY=:3\nSECRET_KEY=do-not-import\nPATH=/tmp/not-trusted\n")
@@ -294,6 +298,24 @@ class ProfileAPITests(ProfileTests):
         self.assertEqual(status, 409)
         self.assertEqual(conflict["revision"], result["revision"])
         self.assertEqual(conflict["token"], self.server.token)
+
+    def test_the_user_of_each_request_comes_from_the_header_the_engine_sets(self):
+        created = self.create()
+        identifier = created["createdId"]
+        plain = {"Origin": self.server.origin}
+        self.assertEqual(self.request(headers=plain)[1]["currentId"], "default")
+        self.assertEqual(self.request(headers={**plain, "X-Kitsune-Usuario": identifier})[1]["currentId"], identifier)
+        self.assertEqual(self.request(headers={**plain, "X-Kitsune-Usuario": "default"})[1]["currentId"], "default")
+        # Lo que no es un usuario de verdad es el usuario base.
+        for value in ("../x", "p-0000000000000000", ""):
+            status, snapshot = self.request(headers={**plain, "X-Kitsune-Usuario": value})
+            self.assertEqual((status, snapshot["currentId"]), (200, "default"), value)
+        # Al guardar, la respuesta también es la de ese usuario.
+        status, result = self.request("PATCH", "/api/profiles/" + identifier,
+                                      {"name": "Insti", "email": "", "color": "teal", "revision": created["revision"]},
+                                      headers={"Origin": self.server.origin, "Content-Type": "application/json",
+                                               "X-Kitsune-Token": self.server.token, "X-Kitsune-Usuario": identifier})
+        self.assertEqual((status, result["currentId"], result["baseId"]), (200, identifier, "default"))
 
     def test_profile_mutations_enforce_same_origin_token_schema_and_actions(self):
         self.request()

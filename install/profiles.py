@@ -1,7 +1,11 @@
 #!/usr/bin/env python3
 """Private, local Kitsune profile registry. Email is a label, never a login.
 
-Only clean application templates seed new profiles. Existing browsing data is
+Desde 0.7 beta 5 los usuarios viven en la misma ventana: «default» es el usuario
+base (el perfil de Gecko de siempre) y cada usuario nuevo es un contenedor dentro
+de él (lo crea el módulo nativo kitsune-users.sys.mjs), sin carpeta de Gecko.
+Only clean application templates seed a separate profile folder, and only when
+the launcher still opens one (--kitsune-profile). Existing browsing data is
 never copied, merged, deleted or exported by this module.
 """
 
@@ -282,7 +286,7 @@ class ProfileManager:
     def _snapshot(self, record, current_id):
         self._find(record, current_id)
         result = {"version": 1, "revision": record["revision"], "currentId": current_id,
-                  "defaultId": record["defaultId"], "profiles": []}
+                  "defaultId": record["defaultId"], "baseId": "default", "profiles": []}
         modes = self._read_privacy()
         for profile in record["profiles"]:
             public = {key: value for key, value in profile.items() if key not in ("port", "avatarHash")}
@@ -381,10 +385,7 @@ class ProfileManager:
                 identifier = "p-" + secrets.token_hex(8)
             profile = {"id": identifier, **labels, "port": self._new_port(record), "createdAt": now(), "lastUsed": "",
                        "avatarHash": None, "rememberGoogle": False if rememberGoogle is OMITTED else rememberGoogle}
-            # Prepare only new, clean files before committing the registry. A
-            # failed registry write never claims the profile was created. Any
-            # orphaned template-only directory remains private and recoverable.
-            self._initialize(profile)
+            # Un usuario nuevo es un contenedor del perfil base: sin carpeta de Gecko.
             profile["avatarHash"] = self._store_avatar(identifier, avatar)
             record["profiles"].append(profile)
             record["revision"] += 1

@@ -93,6 +93,8 @@ DEFAULT_DATA = {
     # Botones de la ventana: los de Kitsune, los del sistema o «auto» (los de Apple en macOS).
     "windowButtons": "auto",
 }
+# Cabecera con el usuario de la pestaña (usuarios en la misma ventana).
+USER_HEADER = "X-Kitsune-Usuario"
 LEGACY_SETTINGS_KEYS = {"links", "art", "motion", "newTab", "accent", "focus"}
 
 
@@ -511,6 +513,19 @@ class HomeHandler(BaseHTTPRequestHandler):
                 return False
         return True
 
+    def request_user(self):
+        """El usuario de la pestaña que pide: la cabecera la pone el motor (kitsune-users.sys.mjs)
+        según el contenedor y la página no puede cambiarla. Sin ella, o si no es un usuario
+        de verdad, el usuario base de este servidor."""
+        values = self.headers.get_all(USER_HEADER, [])
+        if self.server.profiles is not None and len(values) == 1 and profiles_module.valid_id(values[0]):
+            try:
+                self.server.profiles.snapshot(values[0])
+                return values[0]
+            except (profiles_module.ProfileNotFound, profiles_module.InvalidProfile, profiles_module.ProfilesUnavailable):
+                pass
+        return self.server.current_id
+
     def request_path(self):
         if not self.path.startswith("/") or self.path.startswith("//"):
             return None
@@ -584,7 +599,7 @@ class HomeHandler(BaseHTTPRequestHandler):
                 self.error(503, "La gestión de perfiles no está disponible en esta instalación.")
                 return
             try:
-                value = self.server.profiles.snapshot(self.server.current_id)
+                value = self.server.profiles.snapshot(self.request_user())
                 value["token"] = self.server.token
                 self.json_response(200, value, head=head)
             except (profiles_module.ProfilesUnavailable, profiles_module.ProfileNotFound, profiles_module.InvalidProfile):
@@ -717,7 +732,7 @@ class HomeHandler(BaseHTTPRequestHandler):
             elif action not in ("create", "edit") and set(value) != expected:
                 raise profiles_module.InvalidProfile("La solicitud del perfil no es válida.")
             manager = self.server.profiles
-            common = {"current_id": self.server.current_id}
+            common = {"current_id": self.request_user()}
             if action == "create":
                 snapshot = manager.create(**value, **common)
             elif action == "edit":
@@ -726,10 +741,10 @@ class HomeHandler(BaseHTTPRequestHandler):
                 snapshot = manager.set_default(match[1], **value, **common)
             else:
                 snapshot = manager.open(match[1], **value, **common)
-            if action in ("create", "edit") and self.server.appearance is not None:
-                target = snapshot["createdId"] if action == "create" else match[1]
+            # La apariencia (y con ella Google y el modo) es de todo Kitsune: la del usuario base.
+            if action == "edit" and match[1] == self.server.current_id and self.server.appearance is not None:
                 try:
-                    self.server.refresh_appearance(target)
+                    self.server.refresh_appearance()
                 except (OSError, ValueError, TypeError):
                     snapshot["warning"] = "El perfil está guardado; sus preferencias se aplicarán cuando esté disponible."
                     self.server.event("appearance_unavailable", "appearance", 503)
