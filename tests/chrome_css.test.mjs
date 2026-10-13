@@ -189,8 +189,9 @@ test('users look like Kitsune: their avatar ink on the tab line and a tinted nam
   const css = (await read('kitsune-header.css')).replace(/\/\*[\s\S]*?\*\//g, '');
   for (const color of ['blue', 'pink', 'violet', 'orange', 'cyan', 'red']) assert.match(css, new RegExp(`\\.identity-color-${color} \\{ --kitsune-user-ink:`));
   assert.match(css, /\.tab-context-line \{[^}]*bottom: 3px[^}]*var\(--kitsune-user-ink/);
-  assert.match(css, /#userContext-indicator \{ display: none !important; \}/);
-  assert.match(css, /#userContext-label \{[^}]*color: var\(--kitsune-user-ink/);
+  assert.match(css, /:is\(#userContext-indicator, \.tab-preview-container-icon\) \{ display: none !important; \}/);
+  assert.match(css, /--identity-icon-color: var\(--kitsune-user-ink\) !important/);
+  assert.match(css, /:is\(#userContext-label, \.tab-preview-container-label\) \{[^}]*color: var\(--kitsune-user-ink/);
   // Las tintas son las del inicio.
   const home = await readFile(new URL('../start/app.css', import.meta.url), 'utf8');
   for (const ink of USER_INKS) assert.ok(home.includes(ink), ink);

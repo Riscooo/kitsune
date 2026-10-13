@@ -97,6 +97,12 @@
   #main-window .identity-color-orange { --kitsune-user-ink: light-dark(#8a6326, #d9ac62); }
   #main-window .identity-color-cyan { --kitsune-user-ink: var(--kb-secondary); }
   #main-window .identity-color-red { --kitsune-user-ink: var(--kb-primary); }
+  /* Y todo lo que Gecko pinta de un contenedor (menús, lista de pestañas, vista previa) con ella. */
+  #main-window :is(.identity-color-blue, .identity-color-pink, .identity-color-violet, .identity-color-orange,
+                   .identity-color-cyan, .identity-color-red) {
+    --identity-tab-color: var(--kitsune-user-ink) !important;
+    --identity-icon-color: var(--kitsune-user-ink) !important;
+  }
 
   /* La línea de sus pestañas va abajo (arriba está el trazo de pincel de la activa),
      fina y con su tinta. Personal no lleva. */
@@ -116,7 +122,7 @@
 
   /* Su etiqueta en la barra de direcciones, como las del inicio: el nombre con su tinta
      sobre un papel teñido de ella, sin el círculo de Gecko. */
-  #main-window #userContext-icons {
+  #main-window :is(#userContext-icons, .tab-preview-container-indicator:not([hidden])) {
     gap: 0 !important;
     min-height: 22px !important;
     padding: 0 8px !important;
@@ -125,15 +131,17 @@
     border-radius: 7px !important;
     background: color-mix(in srgb, var(--kitsune-user-ink, currentColor) 9%, transparent) !important;
   }
-  #main-window #userContext-icons:hover {
+  #main-window :is(#userContext-icons, .tab-preview-container-indicator):hover {
     background: color-mix(in srgb, var(--kitsune-user-ink, currentColor) 16%, transparent) !important;
   }
-  #main-window #userContext-label {
+  #main-window :is(#userContext-label, .tab-preview-container-label) {
     color: var(--kitsune-user-ink, currentColor) !important;
     font: 600 11px/1 "Noto Sans", "Kitsune Sans", sans-serif !important;
     letter-spacing: .2px !important;
   }
-  #main-window #userContext-indicator { display: none !important; }
+  #main-window :is(#userContext-indicator, .tab-preview-container-icon) { display: none !important; }
+  /* En la vista previa de la pestaña, la etiqueta va bajo la dirección con un poco de aire. */
+  #main-window .tab-preview-container-indicator:not([hidden]) { min-height: 20px !important; margin-block-start: 6px !important; }
 
   /* Pestaña activa: hoja de papel con un trazo óxido de pincel arriba. */
   #main-window #tabbrowser-tabs[orient="horizontal"] .tabbrowser-tab:is([selected], [visually-selected]) .tab-background {
