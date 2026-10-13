@@ -9,8 +9,8 @@ Gecko que se creen no tocan los de verdad) y comprueba desde su propia página:
 3. Un fondo propio se vuelve a codificar en JPEG, se guarda y se ve en el inicio.
 4. Editar el perfil (nombre y modo Cómodo) lo guarda y deja el modo en su user.js.
 5. Los fondos de serie se bajan y comprueban, la galería se completa y uno se pone de fondo.
-6. Crear un perfil crea un perfil de Gecko con su modo; abrir Ajustes del perfil
-   actual abre la pestaña aquí mismo.
+6. Crear un usuario no crea un perfil de Gecko (vive en un contenedor de este) y
+   Ajustes se abre en una pestaña aquí mismo.
 """
 import argparse
 import importlib.util
@@ -160,15 +160,15 @@ def main():
         assert created['status'] == 200, created
         record = json.loads((shared / 'kitsune-profiles.json').read_text())
         new = next(p for p in record['profiles'] if p['id'] == created['body']['createdId'])
-        assert Path(new['path']).is_dir() and str(fake_home) in new['path'], new
-        assert 'user_pref("kitsune.privacy.requested", "estricto");' in (Path(new['path']) / 'user.js').read_text()
-        assert any(f'kitsune-{new["id"]}' in path.read_text() for path in fake_home.rglob('profiles.ini'))
+        # Usuarios en la misma ventana: un usuario nuevo es un contenedor de este perfil.
+        assert new['path'] == f"kitsune-usuario:{new['id']}", new
+        assert not any(f'kitsune-{new["id"]}' in path.read_text() for path in fake_home.rglob('profiles.ini'))
         tabs = chrome("return gBrowser.tabs.length")
         opened = api('POST', '/api/profiles/default/open', {'action': 'settings'})
         assert opened['status'] == 200 and opened['body']['launchRequested'], opened
         eventually(lambda: chrome("return gBrowser.tabs.length") == tabs + 1, timeout=10)
         eventually(lambda: chrome("return gBrowser.selectedBrowser.currentURI.spec").startswith('about:preferences'), timeout=10)
-        check('Crear un perfil crea un perfil de Gecko con su modo, y Ajustes del perfil actual se abre aquí')
+        check('Crear un usuario no crea un perfil de Gecko, y Ajustes se abre aquí')
         report['status'] = 'passed'
     finally:
         os.environ['HOME'] = real_home
