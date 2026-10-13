@@ -25,6 +25,11 @@
     const { KitsuneImport } = ChromeUtils.importESModule('chrome://browser/content/kitsune-import.sys.mjs');
     void KitsuneImport.decorate(window).catch(() => {});
   } catch { /* sin importar, Kitsune sigue igual */ }
+  // Vista rápida: Alt+clic en un enlace lo abre flotando sobre la página.
+  try {
+    const { KitsuneGlance } = ChromeUtils.importESModule('chrome://browser/content/kitsune-glance.sys.mjs');
+    KitsuneGlance.start();
+  } catch { /* sin vista rápida, Kitsune sigue igual */ }
   // Aviso de versión nueva (solo en los paquetes que se descargan: Windows, macOS y Linux).
   try {
     const { KitsuneUpdates } = ChromeUtils.importESModule('chrome://browser/content/kitsune-updates.sys.mjs');

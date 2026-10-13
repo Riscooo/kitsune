@@ -35,4 +35,51 @@
   @media (prefers-reduced-motion: reduce) {
     :root[kitsune-compact] :is(#navigator-toolbox, #sidebar-container) { transition: none; }
   }
+
+  /* Vista rápida: la web flotando sobre la página, que se apaga un poco detrás. */
+  :root[kitsune-glance] #tabbrowser-tabbox { filter: brightness(.86) saturate(.9); transition: filter 180ms ease; }
+  #kitsune-glance {
+    --panel-padding: 0;
+    --panel-border-radius: 14px;
+    --panel-background: var(--kb-surface);
+    --panel-border-color: var(--kb-outline);
+    appearance: none;
+    background: transparent;
+    border: 0;
+  }
+  #kitsune-glance .kitsune-glance-body {
+    overflow: hidden;
+    border: 1px solid var(--kb-outline);
+    border-radius: 14px;
+    background: var(--kb-surface);
+    box-shadow: 0 18px 60px color-mix(in srgb, var(--kb-text) 26%, transparent);
+  }
+  #kitsune-glance .kitsune-glance-head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    height: 38px;
+    padding: 0 8px 0 14px;
+    border-bottom: 1px solid var(--kb-outline);
+    background: var(--kb-surface-high);
+    color: var(--kb-text);
+    font: 500 12px "Noto Sans", "Kitsune Sans", sans-serif;
+  }
+  #kitsune-glance .kitsune-glance-title { flex: 1 1 auto; min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-weight: 600; }
+  #kitsune-glance .kitsune-glance-host { flex: 0 1 auto; color: var(--kb-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  #kitsune-glance .kitsune-glance-head > button {
+    appearance: none;
+    height: 26px;
+    padding: 0 10px;
+    border: 1px solid var(--kb-outline);
+    border-radius: 8px;
+    background: var(--kb-surface);
+    color: var(--kb-text);
+    font: inherit;
+  }
+  #kitsune-glance .kitsune-glance-head > button:hover { background: color-mix(in srgb, var(--kb-text) 7%, var(--kb-surface)); }
+  #kitsune-glance .kitsune-glance-head > button:focus-visible { outline: 2px solid var(--kb-primary); outline-offset: 1px; }
+  #kitsune-glance .kitsune-glance-close { width: 26px; padding: 0 !important; font-size: 16px !important; }
+  #kitsune-glance .kitsune-glance-browser { flex: 1 1 auto; min-height: 0; }
 }
+
