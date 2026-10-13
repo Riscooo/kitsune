@@ -312,8 +312,9 @@
 	}
 	//#endregion
 	//#region start/profiles.mjs
-	/** Local browser profiles are not online accounts. All mutations are confirmed
-	* by the loopback service before this view reflects a saved change. */
+	/** Usuarios de Kitsune en la misma ventana (no son cuentas en línea): cada uno tiene sus
+	* sesiones y cookies en su contenedor; el base (baseId) es el del perfil y el dueño de la
+	* privacidad de todo Kitsune. Cada cambio lo confirma el servicio local antes de verse aquí. */
 	const PROFILE_COLORS = Object.freeze([
 		"blue",
 		"pink",
@@ -376,7 +377,7 @@
 		if (native.googlePolicyManaged !== false) return null;
 		return native.googleRemember === true ? "Kitsune no gestiona esta excepción; Google se conserva por tus ajustes de privacidad." : "Sin una excepción de Google gestionada por Kitsune.";
 	}
-	async function initializeProfiles({ announce = () => {} } = {}) {
+	async function initializeProfiles({ announce = () => {}, onSnapshot = () => {}, switchTo = async () => false } = {}) {
 		const $ = (selector) => document.querySelector(selector);
 		const dialog = $("#profiles-dialog");
 		if (!dialog) return;
@@ -397,14 +398,8 @@
 		let googleRequest = 0;
 		let googleTimer;
 		const selectedProfile = () => snapshot?.profiles.find((item) => item.id === selectedId);
-		const icon = (name) => {
-			const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-			const use = document.createElementNS("http://www.w3.org/2000/svg", "use");
-			use.setAttribute("href", `#i-${name}`);
-			svg.setAttribute("aria-hidden", "true");
-			svg.append(use);
-			return svg;
-		};
+		const baseId = () => snapshot?.baseId ?? snapshot?.currentId;
+		const isBase = (profile) => Boolean(profile) && profile.id === baseId();
 		const avatar = (node, profile, draft) => paintAvatar(node, profile, profileInitials(profile.name), draft);
 		let formPrivacy = "estricto";
 		/** Ventana breve con lo que hace cada modo y lo que supone el cambio. */
@@ -445,15 +440,19 @@
 			const profile = selectedProfile();
 			if (!status || !profile || !dialog.open || formMode) return;
 			const privacy = $("#profile-privacy-status");
-			if (privacy) privacy.textContent = privacyModeStatus(profile, profile.id === snapshot.currentId);
+			const relogin = $("#profile-google-relogin");
+			status.hidden = !isBase(profile);
+			if (privacy) privacy.hidden = !isBase(profile);
+			if (!isBase(profile)) {
+				if (relogin) relogin.hidden = true;
+				return;
+			}
+			if (privacy) privacy.textContent = privacyModeStatus(profile, true);
 			const desired = profile.rememberGoogle === true;
 			const comfortable = privacyMode(profile) === "comodo";
-			const relogin = $("#profile-google-relogin");
 			if (relogin) relogin.hidden = comfortable;
-			if (comfortable) {
-				status.textContent = "En modo Cómodo las sesiones ya se conservan al cerrar.";
-				if (profile.id !== snapshot.currentId) return;
-			} else if (profile.id !== snapshot.currentId) {
+			if (comfortable) status.textContent = "En modo Cómodo las sesiones ya se conservan al cerrar.";
+			else if (!isBase(profile)) {
 				status.textContent = desired ? "Abre este perfil para aplicar la conservación de Google." : "Sin conservación de Google activada en Kitsune.";
 				return;
 			} else status.textContent = "Aplicando…";
@@ -503,7 +502,7 @@
 			});
 			dialog.setAttribute("aria-busy", String(busy || photoBusy));
 			$("#profile-create").disabled = blocked || Boolean(formMode) || snapshot?.profiles.length >= 24;
-			$("#profile-create").title = snapshot?.profiles.length >= 24 ? "Has llegado al límite de 24 perfiles." : "";
+			$("#profile-create").title = snapshot?.profiles.length >= 24 ? "Has llegado al límite de 24 usuarios." : "";
 			$("#profile-save").disabled = blocked || photoBusy;
 			$("#profile-cancel").disabled = busy;
 			$("#profile-name").disabled = busy;
@@ -511,7 +510,6 @@
 			$("#profiles-reload").disabled = busy;
 			$("#profile-edit").disabled = blocked;
 			$("#profile-open").disabled = blocked;
-			$("#profile-make-default").disabled = blocked;
 			dialog.querySelectorAll("[data-profile-id]").forEach((button) => {
 				button.disabled = blocked || Boolean(formMode);
 			});
@@ -558,14 +556,9 @@
 				const name = document.createElement("b");
 				name.textContent = profile.name;
 				const hint = document.createElement("small");
-				hint.textContent = profile.id === snapshot.currentId ? "En esta ventana" : profile.id === snapshot.defaultId ? "Predeterminado" : "Perfil local";
+				hint.textContent = profile.id === snapshot.currentId ? "Esta pestaña" : isBase(profile) ? "Principal" : "Usuario";
 				copy.append(name, hint);
 				button.append(glyph, copy);
-				if (profile.id === snapshot.defaultId) {
-					const mark = icon("check");
-					mark.classList.add("profile-default-mark");
-					button.append(mark);
-				}
 				button.addEventListener("click", () => {
 					if (busy || formMode || !ready) return;
 					selectedId = profile.id;
@@ -585,8 +578,8 @@
 				avatar($("#current-profile-avatar"), current);
 				$("#current-profile-name").textContent = current.name;
 				$("#welcome-line").textContent = `Bienvenido, ${current.name}`;
-				trigger.setAttribute("aria-label", `Gestionar perfiles. Perfil de esta ventana: ${current.name}`);
-				trigger.title = `Perfil de esta ventana: ${current.name}`;
+				trigger.setAttribute("aria-label", `Usuarios. Esta pestaña es de ${current.name}`);
+				trigger.title = `Esta pestaña es de ${current.name}`;
 			}
 			renderList();
 			const profile = selectedProfile();
@@ -599,10 +592,11 @@
 				$("#profile-detail-email").textContent = profile.email;
 				$("#profile-detail-email").hidden = !profile.email;
 				$("#profile-current-badge").hidden = profile.id !== snapshot.currentId;
-				$("#profile-default-badge").hidden = profile.id !== snapshot.defaultId;
-				$("#profile-open span").textContent = profile.id === snapshot.currentId ? "Abrir este perfil" : "Cambiar a este perfil";
-				$("#profile-make-default").hidden = profile.id === snapshot.defaultId;
-				$("#profile-default-copy").textContent = profile.id === snapshot.defaultId ? "Kitsune usa este perfil cuando lo abres sin elegir otro." : "Puedes usar este perfil al abrir Kitsune sin elegir otro.";
+				$("#profile-default-badge").hidden = !isBase(profile);
+				$("#profile-open").hidden = profile.id === snapshot.currentId;
+				$("#profile-open span").textContent = "Cambiar a este usuario";
+				dialog.querySelector(".privacy-switch").hidden = !isBase(profile);
+				dialog.querySelector("[data-profile-action=\"google\"]").hidden = profile.id !== snapshot.currentId;
 				dialog.querySelectorAll("[data-privacy-switch]").forEach((button) => button.setAttribute("aria-pressed", String(button.dataset.privacySwitch === privacyMode(profile))));
 			}
 			renderControls();
@@ -612,16 +606,17 @@
 			snapshot = parseProfilesSnapshot(value);
 			if (!snapshot.profiles.some((profile) => profile.id === selectedId)) selectedId = snapshot.currentId;
 			ready = true;
+			onSnapshot(snapshot);
 		}
 		async function load({ quiet = false } = {}) {
 			if (busy) return;
 			if (location.protocol === "file:") {
 				ready = false;
-				notice("Abre el inicio completo de Kitsune para gestionar los perfiles reales de este equipo.");
-				$("#profiles-empty-copy").textContent = "Los perfiles no están disponibles en la copia de emergencia del inicio.";
+				notice("Abre el inicio completo de Kitsune para gestionar los usuarios de este equipo.");
+				$("#profiles-empty-copy").textContent = "Los usuarios no están disponibles en la copia de emergencia del inicio.";
 				return;
 			}
-			setBusy(true, quiet ? "" : "Actualizando tus perfiles…");
+			setBusy(true, quiet ? "" : "Actualizando tus usuarios…");
 			try {
 				const response = await fetch("/api/profiles", {
 					credentials: "omit",
@@ -634,8 +629,8 @@
 				render();
 			} catch {
 				ready = false;
-				if (!quiet || dialog.open) notice("No se ha podido conectar con los perfiles. Tu navegación sigue funcionando.", true);
-				$("#profiles-empty-copy").textContent = "No hemos podido cargar tus perfiles.";
+				if (!quiet || dialog.open) notice("No se ha podido conectar con los usuarios. Tu navegación sigue funcionando.", true);
+				$("#profiles-empty-copy").textContent = "No hemos podido cargar tus usuarios.";
 			} finally {
 				setBusy(false);
 				document.documentElement.dataset.profilesReady = ready ? "true" : "false";
@@ -664,7 +659,7 @@
 				if (response.status === 409) {
 					accept(await response.json());
 					render();
-					notice(formMode ? "Otra ventana ha cambiado los perfiles. Tu borrador se conserva; revísalo y guarda de nuevo." : "La lista ha cambiado. Revisa el perfil y vuelve a intentarlo.");
+					notice(formMode ? "Otra pestaña ha cambiado los usuarios. Tu borrador se conserva; revísalo y guarda de nuevo." : "La lista ha cambiado. Revisa el usuario y vuelve a intentarlo.");
 					return null;
 				}
 				if (!response.ok) {
@@ -693,7 +688,7 @@
 		function preview() {
 			avatar($("#profile-preview-avatar"), {
 				id: formId,
-				name: $("#profile-name").value || "Nuevo espacio",
+				name: $("#profile-name").value || "Nuevo usuario",
 				color,
 				avatar: originalPhoto
 			}, photoData);
@@ -709,6 +704,8 @@
 			originalPhoto = profile?.avatar || null;
 			photoMessage();
 			if ($("#profile-remember-google")) $("#profile-remember-google").checked = profile?.rememberGoogle === true;
+			dialog.querySelector(".profile-privacy").hidden = !isBase(profile);
+			if ($("#profile-remember-google")) $("#profile-remember-google").closest("label").hidden = !isBase(profile);
 			const mode = privacyMode(profile);
 			formPrivacy = mode;
 			dialog.querySelectorAll("input[name=\"profile-privacy\"]").forEach((input) => {
@@ -717,9 +714,9 @@
 			updatePrivacyForm();
 			$("#profile-name").value = profile?.name || "";
 			$("#profile-email").value = profile?.email || "";
-			$("#profile-form-title").textContent = profile ? "Editar perfil" : "Nuevo perfil";
-			$("#profile-save span").textContent = profile ? "Guardar cambios" : "Crear perfil";
-			$("#profile-form-note").textContent = profile ? "Tus marcadores y contraseñas no cambian." : "Un perfil independiente, guardado en este equipo.";
+			$("#profile-form-title").textContent = profile ? "Editar usuario" : "Nuevo usuario";
+			$("#profile-save span").textContent = profile ? "Guardar cambios" : "Crear usuario";
+			$("#profile-form-note").textContent = profile ? "Sus sesiones no cambian." : "Con sus propias sesiones y cookies. Historial, marcadores y contraseñas son comunes.";
 			$("#profile-form-error").hidden = true;
 			notice();
 			$("#profiles-operation").textContent = "";
@@ -727,12 +724,15 @@
 			render();
 			$("#profile-name").focus();
 		}
-		trigger.addEventListener("click", () => {
-			returnFocus = document.activeElement;
+		/** Abre la gestión de usuarios (con el formulario de uno nuevo, si se pide). */
+		function show({ create = false } = {}) {
+			returnFocus = trigger;
 			if (!dialog.open) dialog.showModal();
 			$("#profiles-title").focus({ preventScroll: true });
-			load();
-		});
+			load().then(() => {
+				if (create && ready) showForm();
+			});
+		}
 		dialog.addEventListener("close", () => {
 			cancelPhoto();
 			clearTimeout(googleTimer);
@@ -833,8 +833,10 @@
 			}
 			const creating = formMode === "create";
 			if (photoData !== void 0) draft.avatarData = photoData;
-			if ($("#profile-remember-google")) draft.rememberGoogle = $("#profile-remember-google").checked;
-			if (dialog.querySelector("input[name=\"profile-privacy\"]")) draft.privacyMode = selectedPrivacy();
+			if (!creating && formId === baseId()) {
+				if ($("#profile-remember-google")) draft.rememberGoogle = $("#profile-remember-google").checked;
+				if (dialog.querySelector("input[name=\"profile-privacy\"]")) draft.privacyMode = selectedPrivacy();
+			}
 			const result = await mutate(creating ? "/api/profiles" : `/api/profiles/${encodeURIComponent(formId)}`, creating ? "POST" : "PATCH", draft, creating ? "Creando tu nuevo espacio…" : "Guardando los detalles…");
 			if (!result) return;
 			selectedId = creating ? result.createdId : formId;
@@ -845,27 +847,170 @@
 			originalPhoto = null;
 			cancelPhoto();
 			render();
-			$("#profiles-operation").textContent = creating ? "Perfil creado. Ábrelo cuando quieras empezar a usarlo." : "Detalles guardados en este equipo.";
+			$("#profiles-operation").textContent = creating ? "Usuario creado. Cámbiate a él cuando quieras." : "Detalles guardados en este equipo.";
 			if (dialog.open) $("#profile-detail-name").focus({ preventScroll: true });
-			else announce(creating ? "Perfil creado." : "Perfil actualizado.");
+			else announce(creating ? "Usuario creado." : "Usuario actualizado.");
 		});
-		$("#profile-make-default").addEventListener("click", async () => {
+		$("#profile-open").addEventListener("click", async () => {
 			const profile = selectedProfile();
-			if (!profile) return;
-			if (await mutate(`/api/profiles/${encodeURIComponent(profile.id)}/default`, "POST", {}, "Cambiando el perfil predeterminado…")) {
-				$("#profiles-operation").textContent = `${profile.name}: perfil predeterminado.`;
-				if (dialog.open) $("#profile-open").focus({ preventScroll: true });
+			if (!profile || busy || !ready || profile.id === snapshot.currentId) return;
+			setBusy(true, `Cambiando a ${profile.name}…`);
+			const sent = await switchTo(profile.id).catch(() => false);
+			setTimeout(() => {
+				if (busy) {
+					setBusy(false);
+					notice("No se ha podido cambiar de usuario. Vuelve a intentarlo.");
+				}
+			}, sent ? 6e3 : 0);
+		});
+		async function openAction(action) {
+			if (action === "google") {
+				window.open("https://accounts.google.com/ServiceLogin", "_blank", "noopener");
+				return;
 			}
-		});
-		async function openProfile(action) {
-			const profile = selectedProfile();
-			if (!profile) return;
-			if (await mutate(`/api/profiles/${encodeURIComponent(profile.id)}/open`, "POST", { action }, "Abriendo…")) $("#profiles-operation").textContent = `Apertura solicitada en ${profile.name}.`;
+			if (await mutate(`/api/profiles/${encodeURIComponent(baseId())}/open`, "POST", { action }, "Abriendo…")) $("#profiles-operation").textContent = "Abierto en una pestaña nueva.";
 		}
-		$("#profile-open").addEventListener("click", () => void openProfile("home"));
-		dialog.querySelectorAll("[data-profile-action]").forEach((button) => button.addEventListener("click", () => void openProfile(button.dataset.profileAction)));
+		dialog.querySelectorAll("[data-profile-action]").forEach((button) => button.addEventListener("click", () => void openAction(button.dataset.profileAction)));
 		render();
 		await load({ quiet: true });
+		return {
+			show,
+			reload: () => load({ quiet: true })
+		};
+	}
+	//#endregion
+	//#region start/switcher.mjs
+	/** Tarjeta de usuarios del inicio, como la de las cuentas de Google: el usuario de esta
+	* pestaña arriba y los demás debajo. Elegir otro cambia esta misma pestaña a su inicio;
+	* las demás pestañas no se tocan. */
+	const USER_ID = /^(default|p-[0-9a-f]{16})$/u;
+	/** Cómo se pide el cambio: al inicio integrado, por su API; al servidor de Linux, cargando
+	* «/?cambiar=<id>», que el motor intercepta y convierte en el cambio de esta pestaña. */
+	function switchRequest(id, { integrated }) {
+		if (!USER_ID.test(id ?? "")) throw new Error("Usuario no válido");
+		return integrated ? {
+			kind: "api",
+			path: `/api/profiles/${id}/open`,
+			body: { action: "switch" }
+		} : {
+			kind: "navigate",
+			url: `/?cambiar=${id}`
+		};
+	}
+	/** Pide el cambio. true si se ha enviado (si funciona, esta pestaña se sustituye y no vuelve). */
+	async function switchTo(id, { integrated, token, fetcher = (...args) => globalThis.fetch(...args), navigate = (url) => location.assign(url) }) {
+		const request = switchRequest(id, { integrated });
+		if (request.kind === "navigate") {
+			navigate(request.url);
+			return true;
+		}
+		return (await fetcher(request.path, {
+			method: "POST",
+			credentials: "omit",
+			cache: "no-store",
+			signal: AbortSignal.timeout(8e3),
+			headers: {
+				"Content-Type": "application/json",
+				"X-Kitsune-Token": token
+			},
+			body: JSON.stringify(request.body)
+		})).ok;
+	}
+	/** Los usuarios que salen debajo: todos menos el de esta pestaña, en el orden del registro. */
+	function otherUsers(snapshot) {
+		return (snapshot?.profiles ?? []).filter((profile) => profile.id !== snapshot.currentId);
+	}
+	function initializeSwitcher({ integrated, onManage = () => {}, onAdd = () => {} } = {}) {
+		const $ = (selector) => document.querySelector(selector);
+		const card = $("#users-card");
+		const trigger = $("#profiles-open");
+		if (!card || !trigger) return {
+			render() {},
+			switchTo: async () => false
+		};
+		let snapshot = null;
+		let switching = false;
+		const status = (message) => {
+			$("#users-card-status").textContent = message;
+		};
+		async function change(profile) {
+			if (switching || !snapshot) return false;
+			switching = true;
+			status(`Cambiando a ${profile.name}…`);
+			card.querySelectorAll("[data-user-id]").forEach((button) => {
+				button.disabled = true;
+			});
+			let sent = false;
+			try {
+				sent = await switchTo(profile.id, {
+					integrated,
+					token: snapshot.token
+				});
+			} catch {
+				sent = false;
+			}
+			setTimeout(() => {
+				if (!switching) return;
+				switching = false;
+				status("No se ha podido cambiar de usuario. Vuelve a intentarlo.");
+				render(snapshot);
+			}, sent ? 6e3 : 0);
+			return sent;
+		}
+		function render(value) {
+			snapshot = value;
+			const me = snapshot?.profiles.find((profile) => profile.id === snapshot.currentId);
+			if (!me) return;
+			paintAvatar($("#users-card-avatar"), me, profileInitials(me.name));
+			$("#users-card-hello").textContent = `Hola, ${me.name}`;
+			$("#users-card-email").textContent = me.email;
+			$("#users-card-email").hidden = !me.email;
+			const list = $("#users-card-list");
+			list.replaceChildren();
+			for (const profile of otherUsers(snapshot)) {
+				const button = document.createElement("button");
+				button.type = "button";
+				button.className = "users-card-item";
+				button.dataset.userId = profile.id;
+				button.disabled = switching;
+				const glyph = document.createElement("span");
+				glyph.className = "profile-avatar";
+				glyph.setAttribute("aria-hidden", "true");
+				paintAvatar(glyph, profile, profileInitials(profile.name));
+				const copy = document.createElement("span");
+				copy.className = "users-card-copy";
+				const name = document.createElement("b");
+				name.textContent = profile.name;
+				const detail = document.createElement("small");
+				detail.textContent = profile.email || "Cambiar en esta pestaña";
+				copy.append(name, detail);
+				button.append(glyph, copy);
+				button.setAttribute("aria-label", `Cambiar esta pestaña a ${profile.name}`);
+				button.addEventListener("click", () => void change(profile));
+				list.append(button);
+			}
+			list.hidden = !list.children.length;
+			$("#users-add").disabled = snapshot.profiles.length >= 24;
+		}
+		card.addEventListener("toggle", (event) => {
+			trigger.setAttribute("aria-expanded", String(event.newState === "open"));
+			if (event.newState === "open" && !switching) status("");
+		});
+		$("#users-manage").addEventListener("click", () => {
+			card.hidePopover();
+			onManage();
+		});
+		$("#users-add").addEventListener("click", () => {
+			card.hidePopover();
+			onAdd();
+		});
+		return {
+			render,
+			switchTo: (id) => {
+				const profile = snapshot?.profiles.find((item) => item.id === id);
+				return profile ? change(profile) : Promise.resolve(false);
+			}
+		};
 	}
 	//#endregion
 	//#region start/settings-store.mjs
@@ -1890,7 +2035,19 @@
 		appearance.start();
 		presets.load().then(() => presets.sync(store.data, store.ready));
 	});
-	initializeProfiles({ announce });
+	let profiles = null;
+	const switcher = initializeSwitcher({
+		integrated,
+		onManage: () => profiles?.show(),
+		onAdd: () => profiles?.show({ create: true })
+	});
+	initializeProfiles({
+		announce,
+		onSnapshot: (snapshot) => switcher.render(snapshot),
+		switchTo: (id) => switcher.switchTo(id)
+	}).then((controller) => {
+		profiles = controller ?? null;
+	});
 	window.addEventListener("pagehide", () => {
 		clearInterval(clockTimer);
 		clearTimeout(toastTimer);

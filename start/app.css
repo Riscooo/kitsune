@@ -160,6 +160,24 @@ input::placeholder { color: var(--muted); opacity: .8; }
 /* Tintas de identidad de los perfiles: independientes del tema, legibles sobre papel. */
 .profile-trigger { display: flex; align-items: center; gap: 10px; padding: 4px 9px 4px 4px; max-width: 210px; min-height: 43px; border: 1px solid var(--line); background: var(--soft); border-radius: 14px; }
 .profile-trigger:hover { background: var(--hover); }
+/* Tarjeta de usuarios (como la de las cuentas de Google): bajo el avatar, sin tapar el inicio. */
+.users-card { inset: auto; top: 72px; right: 32px; margin: 0; width: min(330px, calc(100vw - 32px)); padding: 18px 14px 12px; color: var(--text); background: var(--surface); border: 1px solid var(--line); border-radius: 22px; box-shadow: 0 24px 70px var(--shadow); }
+.users-card-me { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 4px; padding: 6px 8px 16px; border-bottom: 1px solid var(--line); }
+.users-card-me .profile-avatar-large { margin-bottom: 6px; }
+.users-card-hello { margin: 0; font: 500 21px/1.2 var(--serif); letter-spacing: -.3px; overflow-wrap: anywhere; }
+.users-card-email { margin: 0; font-size: 11px; color: var(--muted); overflow-wrap: anywhere; }
+.users-card-me .secondary-button { margin-top: 12px; }
+.users-card-list { display: flex; flex-direction: column; gap: 2px; padding: 8px 0; border-bottom: 1px solid var(--line); }
+.users-card-item, .users-card-add { display: flex; align-items: center; gap: 11px; width: 100%; min-height: 52px; padding: 8px 10px; border: 0; border-radius: 12px; background: transparent; color: var(--text); text-align: left; }
+.users-card-item:hover, .users-card-add:hover { background: var(--hover); }
+.users-card-item:disabled { opacity: .55; }
+.users-card-copy { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.users-card-copy b { font-size: 12px; font-weight: 550; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.users-card-copy small { font-size: 10px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.users-card-add { margin-top: 6px; font-size: 12px; color: var(--muted); }
+.users-card-add svg { width: 15px; height: 15px; margin-inline: 9px; }
+.users-card-status { margin: 4px 10px 0; font-size: 11px; color: var(--muted); }
+.users-card-status:empty { display: none; }
 .profile-avatar { --profile-color: #35587a; display: inline-flex; align-items: center; justify-content: center; overflow: hidden; width: 33px; height: 33px; border-radius: 11px; flex-shrink: 0; color: var(--profile-color); background: color-mix(in srgb, var(--profile-color) 13%, var(--surface)); border: 1px solid color-mix(in srgb, var(--profile-color) 23%, transparent); font-size: 12px; font-weight: 600; }
 .profile-avatar > img { width: 100%; height: 100%; object-fit: cover; border-radius: inherit; }
 .profile-avatar svg { width: 17px; height: 17px; }
@@ -194,7 +212,6 @@ input::placeholder { color: var(--muted); opacity: .8; }
 .profile-badge { font-size: 9px; color: var(--muted); padding: 3px 6px; background: var(--bg); border: 1px solid var(--line); border-radius: 6px; }
 .profile-primary-actions { display: flex; gap: 9px; flex-wrap: wrap; }
 .profile-primary-actions > .primary-button { flex: 1; justify-content: space-between; }
-#profile-make-default { margin-top: 11px; }
 .profile-connections { border-top: 1px solid var(--line); margin-top: 22px; padding-top: 8px; }
 .profile-action, .profile-sync-guide > summary { display: flex; align-items: center; gap: 10px; width: 100%; min-height: 61px; padding: 12px 0; text-align: left; }
 .profile-action:hover, .profile-sync-guide > summary:hover { background: var(--hover); }
@@ -274,6 +291,7 @@ body[data-motion=off] *, body[data-motion=off] *::before, body[data-motion=off] 
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
 @media (max-width: 740px) {
   .topbar { padding: 18px 20px; gap: 12px; }.brand { --logo-size: 96px; }.welcome-line { font-size: 26px; }
+  .users-card { top: 62px; right: 16px; }
   .topbar-right { gap: 9px; }.profile-trigger { padding: 3px; min-height: 40px; }.profile-trigger-copy, .profile-trigger-chevron { display: none; }
   .dashboard { margin-top: 0; gap: 27px; }.clock-module { font-size: 12px; }
   #search-form { gap: 11px; min-height: 61px; padding-left: 16px; border-radius: 18px; }#query { font-size: 12px; }.search-submit { width: 39px; height: 39px; }.search-hint { display: none; }

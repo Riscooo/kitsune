@@ -1,7 +1,8 @@
 // Primero el puente: en el inicio integrado responde a /api/ antes de que nadie pregunte.
-import './bridge.mjs'
+import { integrated } from './bridge.mjs'
 import { resolveNavigation } from './navigation.mjs'
 import { initializeProfiles } from './profiles.mjs'
+import { initializeSwitcher } from './switcher.mjs'
 import { createSettingsStore } from './settings-store.mjs'
 import { createAppearance } from './appearance.mjs'
 import { initializeShortcuts } from './shortcuts.mjs'
@@ -162,7 +163,11 @@ if (location.protocol === 'file:') {
 } else {
   void store.refresh().finally(() => { document.documentElement.dataset.ready = 'true'; appearance.start(); void presets.load().then(() => presets.sync(store.data, store.ready)) })
 }
-void initializeProfiles({ announce })
+// Usuarios: la tarjeta del avatar cambia esta pestaña de usuario; «Gestionar» abre la ventana grande.
+let profiles = null
+const switcher = initializeSwitcher({ integrated, onManage: () => profiles?.show(), onAdd: () => profiles?.show({ create: true }) })
+void initializeProfiles({ announce, onSnapshot: snapshot => switcher.render(snapshot), switchTo: id => switcher.switchTo(id) })
+  .then(controller => { profiles = controller ?? null })
 window.addEventListener('pagehide', () => { clearInterval(clockTimer); clearTimeout(toastTimer); appearance.destroy(); store.destroy() }, { once: true })
 // A restored bfcache document must not retain a disposed store or old tokens.
 window.addEventListener('pageshow', event => { if (event.persisted) location.reload() })

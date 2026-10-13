@@ -1,5 +1,6 @@
-/** Local browser profiles are not online accounts. All mutations are confirmed
- * by the loopback service before this view reflects a saved change. */
+/** Usuarios de Kitsune en la misma ventana (no son cuentas en línea): cada uno tiene sus
+ * sesiones y cookies en su contenedor; el base (baseId) es el del perfil y el dueño de la
+ * privacidad de todo Kitsune. Cada cambio lo confirma el servicio local antes de verse aquí. */
 import { paintAvatar, prepareAvatar } from './avatar.mjs'
 export const PROFILE_COLORS = Object.freeze(['blue', 'pink', 'violet', 'teal', 'amber', 'red'])
 const BAD_TEXT = /[\p{Cc}\p{Cs}]/u
@@ -64,7 +65,7 @@ export function googleRetentionStatus(appearance, desired) {
     : 'Sin una excepción de Google gestionada por Kitsune.'
 }
 
-export async function initializeProfiles({ announce = () => {} } = {}) {
+export async function initializeProfiles({ announce = () => {}, onSnapshot = () => {}, switchTo = async () => false } = {}) {
   const $ = selector => document.querySelector(selector)
   const dialog = $('#profiles-dialog')
   if (!dialog) return
@@ -86,6 +87,9 @@ export async function initializeProfiles({ announce = () => {} } = {}) {
   let googleTimer
 
   const selectedProfile = () => snapshot?.profiles.find(item => item.id === selectedId)
+  // El usuario del perfil de Gecko: el suyo es el modo de privacidad de todo Kitsune.
+  const baseId = () => snapshot?.baseId ?? snapshot?.currentId
+  const isBase = profile => Boolean(profile) && profile.id === baseId()
   const icon = name => {
     const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg')
     const use = document.createElementNS('http://www.w3.org/2000/svg', 'use')
@@ -133,16 +137,19 @@ export async function initializeProfiles({ announce = () => {} } = {}) {
     const profile = selectedProfile()
     if (!status || !profile || !dialog.open || formMode) return
     const privacy = $('#profile-privacy-status')
-    if (privacy) privacy.textContent = privacyModeStatus(profile, profile.id === snapshot.currentId)
+    const relogin = $('#profile-google-relogin')
+    // La privacidad y Google son de todo Kitsune: solo en la ficha del usuario base.
+    status.hidden = !isBase(profile)
+    if (privacy) privacy.hidden = !isBase(profile)
+    if (!isBase(profile)) { if (relogin) relogin.hidden = true; return }
+    if (privacy) privacy.textContent = privacyModeStatus(profile, true)
     const desired = profile.rememberGoogle === true
     const comfortable = privacyMode(profile) === 'comodo'
-    const relogin = $('#profile-google-relogin')
     if (relogin) relogin.hidden = comfortable
     if (comfortable) {
       // En Cómodo no hay nada que aplicar para Google: solo se sigue el modo activo.
       status.textContent = 'En modo Cómodo las sesiones ya se conservan al cerrar.'
-      if (profile.id !== snapshot.currentId) return
-    } else if (profile.id !== snapshot.currentId) {
+    } else if (!isBase(profile)) {
       status.textContent = desired ? 'Abre este perfil para aplicar la conservación de Google.' : 'Sin conservación de Google activada en Kitsune.'
       return
     } else {
@@ -191,7 +198,7 @@ export async function initializeProfiles({ announce = () => {} } = {}) {
     dialog.querySelectorAll('[data-privacy-switch]').forEach(button => { button.disabled = blocked })
     dialog.setAttribute('aria-busy', String(busy || photoBusy))
     $('#profile-create').disabled = blocked || Boolean(formMode) || snapshot?.profiles.length >= 24
-    $('#profile-create').title = snapshot?.profiles.length >= 24 ? 'Has llegado al límite de 24 perfiles.' : ''
+    $('#profile-create').title = snapshot?.profiles.length >= 24 ? 'Has llegado al límite de 24 usuarios.' : ''
     $('#profile-save').disabled = blocked || photoBusy
     $('#profile-cancel').disabled = busy
     $('#profile-name').disabled = busy
@@ -199,7 +206,6 @@ export async function initializeProfiles({ announce = () => {} } = {}) {
     $('#profiles-reload').disabled = busy
     $('#profile-edit').disabled = blocked
     $('#profile-open').disabled = blocked
-    $('#profile-make-default').disabled = blocked
     dialog.querySelectorAll('[data-profile-id]').forEach(button => { button.disabled = blocked || Boolean(formMode) })
     dialog.querySelectorAll('[data-profile-action]').forEach(button => { button.disabled = blocked })
     dialog.querySelectorAll('[data-profile-swatch]').forEach(button => { button.disabled = busy })
@@ -241,14 +247,9 @@ export async function initializeProfiles({ announce = () => {} } = {}) {
       const name = document.createElement('b')
       name.textContent = profile.name
       const hint = document.createElement('small')
-      hint.textContent = profile.id === snapshot.currentId ? 'En esta ventana' : profile.id === snapshot.defaultId ? 'Predeterminado' : 'Perfil local'
+      hint.textContent = profile.id === snapshot.currentId ? 'Esta pestaña' : isBase(profile) ? 'Principal' : 'Usuario'
       copy.append(name, hint)
       button.append(glyph, copy)
-      if (profile.id === snapshot.defaultId) {
-        const mark = icon('check')
-        mark.classList.add('profile-default-mark')
-        button.append(mark)
-      }
       button.addEventListener('click', () => {
         if (busy || formMode || !ready) return
         selectedId = profile.id
@@ -269,8 +270,8 @@ export async function initializeProfiles({ announce = () => {} } = {}) {
       avatar($('#current-profile-avatar'), current)
       $('#current-profile-name').textContent = current.name
       $('#welcome-line').textContent = `Bienvenido, ${current.name}`
-      trigger.setAttribute('aria-label', `Gestionar perfiles. Perfil de esta ventana: ${current.name}`)
-      trigger.title = `Perfil de esta ventana: ${current.name}`
+      trigger.setAttribute('aria-label', `Usuarios. Esta pestaña es de ${current.name}`)
+      trigger.title = `Esta pestaña es de ${current.name}`
     }
     renderList()
     const profile = selectedProfile()
@@ -283,10 +284,13 @@ export async function initializeProfiles({ announce = () => {} } = {}) {
       $('#profile-detail-email').textContent = profile.email
       $('#profile-detail-email').hidden = !profile.email
       $('#profile-current-badge').hidden = profile.id !== snapshot.currentId
-      $('#profile-default-badge').hidden = profile.id !== snapshot.defaultId
-      $('#profile-open span').textContent = profile.id === snapshot.currentId ? 'Abrir este perfil' : 'Cambiar a este perfil'
-      $('#profile-make-default').hidden = profile.id === snapshot.defaultId
-      $('#profile-default-copy').textContent = profile.id === snapshot.defaultId ? 'Kitsune usa este perfil cuando lo abres sin elegir otro.' : 'Puedes usar este perfil al abrir Kitsune sin elegir otro.'
+      $('#profile-default-badge').hidden = !isBase(profile)
+      // Cambiar: esta misma pestaña pasa a ser la de ese usuario.
+      $('#profile-open').hidden = profile.id === snapshot.currentId
+      $('#profile-open span').textContent = 'Cambiar a este usuario'
+      dialog.querySelector('.privacy-switch').hidden = !isBase(profile)
+      // Google se abre en una pestaña de este usuario: solo desde la suya.
+      dialog.querySelector('[data-profile-action="google"]').hidden = profile.id !== snapshot.currentId
       dialog.querySelectorAll('[data-privacy-switch]').forEach(button => button.setAttribute('aria-pressed', String(button.dataset.privacySwitch === privacyMode(profile))))
     }
     renderControls()
@@ -297,17 +301,18 @@ export async function initializeProfiles({ announce = () => {} } = {}) {
     snapshot = parseProfilesSnapshot(value)
     if (!snapshot.profiles.some(profile => profile.id === selectedId)) selectedId = snapshot.currentId
     ready = true
+    onSnapshot(snapshot)
   }
 
   async function load({ quiet = false } = {}) {
     if (busy) return
     if (location.protocol === 'file:') {
       ready = false
-      notice('Abre el inicio completo de Kitsune para gestionar los perfiles reales de este equipo.')
-      $('#profiles-empty-copy').textContent = 'Los perfiles no están disponibles en la copia de emergencia del inicio.'
+      notice('Abre el inicio completo de Kitsune para gestionar los usuarios de este equipo.')
+      $('#profiles-empty-copy').textContent = 'Los usuarios no están disponibles en la copia de emergencia del inicio.'
       return
     }
-    setBusy(true, quiet ? '' : 'Actualizando tus perfiles…')
+    setBusy(true, quiet ? '' : 'Actualizando tus usuarios…')
     try {
       const response = await fetch('/api/profiles', { credentials: 'omit', cache: 'no-store', signal: AbortSignal.timeout(5000) })
       if (!response.ok) throw new Error('Profiles unavailable')
@@ -316,8 +321,8 @@ export async function initializeProfiles({ announce = () => {} } = {}) {
       render()
     } catch {
       ready = false
-      if (!quiet || dialog.open) notice('No se ha podido conectar con los perfiles. Tu navegación sigue funcionando.', true)
-      $('#profiles-empty-copy').textContent = 'No hemos podido cargar tus perfiles.'
+      if (!quiet || dialog.open) notice('No se ha podido conectar con los usuarios. Tu navegación sigue funcionando.', true)
+      $('#profiles-empty-copy').textContent = 'No hemos podido cargar tus usuarios.'
     } finally {
       setBusy(false)
       document.documentElement.dataset.profilesReady = ready ? 'true' : 'false'
@@ -338,7 +343,7 @@ export async function initializeProfiles({ announce = () => {} } = {}) {
       if (response.status === 409) {
         accept(await response.json())
         render()
-        notice(formMode ? 'Otra ventana ha cambiado los perfiles. Tu borrador se conserva; revísalo y guarda de nuevo.' : 'La lista ha cambiado. Revisa el perfil y vuelve a intentarlo.')
+        notice(formMode ? 'Otra pestaña ha cambiado los usuarios. Tu borrador se conserva; revísalo y guarda de nuevo.' : 'La lista ha cambiado. Revisa el usuario y vuelve a intentarlo.')
         return null
       }
       if (!response.ok) {
@@ -364,7 +369,7 @@ export async function initializeProfiles({ announce = () => {} } = {}) {
   }
 
   function preview() {
-    avatar($('#profile-preview-avatar'), { id: formId, name: $('#profile-name').value || 'Nuevo espacio', color, avatar: originalPhoto }, photoData)
+    avatar($('#profile-preview-avatar'), { id: formId, name: $('#profile-name').value || 'Nuevo usuario', color, avatar: originalPhoto }, photoData)
     dialog.querySelectorAll('[data-profile-swatch]').forEach(button => button.setAttribute('aria-pressed', String(button.dataset.profileSwatch === color)))
   }
 
@@ -378,15 +383,18 @@ export async function initializeProfiles({ announce = () => {} } = {}) {
     originalPhoto = profile?.avatar || null
     photoMessage()
     if ($('#profile-remember-google')) $('#profile-remember-google').checked = profile?.rememberGoogle === true
+    // Privacidad y Google, solo al editar el usuario base (son de todo Kitsune).
+    dialog.querySelector('.profile-privacy').hidden = !isBase(profile)
+    if ($('#profile-remember-google')) $('#profile-remember-google').closest('label').hidden = !isBase(profile)
     const mode = privacyMode(profile)
     formPrivacy = mode
     dialog.querySelectorAll('input[name="profile-privacy"]').forEach(input => { input.checked = input.value === mode })
     updatePrivacyForm()
     $('#profile-name').value = profile?.name || ''
     $('#profile-email').value = profile?.email || ''
-    $('#profile-form-title').textContent = profile ? 'Editar perfil' : 'Nuevo perfil'
-    $('#profile-save span').textContent = profile ? 'Guardar cambios' : 'Crear perfil'
-    $('#profile-form-note').textContent = profile ? 'Tus marcadores y contraseñas no cambian.' : 'Un perfil independiente, guardado en este equipo.'
+    $('#profile-form-title').textContent = profile ? 'Editar usuario' : 'Nuevo usuario'
+    $('#profile-save span').textContent = profile ? 'Guardar cambios' : 'Crear usuario'
+    $('#profile-form-note').textContent = profile ? 'Sus sesiones no cambian.' : 'Con sus propias sesiones y cookies. Historial, marcadores y contraseñas son comunes.'
     $('#profile-form-error').hidden = true
     notice()
     $('#profiles-operation').textContent = ''
@@ -394,12 +402,13 @@ export async function initializeProfiles({ announce = () => {} } = {}) {
     $('#profile-name').focus()
   }
 
-  trigger.addEventListener('click', () => {
-    returnFocus = document.activeElement
+  /** Abre la gestión de usuarios (con el formulario de uno nuevo, si se pide). */
+  function show({ create = false } = {}) {
+    returnFocus = trigger
     if (!dialog.open) dialog.showModal()
     $('#profiles-title').focus({ preventScroll: true })
-    void load()
-  })
+    void load().then(() => { if (create && ready) showForm() })
+  }
   dialog.addEventListener('close', () => {
     cancelPhoto()
     clearTimeout(googleTimer)
@@ -491,8 +500,10 @@ export async function initializeProfiles({ announce = () => {} } = {}) {
     }
     const creating = formMode === 'create'
     if (photoData !== undefined) draft.avatarData = photoData
-    if ($('#profile-remember-google')) draft.rememberGoogle = $('#profile-remember-google').checked
-    if (dialog.querySelector('input[name="profile-privacy"]')) draft.privacyMode = selectedPrivacy()
+    if (!creating && formId === baseId()) {
+      if ($('#profile-remember-google')) draft.rememberGoogle = $('#profile-remember-google').checked
+      if (dialog.querySelector('input[name="profile-privacy"]')) draft.privacyMode = selectedPrivacy()
+    }
     const result = await mutate(creating ? '/api/profiles' : `/api/profiles/${encodeURIComponent(formId)}`, creating ? 'POST' : 'PATCH', draft, creating ? 'Creando tu nuevo espacio…' : 'Guardando los detalles…')
     if (!result) return
     selectedId = creating ? result.createdId : formId
@@ -503,27 +514,28 @@ export async function initializeProfiles({ announce = () => {} } = {}) {
     originalPhoto = null
     cancelPhoto()
     render()
-    $('#profiles-operation').textContent = creating ? 'Perfil creado. Ábrelo cuando quieras empezar a usarlo.' : 'Detalles guardados en este equipo.'
+    $('#profiles-operation').textContent = creating ? 'Usuario creado. Cámbiate a él cuando quieras.' : 'Detalles guardados en este equipo.'
     if (dialog.open) $('#profile-detail-name').focus({ preventScroll: true })
-    else announce(creating ? 'Perfil creado.' : 'Perfil actualizado.')
+    else announce(creating ? 'Usuario creado.' : 'Usuario actualizado.')
   })
-  $('#profile-make-default').addEventListener('click', async () => {
+  // Cambiar de usuario: esta pestaña pasa a ser el inicio del otro (las demás no se tocan).
+  $('#profile-open').addEventListener('click', async () => {
     const profile = selectedProfile()
-    if (!profile) return
-    if (await mutate(`/api/profiles/${encodeURIComponent(profile.id)}/default`, 'POST', {}, 'Cambiando el perfil predeterminado…')) {
-      $('#profiles-operation').textContent = `${profile.name}: perfil predeterminado.`
-      if (dialog.open) $('#profile-open').focus({ preventScroll: true })
-    }
+    if (!profile || busy || !ready || profile.id === snapshot.currentId) return
+    setBusy(true, `Cambiando a ${profile.name}…`)
+    const sent = await switchTo(profile.id).catch(() => false)
+    // Si la pestaña sigue aquí, el cambio no ha llegado (habría pasado a ser del otro usuario).
+    setTimeout(() => { if (busy) { setBusy(false); notice('No se ha podido cambiar de usuario. Vuelve a intentarlo.') } }, sent ? 6000 : 0)
   })
-  async function openProfile(action) {
-    const profile = selectedProfile()
-    if (!profile) return
-    if (await mutate(`/api/profiles/${encodeURIComponent(profile.id)}/open`, 'POST', { action }, 'Abriendo…')) {
-      $('#profiles-operation').textContent = `Apertura solicitada en ${profile.name}.`
+  // Google, en una pestaña nueva de este usuario (hereda su contenedor); lo demás es de todo Kitsune.
+  async function openAction(action) {
+    if (action === 'google') { window.open('https://accounts.google.com/ServiceLogin', '_blank', 'noopener'); return }
+    if (await mutate(`/api/profiles/${encodeURIComponent(baseId())}/open`, 'POST', { action }, 'Abriendo…')) {
+      $('#profiles-operation').textContent = 'Abierto en una pestaña nueva.'
     }
   }
-  $('#profile-open').addEventListener('click', () => void openProfile('home'))
-  dialog.querySelectorAll('[data-profile-action]').forEach(button => button.addEventListener('click', () => void openProfile(button.dataset.profileAction)))
+  dialog.querySelectorAll('[data-profile-action]').forEach(button => button.addEventListener('click', () => void openAction(button.dataset.profileAction)))
   render()
   await load({ quiet: true })
+  return { show, reload: () => load({ quiet: true }) }
 }
