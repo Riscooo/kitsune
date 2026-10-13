@@ -10,6 +10,11 @@
     const { KitsuneUsers } = ChromeUtils.importESModule('chrome://browser/content/kitsune-users.sys.mjs');
     KitsuneUsers.start();
   } catch { /* sin usuarios, Kitsune sigue igual */ }
+  // Espacios: grupos de pestañas que se ven por separado (como los de Zen).
+  try {
+    const { KitsuneSpaces } = ChromeUtils.importESModule('chrome://browser/content/kitsune-spaces.sys.mjs');
+    void KitsuneSpaces.decorate(window).catch(() => {});
+  } catch { /* sin espacios, Kitsune sigue igual */ }
   // Aviso de versión nueva (solo en los paquetes que se descargan: Windows, macOS y Linux).
   try {
     const { KitsuneUpdates } = ChromeUtils.importESModule('chrome://browser/content/kitsune-updates.sys.mjs');

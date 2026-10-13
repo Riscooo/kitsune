@@ -233,6 +233,8 @@ export const KitsuneUsers = {
     try { Services.obs.removeObserver(httpObserver, 'http-on-modify-request'); } catch { /* ya no estaba */ }
     try { Services.obs.removeObserver(this, 'quit-application-granted'); } catch { /* ya no estaba */ }
   },
+  /** Los usuarios que hay ahora (id, nombre y color) y cuál es el base. */
+  list: () => ({ users: state.users.map(user => ({ ...user })), baseId: state.baseId }),
   /** Vuelve a leer el registro (el inicio integrado lo llama tras guardar). */
   refresh: () => refresh(true),
   /** Id del usuario del contenedor de un <browser>; null si es el base o no es de nadie. */

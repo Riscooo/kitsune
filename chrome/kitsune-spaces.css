@@ -1,0 +1,144 @@
+/* Espacios de Kitsune: el selector arriba (en la tira de pestañas) y abajo en la barra
+ * lateral, y el panel para crearlos y editarlos. Solo tokens de papel y las tintas de
+ * los usuarios (cada espacio lleva una). Lo pinta kitsune-spaces.sys.mjs. */
+@-moz-document url("chrome://browser/content/browser.xhtml") {
+  #main-window { --kitsune-space-ink: var(--kb-secondary); }
+  #main-window [data-space-color="blue"] { --kitsune-space-ink: light-dark(#35587a, #8fb0d4); }
+  #main-window [data-space-color="pink"] { --kitsune-space-ink: light-dark(#9c4a68, #e09ab3); }
+  #main-window [data-space-color="violet"] { --kitsune-space-ink: light-dark(#5b4a7a, #b4a3d6); }
+  #main-window [data-space-color="amber"] { --kitsune-space-ink: light-dark(#8a6326, #d9ac62); }
+  #main-window [data-space-color="teal"] { --kitsune-space-ink: var(--kb-secondary); }
+  #main-window [data-space-color="red"] { --kitsune-space-ink: var(--kb-primary); }
+
+  #main-window .kitsune-spaces {
+    display: flex;
+    flex: 0 0 auto;
+    align-items: center;
+    gap: 2px;
+    font: 500 12px "Noto Sans", "Kitsune Sans", sans-serif;
+  }
+  /* Arriba: detrás del logo, separado de las pestañas por una línea. */
+  #main-window #kitsune-spaces-top {
+    order: -1;
+    align-self: center;
+    margin: 0 8px 4px 0;
+    padding-inline-end: 8px;
+    border-inline-end: 1px solid var(--kitsune-rule);
+  }
+  /* A un lado: abajo, bajo la lista de pestañas. Solo con las pestañas a un lado. */
+  #main-window #kitsune-spaces-side {
+    flex-wrap: wrap;
+    margin: 4px 6px 2px;
+    padding: 6px 2px 2px;
+    border-top: 1px solid var(--kitsune-rule);
+  }
+  @media not -moz-pref("sidebar.verticalTabs") {
+    #main-window #kitsune-spaces-side { display: none; }
+  }
+  /* Plegada (solo iconos): en columna y sin nombres. */
+  #main-window sidebar-main:not([expanded]) #kitsune-spaces-side { flex-direction: column; flex-wrap: nowrap; }
+  #main-window sidebar-main:not([expanded]) #kitsune-spaces-side .kitsune-space-name { display: none; }
+  #main-window sidebar-main:not([expanded]) #kitsune-spaces-side .kitsune-space { width: 26px; padding: 0; justify-content: center; }
+
+  #main-window :is(.kitsune-space, .kitsune-space-add) {
+    appearance: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    box-sizing: border-box;
+    height: 26px;
+    min-width: 26px;
+    margin: 0;
+    padding: 0;
+    border: 1px solid transparent;
+    border-radius: 9px;
+    background: transparent;
+    color: var(--kitsune-quiet);
+    font: inherit;
+    cursor: default;
+    transition: background-color var(--kitsune-motion) ease, color var(--kitsune-motion) ease;
+  }
+  #main-window :is(.kitsune-space, .kitsune-space-add):hover { background: var(--kitsune-hover); color: var(--kitsune-text); }
+  #main-window :is(.kitsune-space, .kitsune-space-add):active { background: var(--kitsune-press); }
+  #main-window :is(.kitsune-space, .kitsune-space-add):focus-visible { outline: 2px solid var(--kitsune-focus); outline-offset: 1px; }
+  #main-window .kitsune-space[aria-selected="true"] {
+    padding-inline: 8px 10px;
+    border-color: var(--kitsune-rule);
+    background: var(--kitsune-sheet);
+    color: var(--kitsune-text);
+    font-weight: 600;
+  }
+  #main-window .kitsune-space:not([aria-selected="true"]) .kitsune-space-name { display: none; }
+  #main-window .kitsune-space-dot {
+    flex: none;
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    background: var(--kitsune-space-ink);
+  }
+  #main-window .kitsune-space:not([aria-selected="true"]) .kitsune-space-dot { opacity: .72; }
+  #main-window .kitsune-space-add { font-size: 16px; line-height: 1; }
+  /* Con un solo espacio, arriba solo queda el «+» para crear otro. */
+  #main-window #kitsune-spaces-top[data-count="1"] .kitsune-space { display: none; }
+  #main-window #kitsune-spaces-top[data-count="1"] { padding-inline-end: 4px; }
+
+  /* El panel de crear y editar. */
+  #kitsune-space-panel { --panel-padding: 0; --arrowpanel-padding: 0; }
+  #kitsune-space-panel .kitsune-space-form {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    width: 280px;
+    padding: 14px 16px 16px;
+    color: var(--kitsune-text);
+    font: 13px "Noto Sans", "Kitsune Sans", sans-serif;
+  }
+  #kitsune-space-panel h2 { margin: 0 0 4px; font: 500 16px "Noto Serif", serif; }
+  #kitsune-space-panel label { display: flex; flex-direction: column; gap: 5px; color: var(--kitsune-quiet); font-size: 12px; }
+  #kitsune-space-panel .kitsune-space-label { color: var(--kitsune-quiet); font-size: 12px; }
+  #kitsune-space-panel :is(input, select) {
+    appearance: none;
+    height: 32px;
+    padding: 0 10px;
+    border: 1px solid var(--kitsune-rule);
+    border-radius: 9px;
+    background: var(--kitsune-field);
+    color: var(--kitsune-text);
+    font: inherit;
+    font-size: 13px;
+  }
+  #kitsune-space-panel :is(input, select):focus-visible { outline: 2px solid var(--kitsune-focus); outline-offset: 0; }
+  #kitsune-space-panel .kitsune-space-colors { display: flex; gap: 8px; }
+  #kitsune-space-panel .kitsune-space-colors > button {
+    appearance: none;
+    width: 24px;
+    height: 24px;
+    padding: 0;
+    border: 2px solid transparent;
+    border-radius: 50%;
+    background: var(--kitsune-space-ink) content-box;
+    box-shadow: inset 0 0 0 2px var(--kitsune-sheet);
+  }
+  #kitsune-space-panel .kitsune-space-colors > button[aria-checked="true"] { border-color: var(--kitsune-text); }
+  #kitsune-space-panel .kitsune-space-colors > button:focus-visible { outline: 2px solid var(--kitsune-focus); outline-offset: 1px; }
+  #kitsune-space-panel .kitsune-space-panel-error { min-height: 0; margin: 0; color: var(--kb-primary); font-size: 12px; }
+  #kitsune-space-panel .kitsune-space-panel-error:empty { display: none; }
+  #kitsune-space-panel .kitsune-space-panel-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 4px; }
+  #kitsune-space-panel .kitsune-space-panel-actions > button {
+    appearance: none;
+    height: 30px;
+    padding: 0 14px;
+    border: 1px solid var(--kitsune-rule);
+    border-radius: 9px;
+    background: transparent;
+    color: var(--kitsune-text);
+    font: 500 13px "Noto Sans", "Kitsune Sans", sans-serif;
+  }
+  #kitsune-space-panel .kitsune-space-panel-actions > .kitsune-space-panel-save {
+    border-color: var(--kb-primary);
+    background: var(--kb-primary);
+    color: var(--kb-surface);
+  }
+  #kitsune-space-panel .kitsune-space-panel-actions > button:focus-visible { outline: 2px solid var(--kitsune-focus); outline-offset: 1px; }
+}

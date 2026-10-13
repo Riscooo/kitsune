@@ -52,7 +52,8 @@ UA_ANCHOR = 'imply_option("MOZ_DEVTOOLS", "all")'
 UA_FIREFOX = 'imply_option("MOZ_APP_UA_NAME", "Firefox")'
 HERE = Path(__file__).resolve().parent
 RECIPE, BRANDING, NATIVE = HERE / "recipe", HERE / "branding", HERE / "native"
-NATIVE_FILES = ("kitsune-bootstrap.js", "kitsune-appearance.sys.mjs", "kitsune-updates.sys.mjs", "kitsune-users.sys.mjs")
+NATIVE_FILES = ("kitsune-bootstrap.js", "kitsune-appearance.sys.mjs", "kitsune-updates.sys.mjs", "kitsune-users.sys.mjs",
+                "kitsune-spaces.sys.mjs")
 # Inicio integrado (Windows y macOS, sin servidor local): la extensión inicio@kitsune
 # con la API del inicio (install/home-extension) y las páginas de start/, dentro del
 # motor en resource://builtin-addons/kitsune-home/. En el PC de Risco start/ está junto
