@@ -30,6 +30,11 @@
     const { KitsuneGlance } = ChromeUtils.importESModule('chrome://browser/content/kitsune-glance.sys.mjs');
     KitsuneGlance.start();
   } catch { /* sin vista rápida, Kitsune sigue igual */ }
+  // Paleta (Ctrl+K): pestañas, espacios, acciones con su atajo, marcadores e historial.
+  try {
+    const { KitsunePalette } = ChromeUtils.importESModule('chrome://browser/content/kitsune-palette.sys.mjs');
+    void KitsunePalette.decorate(window).catch(() => {});
+  } catch { /* sin paleta, Kitsune sigue igual */ }
   // Aviso de versión nueva (solo en los paquetes que se descargan: Windows, macOS y Linux).
   try {
     const { KitsuneUpdates } = ChromeUtils.importESModule('chrome://browser/content/kitsune-updates.sys.mjs');
