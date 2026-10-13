@@ -40,3 +40,19 @@ test('published downloads only point at releases of this repository, and the pag
   }
   assert.doesNotMatch(html, /fonts\.googleapis|googletagmanager|analytics/)
 })
+
+test('the English page mirrors the Spanish one: same sections, assets and downloads, and each links to the other', async () => {
+  const es = await readFile(new URL('../web/index.html', import.meta.url), 'utf8')
+  const en = await readFile(new URL('../web/en/index.html', import.meta.url), 'utf8')
+  const ids = html => [...html.matchAll(/ id="([\w-]+)"/g)].map(match => match[1])
+  assert.deepEqual(ids(en), ids(es))
+  assert.match(en, /<html lang="en"/)
+  assert.match(es, /hreflang="en" href="https:\/\/kitsune-navegador\.vercel\.app\/en"/)
+  assert.match(en, /<a href="\/" hreflang="es" lang="es">Español<\/a>/)
+  assert.match(es, /<a href="\/en" hreflang="en" lang="en">English<\/a>/)
+  for (const [, id] of en.matchAll(/href="#([\w-]+)"/g)) assert.match(en, new RegExp(`id="${id}"`), id)
+  for (const [, src] of en.matchAll(/(?:src|href)="\/(assets\/[^"]+)"/g)) await readFile(new URL(`../web/${src}`, import.meta.url))
+  // Nada de castellano a la vista (salvo el enlace «Español»).
+  const visible = en.replace(/<head>[\s\S]*?<\/head>/, '').replace(/<[^>]+>/g, ' ').replace('Español', '')
+  assert.doesNotMatch(visible, /[¿¡ñáéíóú]|Descargar|Próximamente/)
+})

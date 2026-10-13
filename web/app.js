@@ -5,9 +5,21 @@ const INK_MS = 1200
 const INK_EASING = 'cubic-bezier(.65, 0, .35, 1)'
 const root = document.documentElement
 const toggle = document.querySelector('#theme-toggle')
+// La web en inglés (/en) usa el mismo código: los textos que pone él, en su idioma.
+const ENGLISH = root.lang === 'en'
+const TEXT = ENGLISH ? {
+  toLight: 'Switch to the light theme', toDark: 'Switch to the dark theme', download: 'Download', downloadFor: name => `Download for ${name}`,
+  allReady: 'These are betas: if something breaks, tell us on GitHub.', someReady: 'If your system still says «Coming soon», it is nearly there.', version: 'Version',
+} : {
+  toLight: 'Cambiar a tema claro', toDark: 'Cambiar a tema oscuro', download: 'Descargar', downloadFor: name => `Descargar para ${name}`,
+  allReady: 'Son betas: si algo falla, cuéntanoslo en GitHub.', someReady: 'Si tu sistema aún pone «Próximamente», ya casi está.', version: 'Versión',
+}
+// Las notas de downloads.json van en castellano.
+const NOTES_EN = [['aún sin firmar', 'not signed yet'], ['se instala sin sudo', 'installs without sudo']]
+const note = text => ENGLISH ? NOTES_EN.reduce((out, [es, en]) => out.replace(es, en), text) : text
 
 function label() {
-  toggle.setAttribute('aria-label', root.dataset.theme === 'oscuro' ? 'Cambiar a tema claro' : 'Cambiar a tema oscuro')
+  toggle.setAttribute('aria-label', root.dataset.theme === 'oscuro' ? TEXT.toLight : TEXT.toDark)
 }
 
 // La misma veta que el inicio de Kitsune: hacia la derecha al pasar a Oscuro, hacia la izquierda a Claro.
@@ -41,31 +53,31 @@ function render({ version, files }) {
     if (!file) continue
     button.href = file.url
     button.removeAttribute('aria-disabled')
-    button.textContent = file.size ? `Descargar · ${file.size}` : 'Descargar'
+    button.textContent = file.size ? `${TEXT.download} · ${file.size}` : TEXT.download
     card.dataset.ready = 'true'
     if (file.note) {
       const note = document.createElement('p')
       note.className = 'platform-note'
-      note.textContent = file.note
+      note.textContent = note(file.note)
       button.after(note)
     }
   }
   const ready = Object.keys(files).length
   if (ready) document.querySelector('#downloads-note').textContent = ready === Object.keys(PLATFORMS).length
-    ? 'Son betas: si algo falla, cuéntanoslo en GitHub.'
-    : 'Si tu sistema aún pone «Próximamente», ya casi está.'
+    ? TEXT.allReady
+    : TEXT.someReady
   const mine = detectPlatform()
   const main = document.querySelector('#download-main')
   const mainLabel = document.querySelector('#download-main-label')
   const mainNote = document.querySelector('#download-main-note')
   if (mine) {
-    mainLabel.textContent = `Descargar para ${PLATFORMS[mine].name}`
+    mainLabel.textContent = TEXT.downloadFor(PLATFORMS[mine].name)
     document.querySelector(`.platform[data-platform=${mine}]`)?.setAttribute('data-mine', 'true')
   }
   const file = mine && files[mine]
   if (file) {
     main.disabled = false
-    mainNote.textContent = [file.size, file.note].filter(Boolean).join(' · ') || `Versión ${version ?? ''}`.trim()
+    mainNote.textContent = [file.size, file.note && note(file.note)].filter(Boolean).join(' · ') || `${TEXT.version} ${version ?? ''}`.trim()
     main.addEventListener('click', () => { location.href = file.url })
     document.querySelector('#hero-note').hidden = true
   }
