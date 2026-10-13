@@ -112,6 +112,8 @@ esac
 export MOZ_ENABLE_WAYLAND=1
 export MOZ_APP_REMOTINGNAME="${profile_remoting}"
 export KITSUNE_PRIVACY_MODE="${profile_privacy}"
+# Usuarios en la misma ventana: el módulo nativo lee aquí el registro de usuarios.
+export KITSUNE_STATE_ROOT="${state_root}"
 
 # Only Kitsune's own, smoke-tested engine runs. Without one, nothing older or
 # foreign is launched in its place.

@@ -207,21 +207,30 @@ y en la [gestión del workspace](https://github.com/YaLTeR/niri/blob/8ed0da4/src
 la negociación y el resultado visible de Kitsune en esa sesión Wayland quedan
 pendientes de comprobar al reabrir el navegador.
 
-## Perfiles, cuentas y sincronización
+## Usuarios, cuentas y sincronización
 
-El avatar de la esquina superior derecha abre el gestor. «Nuevo perfil» crea
-un espacio limpio, sin copiar cookies, contraseñas o historial del original.
-Seleccionar una tarjeta solo muestra sus detalles; «Cambiar a este perfil»
-abre su ventana real. La ventana anterior conserva su identidad. El perfil
-predeterminado se aplica a posteriores aperturas y enlaces externos.
+Los usuarios funcionan como las cuentas de Google: el avatar de la esquina superior
+derecha del inicio abre una tarjeta con el usuario de esa pestaña arriba y los demás
+debajo. Elegir otro cambia **esa misma pestaña** a su inicio; el resto de pestañas no
+se tocan y siguen con su usuario (cada una lleva una línea de su color). Las pestañas
+nuevas van con el usuario de la pestaña en la que estás, y los enlaces que llegan de
+otras aplicaciones, con el usuario principal.
+
+Cada usuario es un contenedor de Gecko dentro del mismo Kitsune: tiene sus propias
+sesiones, cookies y datos de las webs (por ejemplo, otra cuenta de Google), y comparte
+historial, marcadores, contraseñas y extensiones. El usuario principal (Personal) va
+sin contenedor y conserva todo lo de antes. El modo de privacidad (Estricto/Cómodo) y
+«Recordar sesión de Google» son de todo Kitsune y se cambian en la ficha del usuario
+principal. «Gestionar usuarios» abre la ventana donde se crean y editan; «Añadir
+usuario» crea uno limpio, sin copiar nada.
 
 El correo del perfil es una etiqueta local: no verifica identidad ni inicia
 sesión en una cuenta. «Cuenta de Google» abre directamente el sitio oficial
 de Google en el perfil elegido. Kitsune no añade un formulario de contraseña
 propio ni guarda credenciales en el JSON del inicio.
 
-Para conservar Google, activa Perfiles → Editar → «Recordar sesión de Google»
-antes de iniciar sesión. En esta actualización se activa en el perfil Personal
+Para conservar Google, activa Usuarios → Personal → Editar → «Recordar sesión de
+Google» antes de iniciar sesión. En esta actualización se activa en el perfil Personal
 original a petición del usuario, no en los demás. Aplica la excepción nativa
 `persist-data-on-shutdown` solo a Google (`google.com` y `accounts.google.com`),
 no el permiso general para aceptar cookies. La limpieza del resto de sitios
@@ -250,11 +259,27 @@ web tampoco se convierten en sesiones compartidas entre equipos. La activación
 del gestor de contraseñas y una contraseña principal se deciden desde sus
 ajustes nativos, no desde la página de inicio.
 
-Los perfiles separan contextos de navegación, pero no son una barrera frente
+Los usuarios separan contextos de navegación, pero no son una barrera frente
 a otra persona que tenga acceso a la misma cuenta del sistema operativo.
-Esta versión no ofrece borrado de perfiles, para evitar eliminar datos por
+Esta versión no ofrece borrado de usuarios, para evitar eliminar datos por
 accidente desde el selector. Una cuenta única propia de todo el ecosistema
 necesitaría un servicio de identidad y sincronización adicional; no se simula.
+
+## Botones de la ventana
+
+«Tu inicio» → Ajustes → Ventana → «Botones de la ventana»: los puntos de Kitsune o
+los del sistema (Windows, el escritorio de Linux o los semáforos de macOS). Por
+defecto, Kitsune en Windows y Linux y los de Apple en macOS; con los del sistema,
+el lado y el botón de minimizar los decide el sistema.
+
+## Kitsune para Linux (descarga)
+
+Además de la instalación de este PC (motor compilado aquí, inicio en el servidor
+local), `kitsune-engine.py package-linux --version <gecko>` arma
+`Kitsune-<versión>-Linux-x86_64.tar.xz` con el inicio integrado, como Windows y
+macOS. Se descomprime y se ejecuta `kitsune/instalar.sh` (sin sudo): queda en
+`~/.local/share/kitsune` y en el menú de aplicaciones; `desinstalar.sh` lo quita
+sin tocar los datos.
 
 ## Verificación
 
