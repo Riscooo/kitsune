@@ -52,7 +52,7 @@ UA_ANCHOR = 'imply_option("MOZ_DEVTOOLS", "all")'
 UA_FIREFOX = 'imply_option("MOZ_APP_UA_NAME", "Firefox")'
 HERE = Path(__file__).resolve().parent
 RECIPE, BRANDING, NATIVE = HERE / "recipe", HERE / "branding", HERE / "native"
-NATIVE_FILES = ("kitsune-bootstrap.js", "kitsune-appearance.sys.mjs", "kitsune-updates.sys.mjs")
+NATIVE_FILES = ("kitsune-bootstrap.js", "kitsune-appearance.sys.mjs", "kitsune-updates.sys.mjs", "kitsune-users.sys.mjs")
 # Inicio integrado (Windows y macOS, sin servidor local): la extensión inicio@kitsune
 # con la API del inicio (install/home-extension) y las páginas de start/, dentro del
 # motor en resource://builtin-addons/kitsune-home/. En el PC de Risco start/ está junto
@@ -110,6 +110,14 @@ TEXT_PATCHES = {
          "!define MUI_FINISHPAGE_SHOWREADME_TEXT $(UN_SURVEY_CHECKBOX_LABEL)\n"
          "!define MUI_FINISHPAGE_SHOWREADME_FUNCTION un.Survey\n",
          "; Kitsune: sin la encuesta de Mozilla al desinstalar.\n"),
+    ],
+    # Usuarios en la misma ventana: la pestaña nueva (Ctrl+T, «+») va con el usuario
+    # (contenedor) de la pestaña en la que estás, como las cuentas de Google.
+    "browser/base/content/browser-commands.js": [
+        ("          let options = {\n            relatedToCurrent,\n            resolveOnNewTabCreated: resolve,\n          };",
+         "          let options = {\n            relatedToCurrent,\n            resolveOnNewTabCreated: resolve,\n"
+         "            // Kitsune: con el usuario (contenedor) de la pestaña en la que estás.\n"
+         "            userContextId: window.gBrowser?.selectedTab?.userContextId ?? 0,\n          };"),
     ],
     # El inicio integrado se presenta como el inicio de Gecko: «Kitsune», no «Extensión (…)».
     "browser/base/content/browser-siteIdentity.js": [
