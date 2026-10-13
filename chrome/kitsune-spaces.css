@@ -83,9 +83,9 @@
   #main-window #kitsune-spaces-top[data-count="1"] .kitsune-space { display: none; }
   #main-window #kitsune-spaces-top[data-count="1"] { padding-inline-end: 4px; }
 
-  /* El panel de crear y editar. */
-  #kitsune-space-panel { --panel-padding: 0; --arrowpanel-padding: 0; }
-  #kitsune-space-panel .kitsune-space-form {
+  /* Los paneles de Kitsune (crear y editar espacios, traer de otro navegador). */
+  .kitsune-space-panel { --panel-padding: 0; --arrowpanel-padding: 0; }
+  .kitsune-space-panel .kitsune-space-form {
     display: flex;
     flex-direction: column;
     gap: 8px;
@@ -94,10 +94,10 @@
     color: var(--kitsune-text);
     font: 13px "Noto Sans", "Kitsune Sans", sans-serif;
   }
-  #kitsune-space-panel h2 { margin: 0 0 4px; font: 500 16px "Noto Serif", serif; }
-  #kitsune-space-panel label { display: flex; flex-direction: column; gap: 5px; color: var(--kitsune-quiet); font-size: 12px; }
-  #kitsune-space-panel .kitsune-space-label { color: var(--kitsune-quiet); font-size: 12px; }
-  #kitsune-space-panel :is(input, select) {
+  .kitsune-space-panel h2 { margin: 0 0 4px; font: 500 16px "Noto Serif", serif; }
+  .kitsune-space-panel label { display: flex; flex-direction: column; gap: 5px; color: var(--kitsune-quiet); font-size: 12px; }
+  .kitsune-space-panel .kitsune-space-label { color: var(--kitsune-quiet); font-size: 12px; }
+  .kitsune-space-panel :is(input:not([type="radio"], [type="checkbox"]), select) {
     appearance: none;
     height: 32px;
     padding: 0 10px;
@@ -108,9 +108,9 @@
     font: inherit;
     font-size: 13px;
   }
-  #kitsune-space-panel :is(input, select):focus-visible { outline: 2px solid var(--kitsune-focus); outline-offset: 0; }
-  #kitsune-space-panel .kitsune-space-colors { display: flex; gap: 8px; }
-  #kitsune-space-panel .kitsune-space-colors > button {
+  .kitsune-space-panel :is(input:not([type="radio"], [type="checkbox"]), select):focus-visible { outline: 2px solid var(--kitsune-focus); outline-offset: 0; }
+  .kitsune-space-panel .kitsune-space-colors { display: flex; gap: 8px; }
+  .kitsune-space-panel .kitsune-space-colors > button {
     appearance: none;
     width: 24px;
     height: 24px;
@@ -120,12 +120,12 @@
     background: var(--kitsune-space-ink) content-box;
     box-shadow: inset 0 0 0 2px var(--kitsune-sheet);
   }
-  #kitsune-space-panel .kitsune-space-colors > button[aria-checked="true"] { border-color: var(--kitsune-text); }
-  #kitsune-space-panel .kitsune-space-colors > button:focus-visible { outline: 2px solid var(--kitsune-focus); outline-offset: 1px; }
-  #kitsune-space-panel .kitsune-space-panel-error { min-height: 0; margin: 0; color: var(--kb-primary); font-size: 12px; }
-  #kitsune-space-panel .kitsune-space-panel-error:empty { display: none; }
-  #kitsune-space-panel .kitsune-space-panel-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 4px; }
-  #kitsune-space-panel .kitsune-space-panel-actions > button {
+  .kitsune-space-panel .kitsune-space-colors > button[aria-checked="true"] { border-color: var(--kitsune-text); }
+  .kitsune-space-panel .kitsune-space-colors > button:focus-visible { outline: 2px solid var(--kitsune-focus); outline-offset: 1px; }
+  .kitsune-space-panel .kitsune-space-panel-error { min-height: 0; margin: 0; color: var(--kb-primary); font-size: 12px; }
+  .kitsune-space-panel .kitsune-space-panel-error:empty { display: none; }
+  .kitsune-space-panel .kitsune-space-panel-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 4px; }
+  .kitsune-space-panel .kitsune-space-panel-actions > button {
     appearance: none;
     height: 30px;
     padding: 0 14px;
@@ -135,10 +135,34 @@
     color: var(--kitsune-text);
     font: 500 13px "Noto Sans", "Kitsune Sans", sans-serif;
   }
-  #kitsune-space-panel .kitsune-space-panel-actions > .kitsune-space-panel-save {
+  .kitsune-space-panel .kitsune-space-panel-actions > .kitsune-space-panel-save {
     border-color: var(--kb-primary);
     background: var(--kb-primary);
     color: var(--kb-surface);
   }
-  #kitsune-space-panel .kitsune-space-panel-actions > button:focus-visible { outline: 2px solid var(--kitsune-focus); outline-offset: 1px; }
+  .kitsune-space-panel .kitsune-space-panel-actions > button:focus-visible { outline: 2px solid var(--kitsune-focus); outline-offset: 1px; }
+
+  /* Traer de otro navegador: la lista de navegadores y qué traer. */
+  .kitsune-import-panel .kitsune-import-form { width: 330px; }
+  .kitsune-import-panel .kitsune-import-sources { display: flex; flex-direction: column; gap: 6px; max-height: 260px; overflow-y: auto; }
+  .kitsune-import-panel label.kitsune-import-source {
+    flex-direction: row;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 10px;
+    border: 1px solid var(--kitsune-rule);
+    border-radius: 9px;
+    color: var(--kitsune-text);
+  }
+  .kitsune-import-panel label.kitsune-import-source:has(input:checked) { border-color: var(--kb-primary); background: var(--kitsune-sheet); }
+  .kitsune-import-panel .kitsune-import-source > span { display: flex; flex-direction: column; gap: 1px; }
+  .kitsune-import-panel .kitsune-import-source b { font-size: 13px; font-weight: 600; }
+  .kitsune-import-panel .kitsune-import-source small { color: var(--kitsune-quiet); font-size: 11px; }
+  .kitsune-import-panel .kitsune-import-what { display: flex; flex-wrap: wrap; gap: 4px 14px; }
+  .kitsune-import-panel label.kitsune-import-check { flex-direction: row; align-items: center; gap: 6px; color: var(--kitsune-text); font-size: 12px; }
+  .kitsune-import-panel :is(.kitsune-import-zen, .kitsune-import-status, .kitsune-import-result p) { margin: 0; color: var(--kitsune-quiet); font-size: 12px; line-height: 1.45; }
+  .kitsune-import-panel .kitsune-import-status:not(:empty) { color: var(--kitsune-text); }
+  .kitsune-import-panel :is(.kitsune-import-status, .kitsune-import-zen):empty { display: none; }
+  .kitsune-import-panel a { color: var(--kb-secondary); }
+  .kitsune-import-panel input:is([type="radio"], [type="checkbox"]) { width: 14px; height: 14px; margin: 0; accent-color: var(--kb-primary); }
 }

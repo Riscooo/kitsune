@@ -193,6 +193,8 @@ def prepare_profile(test_root: Path):
         "browser.download.dir": str(downloads),
         "browser.download.useDownloadDir": True,
         "browser.helperApps.neverAsk.saveToDisk": "application/octet-stream,text/plain",
+        # Sin la barra de «¿Vienes de otro navegador?» (la prueba de importar la quita).
+        "kitsune.import.offered": True,
     }
     template = ROOT / "install/user.js"
     base_prefs = template.read_text() if template.is_file() else ""

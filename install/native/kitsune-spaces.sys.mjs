@@ -482,4 +482,8 @@ export const KitsuneSpaces = {
   async edit(id, patch) { await load(); return commit(editSpace(state.data, id, patch)); },
   async remove(id) { await load(); return commit(removeSpace(state.data, id)); },
   moveTab: (win, tab, id) => moveTab(win, tab, id),
+  /** Para el importador: deja la pestaña en ese espacio sin tocar la ventana (luego, refresh). */
+  assignTab(tab, id) { if (state.data.spaces.some(space => space.id === id)) setTabSpace(tab, id); },
+  /** Vuelve a colocar la ventana en su espacio (muestra y oculta lo que toque). */
+  refresh: win => switchTo(win, activeSpace(win)),
 };
