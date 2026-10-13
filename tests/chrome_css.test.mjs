@@ -158,3 +158,27 @@ test("a page's <select> drop-down follows the page: paper on a light select, the
     assert.match(value[1], /^light-dark\(var\(--kb-[a-z-]+\),\s*Menu(Text)?\)\s*!important$/, `${token}: ${value[1]}`);
   }
 });
+
+test('Kitsune window dots apply only with kitsune-window-buttons="kitsune", on every system', async () => {
+  const css = (await read('window-controls.css')).replace(/\/\*[\s\S]*?\*\//g, '');
+  // Sin @media que excluya macOS: allí también se pueden elegir los puntos.
+  assert.doesNotMatch(css, /not \(-moz-platform: macos\)/);
+  const blocks = [...css.matchAll(/([^{}]+)\{/g)].map(match => match[1].trim()).filter(selector => /titlebar/.test(selector));
+  assert.ok(blocks.length > 5);
+  for (const selector of blocks) {
+    // Comas de primer nivel (las de :is(...) no separan selectores).
+    const parts = []; let depth = 0, from = 0;
+    [...selector].forEach((char, index) => {
+      if (char === '(') depth++; else if (char === ')') depth--;
+      else if (char === ',' && depth === 0) { parts.push(selector.slice(from, index)); from = index + 1; }
+    });
+    parts.push(selector.slice(from));
+    for (const part of parts) assert.match(part, /\[kitsune-window-buttons="kitsune"\]/, part);
+  }
+  // macOS: la caja deja de reservar el hueco de los semáforos (Gecko los oculta) y se ven los tres botones.
+  assert.match(css, /@media \(-moz-platform: macos\)/);
+  const header = (await read('kitsune-header.css')).replace(/\/\*[\s\S]*?\*\//g, '');
+  for (const [selector] of header.matchAll(/[^{}]*titlebar-buttonbox-container[^{}]*(?=\{)/g)) {
+    if (/order/.test(header.slice(header.indexOf(selector)).split('}')[0])) assert.match(selector, /\[kitsune-window-buttons="kitsune"\]/, selector);
+  }
+});

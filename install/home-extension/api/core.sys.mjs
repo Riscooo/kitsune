@@ -48,7 +48,10 @@ export const DEFAULT_DATA = Object.freeze({
   windowControls: 'izquierda', brand: true,
   performance: 'normal', ramLimit: 2048,
   minimize: true,
+  windowButtons: 'auto',
 })
+// Botones de la ventana: los de Kitsune, los del sistema o según el sistema (auto: los de Apple en macOS).
+export const WINDOW_BUTTONS = Object.freeze(['auto', 'kitsune', 'sistema'])
 const LEGACY_KEYS = ['links', 'art', 'motion', 'newTab', 'accent', 'focus']
 const HASH = /^[0-9a-f]{64}$/
 const LINK_ID = /^[A-Za-z0-9][A-Za-z0-9_-]{0,79}$/
@@ -87,6 +90,7 @@ export function validateSettings(value, base = null) {
   if (!['claro', 'oscuro'].includes(data.theme)) throw invalid('El tema no es válido.')
   if (!['izquierda', 'derecha'].includes(data.windowControls) || typeof data.brand !== 'boolean') throw invalid('Las opciones de la ventana no son válidas.')
   if (typeof data.minimize !== 'boolean') throw invalid('Las opciones de la ventana no son válidas.')
+  if (!WINDOW_BUTTONS.includes(data.windowButtons)) throw invalid('Las opciones de la ventana no son válidas.')
   if (!['normal', 'ahorro'].includes(data.performance) || ![1024, 2048, 4096].includes(data.ramLimit)) throw invalid('El modo de rendimiento no es válido.')
   if (data.background !== null && (typeof data.background !== 'string' || !HASH.test(data.background))) throw invalid('El fondo no es válido.')
   const modules = data.modules
@@ -137,7 +141,7 @@ export function updateSettings(record, data, revision, newBackground = null) {
   return { updated: true, record: next }
 }
 
-// Apariencia: el control v6 que lee install/native/kitsune-appearance.sys.mjs.
+// Apariencia: el control v7 que lee install/native/kitsune-appearance.sys.mjs.
 const KEYS = ['bg', 'surface', 'surfaceHigh', 'text', 'muted', 'outline', 'primary', 'primaryContainer', 'secondary', 'tertiary']
 const palette = colors => Object.fromEntries(KEYS.map((key, index) => [key, colors[index]]))
 export const PALETTES = Object.freeze({
@@ -149,9 +153,10 @@ export const PALETTES = Object.freeze({
 export function appearanceControl(settings, { remember = false, backgroundExists = true } = {}) {
   const background = settings.background && backgroundExists ? settings.background : null
   return {
-    version: 6, palette: { ...PALETTES[settings.theme] }, motion: settings.motion, googleRemember: remember === true,
+    version: 7, palette: { ...PALETTES[settings.theme] }, motion: settings.motion, googleRemember: remember === true,
     theme: settings.theme, background, windowControls: settings.windowControls, brand: settings.brand,
     performance: settings.performance, ramLimit: settings.ramLimit, minimize: settings.minimize,
+    windowButtons: settings.windowButtons,
   }
 }
 

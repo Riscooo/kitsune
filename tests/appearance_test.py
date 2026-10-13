@@ -53,12 +53,17 @@ class AppearanceTests(unittest.TestCase):
         self.assertEqual(appearance.PAPEL, expected)
         self.assertEqual(self.refresh()["palette"], expected)
 
-    def test_control_is_version_6_with_theme_background_window_saver_and_minimize(self):
+    def test_control_is_version_7_with_theme_background_window_saver_minimize_and_buttons(self):
         self.refresh()
         control = json.loads(self.manager.control.read_text())
-        self.assertEqual(control["version"], 6)
+        self.assertEqual(control["version"], 7)
         self.assertEqual(set(control), {"version", "palette", "motion", "googleRemember", "theme", "background",
-                                        "windowControls", "brand", "performance", "ramLimit", "minimize", "fingerprint"})
+                                        "windowControls", "brand", "performance", "ramLimit", "minimize", "windowButtons",
+                                        "fingerprint"})
+        self.assertEqual(control["windowButtons"], "auto")
+        self.assertEqual(self.refresh(windowButtons="sistema")["windowButtons"], "sistema")
+        with self.assertRaises(ValueError):
+            self.refresh(windowButtons="macos")
         self.assertIs(control["minimize"], True)
         self.assertIs(self.refresh(minimize=False)["minimize"], False)
         with self.assertRaises(ValueError):

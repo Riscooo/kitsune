@@ -67,7 +67,7 @@ function fixture({ permissions = new Map(), preferences = new Map(), inherited =
   // Execute only this local trusted source against fake Services. No network,
   // real profile, timers or native browser APIs are available in the context.
   vm.runInContext(source.replace('export const KitsuneAppearance', 'const KitsuneAppearance') +
-    '\nglobalThis.api = { validate, nativeCss, applyGoogle, applyScheme, applyNewTab, applySupportUrl, managedOrigins, IDENTITY_CSS };', context);
+    '\nglobalThis.api = { validate, nativeCss, applyGoogle, applyScheme, applyNewTab, applySupportUrl, managedOrigins, IDENTITY_CSS, resolveButtons, applyButtons };', context);
   return { api: context.api, permissions, preferences, calls };
 }
 
@@ -120,7 +120,7 @@ test('v4 moves the window buttons to the right and hides the brand only when ask
   const right = api.nativeCss(api.validate(v4({ windowControls: 'derecha', brand: false })));
   assert.match(right, /\.titlebar-buttonbox-container\{order:999!important/);
   // Más específico que «#main-window #TabsToolbar > .titlebar-buttonbox-container» de kitsune-header.css.
-  assert.match(right, /:root#main-window #TabsToolbar>\.titlebar-buttonbox-container/);
+  assert.match(right, /:root#main-window\[kitsune-window-buttons="kitsune"\] #TabsToolbar>\.titlebar-buttonbox-container/);
   assert.match(right, /#TabsToolbar::before[^{]*\{display:none!important/);
   for (const change of [{ windowControls: 'arriba' }, { brand: 'no' }, { brand: undefined }]) assert.throws(() => api.validate(v4(change)));
 });
@@ -142,6 +142,40 @@ test('v6 shows the minimize button unless hidden, and on the right it goes first
   assert.match(api.nativeCss(api.validate(v6({ minimize: false }))), /\.titlebar-min\{display:none!important/);
   assert.throws(() => api.validate(v6({ minimize: 'no' })));
   assert.equal(api.validate(control()).minimize, true);
+});
+
+test('v7 chooses Kitsune or system window buttons; auto is system on macOS and Kitsune elsewhere', () => {
+  const { api } = fixture();
+  const v7 = (extra = {}) => ({ ...controlV3(), version: 7, windowControls: 'derecha', brand: true, performance: 'normal', ramLimit: 2048,
+    minimize: false, windowButtons: 'auto', ...extra });
+  assert.equal(api.validate(v7()).windowButtons, 'auto');
+  assert.equal(api.validate(v7({ windowButtons: 'sistema' })).windowButtons, 'sistema');
+  for (const change of [{ windowButtons: 'macos' }, { windowButtons: null }, { windowButtons: undefined }]) assert.throws(() => api.validate(v7(change)));
+  // Controles anteriores: como hasta ahora (auto).
+  assert.equal(api.validate(control()).windowButtons, 'auto');
+  assert.equal(api.resolveButtons('auto', 'Darwin'), 'sistema');
+  assert.equal(api.resolveButtons('auto', 'WINNT'), 'kitsune');
+  assert.equal(api.resolveButtons('auto', 'Linux'), 'kitsune');
+  assert.equal(api.resolveButtons('kitsune', 'Darwin'), 'kitsune');
+  assert.equal(api.resolveButtons('sistema', 'Linux'), 'sistema');
+  // Lado y minimizar solo con los botones de Kitsune, también en macOS.
+  const css = api.nativeCss(api.validate(v7()));
+  assert.match(css, /:root#main-window\[kitsune-window-buttons="kitsune"\] \.titlebar-buttonbox \.titlebar-min\{display:none!important/);
+  assert.match(css, /:root#main-window\[kitsune-window-buttons="kitsune"\] #TabsToolbar>\.titlebar-buttonbox-container/);
+  assert.doesNotMatch(css, /-moz-platform: macos/);
+});
+
+test('each window carries the resolved button style as an attribute', () => {
+  const { api } = fixture();
+  const window = () => { const attributes = new Map(); return { document: { documentElement: {
+    setAttribute: (name, value) => attributes.set(name, value), getAttribute: name => attributes.get(name) ?? null } }, attributes }; };
+  const windows = [window(), window()];
+  api.applyButtons('sistema', windows, 'WINNT');
+  assert.deepEqual(windows.map(item => item.attributes.get('kitsune-window-buttons')), ['sistema', 'sistema']);
+  api.applyButtons('auto', windows, 'Darwin');
+  assert.deepEqual(windows.map(item => item.attributes.get('kitsune-window-buttons')), ['sistema', 'sistema']);
+  api.applyButtons('auto', windows, 'Linux');
+  assert.deepEqual(windows.map(item => item.attributes.get('kitsune-window-buttons')), ['kitsune', 'kitsune']);
 });
 
 test('dark controls set the scheme variable, and the background is a file inside the profile chrome folder', () => {

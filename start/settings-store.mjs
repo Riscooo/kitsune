@@ -19,6 +19,7 @@ export function normalizeSettings(value = {}) {
     performance: value?.performance === 'ahorro' ? 'ahorro' : 'normal',
     ramLimit: [1024, 2048, 4096].includes(value?.ramLimit) ? value.ramLimit : 2048,
     minimize: value?.minimize !== false,
+    windowButtons: ['kitsune', 'sistema'].includes(value?.windowButtons) ? value.windowButtons : 'auto',
   }
 }
 

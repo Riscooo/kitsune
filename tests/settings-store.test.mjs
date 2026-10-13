@@ -18,7 +18,7 @@ test('theme and background accept only their enumerated values and a content has
 
 test('legacy preferences keep their values and receive safe module/wallpaper defaults', () => {
   const state = normalizeSettings({ art: false, motion: false, newTab: true, accent: 'pink', focus: true, links: [] })
-  assert.deepEqual(state, { art: false, motion: false, newTab: true, accent: 'pink', focus: true, links: [], wallpaper: 'night', themeSync: false, modules: { clock: true, shortcuts: true }, theme: 'claro', background: null, windowControls: 'izquierda', brand: true, performance: 'normal', ramLimit: 2048, minimize: true })
+  assert.deepEqual(state, { art: false, motion: false, newTab: true, accent: 'pink', focus: true, links: [], wallpaper: 'night', themeSync: false, modules: { clock: true, shortcuts: true }, theme: 'claro', background: null, windowControls: 'izquierda', brand: true, performance: 'normal', ramLimit: 2048, minimize: true, windowButtons: 'auto' })
   assert.equal(normalizeSettings({ wallpaper: 'javascript:bad', accent: 'bad', themeSync: 'true' }).wallpaper, 'night')
   assert.equal(normalizeSettings({ themeSync: 'true' }).themeSync, false)
 })
@@ -161,4 +161,11 @@ test('native theme success requires actual acknowledgement even in manual mode',
   assert.match(appearanceStatus(appearance()), /Aplicando/u)
   assert.match(appearanceStatus({ ...appearance(), native: { available: true, status: 'applied' } }), /aplicado al navegador/u)
   assert.match(appearanceStatus({ ...appearance(), native: { available: false, status: 'unavailable' } }), /no está disponible/u)
+})
+
+test('window buttons are Kitsune, system or automatic, and anything else is automatic', () => {
+  assert.equal(normalizeSettings({}).windowButtons, 'auto')
+  assert.equal(normalizeSettings({ windowButtons: 'sistema' }).windowButtons, 'sistema')
+  assert.equal(normalizeSettings({ windowButtons: 'kitsune' }).windowButtons, 'kitsune')
+  assert.equal(normalizeSettings({ windowButtons: 'macos' }).windowButtons, 'auto')
 })

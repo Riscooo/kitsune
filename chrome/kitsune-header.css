@@ -61,7 +61,8 @@
     -moz-window-dragging: drag;
   }
 
-  #main-window #TabsToolbar > .titlebar-buttonbox-container {
+  /* Los botones de Kitsune, delante de todo; con «Del sistema», donde los ponga el sistema. */
+  #main-window[kitsune-window-buttons="kitsune"] #TabsToolbar > .titlebar-buttonbox-container {
     order: -3 !important;
     padding-inline: 0 8px !important;
     margin-block-end: 4px !important;
@@ -213,7 +214,7 @@
     background: url("assets/kitsune.svg") center / 26px 26px no-repeat;
     pointer-events: none;
   }
-  #main-window #navigator-toolbox[tabs-hidden] > #nav-bar > .titlebar-buttonbox-container {
+  #main-window[kitsune-window-buttons="kitsune"] #navigator-toolbox[tabs-hidden] > #nav-bar > .titlebar-buttonbox-container {
     order: -3 !important;
   }
   #main-window #navigator-toolbox[tabs-hidden] > #nav-bar .titlebar-button:focus-visible {

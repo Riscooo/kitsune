@@ -4,110 +4,118 @@
  * Minimize is shown too (Windows, macOS and most Linux desktops); on Niri, which
  * has no minimized state, «Tu inicio» → Ventana can hide it.
  * Gecko's normal cluster has no fullscreen command; F11 remains native.
+ * Solo con kitsune-window-buttons="kitsune" (lo pone el módulo nativo en cada
+ * ventana): con «Del sistema» se quedan los botones de Windows, GTK o Apple.
  */
 @-moz-document url("chrome://browser/content/browser.xhtml") {
-  /* macOS: Gecko esconde estos botones y deja el hueco a los semáforos nativos de
-     Apple, que ya son tres puntos; aquí no se tocan. */
-  @media not (-moz-platform: macos) {
-    :root {
-      --ink-window-close: var(--kb-primary);
-      --ink-window-maximize: var(--kb-tertiary);
-      --ink-window-minimize: var(--kb-secondary);
-      --ink-window-dot: 12px;
-      --ink-window-hit-width: 26px;
-      --ink-window-hit-height: 28px;
-    }
+  :root[kitsune-window-buttons="kitsune"] {
+    --ink-window-close: var(--kb-primary);
+    --ink-window-maximize: var(--kb-tertiary);
+    --ink-window-minimize: var(--kb-secondary);
+    --ink-window-dot: 12px;
+    --ink-window-hit-width: 26px;
+    --ink-window-hit-height: 28px;
+  }
 
-    .titlebar-buttonbox-container {
-      order: -1 !important;
-      align-items: center !important;
-      padding-inline: 2px 8px !important;
-    }
+  :root[kitsune-window-buttons="kitsune"] .titlebar-buttonbox-container {
+    order: -1 !important;
+    align-items: center !important;
+    padding-inline: 2px 8px !important;
+  }
 
-    :root[customtitlebar] .titlebar-spacer[type="pre-tabs"] {
-      width: 8px !important;
-    }
+  :root[kitsune-window-buttons="kitsune"][customtitlebar] .titlebar-spacer[type="pre-tabs"] {
+    width: 8px !important;
+  }
 
-    .titlebar-buttonbox {
-      appearance: none !important;
-      align-items: center !important;
-      gap: 0 !important;
-      padding: 0 !important;
-    }
+  :root[kitsune-window-buttons="kitsune"] .titlebar-buttonbox {
+    appearance: none !important;
+    align-items: center !important;
+    gap: 0 !important;
+    padding: 0 !important;
+  }
 
-    .titlebar-button {
-      appearance: none !important;
-      align-items: center !important;
-      justify-content: center !important;
-      box-sizing: border-box !important;
-      min-width: var(--ink-window-hit-width) !important;
-      max-width: var(--ink-window-hit-width) !important;
-      width: var(--ink-window-hit-width) !important;
-      min-height: var(--ink-window-hit-height) !important;
-      max-height: var(--ink-window-hit-height) !important;
-      height: var(--ink-window-hit-height) !important;
-      padding: 0 !important;
-      margin: 0 !important;
-      border: 0 !important;
-      border-radius: 5px !important;
-      background: transparent !important;
-      -moz-window-dragging: no-drag !important;
-      color: var(--kb-text) !important;
-    }
+  :root[kitsune-window-buttons="kitsune"] .titlebar-button {
+    appearance: none !important;
+    align-items: center !important;
+    justify-content: center !important;
+    box-sizing: border-box !important;
+    min-width: var(--ink-window-hit-width) !important;
+    max-width: var(--ink-window-hit-width) !important;
+    width: var(--ink-window-hit-width) !important;
+    min-height: var(--ink-window-hit-height) !important;
+    max-height: var(--ink-window-hit-height) !important;
+    height: var(--ink-window-hit-height) !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    border: 0 !important;
+    border-radius: 5px !important;
+    background: transparent !important;
+    -moz-window-dragging: no-drag !important;
+    color: var(--kb-text) !important;
+  }
 
-    .titlebar-button > .toolbarbutton-icon {
-      box-sizing: border-box !important;
-      min-width: var(--ink-window-dot) !important;
-      width: var(--ink-window-dot) !important;
-      height: var(--ink-window-dot) !important;
-      padding: 0 !important;
-      margin: 0 !important;
-      border: 0 !important;
-      border-radius: 50% !important;
-      background-color: var(--ink-window-maximize) !important;
-      /* The native symbolic glyph remains present, revealed on hover/focus. */
-      background-size: 0 !important;
-      stroke: currentColor !important;
-      box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--kb-text) 9%, transparent) !important;
-      transition: filter 130ms ease-out !important;
-    }
+  :root[kitsune-window-buttons="kitsune"] .titlebar-button > .toolbarbutton-icon {
+    box-sizing: border-box !important;
+    min-width: var(--ink-window-dot) !important;
+    width: var(--ink-window-dot) !important;
+    height: var(--ink-window-dot) !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    border: 0 !important;
+    border-radius: 50% !important;
+    background-color: var(--ink-window-maximize) !important;
+    /* The native symbolic glyph remains present, revealed on hover/focus. */
+    background-size: 0 !important;
+    stroke: currentColor !important;
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--kb-text) 9%, transparent) !important;
+    transition: filter 130ms ease-out !important;
+  }
 
-    /* A la izquierda, como en macOS: cerrar, minimizar, ampliar. */
-    .titlebar-close { order: 0 !important; }
-    .titlebar-close > .toolbarbutton-icon { background-color: var(--ink-window-close) !important; }
-    /* Gecko lo oculta si GTK no lo pide (Niri): Kitsune lo muestra siempre;
-       «Tu inicio» → Ventana lo quita con una regla más específica. */
-    .titlebar-min { order: 1 !important; display: flex !important; }
-    .titlebar-min > .toolbarbutton-icon { background-color: var(--ink-window-minimize) !important; }
-    .titlebar-max, .titlebar-restore { order: 2 !important; }
+  /* A la izquierda, como en macOS: cerrar, minimizar, ampliar. */
+  :root[kitsune-window-buttons="kitsune"] .titlebar-close { order: 0 !important; }
+  :root[kitsune-window-buttons="kitsune"] .titlebar-close > .toolbarbutton-icon { background-color: var(--ink-window-close) !important; }
+  /* Gecko lo oculta si GTK no lo pide (Niri): Kitsune lo muestra siempre;
+     «Tu inicio» → Ventana lo quita con una regla más específica. */
+  :root[kitsune-window-buttons="kitsune"] .titlebar-min { order: 1 !important; display: flex !important; }
+  :root[kitsune-window-buttons="kitsune"] .titlebar-min > .toolbarbutton-icon { background-color: var(--ink-window-minimize) !important; }
+  :root[kitsune-window-buttons="kitsune"] .titlebar-max, :root[kitsune-window-buttons="kitsune"] .titlebar-restore { order: 2 !important; }
 
-    /* Windows: Gecko esconde ese icono y pinta el símbolo (–, □, ✕) con la letra Segoe
-       en ::before. Aquí manda el punto de Kitsune y el símbolo solo asoma encima al pasar
-       el ratón, como el de GTK en Linux (donde ::before no tiene contenido). */
-    .titlebar-button { position: relative !important; }
-    .titlebar-button > .toolbarbutton-icon { display: flex !important; }
-    .titlebar-button::before { display: none !important; }
-    .titlebar-button:is(:hover, :focus-visible)::before {
-      display: block !important;
-      position: absolute !important;
-      inset: 0 !important;
-      font-size: 6px !important;
-      line-height: var(--ink-window-hit-height) !important;
-      text-align: center !important;
-      color: var(--kb-text) !important;
-      pointer-events: none !important;
-      transform: none !important;
-    }
+  /* Windows: Gecko esconde ese icono y pinta el símbolo (–, □, ✕) con la letra Segoe
+     en ::before. Aquí manda el punto de Kitsune y el símbolo solo asoma encima al pasar
+     el ratón, como el de GTK en Linux (donde ::before no tiene contenido). */
+  :root[kitsune-window-buttons="kitsune"] .titlebar-button { position: relative !important; }
+  :root[kitsune-window-buttons="kitsune"] .titlebar-button > .toolbarbutton-icon { display: flex !important; }
+  :root[kitsune-window-buttons="kitsune"] .titlebar-button::before { display: none !important; }
+  :root[kitsune-window-buttons="kitsune"] .titlebar-button:is(:hover, :focus-visible)::before {
+    display: block !important;
+    position: absolute !important;
+    inset: 0 !important;
+    font-size: 6px !important;
+    line-height: var(--ink-window-hit-height) !important;
+    text-align: center !important;
+    color: var(--kb-text) !important;
+    pointer-events: none !important;
+    transform: none !important;
+  }
 
-    .titlebar-button:is(:hover, :focus-visible) > .toolbarbutton-icon {
-      background-size: 9px !important;
-      filter: brightness(1.12);
-    }
-    .titlebar-button:active > .toolbarbutton-icon { filter: brightness(0.86); }
-    .titlebar-button:focus-visible { outline: 1px solid var(--kb-text) !important; outline-offset: -2px !important; }
+  :root[kitsune-window-buttons="kitsune"] .titlebar-button:is(:hover, :focus-visible) > .toolbarbutton-icon {
+    background-size: 9px !important;
+    filter: brightness(1.12);
+  }
+  :root[kitsune-window-buttons="kitsune"] .titlebar-button:active > .toolbarbutton-icon { filter: brightness(0.86); }
+  :root[kitsune-window-buttons="kitsune"] .titlebar-button:focus-visible { outline: 1px solid var(--kb-text) !important; outline-offset: -2px !important; }
 
-    @media (prefers-reduced-motion: reduce) {
-      .titlebar-button > .toolbarbutton-icon { transition: none !important; }
-    }
+  @media (prefers-reduced-motion: reduce) {
+    :root[kitsune-window-buttons="kitsune"] .titlebar-button > .toolbarbutton-icon { transition: none !important; }
+  }
+
+  /* macOS: sin la caja -moz-window-button-box, Gecko deja vacío el hueco de los
+     semáforos de Apple y los oculta; en su lugar van los tres botones de Kitsune
+     (allí Gecko los esconde con display: none). */
+  @media (-moz-platform: macos) {
+    :root[kitsune-window-buttons="kitsune"] .titlebar-buttonbox-container { display: flex !important; }
+    :root[kitsune-window-buttons="kitsune"] :is(.titlebar-close, .titlebar-min) { display: flex !important; }
+    :root[kitsune-window-buttons="kitsune"]:not([sizemode="maximized"]) .titlebar-max { display: flex !important; }
+    :root[kitsune-window-buttons="kitsune"][sizemode="maximized"] .titlebar-restore { display: flex !important; }
   }
 }

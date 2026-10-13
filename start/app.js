@@ -26,6 +26,7 @@ const store = createSettingsStore({
     for (const [id, key] of Object.entries(toggles)) { $(`#${id}`).checked = settings[key]; $(`#${id}`).disabled = !state.ready }
     for (const key of ['clock', 'shortcuts']) { $(`#module-${key}`).checked = settings.modules[key]; $(`#module-${key}`).disabled = !state.ready }
     for (const button of document.querySelectorAll('[data-window-controls]')) button.addEventListener('click', () => void save({ windowControls: button.dataset.windowControls }))
+for (const button of document.querySelectorAll('[data-window-buttons]')) button.addEventListener('click', () => void save({ windowButtons: button.dataset.windowButtons }))
 for (const button of document.querySelectorAll('[data-performance]')) button.addEventListener('click', () => void save({ performance: button.dataset.performance }))
 for (const button of document.querySelectorAll('[data-ram-limit]')) button.addEventListener('click', () => void save({ ramLimit: Number(button.dataset.ramLimit) }))
 // Cuánta memoria usa ahora Kitsune en este perfil (mientras el panel está abierto).
@@ -43,7 +44,11 @@ setInterval(() => void updateMemory(), 5000)
 $('#settings-open').addEventListener('click', () => setTimeout(() => void updateMemory(), 50))
 for (const radio of document.querySelectorAll('input[name="theme"]')) { radio.checked = radio.value === settings.theme; radio.disabled = !state.ready }
     $('#background-file').disabled = !state.ready
-    for (const button of document.querySelectorAll('[data-window-controls]')) { button.setAttribute('aria-pressed', String(button.dataset.windowControls === settings.windowControls)); button.disabled = !state.ready }
+    // «auto»: los de Apple en macOS y los de Kitsune en el resto. Con los del sistema, el lado y minimizar los decide él.
+    const buttons = settings.windowButtons === 'auto' ? (navigator.userAgent.includes('Macintosh') ? 'sistema' : 'kitsune') : settings.windowButtons
+    for (const button of document.querySelectorAll('[data-window-buttons]')) { button.setAttribute('aria-pressed', String(button.dataset.windowButtons === buttons)); button.disabled = !state.ready }
+    for (const button of document.querySelectorAll('[data-window-controls]')) { button.setAttribute('aria-pressed', String(button.dataset.windowControls === settings.windowControls)); button.disabled = !state.ready || buttons === 'sistema' }
+    $('#minimize-toggle').disabled = !state.ready || buttons === 'sistema'
     for (const button of document.querySelectorAll('[data-performance]')) { button.setAttribute('aria-pressed', String(button.dataset.performance === settings.performance)); button.disabled = !state.ready }
     for (const button of document.querySelectorAll('[data-ram-limit]')) { button.setAttribute('aria-pressed', String(Number(button.dataset.ramLimit) === settings.ramLimit)); button.disabled = !state.ready }
     $('#ram-row').hidden = settings.performance !== 'ahorro'

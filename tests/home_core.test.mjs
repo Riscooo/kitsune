@@ -24,6 +24,9 @@ const SETTINGS_CASES = [
   { ...base },
   { links: base.links, art: true, motion: false, newTab: true, accent: 'pink', focus: true },
   { ...base, theme: 'oscuro', background: 'a'.repeat(64), windowControls: 'derecha', brand: false, performance: 'ahorro', ramLimit: 1024, minimize: false },
+  { ...base, windowButtons: 'sistema' },
+  { ...base, windowButtons: 'kitsune' },
+  { ...base, windowButtons: 'macos' },
   { ...base, theme: 'sepia' },
   { ...base, ramLimit: 3000 },
   { ...base, background: 'xyz' },
@@ -77,8 +80,8 @@ test('a save needs the current revision and the background can only stay, go or 
   assert.deepEqual(core.parseSettingsRecord(JSON.stringify(stored.record)), stored.record)
 })
 
-test('the appearance control is the same v6 control that appearance.py writes', () => {
-  const settings = { ...base, theme: 'oscuro', background: 'c'.repeat(64), windowControls: 'derecha', performance: 'ahorro', ramLimit: 4096 }
+test('the appearance control is the same v7 control that appearance.py writes', () => {
+  const settings = { ...base, theme: 'oscuro', background: 'c'.repeat(64), windowControls: 'derecha', performance: 'ahorro', ramLimit: 4096, windowButtons: 'sistema' }
   const expected = python(`
 import importlib.util, json, sys, tempfile
 from pathlib import Path
@@ -93,6 +96,8 @@ value = manager.refresh(settings)
 value.pop('fingerprint'); value.pop('native')
 print(json.dumps(value))`, settings)
   assert.deepEqual(core.appearanceControl(settings), expected)
+  assert.equal(expected.version, 7)
+  assert.equal(expected.windowButtons, 'sistema')
   assert.equal(core.appearanceControl(settings, { backgroundExists: false }).background, null)
   assert.equal(core.canonicalJson({ b: 1, a: [{ d: 2, c: 3 }] }), '{"a":[{"c":3,"d":2}],"b":1}')
   const fresh = Date.now()

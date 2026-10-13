@@ -32,7 +32,11 @@ const CONTROL_KEYS = Object.freeze({
   // Botón de minimizar (en Niri no hace nada: se puede ocultar).
   6: Object.freeze(['version', 'fingerprint', 'palette', 'motion', 'googleRemember', 'theme', 'background', 'windowControls', 'brand',
                     'performance', 'ramLimit', 'minimize']),
+  // Botones de la ventana: los de Kitsune, los del sistema o según el sistema.
+  7: Object.freeze(['version', 'fingerprint', 'palette', 'motion', 'googleRemember', 'theme', 'background', 'windowControls', 'brand',
+                    'performance', 'ramLimit', 'minimize', 'windowButtons']),
 });
+const WINDOW_BUTTONS = Object.freeze(['auto', 'kitsune', 'sistema']);
 const PERFORMANCE = Object.freeze(['normal', 'ahorro']);
 const RAM_LIMITS = Object.freeze([1024, 2048, 4096]);
 const CONTROL_SIDES = Object.freeze(['izquierda', 'derecha']);
@@ -45,14 +49,16 @@ function validate(value) {
         (value.background !== null && (typeof value.background !== 'string' || !/^[a-f0-9]{64}$/.test(value.background))))) ||
       (value.version >= 4 && (!CONTROL_SIDES.includes(value.windowControls) || typeof value.brand !== 'boolean')) ||
       (value.version >= 5 && (!PERFORMANCE.includes(value.performance) || !RAM_LIMITS.includes(value.ramLimit))) ||
-      (value.version === 6 && typeof value.minimize !== 'boolean') ||
+      (value.version >= 6 && typeof value.minimize !== 'boolean') ||
+      (value.version >= 7 && !WINDOW_BUTTONS.includes(value.windowButtons)) ||
       typeof value.fingerprint !== 'string' || !/^[a-f0-9]{64}$/.test(value.fingerprint) ||
       ['motion','googleRemember'].some(key => typeof value[key] !== 'boolean') ||
       !value.palette || typeof value.palette !== 'object' || Array.isArray(value.palette) ||
       Object.keys(value.palette).length !== Object.keys(TOKENS).length ||
       Object.keys(TOKENS).some(key => typeof value.palette[key] !== 'string' || !/^#[0-9a-f]{6}$/.test(value.palette[key]))) throw Error('Invalid local appearance control');
   // Un control v2 (0.6) es papel claro y sin fondo; v2 y v3, botones a la izquierda y con logo.
-  return {theme:'claro', background:null, windowControls:'izquierda', brand:true, performance:'normal', ramLimit:2048, minimize:true, ...value};
+  return {theme:'claro', background:null, windowControls:'izquierda', brand:true, performance:'normal', ramLimit:2048, minimize:true,
+          windowButtons:'auto', ...value};
 }
 
 function backgroundUri(hash) {
@@ -80,20 +86,36 @@ function nativeCss(value) {
     @-moz-document url("chrome://browser/content/browser.xhtml"){${windowCss(value)}}`;
 }
 
-// Más específico que userChrome.css, que va detrás en la cascada.
+// Más específico que userChrome.css, que va detrás en la cascada. Lado y minimizar
+// solo con los botones de Kitsune (el atributo lo pone applyButtons en cada ventana).
+const KITSUNE_BUTTONS = ':root#main-window[kitsune-window-buttons="kitsune"]';
 function windowCss(value) {
   const right = value.windowControls === 'derecha' ? `
-    :root#main-window #TabsToolbar>.titlebar-buttonbox-container,:root#main-window .titlebar-buttonbox-container{order:999!important;padding-inline:8px 2px!important;}
-    :root#main-window #navigator-toolbox[tabs-hidden]>#nav-bar>.titlebar-buttonbox-container{order:999!important;}
-    :root#main-window .titlebar-buttonbox .titlebar-min{order:0!important;}
-    :root#main-window .titlebar-buttonbox :is(.titlebar-max,.titlebar-restore){order:1!important;}
-    :root#main-window .titlebar-buttonbox .titlebar-close{order:2!important;}` : '';
+    ${KITSUNE_BUTTONS} #TabsToolbar>.titlebar-buttonbox-container,${KITSUNE_BUTTONS} .titlebar-buttonbox-container{order:999!important;padding-inline:8px 2px!important;}
+    ${KITSUNE_BUTTONS} #navigator-toolbox[tabs-hidden]>#nav-bar>.titlebar-buttonbox-container{order:999!important;}
+    ${KITSUNE_BUTTONS} .titlebar-buttonbox .titlebar-min{order:0!important;}
+    ${KITSUNE_BUTTONS} .titlebar-buttonbox :is(.titlebar-max,.titlebar-restore){order:1!important;}
+    ${KITSUNE_BUTTONS} .titlebar-buttonbox .titlebar-close{order:2!important;}` : '';
   const noMinimize = value.minimize ? '' : `
-    :root#main-window .titlebar-buttonbox .titlebar-min{display:none!important;}`;
+    ${KITSUNE_BUTTONS} .titlebar-buttonbox .titlebar-min{display:none!important;}`;
   const hidden = value.brand ? '' : `
     :root#main-window #TabsToolbar::before,:root#main-window #navigator-toolbox[tabs-hidden]>#nav-bar::before{display:none!important;}`;
-  // macOS tiene los semáforos nativos: ni lado ni minimizar; el logo, sí.
-  return `@media not (-moz-platform: macos){${right}${noMinimize}}` + hidden;
+  return right + noMinimize + hidden;
+}
+
+/** Los botones que se ven: «auto» son los de Apple en macOS y los de Kitsune en el resto. */
+function resolveButtons(choice, os = Services.appinfo.OS) {
+  if (choice === 'kitsune' || choice === 'sistema') return choice;
+  return os === 'Darwin' ? 'sistema' : 'kitsune';
+}
+let buttonsChoice = 'auto';
+function applyButtons(choice, windows = Services.wm.getEnumerator('navigator:browser'), os = Services.appinfo.OS) {
+  buttonsChoice = choice;
+  const resolved = resolveButtons(choice, os);
+  for (const win of windows) {
+    const root = win.document.documentElement;
+    if (root.getAttribute('kitsune-window-buttons') !== resolved) root.setAttribute('kitsune-window-buttons', resolved);
+  }
 }
 
 // Sin rastro de Mozilla: fuera las entradas de Ayuda que llevan a sus webs o
@@ -306,6 +328,7 @@ async function update() {
       applyScheme(value.theme);
       applyPerformance(value.performance, value.ramLimit);
       applyGoogle(value.googleRemember);
+      applyButtons(value.windowButtons);
       current = value.fingerprint;
       lastAck = 0;
     }
@@ -355,6 +378,8 @@ export const KitsuneAppearance = {
   integratedHome: INTEGRATED_HOME,
   // Cada ventana nueva: el aspecto de Kitsune del motor si el perfil no trae el suyo.
   decorate(window) {
+    // Antes de pintar: los botones elegidos (o los del sistema según dónde corre, si aún no hay ajustes).
+    try { applyButtons(buttonsChoice, [window]); } catch { /* la ventana sigue con los de Gecko */ }
     try {
       if (!profileHasStyle('userChrome.css')) window.windowUtils.loadSheetUsingURIString(BUILTIN_STYLE + 'userChrome.css', window.windowUtils.USER_SHEET);
     } catch { /* la ventana sigue con el aspecto de Gecko */ }
