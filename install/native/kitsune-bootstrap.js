@@ -35,6 +35,11 @@
     const { KitsunePalette } = ChromeUtils.importESModule('chrome://browser/content/kitsune-palette.sys.mjs');
     void KitsunePalette.decorate(window).catch(() => {});
   } catch { /* sin paleta, Kitsune sigue igual */ }
+  // Modo ahorro a la vista: la RAM en la barra y su panel.
+  try {
+    const { KitsuneSaver } = ChromeUtils.importESModule('chrome://browser/content/kitsune-saver.sys.mjs');
+    void KitsuneSaver.decorate(window).catch(() => {});
+  } catch { /* sin medidor, el modo ahorro sigue igual */ }
   // Aviso de versión nueva (solo en los paquetes que se descargan: Windows, macOS y Linux).
   try {
     const { KitsuneUpdates } = ChromeUtils.importESModule('chrome://browser/content/kitsune-updates.sys.mjs');

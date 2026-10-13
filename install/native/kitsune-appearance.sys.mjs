@@ -181,11 +181,18 @@ function applyPerformance(mode, ramLimit) {
   if (applied !== mode) Services.prefs.setStringPref('kitsune.performance.applied', mode);
   saver = mode === 'ahorro' ? { limit: ramLimit * 1024 * 1024, last: 0 } : null;
 }
+// Webs que nunca se duermen («No dormir nunca» en el panel del modo ahorro, kitsune-saver.sys.mjs).
+function keepAwake() {
+  return new Set(Services.prefs.getStringPref('kitsune.saver.keepAwake', '').split(',').map(host => host.trim().toLowerCase()).filter(Boolean));
+}
+const hostOf = uri => { try { return uri?.host?.toLowerCase() ?? ''; } catch { return ''; } };
 function sleepingCandidates() {
   const tabs = [];
+  const keep = keepAwake();
   for (const win of Services.wm.getEnumerator('navigator:browser')) {
     for (const tab of win.gBrowser?.tabs ?? []) {
       if (tab.selected || tab.pinned || tab.soundPlaying || tab.hasAttribute('pending') || !tab.linkedPanel) continue;
+      if (keep.has(hostOf(tab.linkedBrowser?.currentURI))) continue;
       tabs.push({ win, tab });
     }
   }

@@ -134,5 +134,18 @@
     font: 500 11px "Noto Sans", "Kitsune Sans", sans-serif;
   }
   #kitsune-palette .kitsune-palette-web .kitsune-palette-label { color: var(--kb-secondary); }
+
+  /* Modo ahorro: la RAM en la barra solo mientras está puesto, y las pestañas dormidas, apagadas. */
+  :root:not([kitsune-saver]) #kitsune-ram-button { display: none; }
+  #kitsune-ram-button > .toolbarbutton-text { display: flex !important; padding-inline: 4px; font: 600 11px "Noto Sans", "Kitsune Sans", sans-serif; color: var(--kb-secondary); }
+  #kitsune-ram-button > .toolbarbutton-icon { display: none; }
+  #kitsune-ram-button { --toolbarbutton-inner-padding: 6px; }
+  .tabbrowser-tab[pending]:not([selected]) .tab-content { opacity: .55; }
+  .tabbrowser-tab[pending]:not([selected]) .tab-label { font-style: italic; }
+  .kitsune-saver-panel .kitsune-saver-total { margin: 0; color: var(--kb-text); font-size: 15px; font-weight: 600; }
+  .kitsune-saver-panel :is(.kitsune-saver-tabs, .kitsune-saver-note) { margin: 0; color: var(--kb-muted); font-size: 12px; line-height: 1.45; }
+  .kitsune-saver-panel label.kitsune-saver-keep-row { flex-direction: row; align-items: center; gap: 8px; color: var(--kb-text); font-size: 12px; }
+  .kitsune-saver-panel .kitsune-saver-keep { width: 14px; height: 14px; margin: 0; accent-color: var(--kb-primary); }
+  .kitsune-saver-panel .kitsune-space-form { width: 300px; }
 }
 
