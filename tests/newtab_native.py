@@ -59,7 +59,9 @@ def main():
         driver.command('POST', '/window', {'handle': driver.command('GET', '/window/handles')[-1]})
         driver.context('content')
         assert driver.script("return location.href") == origin
-        assert driver.script("return !!document.querySelector('#search-form') && !document.querySelector('.customize-menu, .personalize-button')")
+        # La página puede estar aún cargando (location ya es el inicio, el DOM todavía no).
+        eventually(lambda: driver.script("return document.readyState === 'complete' && !!document.querySelector('#search-form')"), timeout=15)
+        assert driver.script("return !document.querySelector('.customize-menu, .personalize-button')")
         driver.screenshot('pestana-nueva.png', chrome=True)
         check('Ctrl+T abre el inicio de Kitsune con la barra de direcciones vacía y enfocada')
         chrome("document.getElementById('tabs-newtab-button').click()")
