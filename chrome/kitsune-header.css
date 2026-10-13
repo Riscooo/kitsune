@@ -89,21 +89,52 @@
   #main-window #tabbrowser-tabs[orient="horizontal"] .tabbrowser-tab:hover .tab-background:not([selected], [multiselected]) {
     background: var(--kitsune-wash-hover) !important;
   }
-  /* Usuarios en la misma ventana: la línea del color del usuario va abajo (arriba está el
-     trazo de pincel de la pestaña activa). Personal no lleva. */
+  /* Usuarios en la misma ventana: la tinta de su avatar del inicio en lugar de los
+     colores de Gecko, para la línea de sus pestañas y su etiqueta en la barra. */
+  #main-window .identity-color-blue { --kitsune-user-ink: light-dark(#35587a, #8fb0d4); }
+  #main-window .identity-color-pink { --kitsune-user-ink: light-dark(#9c4a68, #e09ab3); }
+  #main-window .identity-color-violet { --kitsune-user-ink: light-dark(#5b4a7a, #b4a3d6); }
+  #main-window .identity-color-orange { --kitsune-user-ink: light-dark(#8a6326, #d9ac62); }
+  #main-window .identity-color-cyan { --kitsune-user-ink: var(--kb-secondary); }
+  #main-window .identity-color-red { --kitsune-user-ink: var(--kb-primary); }
+
+  /* La línea de sus pestañas va abajo (arriba está el trazo de pincel de la activa),
+     fina y con su tinta. Personal no lleva. */
   #main-window #tabbrowser-tabs[orient="horizontal"] .tabbrowser-tab[usercontextid] .tab-background {
     position: relative !important;
   }
   #main-window #tabbrowser-tabs[orient="horizontal"] .tabbrowser-tab[usercontextid] .tab-context-line {
     position: absolute !important;
-    inset-inline: 12px !important;
+    inset-inline: 14px !important;
     bottom: 3px !important;
     height: 2px !important;
     margin: 0 !important;
     border-radius: 1px !important;
-    background-color: var(--identity-icon-color) !important;
-    background-image: none !important;
+    background: var(--kitsune-user-ink, var(--identity-icon-color)) !important;
+    opacity: .85;
   }
+
+  /* Su etiqueta en la barra de direcciones, como las del inicio: el nombre con su tinta
+     sobre un papel teñido de ella, sin el círculo de Gecko. */
+  #main-window #userContext-icons {
+    gap: 0 !important;
+    min-height: 22px !important;
+    padding: 0 8px !important;
+    margin-inline: 2px 4px !important;
+    border: 1px solid color-mix(in srgb, var(--kitsune-user-ink, currentColor) 24%, transparent) !important;
+    border-radius: 7px !important;
+    background: color-mix(in srgb, var(--kitsune-user-ink, currentColor) 9%, transparent) !important;
+  }
+  #main-window #userContext-icons:hover {
+    background: color-mix(in srgb, var(--kitsune-user-ink, currentColor) 16%, transparent) !important;
+  }
+  #main-window #userContext-label {
+    color: var(--kitsune-user-ink, currentColor) !important;
+    font: 600 11px/1 "Noto Sans", "Kitsune Sans", sans-serif !important;
+    letter-spacing: .2px !important;
+  }
+  #main-window #userContext-indicator { display: none !important; }
+
   /* Pestaña activa: hoja de papel con un trazo óxido de pincel arriba. */
   #main-window #tabbrowser-tabs[orient="horizontal"] .tabbrowser-tab:is([selected], [visually-selected]) .tab-background {
     background: url("assets/kitsune-stroke.svg") top 1px center / calc(100% - 16px) 4px no-repeat, var(--kitsune-sheet) !important;

@@ -11,7 +11,9 @@ const INTERFACE = {
 // Plus the InkShadow seal colours, for the hanko marks.
 const PAPEL = { ...INTERFACE, hanko: '#a8432f', vermilion: '#db452e' };
 // Y el óxido de la paleta sumi (Oscuro), para la barra de scroll de las páginas oscuras.
-const ALLOWED = new Set([...Object.values(PAPEL), '#e0806b']);
+// Y las tintas de los usuarios: las mismas que sus avatares del inicio (claro y oscuro).
+const USER_INKS = ['#35587a', '#9c4a68', '#5b4a7a', '#8a6326', '#8fb0d4', '#e09ab3', '#b4a3d6', '#d9ac62'];
+const ALLOWED = new Set([...Object.values(PAPEL), '#e0806b', ...USER_INKS]);
 const CHROME = ['userChrome.css', 'kitsune-header.css', 'window-controls.css'];
 
 test('the chrome palette is exactly the InkShadow paper tokens, generated from their single source', async () => {
@@ -181,4 +183,15 @@ test('Kitsune window dots apply only with kitsune-window-buttons="kitsune", on e
   for (const [selector] of header.matchAll(/[^{}]*titlebar-buttonbox-container[^{}]*(?=\{)/g)) {
     if (/order/.test(header.slice(header.indexOf(selector)).split('}')[0])) assert.match(selector, /\[kitsune-window-buttons="kitsune"\]/, selector);
   }
+});
+
+test('users look like Kitsune: their avatar ink on the tab line and a tinted name tag without Gecko\'s circle', async () => {
+  const css = (await read('kitsune-header.css')).replace(/\/\*[\s\S]*?\*\//g, '');
+  for (const color of ['blue', 'pink', 'violet', 'orange', 'cyan', 'red']) assert.match(css, new RegExp(`\\.identity-color-${color} \\{ --kitsune-user-ink:`));
+  assert.match(css, /\.tab-context-line \{[^}]*bottom: 3px[^}]*var\(--kitsune-user-ink/);
+  assert.match(css, /#userContext-indicator \{ display: none !important; \}/);
+  assert.match(css, /#userContext-label \{[^}]*color: var\(--kitsune-user-ink/);
+  // Las tintas son las del inicio.
+  const home = await readFile(new URL('../start/app.css', import.meta.url), 'utf8');
+  for (const ink of USER_INKS) assert.ok(home.includes(ink), ink);
 });
