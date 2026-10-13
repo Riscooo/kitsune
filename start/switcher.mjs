@@ -101,8 +101,10 @@ export function initializeSwitcher({ integrated, onManage = () => {}, onAdd = ()
     trigger.setAttribute('aria-expanded', String(event.newState === 'open'))
     if (event.newState === 'open' && !switching) status('')
   })
-  $('#users-manage').addEventListener('click', () => { card.hidePopover(); onManage() })
-  $('#users-add').addEventListener('click', () => { card.hidePopover(); onAdd() })
+  // El foco sale de la tarjeta antes de cerrarla: así no vuelve al avatar cuando ya está abierta la ventana.
+  const leave = next => { trigger.focus({ preventScroll: true }); card.hidePopover(); next() }
+  $('#users-manage').addEventListener('click', () => leave(onManage))
+  $('#users-add').addEventListener('click', () => leave(onAdd))
   return { render, switchTo: id => {
     const profile = snapshot?.profiles.find(item => item.id === id)
     return profile ? change(profile) : Promise.resolve(false)

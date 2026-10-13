@@ -729,6 +729,9 @@
 			returnFocus = trigger;
 			if (!dialog.open) dialog.showModal();
 			$("#profiles-title").focus({ preventScroll: true });
+			requestAnimationFrame(() => {
+				if (dialog.open && !dialog.contains(document.activeElement)) $("#profiles-title").focus({ preventScroll: true });
+			});
 			load().then(() => {
 				if (create && ready) showForm();
 			});
@@ -996,14 +999,13 @@
 			trigger.setAttribute("aria-expanded", String(event.newState === "open"));
 			if (event.newState === "open" && !switching) status("");
 		});
-		$("#users-manage").addEventListener("click", () => {
+		const leave = (next) => {
+			trigger.focus({ preventScroll: true });
 			card.hidePopover();
-			onManage();
-		});
-		$("#users-add").addEventListener("click", () => {
-			card.hidePopover();
-			onAdd();
-		});
+			next();
+		};
+		$("#users-manage").addEventListener("click", () => leave(onManage));
+		$("#users-add").addEventListener("click", () => leave(onAdd));
 		return {
 			render,
 			switchTo: (id) => {

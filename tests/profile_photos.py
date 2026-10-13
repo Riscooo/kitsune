@@ -63,6 +63,14 @@ def main():
     def idle():
         eventually(lambda: js("return document.querySelector('#profiles-dialog').getAttribute('aria-busy')==='false'"))
 
+    def open_users():
+        # El avatar abre la tarjeta de usuarios; «Gestionar usuarios», la ventana grande.
+        driver.click('#profiles-open')
+        eventually(lambda: js("return document.querySelector('#users-card').matches(':popover-open')"))
+        driver.click('#users-manage')
+        eventually(lambda: js("return document.querySelector('#profiles-dialog').open"))
+        idle()
+
     def upload(name):
         element = driver.element('#profile-photo')
         driver.command('POST', f'/element/{element}/value', {'text': str(photos / name)})
@@ -89,8 +97,7 @@ def main():
         eventually(lambda: js("return document.documentElement.dataset.profilesReady==='true'"))
         js("""window.photoGoogleState={googleRemember:true,native:{available:true,status:'queued',googleRemember:false}};
           const real=window.fetch.bind(window);window.fetch=(input,options)=>input==='/api/appearance'?Promise.resolve(new Response(JSON.stringify(photoGoogleState),{status:200,headers:{'Content-Type':'application/json'}})):real(input,options);""")
-        driver.click('#profiles-open')
-        idle()
+        open_users()
         driver.click('#profile-edit')
         assert js("return !!document.querySelector('#profile-photo')"), 'Photo form source is not ready'
         upload('center-crop.jpg')
@@ -155,8 +162,7 @@ def main():
         idle()
         assert picture_src() == draft
         driver.shortcut('\ue00c')
-        driver.click('#profiles-open')
-        idle()
+        open_users()
         assert picture_src() == draft
         driver.click('#profile-save')
         idle()
@@ -210,8 +216,7 @@ def main():
         upload('transparent.png')
         eventually(lambda: js('return photoDecoders.length===1'))
         driver.shortcut('\ue00c')
-        driver.click('#profiles-open')
-        idle()
+        open_users()
         js('photoDecoders.shift()()')
         js("const done=arguments[arguments.length-1];setTimeout(()=>done(true),250)", asynchronous=True)
         assert picture_src() == latest_avatar
@@ -243,32 +248,30 @@ def main():
         assert js("return !document.querySelector('#current-profile-avatar img')")
         report['checks'].append('Removing a photo is staged until save and initials remain after reload')
 
-        driver.click('#profiles-open')
-        idle()
+        open_users()
         driver.click('#profile-create')
         driver.fill('#profile-name', 'Segundo espacio con foto')
         upload('latest.webp')
         idle()
-        driver.click('#profile-remember-google')
+        # Google y la privacidad son de todo Kitsune: no salen al crear otro usuario.
+        assert js("return document.querySelector('#profile-remember-google').closest('label').hidden && document.querySelector('.profile-privacy').hidden")
         driver.click('#profile-save')
         idle()
         created = next(item for item in manager.snapshot()['profiles'] if item['name'] == 'Segundo espacio con foto')
         assert created['avatar'].startswith(f"/api/profile-avatars/{created['id']}/")
-        assert created['rememberGoogle'] is True
+        assert created['rememberGoogle'] is False
         assert fetch_avatar(created['avatar']).size == (256, 256)
         assert js("return !document.querySelector('#current-profile-avatar img')")
-        assert js("return document.querySelector('#profile-google-status').textContent") == 'Abre este perfil para aplicar la conservación de Google.'
-        report['checks'].append('Creating another profile saves its own photo and Google preference without changing this window or claiming it is applied')
+        assert js("return document.querySelector('#profile-google-status').hidden")
+        report['checks'].append('Creating another user saves its own photo without changing this tab; Google stays a Kitsune-wide setting of the base user')
         driver.click('[data-profile-id=default]')
         driver.shortcut('\ue00c')
 
         # A stale 404 picture falls back locally; it must not hide the identity.
-        driver.click('#profiles-open')
-        idle()
+        open_users()
         js("""const real=window.fetch.bind(window);window.fetch=async(input,options)=>{const response=await real(input,options);if(input==='/api/profiles'&&!options?.method){const value=await response.json();value.profiles[0].avatar='/api/profile-avatars/default/'+'f'.repeat(64)+'.png';return new Response(JSON.stringify(value),{status:200,headers:{'Content-Type':'application/json'}})}return response}""")
         driver.shortcut('\ue00c')
-        driver.click('#profiles-open')
-        idle()
+        open_users()
         eventually(lambda: js("return !document.querySelector('#current-profile-avatar img') && document.querySelector('#current-profile-avatar').textContent.trim().length>0"))
         report['checks'].append('Missing saved image falls back to initials, never an external URL')
         driver.context('chrome')

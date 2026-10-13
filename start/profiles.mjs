@@ -407,6 +407,7 @@ export async function initializeProfiles({ announce = () => {}, onSnapshot = () 
     returnFocus = trigger
     if (!dialog.open) dialog.showModal()
     $('#profiles-title').focus({ preventScroll: true })
+    requestAnimationFrame(() => { if (dialog.open && !dialog.contains(document.activeElement)) $('#profiles-title').focus({ preventScroll: true }) })
     void load().then(() => { if (create && ready) showForm() })
   }
   dialog.addEventListener('close', () => {

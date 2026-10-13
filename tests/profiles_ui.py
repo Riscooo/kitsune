@@ -63,6 +63,14 @@ def main():
     def idle():
         eventually(lambda: js("return document.querySelector('#profiles-dialog').getAttribute('aria-busy')==='false'"))
 
+    def open_users():
+        # El avatar abre la tarjeta de usuarios; «Gestionar usuarios», la ventana grande.
+        driver.click("#profiles-open")
+        eventually(lambda: js("return document.querySelector('#users-card').matches(':popover-open')"))
+        driver.click("#users-manage")
+        eventually(lambda: js("return document.querySelector('#profiles-dialog').open"))
+        idle()
+
     def get_snapshot():
         return manager.snapshot()
 
@@ -80,7 +88,14 @@ def main():
         assert js("return document.querySelector('#current-profile-name').textContent") == "Personal"
         report["home"] = capture("profiles-home-1540.png")
         driver.click("#profiles-open")
-        idle()
+        eventually(lambda: js("return document.querySelector('#users-card').matches(':popover-open')"))
+        assert js("return document.querySelector('#users-card-hello').textContent") == "Hola, Personal"
+        assert js("return [...document.querySelectorAll('#users-card [data-user-id] b')].map(b => b.textContent)") == ["Trabajo", "Otro universo"]
+        report["card"] = capture("users-card-1540.png")
+        driver.shortcut("\ue00c")
+        eventually(lambda: js("return !document.querySelector('#users-card').matches(':popover-open')"))
+        checks.append("The avatar opens a Google-like card: this tab's user on top, the others below")
+        open_users()
         assert js("return document.querySelectorAll('[data-profile-id]').length") == 3
         assert js("return document.querySelector('#profiles-dialog').open")
         assert js("return document.querySelector('#profile-current-badge').hidden") is False
@@ -89,8 +104,7 @@ def main():
         driver.shortcut("\ue00c")
         eventually(lambda: js("return !document.querySelector('#profiles-dialog').open"))
         assert js("return document.activeElement.id") == "profiles-open"
-        driver.click("#profiles-open")
-        idle()
+        open_users()
         checks.append("Escape closes the native dialog and restores trigger focus")
 
         driver.click("#profile-create")
@@ -113,9 +127,9 @@ def main():
         created = next(item for item in get_snapshot()["profiles"] if item["name"] == "Estudio 月")
         assert len(get_snapshot()["profiles"]) == before + 1
         assert created["email"] == "estudio@example.com" and created["color"] == "violet"
-        assert (manager.resolve(created["id"], initialize=False)["profile"] / "user.js").is_file()
+        assert not manager.resolve(created["id"], initialize=False)["profile"].exists(), "A user lives in the base profile"
         assert launches == [], "Creating a profile must not open it implicitly"
-        checks.append("Create validates, previews Unicode/color, writes a real clean profile and prevents double submit")
+        checks.append("Create validates, previews Unicode/color, adds a user without a Gecko folder and prevents double submit")
 
         driver.click("#profile-edit")
         driver.fill("#profile-name", "Estudio nocturno")
@@ -129,7 +143,7 @@ def main():
         assert js("return document.querySelector('#profile-email').value") == "noche@example.com"
         assert js("return document.querySelector('[data-profile-swatch=amber]').getAttribute('aria-pressed')") == "true"
         assert js("return !document.querySelector('#profile-form').hidden")
-        assert "Otra ventana" in js("return document.querySelector('#profiles-message').textContent")
+        assert "Otra pestaña" in js("return document.querySelector('#profiles-message').textContent")
         assert next(item for item in get_snapshot()["profiles"] if item["id"] == created["id"])["name"] == "Estudio 月"
         driver.click("#profile-save")
         idle()
@@ -137,23 +151,21 @@ def main():
         assert js("return document.querySelector('#current-profile-name').textContent") == "Personal · Luna"
         checks.append("409 conflict refreshes registry without losing typed name/email/color; explicit retry succeeds")
 
-        driver.click("#profile-make-default")
-        idle()
-        assert get_snapshot()["defaultId"] == created["id"]
-        assert js("return document.querySelector('#current-profile-name').textContent") == "Personal · Luna"
-        assert js("return document.querySelector('#profile-default-badge').hidden") is False
+        # La ficha de otro usuario: se cambia en esta pestaña; Google solo desde su pestaña y la privacidad es de la base.
         assert js("return document.querySelector('#profile-current-badge').hidden") is True
-        driver.click("#profile-open")
-        idle()
-        driver.click('[data-profile-action="google"]')
-        idle()
+        assert js("return document.querySelector('#profile-default-badge').hidden") is True
+        assert js("return !document.querySelector('#profile-open').hidden && document.querySelector('#profile-open').textContent.includes('Cambiar a este usuario')")
+        assert js("return document.querySelector('[data-profile-action=google]').hidden && document.querySelector('.privacy-switch').hidden")
         driver.click('[data-profile-action="passwords"]')
         idle()
-        assert launches == [(created["id"], action) for action in ("home", "google", "passwords")], launches
+        assert launches == [("default", "passwords")], launches
         assert js("return !document.querySelector('.profile-sync-guide') && !/Firefox|Mozilla/.test(document.querySelector('#profiles-dialog').innerText)")
         assert js("return document.querySelector('#current-profile-name').textContent") == "Personal · Luna"
-        assert js("return !document.querySelector('#profiles-dialog').innerText.includes('conectado correctamente')")
-        checks.append("Default and account/native actions target selected real profile without pretending the current window switched; no Sync or Mozilla")
+        driver.click('[data-profile-id="default"]')
+        assert js("return document.querySelector('#profile-open').hidden && !document.querySelector('.privacy-switch').hidden")
+        assert js("return !document.querySelector('[data-profile-action=google]').hidden && !document.querySelector('#profile-default-badge').hidden")
+        driver.click(f'[data-profile-id="{created["id"]}"]')
+        checks.append("Another user's card switches this tab; Google only from its own tab; privacy only on the base user; passwords for all of Kitsune; no Sync or Mozilla")
         report["manager"] = capture("profiles-manager-1540.png")
 
         driver.click("#profile-create")
@@ -179,8 +191,7 @@ def main():
         assert js("return document.querySelector('[data-profile-swatch=red]').getAttribute('aria-pressed')") == "true"
         assert js("return !document.querySelector('#profile-save').disabled")
         driver.shortcut("\ue00c")
-        driver.click("#profiles-open")
-        idle()
+        open_users()
         assert js("return document.querySelector('#profile-name').value") == "Mi borrador intacto"
         driver.click("#profile-cancel")
         checks.append("503 preserves unsaved draft and confirmed registry; refresh and Escape/reopen keep the draft")
@@ -188,12 +199,11 @@ def main():
         driver.command("POST", "/refresh", {})
         wait_start(driver)
         eventually(lambda: js("return document.documentElement.dataset.profilesReady==='true'"))
-        driver.click("#profiles-open")
-        idle()
+        open_users()
         assert js("return document.querySelector('#current-profile-name').textContent") == "Personal · Luna"
         driver.click(f'[data-profile-id="{created["id"]}"]')
         assert js("return document.querySelector('#profile-detail-name').textContent") == "Estudio nocturno"
-        checks.append("Edited profile and default persist after page reload")
+        checks.append("Edited user persists after page reload")
 
         # A second per-profile origin must identify itself, not the default.
         second_appearance = home.make_appearance(browser_data, root / "state", created["id"])
@@ -205,9 +215,8 @@ def main():
         eventually(lambda: js("return document.documentElement.dataset.profilesReady==='true'"))
         assert js("return document.querySelector('#current-profile-name').textContent") == "Estudio nocturno"
         assert js("return document.querySelector('#current-profile-avatar').dataset.profileColor") == "amber"
-        driver.click("#profiles-open")
-        idle()
-        assert js("return !document.querySelector('#profile-current-badge').hidden && !document.querySelector('#profile-default-badge').hidden")
+        open_users()
+        assert js("return !document.querySelector('#profile-current-badge').hidden && document.querySelector('#profile-default-badge').hidden")
         checks.append("A second profile origin displays its own current identity independently")
 
         driver.context("chrome")
@@ -243,8 +252,7 @@ def main():
             name = "L" * 48 if count == 23 else f"Espacio de prueba {count + 1}"
             email = "l" * 240 + "@example.com" if count == 23 else ""
             state = manager.create(name, email, home.profiles_module.COLORS[count % 6], state["revision"])
-        driver.click("#profiles-open")
-        idle()
+        open_users()
         assert js("return document.querySelectorAll('[data-profile-id]').length") == 24
         assert js("return document.querySelector('#profiles-count').textContent") == "24 / 24"
         assert js("return document.querySelector('#profile-create').disabled")
@@ -254,11 +262,12 @@ def main():
         assert js("return document.querySelector('#profiles-list').scrollHeight>document.querySelector('#profiles-list').clientHeight")
         report["maximumProfiles"] = capture("profiles-maximum-390.png")
         driver.shortcut("\ue00c")
-        driver.click("#profiles-open")
-        idle()
-        for _ in range(32):
+        open_users()
+        # Gecko deja salir el tabulador a la barra del navegador tras el último elemento del diálogo:
+        # 20 pasos recorren la lista sin llegar al final.
+        for _ in range(20):
             driver.shortcut("\ue004")
-            assert js("return document.querySelector('#profiles-dialog').contains(document.activeElement)")
+            assert js("return document.querySelector('#profiles-dialog').contains(document.activeElement)"), js("return document.activeElement.outerHTML.slice(0, 160)")
         for _ in range(8):
             driver.shortcut("\ue004", ["\ue008"])
             assert js("return document.querySelector('#profiles-dialog').contains(document.activeElement)")
