@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { compareReleases, newerRelease, releaseLabel } from '../install/native/kitsune-updates.sys.mjs'
+import { compareReleases, newerRelease, platformFor, releaseLabel } from '../install/native/kitsune-updates.sys.mjs'
 
 test('releases order betas before the final version and compare numbers, not text', () => {
   assert.equal(compareReleases('0.7.0-beta.3', '0.7.0-beta.2'), 1)
@@ -26,4 +26,9 @@ test('the notice names the release the way people say it', () => {
   assert.equal(releaseLabel('0.7.0-beta.3'), '0.7 beta 3')
   assert.equal(releaseLabel('0.8.0'), '0.8')
   assert.equal(releaseLabel('0.8.1'), '0.8.1')
+})
+
+test('the Linux download also gets the notice; other systems do not exist for it', () => {
+  assert.deepEqual(['WINNT', 'Darwin', 'Linux', 'Android'].map(platformFor), ['windows', 'macos', 'linux', null])
+  assert.deepEqual(newerRelease({ linux: { release: '0.7.0-beta.6' } }, 'linux', '0.7.0-beta.5'), { release: '0.7.0-beta.6' })
 })

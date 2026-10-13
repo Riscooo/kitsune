@@ -1,10 +1,11 @@
-/* Aviso de versión nueva de Kitsune (Windows y macOS).
+/* Aviso de versión nueva de Kitsune (Windows, macOS y el paquete de Linux).
  *
  * No hay actualizador: una vez al día se mira la lista de descargas de la web de
  * Kitsune (sin cookies ni identificadores) y, si hay una versión más nueva para este
  * sistema, se dice en una barra con un botón que lleva a la descarga. Se apaga con
  * kitsune.update.check = false. Solo actúa si el motor trae kitsune.release (lo ponen
- * los instaladores); en Linux el motor se actualiza solo y aquí no hace nada.
+ * los paquetes que se descargan); en el Linux de Risco el motor se compila y actualiza
+ * solo, sin kitsune.release, y aquí no hace nada.
  */
 const DOWNLOADS = 'https://kitsune-navegador.vercel.app/downloads.json';
 const PAGE = 'https://kitsune-navegador.vercel.app/#descargar';
@@ -41,7 +42,9 @@ export function releaseLabel(release) {
 }
 
 let pending = null, started = false;
-const platformKey = () => ({ WINNT: 'windows', Darwin: 'macos' })[Services.appinfo.OS] ?? null;
+/** El sistema en downloads.json: windows, macos o linux. */
+export const platformFor = os => ({ WINNT: 'windows', Darwin: 'macos', Linux: 'linux' })[os] ?? null;
+const platformKey = () => platformFor(Services.appinfo.OS);
 
 export async function showUpdateNotice(win, info) {
   const box = win.gNotificationBox;

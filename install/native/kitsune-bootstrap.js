@@ -10,7 +10,7 @@
     const { KitsuneUsers } = ChromeUtils.importESModule('chrome://browser/content/kitsune-users.sys.mjs');
     KitsuneUsers.start();
   } catch { /* sin usuarios, Kitsune sigue igual */ }
-  // Aviso de versión nueva (solo en los instaladores de Windows y macOS).
+  // Aviso de versión nueva (solo en los paquetes que se descargan: Windows, macOS y Linux).
   try {
     const { KitsuneUpdates } = ChromeUtils.importESModule('chrome://browser/content/kitsune-updates.sys.mjs');
     KitsuneUpdates.start();

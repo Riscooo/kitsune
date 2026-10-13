@@ -45,6 +45,62 @@ class FakeGpg:
         return Completed(self.code, gpg_status(self.primary, self.good))
 
 
+class LayoutTests(unittest.TestCase):
+    def test_a_build_cache_moved_to_another_disk_behind_a_symlink_is_used_by_its_real_path(self):
+        # El 13-10 la caché se movió a /mnt/datos con un enlace: mach trabaja con la ruta real y,
+        # si la receta le pasa la del enlace, borra (a null) su propia configuración.
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            real = root / "datos/kitsune-build"
+            real.mkdir(parents=True)
+            (root / "cache").mkdir()
+            (root / "cache/kitsune-build").symlink_to(real)
+            with mock.patch.dict(os.environ, {"XDG_CACHE_HOME": str(root / "cache"), "XDG_DATA_HOME": str(root / "data"),
+                                              "XDG_STATE_HOME": str(root / "state")}):
+                layout = engine.Layout.default()
+            self.assertEqual(layout.cache, real.resolve())
+            layout.private(layout.cache)
+
+
+class LinuxPackageTests(unittest.TestCase):
+    def test_the_linux_download_is_the_recipe_engine_with_its_config_ublock_release_and_installer(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            layout = engine.Layout(root / "data", root / "state", root / "cache")
+            build = root / "build/kitsune"
+            build.mkdir(parents=True)
+            (build / "kitsune").write_text("#!/bin/sh\n")
+            (layout.cache / "packages").mkdir(parents=True)
+            package = layout.cache / "packages" / f"kitsune-157.0.1-{engine.build_fingerprint('157.0.1')[:16]}.tar.xz"
+            subprocess.run(["tar", "-cJf", str(package), "-C", str(root / "build"), "kitsune"], check=True)
+            checked = []
+            def addons(layout, target, log):
+                target.mkdir(parents=True, exist_ok=True)
+                (target / "uBlock0@raymondhill.net.xpi").write_bytes(b"xpi")
+            archive = engine.package_linux(layout, "157.0.1", log=lambda *a: None, check=lambda binary, version: checked.append(binary.name),
+                                           addons=addons)
+            release = engine.published_release()
+            self.assertEqual(archive.name, f"Kitsune-{release}-Linux-x86_64.tar.xz")
+            self.assertEqual(checked, ["kitsune"])
+            with tarfile.open(archive) as handle:
+                names = set(handle.getnames())
+                members = {member.name: member for member in handle.getmembers()}
+                release_js = handle.extractfile("kitsune/defaults/pref/kitsune-release.js").read().decode()
+            for name in ("kitsune/kitsune", "kitsune/kitsune.cfg", "kitsune/defaults/pref/autoconfig.js",
+                         "kitsune/distribution/extensions/uBlock0@raymondhill.net.xpi", "kitsune/instalar.sh", "kitsune/desinstalar.sh"):
+                self.assertIn(name, names)
+            self.assertIn(f'pref("kitsune.release", "{release}");', release_js)
+            self.assertEqual(members["kitsune/instalar.sh"].mode & 0o777, 0o755)
+            self.assertEqual((members["kitsune/instalar.sh"].uid, members["kitsune/instalar.sh"].uname), (0, ""))
+            self.assertFalse(list((layout.cache / "packages/linux").glob("*.part")))
+
+    def test_without_the_engine_built_there_is_no_linux_package(self):
+        with tempfile.TemporaryDirectory() as folder:
+            layout = engine.Layout(Path(folder) / "d", Path(folder) / "s", Path(folder) / "c")
+            with self.assertRaises(engine.EngineError):
+                engine.package_linux(layout, "157.0.1", log=lambda *a: None)
+
+
 class VersionTests(unittest.TestCase):
     def test_versions_compare_numerically(self):
         self.assertGreater(engine.version_key("157.0.1"), engine.version_key("157.0"))

@@ -397,8 +397,13 @@ class Layout:
         home = Path.home()
         data = Path(os.environ.get("XDG_DATA_HOME") or home / ".local/share")
         state = Path(os.environ.get("XDG_STATE_HOME") or home / ".local/state")
-        cache = Path(os.environ.get("XDG_CACHE_HOME") or home / ".cache")
-        return cls(data / "kitsune-browser", state / "kitsune-browser", cache / "kitsune-build")
+        cache = Path(os.environ.get("XDG_CACHE_HOME") or home / ".cache") / "kitsune-build"
+        # La caché puede vivir en otro disco detrás de un enlace (Risco, 13-10): se usa su ruta
+        # real, como hace mach. Con la del enlace, mach daba por viejos sus propios archivos de
+        # configuración (config.track con otra ruta) y los dejaba a null.
+        if cache.is_symlink():
+            cache = cache.resolve(strict=True)
+        return cls(data / "kitsune-browser", state / "kitsune-browser", cache)
 
     def private(self, path: Path):
         if path.is_symlink():
@@ -1340,11 +1345,17 @@ def write_target_mozconfig(layout: Layout, version: str, target: str) -> Path:
     return path
 
 
-def release_prefs(folder: Path) -> Path:
-    """defaults/pref/kitsune-release.js: la versión de este instalador, para el aviso de versión nueva."""
+def published_release() -> str:
+    """La versión que se publica (version.json → release), p. ej. 0.7.0-beta.5."""
     release = json.loads((HERE / "version.json").read_text()).get("release")
     if not isinstance(release, str) or not re.fullmatch(r"\d+\.\d+\.\d+(?:-beta\.\d+)?", release):
         raise EngineError("version.json no dice qué versión se publica (release)")
+    return release
+
+
+def release_prefs(folder: Path) -> Path:
+    """defaults/pref/kitsune-release.js: la versión de este instalador, para el aviso de versión nueva."""
+    release = published_release()
     path = folder / "kitsune-release.js"
     path.write_text(f'// Kitsune {release}: el aviso de versión nueva compara con esto.\npref("kitsune.release", "{release}");\n')
     return path
@@ -1438,6 +1449,52 @@ def finish_macos_package(layout: Layout, version: str, source: Path, env, logfil
                   "--background", str(branding / "background.png"), "--icon", str(branding / "disk.icns"),
                   "--volume-name", "Kitsune", str(app.parent), str(dmg)], env, logfile, run)
     return dmg
+
+
+# Kitsune para descargar en Linux: el motor de Linux de esta receta, como los de Windows y macOS.
+LINUX_PACKAGE = HERE / "linux-package"
+LINUX_PACKAGE_FILES = ("instalar.sh", "desinstalar.sh")
+
+
+def package_linux(layout: Layout, version: str, log=print, run=subprocess.run, check=smoke_check,
+                  addons=distribution_addons) -> Path:
+    """Kitsune-<versión>-Linux-x86_64.tar.xz: el motor de Linux de esta receta con el inicio integrado
+    (sin el servidor local ni los servicios del PC de Risco), kitsune.cfg, uBlock Origin, la versión
+    publicada (para el aviso de versión nueva) y un instalador para el menú de aplicaciones."""
+    release = published_release()
+    package = layout.cache / "packages" / f"kitsune-{version}-{build_fingerprint(version)[:16]}.tar.xz"
+    if not package.is_file():
+        raise EngineError(f"Falta el motor de Linux de esta receta ({package.name}): compílalo antes")
+    out = layout.private(layout.cache / "packages" / "linux")
+    archive = out / f"Kitsune-{release}-Linux-x86_64.tar.xz"
+    with tempfile.TemporaryDirectory(prefix=".linux-", dir=layout.cache) as folder:
+        stage = Path(folder)
+        result = run(["tar", "--no-same-owner", "-xf", str(package), "-C", str(stage)], capture_output=True, text=True)
+        root = stage / "kitsune"
+        if result.returncode != 0 or not (root / "kitsune").is_file():
+            raise EngineError("El paquete de Kitsune no tiene la estructura esperada")
+        (root / "distribution").mkdir(exist_ok=True)
+        addons(layout, root / "distribution/extensions", log)
+        if not any((root / "distribution/extensions").glob("*.xpi")):
+            raise EngineError("No hay copia de uBlock Origin para el paquete de Linux")
+        (root / "defaults/pref").mkdir(parents=True, exist_ok=True)
+        for name, path in install_files().items():
+            shutil.copyfile(path, root / ("defaults/pref" if name == "autoconfig.js" else "") / name)
+        release_prefs(root / "defaults/pref")
+        for name in LINUX_PACKAGE_FILES:
+            shutil.copyfile(LINUX_PACKAGE / name, root / name)
+            (root / name).chmod(0o755)
+        log("Prueba de humo del paquete de Linux")
+        check(root / "kitsune", version)
+        partial = archive.with_name(archive.name + ".part")
+        packed = run(["tar", "--sort=name", "--owner=0", "--group=0", "--numeric-owner", "-cJf", str(partial),
+                      "-C", str(stage), "kitsune"], capture_output=True, text=True)
+        if packed.returncode != 0:
+            partial.unlink(missing_ok=True)
+            raise EngineError("No se pudo empaquetar Kitsune para Linux")
+        os.replace(partial, archive)
+    log(f"Listo: {archive}")
+    return archive
 
 
 def build_target(layout: Layout, version: str, target: str, log=print, run=subprocess.run) -> list:
@@ -1538,6 +1595,8 @@ def main(argv=None):
     builder.add_argument("--if-new", action="store_true", help="solo si hay una versión o receta nueva")
     builder.add_argument("--notify", action="store_true", help="avisa con una notificación del escritorio")
     builder.add_argument("--target", choices=sorted(TARGETS), help="compila para otro sistema (no se instala aquí)")
+    linux = commands.add_parser("package-linux", help="paquete de Linux para descargar (con el motor ya compilado)")
+    linux.add_argument("--version", required=True)
     commands.add_parser("current", help="ruta del ejecutable del motor activo")
     commands.add_parser("status", help="estado del motor y de la última compilación")
     commands.add_parser("prune", help="borra motores antiguos que no estén en uso")
@@ -1554,6 +1613,8 @@ def main(argv=None):
             build_target(layout, args.version or latest_version(), args.target)
         elif args.command == "build":
             build(layout, args.version, args.if_new, args.notify)
+        elif args.command == "package-linux":
+            package_linux(layout, args.version)
         elif args.command == "current":
             current, _ = layout.current_engine()
             if current is None:
