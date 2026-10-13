@@ -38,6 +38,11 @@ function coreModule(extension) {
 // La librería de fondos de serie se prepara una vez por sesión del navegador.
 let wallpaperSync = null
 
+// Usuarios en la misma ventana (módulo nativo del motor). Sin él, cada pestaña es del usuario base.
+function nativeUsers() {
+  try { return ChromeUtils.importESModule('chrome://browser/content/kitsune-users.sys.mjs').KitsuneUsers } catch { return null }
+}
+
 this.kitsuneHome = class extends ExtensionAPI {
   getAPI(context) {
     const core = ChromeUtils.importESModule(coreModule(context.extension))
@@ -154,7 +159,8 @@ this.kitsuneHome = class extends ExtensionAPI {
     // Perfiles: un perfil de Kitsune es un perfil de Gecko con nombre, color, foto y modo.
     const profilesPath = () => PathUtils.join(profilesRoot(), PROFILES_FILE)
     const normalize = path => PathUtils.normalize(path).replace(/[\\/]+$/, '')
-    const samePath = (a, b) => normalize(a).toLowerCase() === normalize(b).toLowerCase()
+    // Un usuario con contenedor no tiene ruta de verdad («kitsune-usuario:<id>»): nunca coincide.
+    const samePath = (a, b) => { try { return normalize(a).toLowerCase() === normalize(b).toLowerCase() } catch { return false } }
     async function readProfiles() {
       try {
         return core.validateProfilesRecord(JSON.parse(await readText(profilesPath(), 128 * 1024)))
@@ -163,7 +169,7 @@ this.kitsuneHome = class extends ExtensionAPI {
         throw error instanceof HomeError ? error : new HomeError(503, 'El registro local de perfiles necesita revisión. No se ha sobrescrito.')
       }
     }
-    // El registro y el perfil de esta ventana; el primer perfil abierto es «Personal».
+    // El registro y el usuario base (el de este perfil de Gecko); el primero que se abre es «Personal».
     async function loadProfiles() {
       let record = await readProfiles()
       if (!record) {
@@ -180,7 +186,13 @@ this.kitsuneHome = class extends ExtensionAPI {
         core.validateProfilesRecord(record)
         await writeJson(profilesPath(), record)
       }
-      return { record, currentId: current.id }
+      return { record, baseId: current.id }
+    }
+    // El usuario de la pestaña que pide: el de su contenedor, o el base.
+    async function tabUser(record, baseId) {
+      let id = null
+      try { id = await nativeUsers()?.userFor(context.xulBrowser) } catch { /* el base */ }
+      return id && record.profiles.some(profile => profile.id === id) ? id : baseId
     }
     function newId(record) {
       let id
@@ -213,27 +225,17 @@ this.kitsuneHome = class extends ExtensionAPI {
       if (next !== text) await writeAtomic(userJs, core.encodeText(next))
     }
     const profileService = () => Cc['@mozilla.org/toolkit/profile-service;1'].getService(Ci.nsIToolkitProfileService)
-    async function createGeckoProfile(id) {
-      const service = profileService()
-      const profile = service.createUniqueProfile(null, `kitsune-${id}`, 'kitsune-home')
-      if (service.asyncFlush) await service.asyncFlush()
-      else service.flush()
-      return profile.rootDir.path
-    }
-    function launch(profile, action, isCurrent) {
+    const homeUrl = () => Services.prefs.getStringPref('browser.startup.homepage', '').split('|')[0]
+    // Las acciones de una ficha se abren en esta ventana. Google y el inicio, con el usuario de la
+    // ficha (su contenedor); contraseñas, ajustes, descargas y extensiones son de todo Kitsune.
+    async function openHere(profile, action, baseId) {
+      const window = context.xulBrowser?.ownerGlobal ?? Services.wm.getMostRecentWindow('navigator:browser')
+      if (!window?.openTrustedLinkIn) throw new Error('Sin ventana')
       const url = core.ACTIONS[action]
-      const window = Services.wm.getMostRecentWindow('navigator:browser')
-      if (isCurrent && window) {
-        // Este mismo perfil: una pestaña (o una ventana nueva para el inicio) aquí mismo.
-        if (url) window.openTrustedLinkIn(url, 'tab')
-        else window.OpenBrowserWindow()
-        return
-      }
-      // Otro perfil: otra instancia de Kitsune con ese perfil; si ya está abierta, Gecko le pasa la orden.
-      const process = Cc['@mozilla.org/process/util;1'].createInstance(Ci.nsIProcess)
-      process.init(Services.dirsvc.get('XREExeF', Ci.nsIFile))
-      const args = ['--profile', profile.path, ...(url ? [url] : [])]
-      process.runw(false, args, args.length)
+      const own = !url || action === 'google'
+      const userContextId = own && profile.id !== baseId ? await nativeUsers()?.contextFor(profile.id) : 0
+      if (userContextId === undefined || userContextId === null) throw new Error('Sin contenedor')
+      window.openTrustedLinkIn(url ?? homeUrl(), 'tab', { userContextId })
     }
 
     async function profileMutation(method, path, value) {
@@ -241,29 +243,36 @@ this.kitsuneHome = class extends ExtensionAPI {
       if (path !== '/api/profiles' && !match) throw new HomeError(405, 'Método no permitido.')
       const action = path === '/api/profiles' ? 'create' : (match[2] ?? 'edit')
       if ((method === 'PATCH') !== (action === 'edit')) throw new HomeError(405, 'Método no permitido.')
-      const { record, currentId } = await loadProfiles()
-      const snapshot = next => core.profilesSnapshot(next, currentId)
+      const { record, baseId } = await loadProfiles()
+      const currentId = await tabUser(record, baseId)
+      const snapshot = next => core.profilesSnapshot(next, currentId, baseId)
       if (action === 'open') {
         if (value === null || typeof value !== 'object' || Array.isArray(value) ||
             Object.keys(value).some(key => !['action', 'revision'].includes(key)) || !Object.hasOwn(value, 'action')) {
           throw new HomeError(400, 'La solicitud de apertura no es válida.')
         }
         if (typeof value.action !== 'string' || !Object.hasOwn(core.ACTIONS, value.action)) throw new HomeError(400, 'La acción del perfil no es válida.')
-        if (Object.hasOwn(value, 'revision')) core.checkProfilesRevision(record, value.revision, currentId)
+        if (Object.hasOwn(value, 'revision')) core.checkProfilesRevision(record, value.revision, currentId, baseId)
         const profile = core.findProfile(record, match[1])
         const next = core.clone(record)
         next.profiles.find(item => item.id === profile.id).lastUsed = now()
         next.revision++
         await writeJson(profilesPath(), next)
-        try { launch(profile, value.action, profile.id === currentId) } catch {
+        if (value.action === 'switch') {
+          // Esta misma pestaña pasa a ser el inicio de ese usuario (las demás no se tocan).
+          const users = nativeUsers()
+          if (!users) throw new HomeError(503, 'Este Kitsune no puede cambiar de usuario en la misma pestaña.')
+          return { ...snapshot(next), openedId: profile.id, switched: await users.switchBrowser(context.xulBrowser, profile.id) }
+        }
+        try { await openHere(profile, value.action, baseId) } catch {
           await writeJson(profilesPath(), record)
-          throw new HomeError(503, 'No se ha podido abrir el perfil. Sus datos siguen guardados.')
+          throw new HomeError(503, 'No se ha podido abrir. Tus datos siguen guardados.')
         }
         return { ...snapshot(next), openedId: profile.id, launchRequested: true }
       }
       if (action === 'default') {
         if (value === null || typeof value !== 'object' || Object.keys(value).join() !== 'revision') throw new HomeError(400, 'La solicitud del perfil no es válida.')
-        core.checkProfilesRevision(record, value.revision, currentId)
+        core.checkProfilesRevision(record, value.revision, currentId, baseId)
         core.findProfile(record, match[1])
         const next = { ...core.clone(record), defaultId: match[1], revision: record.revision + 1 }
         await writeJson(profilesPath(), next)
@@ -278,20 +287,21 @@ this.kitsuneHome = class extends ExtensionAPI {
         return snapshot(next)
       }
       const body = core.parseProfileBody(value)
-      core.checkProfilesRevision(record, body.revision, currentId)
+      core.checkProfilesRevision(record, body.revision, currentId, baseId)
       const next = core.clone(record)
       if (action === 'create') {
         if (next.profiles.length >= core.MAX_PROFILES) throw new HomeError(400, `Se permiten hasta ${core.MAX_PROFILES} perfiles locales.`)
         const id = newId(next)
+        // Un usuario nuevo es un contenedor de este perfil: sin perfil de Gecko propio. El modo de
+        // privacidad es de todo Kitsune (el del usuario base); el suyo solo se guarda.
         const mode = core.isOmitted(body.privacyMode) ? core.DEFAULT_PRIVACY_MODE : body.privacyMode
-        const geckoPath = await createGeckoProfile(id)
-        await writePrivacy(geckoPath, mode)
         const avatarHash = core.isOmitted(body.avatarData) || body.avatarData === null ? null : await storeAvatar(id, body.avatarData)
         next.profiles.push({ id, name: body.name, email: body.email, color: body.color, createdAt: now(), lastUsed: '',
-          avatarHash, rememberGoogle: core.isOmitted(body.rememberGoogle) ? false : body.rememberGoogle, privacyMode: mode, path: geckoPath })
+          avatarHash, rememberGoogle: core.isOmitted(body.rememberGoogle) ? false : body.rememberGoogle, privacyMode: mode, path: core.containerUserPath(id) })
         next.revision++
         core.validateProfilesRecord(next)
         try { await writeJson(profilesPath(), next) } catch (error) { await discardAvatar(id, avatarHash); throw error }
+        void nativeUsers()?.refresh().catch(() => {})
         return { ...snapshot(next), createdId: id }
       }
       const profile = next.profiles.find(item => item.id === core.findProfile(record, match[1]).id)
@@ -301,7 +311,8 @@ this.kitsuneHome = class extends ExtensionAPI {
       if (!core.isOmitted(body.rememberGoogle)) profile.rememberGoogle = body.rememberGoogle
       if (!core.isOmitted(body.privacyMode)) {
         profile.privacyMode = body.privacyMode
-        await writePrivacy(profile.path, body.privacyMode)
+        // Solo el del usuario base llega al motor (es el de todo Kitsune).
+        if (profile.id === baseId) await writePrivacy(profile.path, body.privacyMode)
       }
       next.revision++
       core.validateProfilesRecord(next)
@@ -310,6 +321,7 @@ this.kitsuneHome = class extends ExtensionAPI {
         throw error
       }
       if (profile.avatarHash !== oldHash) await discardAvatar(profile.id, oldHash)
+      void nativeUsers()?.refresh().catch(() => {})
       return snapshot(next)
     }
 
@@ -523,8 +535,8 @@ this.kitsuneHome = class extends ExtensionAPI {
       }
       if (method === 'GET' && path === '/api/rendimiento') return json(200, await memory())
       if (method === 'GET' && path === '/api/profiles') {
-        const { record, currentId } = await loadProfiles()
-        return json(200, { ...core.profilesSnapshot(record, currentId), token: TOKEN })
+        const { record, baseId } = await loadProfiles()
+        return json(200, { ...core.profilesSnapshot(record, await tabUser(record, baseId), baseId), token: TOKEN })
       }
       const avatar = /^\/api\/profile-avatars\/(default|p-[0-9a-f]{16})\/([0-9a-f]{64})\.png$/.exec(path)
       if (method === 'GET' && avatar) {

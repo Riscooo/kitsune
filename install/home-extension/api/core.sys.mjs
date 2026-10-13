@@ -14,6 +14,8 @@ export const DEFAULT_PRIVACY_MODE = 'estricto'
 // Lo que puede abrir la ficha de un perfil: siempre una de estas, nunca una dirección de la página.
 export const ACTIONS = Object.freeze({
   home: null,
+  // Usuarios en la misma ventana: esta pestaña pasa a ser el inicio de ese usuario.
+  switch: null,
   google: 'https://accounts.google.com/ServiceLogin',
   privacy: 'about:preferences#privacy',
   passwords: 'about:logins',
@@ -223,11 +225,12 @@ export function validateProfilesRecord(record) {
   return record
 }
 
-/** Lo que ve la página (el mismo formato que profiles.py): sin rutas. */
-export function profilesSnapshot(record, currentId) {
-  if (!record.profiles.some(profile => profile.id === currentId)) throw new HomeError(404, 'No se ha encontrado ese perfil.')
+/** Lo que ve la página (el mismo formato que profiles.py): sin rutas. `currentId` es el usuario de
+ * la pestaña y `baseId` el del perfil de Gecko (sin contenedor), dueño de los ajustes de privacidad. */
+export function profilesSnapshot(record, currentId, baseId = currentId) {
+  if (![currentId, baseId].every(id => record.profiles.some(profile => profile.id === id))) throw new HomeError(404, 'No se ha encontrado ese perfil.')
   return {
-    version: 1, revision: record.revision, currentId, defaultId: record.defaultId,
+    version: 1, revision: record.revision, currentId, defaultId: record.defaultId, baseId,
     profiles: record.profiles.map(profile => ({
       id: profile.id, name: profile.name, email: profile.email, color: profile.color,
       createdAt: profile.createdAt, lastUsed: profile.lastUsed, rememberGoogle: profile.rememberGoogle,
@@ -237,6 +240,9 @@ export function profilesSnapshot(record, currentId) {
   }
 }
 
+/** La «ruta» de un usuario con contenedor: no tiene carpeta de Gecko propia (vive en el perfil base). */
+export const containerUserPath = id => `kitsune-usuario:${id}`
+
 export function findProfile(record, id) {
   if (!validProfileId(id)) throw badProfile('El identificador del perfil no es válido.')
   const profile = record.profiles.find(item => item.id === id)
@@ -244,10 +250,10 @@ export function findProfile(record, id) {
   return profile
 }
 
-export function checkProfilesRevision(record, revision, currentId) {
+export function checkProfilesRevision(record, revision, currentId, baseId = currentId) {
   if (!validRevision(revision)) throw badProfile('La revisión del registro no es válida.')
   if (revision !== record.revision) {
-    throw new HomeError(409, 'Los perfiles han cambiado en otra ventana.', profilesSnapshot(record, currentId))
+    throw new HomeError(409, 'Los perfiles han cambiado en otra ventana.', profilesSnapshot(record, currentId, baseId))
   }
   if (record.revision === MAX_REVISION) throw new HomeError(503, 'No se puede actualizar la revisión del registro.')
 }

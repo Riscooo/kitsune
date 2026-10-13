@@ -229,6 +229,14 @@ export const KitsuneUsers = {
     await loadMap();
     return userForContainer(state.map, Number(browser?.getAttribute('usercontextid')) || 0);
   },
+  /** El contenedor del usuario `id` (0 el base), creándolo si hace falta; null si no es un usuario. */
+  async contextFor(id) {
+    await refresh(true);
+    if (!state.users.some(user => user.id === id)) return null;
+    if (id === state.baseId) return 0;
+    syncContainers();
+    return state.map.get(id) ?? null;
+  },
   /** Cambia la pestaña de ese <browser> al usuario `id`. */
   async switchBrowser(browser, id) {
     await refresh(true);

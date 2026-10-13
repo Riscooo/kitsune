@@ -136,7 +136,22 @@ test('profile requests are checked like the server: labels, revision, mode and a
   assert.equal(core.isOmitted(body.avatarData), true)
   assert.throws(() => core.checkProfilesRevision(record, 5, 'default'), error => error.status === 409 && error.extra.revision === 0)
   assert.throws(() => core.findProfile(record, '../x'), /identificador/)
-  assert.deepEqual(Object.keys(core.ACTIONS), ['home', 'google', 'privacy', 'passwords', 'settings', 'general', 'search', 'downloads', 'extensions'])
+  assert.deepEqual(Object.keys(core.ACTIONS), ['home', 'switch', 'google', 'privacy', 'passwords', 'settings', 'general', 'search', 'downloads', 'extensions'])
+})
+
+test('users in the same window: the snapshot says whose tab it is and who the base user is', () => {
+  const record = core.defaultProfilesRecord('2026-10-10T12:00:00+00:00', '/perfiles/abc')
+  const id = 'p-0123456789abcdef'
+  const next = { ...record, revision: 1, profiles: [...record.profiles, { id, name: 'Insti', email: '', color: 'teal', createdAt: '', lastUsed: '',
+    avatarHash: null, rememberGoogle: false, privacyMode: 'estricto', path: core.containerUserPath(id) }] }
+  core.validateProfilesRecord(next)
+  assert.equal(core.containerUserPath(id), `kitsune-usuario:${id}`)
+  const snapshot = core.profilesSnapshot(next, id, 'default')
+  assert.deepEqual([snapshot.currentId, snapshot.baseId], [id, 'default'])
+  assert.deepEqual(snapshot.profiles.map(profile => profile.isCurrent), [false, true])
+  assert.equal(core.profilesSnapshot(next, 'default').baseId, 'default')
+  assert.throws(() => core.profilesSnapshot(next, id, 'p-ffffffffffffffff'), error => error.status === 404)
+  assert.equal(JSON.stringify(snapshot).includes('kitsune-usuario'), false)
 })
 
 test('the privacy mode goes into a managed block of user.js and nothing else is touched', () => {

@@ -124,6 +124,9 @@ test('switching replaces only that tab, in its place, with the home in the user 
   assert.deepEqual(gecko.calls.find(call => call[0] === 'addTab').slice(2, 3), [0])
   assert.equal(await users.KitsuneUsers.userFor({ getAttribute: () => '10' }), P1)
   assert.equal(await users.KitsuneUsers.userFor({ getAttribute: () => '0' }), null)
+  assert.equal(await users.KitsuneUsers.contextFor(P1), 10)
+  assert.equal(await users.KitsuneUsers.contextFor('default'), 0)
+  assert.equal(await users.KitsuneUsers.contextFor(P2), null)
   // Cambiarle el nombre y el color a un usuario cambia su contenedor, no hace otro.
   gecko.calls.length = 0
   gecko.files.set('/estado/kitsune-browser/profiles.json', JSON.stringify({ version: 2, profiles: [
