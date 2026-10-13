@@ -53,7 +53,7 @@ const texts = rootNode => {
   for (const host of rootNode.querySelectorAll('*')) if (host.shadowRoot) list.push(...texts(host.shadowRoot));
   return list;
 };
-const roots = {toolbox: 'navigator-toolbox', menu: 'appMenu-popup', find: null};
+const roots = {toolbox: 'navigator-toolbox', menu: 'appMenu-popup', sidebar: 'sidebar-container', find: null};
 const rootNode = where === 'find' ? gFindBar : document.getElementById(roots[where]);
 const low = [];
 let checked = 0;

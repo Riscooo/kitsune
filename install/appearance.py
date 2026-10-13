@@ -110,6 +110,9 @@ class AppearanceManager:
             buttons = settings.get('windowButtons', 'auto')
             if type(minimize) is not bool or buttons not in ('auto', 'kitsune', 'sistema'):
                 raise ValueError('Invalid window option')
+            tabs = settings.get('tabs', 'arriba')
+            if tabs not in ('arriba', 'lado', 'iconos'):
+                raise ValueError('Invalid tabs option')
             if background is not None and not background_path(self.profile, background).is_file():
                 background = None
             palette = PALETTES[theme].copy()
@@ -127,10 +130,10 @@ class AppearanceManager:
                     raise ValueError('Invalid Google retention policy')
             except FileNotFoundError:
                 pass
-            value = {'version': 7, 'palette': palette, 'motion': motion, 'googleRemember': remember, 'theme': theme,
+            value = {'version': 8, 'palette': palette, 'motion': motion, 'googleRemember': remember, 'theme': theme,
                      'background': background, 'windowControls': controls, 'brand': brand,
                      'performance': performance, 'ramLimit': ram_limit, 'minimize': minimize,
-                     'windowButtons': buttons}
+                     'windowButtons': buttons, 'tabs': tabs}
             value['fingerprint'] = hashlib.sha256(json.dumps(value, sort_keys=True).encode()).hexdigest()
             private_write(self.control, value)
             native = {'available': (self.browser_root / 'native/kitsune-appearance.sys.mjs').is_file(), 'status': 'queued'}

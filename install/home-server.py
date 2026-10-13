@@ -92,6 +92,8 @@ DEFAULT_DATA = {
     "minimize": True,
     # Botones de la ventana: los de Kitsune, los del sistema o «auto» (los de Apple en macOS).
     "windowButtons": "auto",
+    # Pestañas arriba, en una barra a un lado o a un lado solo con iconos.
+    "tabs": "arriba",
 }
 # Cabecera con el usuario de la pestaña (usuarios en la misma ventana).
 USER_HEADER = "X-Kitsune-Usuario"
@@ -129,6 +131,8 @@ def validate_data(value, base=None):
         raise InvalidSettings("Las opciones de la ventana no son válidas.")
     if type(value["minimize"]) is not bool or value["windowButtons"] not in ("auto", "kitsune", "sistema"):
         raise InvalidSettings("Las opciones de la ventana no son válidas.")
+    if value["tabs"] not in ("arriba", "lado", "iconos"):
+        raise InvalidSettings("La posición de las pestañas no es válida.")
     if value["performance"] not in ("normal", "ahorro") or type(value["ramLimit"]) is not int or value["ramLimit"] not in (1024, 2048, 4096):
         raise InvalidSettings("El modo de rendimiento no es válido.")
     background = value["background"]

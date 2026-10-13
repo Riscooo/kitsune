@@ -26,27 +26,11 @@ const store = createSettingsStore({
     appearance?.applySettings(settings); shortcuts?.render(settings)
     for (const [id, key] of Object.entries(toggles)) { $(`#${id}`).checked = settings[key]; $(`#${id}`).disabled = !state.ready }
     for (const key of ['clock', 'shortcuts']) { $(`#module-${key}`).checked = settings.modules[key]; $(`#module-${key}`).disabled = !state.ready }
-    for (const button of document.querySelectorAll('[data-window-controls]')) button.addEventListener('click', () => void save({ windowControls: button.dataset.windowControls }))
-for (const button of document.querySelectorAll('[data-window-buttons]')) button.addEventListener('click', () => void save({ windowButtons: button.dataset.windowButtons }))
-for (const button of document.querySelectorAll('[data-performance]')) button.addEventListener('click', () => void save({ performance: button.dataset.performance }))
-for (const button of document.querySelectorAll('[data-ram-limit]')) button.addEventListener('click', () => void save({ ramLimit: Number(button.dataset.ramLimit) }))
-// Cuánta memoria usa ahora Kitsune en este perfil (mientras el panel está abierto).
-async function updateMemory() {
-  if (!$('#settings-dialog').open || location.protocol === 'file:') return
-  try {
-    const response = await fetch('/api/rendimiento', { credentials: 'omit', cache: 'no-store' })
-    const value = await response.json()
-    $('#memory-status').textContent = Number.isFinite(value?.memoryMB)
-      ? `Ahora Kitsune usa ${value.memoryMB >= 1024 ? `${(value.memoryMB / 1024).toLocaleString('es-ES', { maximumFractionDigits: 1 })} GB` : `${value.memoryMB} MB`} de RAM en este perfil (${value.processes} procesos).`
-      : ''
-  } catch { $('#memory-status').textContent = '' }
-}
-setInterval(() => void updateMemory(), 5000)
-$('#settings-open').addEventListener('click', () => setTimeout(() => void updateMemory(), 50))
-for (const radio of document.querySelectorAll('input[name="theme"]')) { radio.checked = radio.value === settings.theme; radio.disabled = !state.ready }
+    for (const radio of document.querySelectorAll('input[name="theme"]')) { radio.checked = radio.value === settings.theme; radio.disabled = !state.ready }
     $('#background-file').disabled = !state.ready
     // «auto»: los de Apple en macOS y los de Kitsune en el resto. Con los del sistema, el lado y minimizar los decide él.
     const buttons = settings.windowButtons === 'auto' ? (navigator.userAgent.includes('Macintosh') ? 'sistema' : 'kitsune') : settings.windowButtons
+    for (const button of document.querySelectorAll('[data-tabs]')) { button.setAttribute('aria-pressed', String(button.dataset.tabs === settings.tabs)); button.disabled = !state.ready }
     for (const button of document.querySelectorAll('[data-window-buttons]')) { button.setAttribute('aria-pressed', String(button.dataset.windowButtons === buttons)); button.disabled = !state.ready }
     for (const button of document.querySelectorAll('[data-window-controls]')) { button.setAttribute('aria-pressed', String(button.dataset.windowControls === settings.windowControls)); button.disabled = !state.ready || buttons === 'sistema' }
     $('#minimize-toggle').disabled = !state.ready || buttons === 'sistema'
@@ -66,6 +50,25 @@ for (const radio of document.querySelectorAll('input[name="theme"]')) { radio.ch
     if (message) announce(message)
   },
 })
+// Botones de los ajustes: se registran una sola vez (no en cada cambio de ajustes).
+for (const button of document.querySelectorAll('[data-window-controls]')) button.addEventListener('click', () => void save({ windowControls: button.dataset.windowControls }))
+for (const button of document.querySelectorAll('[data-tabs]')) button.addEventListener('click', () => void save({ tabs: button.dataset.tabs }))
+for (const button of document.querySelectorAll('[data-window-buttons]')) button.addEventListener('click', () => void save({ windowButtons: button.dataset.windowButtons }))
+for (const button of document.querySelectorAll('[data-performance]')) button.addEventListener('click', () => void save({ performance: button.dataset.performance }))
+for (const button of document.querySelectorAll('[data-ram-limit]')) button.addEventListener('click', () => void save({ ramLimit: Number(button.dataset.ramLimit) }))
+// Cuánta memoria usa ahora Kitsune en este perfil (mientras el panel está abierto).
+async function updateMemory() {
+  if (!$('#settings-dialog').open || location.protocol === 'file:') return
+  try {
+    const response = await fetch('/api/rendimiento', { credentials: 'omit', cache: 'no-store' })
+    const value = await response.json()
+    $('#memory-status').textContent = Number.isFinite(value?.memoryMB)
+      ? `Ahora Kitsune usa ${value.memoryMB >= 1024 ? `${(value.memoryMB / 1024).toLocaleString('es-ES', { maximumFractionDigits: 1 })} GB` : `${value.memoryMB} MB`} de RAM en este perfil (${value.processes} procesos).`
+      : ''
+  } catch { $('#memory-status').textContent = '' }
+}
+setInterval(() => void updateMemory(), 5000)
+$('#settings-open').addEventListener('click', () => setTimeout(() => void updateMemory(), 50))
 appearance = createAppearance({ getSettings: () => store.data, refreshSettings: () => store.refresh({ quiet: true }), onStatus: message => { $('#theme-status').textContent = message } })
 shortcuts = initializeShortcuts({ store, announce })
 initializeDialogs(); initializeNativeActions({ announce })

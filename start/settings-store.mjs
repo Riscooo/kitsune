@@ -3,6 +3,8 @@ import { cleanLinks } from './navigation.mjs'
 export const WALLPAPERS = Object.freeze(['night', 'veil', 'dusk', 'ember'])
 export const ACCENTS = Object.freeze(['blue', 'pink', 'system'])
 export const THEMES = Object.freeze(['claro', 'oscuro'])
+// Pestañas arriba (como siempre), en una barra a un lado o a un lado solo con iconos.
+export const TABS = Object.freeze(['arriba', 'lado', 'iconos'])
 const copy = value => JSON.parse(JSON.stringify(value))
 
 export function normalizeSettings(value = {}) {
@@ -20,6 +22,7 @@ export function normalizeSettings(value = {}) {
     ramLimit: [1024, 2048, 4096].includes(value?.ramLimit) ? value.ramLimit : 2048,
     minimize: value?.minimize !== false,
     windowButtons: ['kitsune', 'sistema'].includes(value?.windowButtons) ? value.windowButtons : 'auto',
+    tabs: TABS.includes(value?.tabs) ? value.tabs : 'arriba',
   }
 }
 

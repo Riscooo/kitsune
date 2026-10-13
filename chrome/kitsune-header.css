@@ -281,9 +281,27 @@
     background: transparent !important;
     border-color: transparent !important;
   }
-  #main-window #tabbrowser-tabs[orient="vertical"] .tabbrowser-tab:is(:hover, [selected], [visually-selected]) .tab-background {
+  #main-window #tabbrowser-tabs[orient="vertical"] .tabbrowser-tab:hover .tab-background {
     background: var(--kitsune-wash-hover) !important;
+  }
+  /* La activa, de papel y con un trazo de óxido al principio, como la de arriba lleva el suyo. */
+  #main-window #tabbrowser-tabs[orient="vertical"] .tabbrowser-tab:is([selected], [visually-selected]) .tab-background {
+    background: linear-gradient(var(--kitsune-focus), var(--kitsune-focus)) left 3px center / 3px 58% no-repeat, var(--kitsune-sheet) !important;
     border-color: var(--kitsune-rule) !important;
+  }
+  #main-window:-moz-locale-dir(rtl) #tabbrowser-tabs[orient="vertical"] .tabbrowser-tab:is([selected], [visually-selected]) .tab-background {
+    background-position: right 3px center, 0 0 !important;
+  }
+  /* Plegada (solo iconos): el trazo va abajo, bajo el icono, para no pisarlo. */
+  #main-window #tabbrowser-tabs[orient="vertical"]:not([expanded]) .tabbrowser-tab:is([selected], [visually-selected]) .tab-background,
+  #main-window:-moz-locale-dir(rtl) #tabbrowser-tabs[orient="vertical"]:not([expanded]) .tabbrowser-tab:is([selected], [visually-selected]) .tab-background {
+    background: linear-gradient(var(--kitsune-focus), var(--kitsune-focus)) center bottom 3px / 46% 3px no-repeat, var(--kitsune-sheet) !important;
+  }
+  #main-window #tabbrowser-tabs[orient="vertical"] .tabbrowser-tab[selected] .tab-label { font-weight: 600 !important; }
+  /* La barra lateral, del mismo lavado que la tira de pestañas de arriba. */
+  #main-window #sidebar-container:has(> sidebar-main) {
+    background: var(--kitsune-wash) !important;
+    border-inline-end: 1px solid var(--kitsune-rule) !important;
   }
   #main-window[uidensity="compact"] #tabbrowser-tabs[orient="horizontal"] { --tab-min-height: 32px !important; }
   #main-window[uidensity="compact"] #nav-bar { padding-block: 3px !important; }

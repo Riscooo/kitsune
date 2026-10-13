@@ -51,9 +51,12 @@ export const DEFAULT_DATA = Object.freeze({
   performance: 'normal', ramLimit: 2048,
   minimize: true,
   windowButtons: 'auto',
+  tabs: 'arriba',
 })
 // Botones de la ventana: los de Kitsune, los del sistema o según el sistema (auto: los de Apple en macOS).
 export const WINDOW_BUTTONS = Object.freeze(['auto', 'kitsune', 'sistema'])
+// Pestañas arriba, en una barra a un lado o a un lado solo con iconos.
+export const TABS = Object.freeze(['arriba', 'lado', 'iconos'])
 const LEGACY_KEYS = ['links', 'art', 'motion', 'newTab', 'accent', 'focus']
 const HASH = /^[0-9a-f]{64}$/
 const LINK_ID = /^[A-Za-z0-9][A-Za-z0-9_-]{0,79}$/
@@ -93,6 +96,7 @@ export function validateSettings(value, base = null) {
   if (!['izquierda', 'derecha'].includes(data.windowControls) || typeof data.brand !== 'boolean') throw invalid('Las opciones de la ventana no son válidas.')
   if (typeof data.minimize !== 'boolean') throw invalid('Las opciones de la ventana no son válidas.')
   if (!WINDOW_BUTTONS.includes(data.windowButtons)) throw invalid('Las opciones de la ventana no son válidas.')
+  if (!TABS.includes(data.tabs)) throw invalid('La posición de las pestañas no es válida.')
   if (!['normal', 'ahorro'].includes(data.performance) || ![1024, 2048, 4096].includes(data.ramLimit)) throw invalid('El modo de rendimiento no es válido.')
   if (data.background !== null && (typeof data.background !== 'string' || !HASH.test(data.background))) throw invalid('El fondo no es válido.')
   const modules = data.modules
@@ -143,7 +147,7 @@ export function updateSettings(record, data, revision, newBackground = null) {
   return { updated: true, record: next }
 }
 
-// Apariencia: el control v7 que lee install/native/kitsune-appearance.sys.mjs.
+// Apariencia: el control v8 que lee install/native/kitsune-appearance.sys.mjs.
 const KEYS = ['bg', 'surface', 'surfaceHigh', 'text', 'muted', 'outline', 'primary', 'primaryContainer', 'secondary', 'tertiary']
 const palette = colors => Object.fromEntries(KEYS.map((key, index) => [key, colors[index]]))
 export const PALETTES = Object.freeze({
@@ -155,10 +159,10 @@ export const PALETTES = Object.freeze({
 export function appearanceControl(settings, { remember = false, backgroundExists = true } = {}) {
   const background = settings.background && backgroundExists ? settings.background : null
   return {
-    version: 7, palette: { ...PALETTES[settings.theme] }, motion: settings.motion, googleRemember: remember === true,
+    version: 8, palette: { ...PALETTES[settings.theme] }, motion: settings.motion, googleRemember: remember === true,
     theme: settings.theme, background, windowControls: settings.windowControls, brand: settings.brand,
     performance: settings.performance, ramLimit: settings.ramLimit, minimize: settings.minimize,
-    windowButtons: settings.windowButtons,
+    windowButtons: settings.windowButtons, tabs: settings.tabs,
   }
 }
 

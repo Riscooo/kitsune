@@ -11,6 +11,8 @@ const GOOGLE = ['https://google.com', 'https://accounts.google.com'];
 const PERMISSION = 'persist-data-on-shutdown';
 const SCHEME_PREFS = ['ui.systemUsesDarkTheme'];
 const WEBSITES = 'layout.css.prefers-color-scheme.content-override';
+// Pestañas a un lado: lo único que applyTabs puede tocar.
+const TAB_PREFS = ['kitsune.tabs.applied', 'sidebar.verticalTabs', 'sidebar.visibility', 'sidebar.revamp'];
 
 function fixture({ permissions = new Map(), preferences = new Map(), inherited = false, newTab = null, defaults = new Map() } = {}) {
   const calls = [];
@@ -19,13 +21,14 @@ function fixture({ permissions = new Map(), preferences = new Map(), inherited =
     getBoolPref: (name, fallback) => preferences.has(name) ? preferences.get(name) : fallback,
     getIntPref: (name, fallback) => preferences.has(name) ? preferences.get(name) : fallback,
     setIntPref(name, value) { assert.ok(SCHEME_PREFS.includes(name), name); preferences.set(name, value); calls.push(['int', name, value]); },
-    setStringPref(name, value) { assert.ok([OWNED, 'kitsune.theme.applied'].includes(name), name); assert.equal(typeof value, 'string'); preferences.set(name, value); calls.push(['pref', name, value]); },
+    setBoolPref(name, value) { assert.ok(TAB_PREFS.includes(name), name); assert.equal(typeof value, 'boolean'); preferences.set(name, value); calls.push(['bool', name, value]); },
+    setStringPref(name, value) { assert.ok([OWNED, 'kitsune.theme.applied', ...TAB_PREFS].includes(name), name); assert.equal(typeof value, 'string'); preferences.set(name, value); calls.push(['pref', name, value]); },
     prefHasUserValue: name => preferences.has(name),
     getDefaultBranch: () => ({ PREF_STRING: 32, getChildList: () => [...defaults.keys()],
       getPrefType: name => typeof defaults.get(name) === 'string' ? 32 : 64,
       getStringPref: (name, fallback) => defaults.has(name) ? defaults.get(name) : fallback,
       setStringPref(name, value) { defaults.set(name, value); calls.push(['default', name, value]); } }),
-    clearUserPref(name) { assert.ok([OWNED, LEGACY, WEBSITES].includes(name), name); preferences.delete(name); calls.push(['clear', name]); },
+    clearUserPref(name) { assert.ok([OWNED, LEGACY, WEBSITES, ...TAB_PREFS].includes(name), name); preferences.delete(name); calls.push(['clear', name]); },
   };
   const perms = {
     ALLOW_ACTION: 1,
@@ -67,7 +70,7 @@ function fixture({ permissions = new Map(), preferences = new Map(), inherited =
   // Execute only this local trusted source against fake Services. No network,
   // real profile, timers or native browser APIs are available in the context.
   vm.runInContext(source.replace('export const KitsuneAppearance', 'const KitsuneAppearance') +
-    '\nglobalThis.api = { validate, nativeCss, applyGoogle, applyScheme, applyNewTab, applySupportUrl, managedOrigins, IDENTITY_CSS, resolveButtons, applyButtons };', context);
+    '\nglobalThis.api = { validate, nativeCss, applyGoogle, applyScheme, applyNewTab, applySupportUrl, managedOrigins, IDENTITY_CSS, resolveButtons, applyButtons, applyTabs };', context);
   return { api: context.api, permissions, preferences, calls };
 }
 
@@ -163,6 +166,46 @@ test('v7 chooses Kitsune or system window buttons; auto is system on macOS and K
   assert.match(css, /:root#main-window\[kitsune-window-buttons="kitsune"\] \.titlebar-buttonbox \.titlebar-min\{display:none!important/);
   assert.match(css, /:root#main-window\[kitsune-window-buttons="kitsune"\] #TabsToolbar>\.titlebar-buttonbox-container/);
   assert.doesNotMatch(css, /-moz-platform: macos/);
+});
+
+test('v8 puts the tabs on top, at one side or at one side with only icons', () => {
+  const { api } = fixture();
+  const v8 = (extra = {}) => ({ ...controlV3(), version: 8, windowControls: 'izquierda', brand: true, performance: 'normal', ramLimit: 2048,
+    minimize: true, windowButtons: 'auto', tabs: 'lado', ...extra });
+  assert.equal(api.validate(v8()).tabs, 'lado');
+  assert.equal(api.validate(v8({ tabs: 'iconos' })).tabs, 'iconos');
+  for (const change of [{ tabs: 'vertical' }, { tabs: null }, { tabs: true }]) assert.throws(() => api.validate(v8(change)));
+  const { tabs, ...withoutTabs } = v8();
+  assert.throws(() => api.validate(withoutTabs));
+  // Controles anteriores: arriba, como siempre.
+  assert.equal(api.validate(control()).tabs, 'arriba');
+});
+
+test('tabs change Gecko only when the choice changes, and going back to the top removes what Kitsune set', () => {
+  const { api, preferences, calls } = fixture();
+  api.applyTabs('arriba');
+  assert.deepEqual(calls, [['pref', 'kitsune.tabs.applied', 'arriba']]);
+  calls.length = 0;
+  api.applyTabs('arriba');
+  assert.deepEqual(calls, []);
+  api.applyTabs('lado');
+  assert.deepEqual(calls, [['bool', 'sidebar.verticalTabs', true], ['pref', 'sidebar.visibility', 'always-show'], ['pref', 'kitsune.tabs.applied', 'lado']]);
+  calls.length = 0;
+  api.applyTabs('iconos');
+  assert.deepEqual(calls, [['bool', 'sidebar.verticalTabs', true], ['pref', 'sidebar.visibility', 'expand-on-hover'], ['pref', 'kitsune.tabs.applied', 'iconos']]);
+  // Gecko enciende sidebar.revamp al poner las verticales; al volver arriba se quita.
+  preferences.set('sidebar.revamp', true);
+  calls.length = 0;
+  api.applyTabs('arriba');
+  assert.deepEqual(calls, [['bool', 'sidebar.verticalTabs', false], ['clear', 'sidebar.visibility'], ['clear', 'sidebar.revamp'], ['pref', 'kitsune.tabs.applied', 'arriba']]);
+});
+
+test('vertical tabs set by hand in the browser settings survive the first control', () => {
+  const { api, preferences, calls } = fixture({ preferences: new Map([['sidebar.verticalTabs', true], ['sidebar.revamp', true]]) });
+  api.applyTabs('arriba');
+  assert.deepEqual(calls, [['pref', 'kitsune.tabs.applied', 'arriba']]);
+  assert.equal(preferences.get('sidebar.verticalTabs'), true);
+  assert.equal(preferences.get('sidebar.revamp'), true);
 });
 
 test('each window carries the resolved button style as an attribute', () => {

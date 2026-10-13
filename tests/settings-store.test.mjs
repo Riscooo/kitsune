@@ -18,7 +18,7 @@ test('theme and background accept only their enumerated values and a content has
 
 test('legacy preferences keep their values and receive safe module/wallpaper defaults', () => {
   const state = normalizeSettings({ art: false, motion: false, newTab: true, accent: 'pink', focus: true, links: [] })
-  assert.deepEqual(state, { art: false, motion: false, newTab: true, accent: 'pink', focus: true, links: [], wallpaper: 'night', themeSync: false, modules: { clock: true, shortcuts: true }, theme: 'claro', background: null, windowControls: 'izquierda', brand: true, performance: 'normal', ramLimit: 2048, minimize: true, windowButtons: 'auto' })
+  assert.deepEqual(state, { art: false, motion: false, newTab: true, accent: 'pink', focus: true, links: [], wallpaper: 'night', themeSync: false, modules: { clock: true, shortcuts: true }, theme: 'claro', background: null, windowControls: 'izquierda', brand: true, performance: 'normal', ramLimit: 2048, minimize: true, windowButtons: 'auto', tabs: 'arriba' })
   assert.equal(normalizeSettings({ wallpaper: 'javascript:bad', accent: 'bad', themeSync: 'true' }).wallpaper, 'night')
   assert.equal(normalizeSettings({ themeSync: 'true' }).themeSync, false)
 })
@@ -168,4 +168,11 @@ test('window buttons are Kitsune, system or automatic, and anything else is auto
   assert.equal(normalizeSettings({ windowButtons: 'sistema' }).windowButtons, 'sistema')
   assert.equal(normalizeSettings({ windowButtons: 'kitsune' }).windowButtons, 'kitsune')
   assert.equal(normalizeSettings({ windowButtons: 'macos' }).windowButtons, 'auto')
+})
+
+test('tabs go on top, at one side or as icons at one side, and anything else is on top', () => {
+  assert.equal(normalizeSettings({}).tabs, 'arriba')
+  assert.equal(normalizeSettings({ tabs: 'lado' }).tabs, 'lado')
+  assert.equal(normalizeSettings({ tabs: 'iconos' }).tabs, 'iconos')
+  assert.equal(normalizeSettings({ tabs: 'izquierda' }).tabs, 'arriba')
 })

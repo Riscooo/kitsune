@@ -35,7 +35,11 @@ const CONTROL_KEYS = Object.freeze({
   // Botones de la ventana: los de Kitsune, los del sistema o según el sistema.
   7: Object.freeze(['version', 'fingerprint', 'palette', 'motion', 'googleRemember', 'theme', 'background', 'windowControls', 'brand',
                     'performance', 'ramLimit', 'minimize', 'windowButtons']),
+  // Pestañas arriba, en una barra a un lado o a un lado solo con iconos.
+  8: Object.freeze(['version', 'fingerprint', 'palette', 'motion', 'googleRemember', 'theme', 'background', 'windowControls', 'brand',
+                    'performance', 'ramLimit', 'minimize', 'windowButtons', 'tabs']),
 });
+const TABS = Object.freeze(['arriba', 'lado', 'iconos']);
 const WINDOW_BUTTONS = Object.freeze(['auto', 'kitsune', 'sistema']);
 const PERFORMANCE = Object.freeze(['normal', 'ahorro']);
 const RAM_LIMITS = Object.freeze([1024, 2048, 4096]);
@@ -51,6 +55,7 @@ function validate(value) {
       (value.version >= 5 && (!PERFORMANCE.includes(value.performance) || !RAM_LIMITS.includes(value.ramLimit))) ||
       (value.version >= 6 && typeof value.minimize !== 'boolean') ||
       (value.version >= 7 && !WINDOW_BUTTONS.includes(value.windowButtons)) ||
+      (value.version >= 8 && !TABS.includes(value.tabs)) ||
       typeof value.fingerprint !== 'string' || !/^[a-f0-9]{64}$/.test(value.fingerprint) ||
       ['motion','googleRemember'].some(key => typeof value[key] !== 'boolean') ||
       !value.palette || typeof value.palette !== 'object' || Array.isArray(value.palette) ||
@@ -58,7 +63,7 @@ function validate(value) {
       Object.keys(TOKENS).some(key => typeof value.palette[key] !== 'string' || !/^#[0-9a-f]{6}$/.test(value.palette[key]))) throw Error('Invalid local appearance control');
   // Un control v2 (0.6) es papel claro y sin fondo; v2 y v3, botones a la izquierda y con logo.
   return {theme:'claro', background:null, windowControls:'izquierda', brand:true, performance:'normal', ramLimit:2048, minimize:true,
-          windowButtons:'auto', ...value};
+          windowButtons:'auto', tabs:'arriba', ...value};
 }
 
 function backgroundUri(hash) {
@@ -202,6 +207,31 @@ async function watchMemory() {
   }
 }
 
+// Pestañas a un lado: las verticales de Gecko (sidebar.verticalTabs; Gecko enciende solo
+// sidebar.revamp, que Kitsune trae apagado). «iconos» deja la barra estrecha y se abre al
+// pasar el ratón. Solo se toca algo cuando cambia la elección: la primera vez se apunta la
+// que hay sin cambiar nada, así que unas verticales puestas a mano en Ajustes se respetan.
+// Al volver arriba se quita lo que puso Kitsune y la barra lateral vuelve a la de siempre.
+const TABS_APPLIED_PREF = 'kitsune.tabs.applied';
+function applyTabs(mode) {
+  const applied = Services.prefs.getStringPref(TABS_APPLIED_PREF, '');
+  if (applied === mode) return;
+  if (!applied && mode === 'arriba') {
+    Services.prefs.setStringPref(TABS_APPLIED_PREF, mode);
+    return;
+  }
+  if (mode === 'arriba') {
+    Services.prefs.setBoolPref('sidebar.verticalTabs', false);
+    for (const name of ['sidebar.visibility', 'sidebar.revamp']) {
+      if (Services.prefs.prefHasUserValue(name)) Services.prefs.clearUserPref(name);
+    }
+  } else {
+    Services.prefs.setBoolPref('sidebar.verticalTabs', true);
+    Services.prefs.setStringPref('sidebar.visibility', mode === 'iconos' ? 'expand-on-hover' : 'always-show');
+  }
+  Services.prefs.setStringPref(TABS_APPLIED_PREF, mode);
+}
+
 // El esquema de Gecko sigue al tema: menús, ajustes y las webs que lo admiten
 // se ven oscuros en Oscuro. Con el tema por defecto, browser.theme.* vale 2
 // («como el sistema») y lo reescribe Gecko; manda ui.systemUsesDarkTheme.
@@ -329,6 +359,7 @@ async function update() {
       applyPerformance(value.performance, value.ramLimit);
       applyGoogle(value.googleRemember);
       applyButtons(value.windowButtons);
+      applyTabs(value.tabs);
       current = value.fingerprint;
       lastAck = 0;
     }
