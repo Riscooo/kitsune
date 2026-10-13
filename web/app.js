@@ -51,7 +51,9 @@ function render({ version, files }) {
     }
   }
   const ready = Object.keys(files).length
-  if (ready) document.querySelector('#downloads-note').textContent = 'Si tu sistema aún pone «Próximamente», ya casi está.'
+  if (ready) document.querySelector('#downloads-note').textContent = ready === Object.keys(PLATFORMS).length
+    ? 'Son betas: si algo falla, cuéntanoslo en GitHub.'
+    : 'Si tu sistema aún pone «Próximamente», ya casi está.'
   const mine = detectPlatform()
   const main = document.querySelector('#download-main')
   const mainLabel = document.querySelector('#download-main-label')

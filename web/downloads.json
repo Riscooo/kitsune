@@ -1,14 +1,21 @@
 {
-  "version": "0.7 beta",
+  "version": "0.7 beta 5",
   "windows": {
-    "url": "https://github.com/Riscooo/kitsune/releases/download/v0.7.0-beta.1/Kitsune-0.7.0-beta.1-Windows-x64.exe",
+    "url": "https://github.com/Riscooo/kitsune/releases/download/v0.7.0-beta.5/Kitsune-0.7.0-beta.5-Windows-x64.exe",
     "size": "88 MB",
-    "note": "Beta · aún sin firmar"
+    "note": "Beta · aún sin firmar",
+    "release": "0.7.0-beta.5"
   },
   "macos": {
-    "url": "https://github.com/Riscooo/kitsune/releases/download/v0.7.0-mac-beta.2/Kitsune-0.7.0-beta.2-macOS-AppleSilicon.dmg",
+    "url": "https://github.com/Riscooo/kitsune/releases/download/v0.7.0-beta.5/Kitsune-0.7.0-beta.5-macOS-AppleSilicon.dmg",
     "size": "103 MB",
-    "note": "Beta · Apple Silicon · aún sin firmar"
+    "note": "Beta · Apple Silicon · aún sin firmar",
+    "release": "0.7.0-beta.5"
   },
-  "linux": null
+  "linux": {
+    "url": "https://github.com/Riscooo/kitsune/releases/download/v0.7.0-beta.5/Kitsune-0.7.0-beta.5-Linux-x86_64.tar.xz",
+    "size": "84 MB",
+    "note": "Beta · se instala sin sudo",
+    "release": "0.7.0-beta.5"
+  }
 }

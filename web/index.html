@@ -197,8 +197,16 @@
         <p>Todavía no está firmada con un certificado de Apple. La primera vez, ve a Ajustes del Sistema → Privacidad y seguridad y pulsa «Abrir igualmente». Si macOS dice que está dañada, abre la Terminal y escribe <code>xattr -dr com.apple.quarantine /Applications/Kitsune.app</code>.</p>
       </details>
       <details>
+        <summary>¿Cómo lo instalo en Linux?</summary>
+        <p>Descomprime el archivo (<code>tar -xf Kitsune-*-Linux-x86_64.tar.xz</code>) y ejecuta <code>./kitsune/instalar.sh</code>. Se instala para tu usuario, sin sudo, en <code>~/.local/share/kitsune</code>, y aparece en el menú de aplicaciones. Para actualizar, haz lo mismo con la versión nueva; para quitarlo, <code>~/.local/share/kitsune/desinstalar.sh</code>.</p>
+      </details>
+      <details>
+        <summary>¿Puedo tener varias cuentas a la vez?</summary>
+        <p>Sí, como en Google: pulsa tu avatar en el inicio y elige otro usuario. Esa pestaña pasa a ser suya y las demás siguen como estaban. Cada usuario tiene sus propias sesiones y cookies; el historial, los marcadores y las contraseñas son comunes.</p>
+      </details>
+      <details>
         <summary>¿Por qué el modo Estricto me cierra las sesiones?</summary>
-        <p>Porque borra cookies al cerrar Kitsune: así ninguna web te reconoce entre visitas. Si prefieres seguir con tus cuentas abiertas, pasa ese perfil a Cómodo.</p>
+        <p>Porque borra cookies al cerrar Kitsune: así ninguna web te reconoce entre visitas. Si prefieres seguir con tus cuentas abiertas, pasa Kitsune a Cómodo (en la ficha de tu usuario principal).</p>
       </details>
     </section>
   </main>
