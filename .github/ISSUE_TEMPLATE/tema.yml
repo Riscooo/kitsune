@@ -1,0 +1,22 @@
+name: Un tema (tinta)
+description: Propón un tema de colores para Kitsune.
+labels: ["tema"]
+body:
+  - type: input
+    id: nombre
+    attributes:
+      label: Nombre del tema
+    validations:
+      required: true
+  - type: textarea
+    id: colores
+    attributes:
+      label: Colores
+      description: Los diez tokens de chrome/palette.css (fondo, superficie, texto, acento…), en hexadecimal, en claro y, si quieres, en oscuro.
+    validations:
+      required: true
+  - type: textarea
+    id: captura
+    attributes:
+      label: Captura
+      description: Cómo se ve, si ya lo has probado.

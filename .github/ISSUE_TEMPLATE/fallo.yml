@@ -1,0 +1,38 @@
+name: Algo falla
+description: Kitsune hace algo mal o no hace lo que debería.
+labels: ["fallo"]
+body:
+  - type: textarea
+    id: que
+    attributes:
+      label: ¿Qué pasa?
+      description: Qué ves y qué esperabas ver. Una captura ayuda mucho.
+    validations:
+      required: true
+  - type: textarea
+    id: pasos
+    attributes:
+      label: Cómo repetirlo
+      placeholder: "1. Abre…\n2. Pulsa…\n3. Sale…"
+    validations:
+      required: true
+  - type: dropdown
+    id: sistema
+    attributes:
+      label: Sistema
+      options: [Windows, macOS, Linux]
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Versión de Kitsune
+      description: En about:config, busca kitsune.release.
+      placeholder: 0.7.0-beta.6
+    validations:
+      required: true
+  - type: dropdown
+    id: modo
+    attributes:
+      label: Modo de privacidad
+      options: [Estricto, Cómodo, No lo sé]

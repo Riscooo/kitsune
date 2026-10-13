@@ -1,0 +1,16 @@
+name: Una idea
+description: Algo que Kitsune podría hacer o hacer mejor.
+labels: ["idea"]
+body:
+  - type: textarea
+    id: idea
+    attributes:
+      label: La idea
+      description: Qué te gustaría que hiciera Kitsune y para qué te serviría.
+    validations:
+      required: true
+  - type: textarea
+    id: ahora
+    attributes:
+      label: Cómo lo haces ahora
+      description: Si lo haces de otra forma (u otro navegador lo hace), cuéntalo.
