@@ -9,6 +9,7 @@ import { initializeShortcuts } from './shortcuts.mjs'
 import { $, initializeDialogs } from './dialogs.mjs'
 import { initializeNativeActions } from './native-actions.mjs'
 import { initializePresets } from './presets.mjs'
+import { initializePrivacyLine } from './privacy-line.mjs'
 
 let toastTimer
 let mode = 'all'
@@ -72,6 +73,7 @@ $('#settings-open').addEventListener('click', () => setTimeout(() => void update
 appearance = createAppearance({ getSettings: () => store.data, refreshSettings: () => store.refresh({ quiet: true }), onStatus: message => { $('#theme-status').textContent = message } })
 shortcuts = initializeShortcuts({ store, announce })
 initializeDialogs(); initializeNativeActions({ announce })
+void initializePrivacyLine($)
 presets = initializePresets({
   async choose(preset) {
     const result = preset ? await store.setBackground({ preset }) : { ok: await store.save({ background: null }) }

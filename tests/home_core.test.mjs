@@ -140,7 +140,7 @@ test('profile requests are checked like the server: labels, revision, mode and a
   assert.equal(core.isOmitted(body.avatarData), true)
   assert.throws(() => core.checkProfilesRevision(record, 5, 'default'), error => error.status === 409 && error.extra.revision === 0)
   assert.throws(() => core.findProfile(record, '../x'), /identificador/)
-  assert.deepEqual(Object.keys(core.ACTIONS), ['home', 'switch', 'google', 'privacy', 'passwords', 'settings', 'general', 'search', 'downloads', 'extensions'])
+  assert.deepEqual(Object.keys(core.ACTIONS), ['home', 'switch', 'google', 'privacy', 'protections', 'passwords', 'settings', 'general', 'search', 'downloads', 'extensions'])
 })
 
 test('users in the same window: the snapshot says whose tab it is and who the base user is', () => {
@@ -194,4 +194,20 @@ test('preset backgrounds come from the engine catalogue, without the Firefox one
   const shown = core.publicWallpapers({ categories: [{ id: 'abstracts', name: 'Abstractos', items: [{ id: id(2), sha256: 'b'.repeat(64), source: 'x', credit: null }, { id: id(1) }] }] })
   assert.deepEqual(shown, [{ id: 'abstracts', name: 'Abstractos', items: [{ id: id(2), sha256: 'b'.repeat(64) }] }])
   assert.deepEqual(core.coverCrop(1000, 1000, 320, 200), { x: 0, y: 187, width: 1000, height: 625 })
+})
+
+test('the privacy summary is read the same way by the integrated home and by the Linux server', () => {
+  const now = Date.now()
+  const counts = { trackers: 3, cookies: 1, cryptominers: 0, fingerprinters: 2, social: 0, bounce: 0, total: 6 }
+  const good = { version: 1, at: now - 60000, today: counts, week: { ...counts, total: 9, trackers: 6 } }
+  const cases = [good, { ...good, at: now - 3 * 86400000 }, { ...good, extra: 1 }, { ...good, week: { ...counts, total: -1 } },
+    { ...good, today: { ...counts, trackers: 1.5 } }, { ...good, version: 2 }, null, 'no']
+  const expected = python(`
+import importlib.util, json, sys
+spec = importlib.util.spec_from_file_location('appearance', 'install/appearance.py')
+appearance = importlib.util.module_from_spec(spec); spec.loader.exec_module(appearance)
+print(json.dumps([appearance.valid_privacy(value) for value in json.load(sys.stdin)]))`, cases)
+  assert.deepEqual(cases.map(value => core.validPrivacy(value)), expected)
+  assert.equal(expected[0].available, true)
+  assert.ok(expected.slice(1).every(value => value.available === false))
 })

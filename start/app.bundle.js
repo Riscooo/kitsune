@@ -1780,6 +1780,29 @@
 		};
 	}
 	//#endregion
+	//#region start/privacy-line.mjs
+	function privacyText(value) {
+		if (!value?.available || !value.week?.total) return "";
+		const total = value.week.total.toLocaleString("es-ES");
+		const today = value.today?.total ? ` (${value.today.total.toLocaleString("es-ES")} hoy)` : "";
+		return `Esta semana Kitsune ha bloqueado ${total} ${value.week.total === 1 ? "rastreador" : "rastreadores"}${today}`;
+	}
+	async function initializePrivacyLine($) {
+		if (location.protocol === "file:") return;
+		try {
+			const response = await fetch("/api/privacidad", {
+				credentials: "omit",
+				cache: "no-store",
+				signal: AbortSignal.timeout(5e3)
+			});
+			const text = privacyText(response.ok ? await response.json() : null);
+			$("#privacy-count").textContent = text;
+			$("#privacy-line").hidden = !text;
+		} catch {
+			$("#privacy-line").hidden = true;
+		}
+	}
+	//#endregion
 	//#region start/app.js
 	let toastTimer;
 	let mode = "all";
@@ -1888,6 +1911,7 @@
 	});
 	initializeDialogs();
 	initializeNativeActions({ announce });
+	initializePrivacyLine($);
 	presets = initializePresets({ async choose(preset) {
 		const result = preset ? await store.setBackground({ preset }) : { ok: await store.save({ background: null }) };
 		$("#background-status").textContent = result.ok ? BACKGROUND_HINT : result.error ?? "No se ha podido cambiar el fondo.";

@@ -47,6 +47,7 @@ ACTIONS = {
     "home": None,
     "google": "https://accounts.google.com/ServiceLogin",
     "privacy": "about:preferences#privacy",
+    "protections": "about:protections",
     "passwords": "about:logins",
     "settings": "about:preferences",
     "general": "about:preferences#general",

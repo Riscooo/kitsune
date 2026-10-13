@@ -69,6 +69,26 @@ def private_write(path, value):
             os.unlink(temporary)
 
 
+PRIVACY_KINDS = ('trackers', 'cookies', 'cryptominers', 'fingerprinters', 'social', 'bounce', 'total')
+
+
+def valid_privacy(value, now=None):
+    """Solo números enteros por tipo, de hace menos de dos días; si no, «no disponible»."""
+    now = time.time() * 1000 if now is None else now
+    if not isinstance(value, dict) or value.get('version') != 1 or set(value) != {'version', 'at', 'today', 'week'}:
+        return {'available': False}
+    at = value['at']
+    if type(at) not in (int, float) or not 0 <= now - at < 2 * 86400000:
+        return {'available': False}
+    out = {'available': True, 'at': int(at)}
+    for period in ('today', 'week'):
+        counts = value[period]
+        if not isinstance(counts, dict) or set(counts) != set(PRIVACY_KINDS) or any(type(counts[k]) is not int or counts[k] < 0 for k in PRIVACY_KINDS):
+            return {'available': False}
+        out[period] = {k: counts[k] for k in PRIVACY_KINDS}
+    return out
+
+
 class AppearanceManager:
     def __init__(self, browser_root, state_root, current_id='default'):
         if current_id != 'default' and not re.fullmatch(r'p-[0-9a-f]{16}', current_id):
@@ -80,6 +100,14 @@ class AppearanceManager:
         self.control = self.profile / 'chrome/kitsune-appearance.json'
         self.ack = self.profile / 'chrome/kitsune-appearance-ack.json'
         self.lock = threading.Lock()
+
+    def privacy(self):
+        """El resumen de lo bloqueado que escribe el módulo nativo (chrome/kitsune-privacy.json)."""
+        try:
+            value = read_json(self.profile / 'chrome/kitsune-privacy.json', 4096)
+        except (OSError, ValueError):
+            return {'available': False}
+        return valid_privacy(value)
 
     def background(self, digest):
         return background_path(self.profile, digest)

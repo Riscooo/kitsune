@@ -70,7 +70,7 @@ function fixture({ permissions = new Map(), preferences = new Map(), inherited =
   // Execute only this local trusted source against fake Services. No network,
   // real profile, timers or native browser APIs are available in the context.
   vm.runInContext(source.replace('export const KitsuneAppearance', 'const KitsuneAppearance') +
-    '\nglobalThis.api = { validate, nativeCss, applyGoogle, applyScheme, applyNewTab, applySupportUrl, managedOrigins, IDENTITY_CSS, resolveButtons, applyButtons, applyTabs };', context);
+    '\nglobalThis.api = { validate, nativeCss, applyGoogle, applyScheme, applyNewTab, applySupportUrl, managedOrigins, IDENTITY_CSS, resolveButtons, applyButtons, applyTabs, summarizeProtections };', context);
   return { api: context.api, permissions, preferences, calls };
 }
 
@@ -392,4 +392,23 @@ test('the pre-release boolean marker cannot authorize deletion of untracked manu
   assert.equal(f.permissions.get(GOOGLE[0]), manual);
   assert.equal(f.preferences.has(LEGACY), false);
   assert.equal(f.calls.filter(call => call[0] === 'remove').length, 0);
+});
+
+test('privacy summary counts what Gecko blocked today and in the last 7 days, by kind', () => {
+  const { api } = fixture();
+  // A las 23:50 UTC del 13 (01:50 del 14 en Madrid), para Gecko aún es el día 13.
+  const now = Date.UTC(2026, 9, 13, 23, 50);
+  const rows = [
+    { type: 1, count: 10, timestamp: '2026-10-13' },
+    { type: 2, count: 4, timestamp: '2026-10-11' },
+    { type: 4, count: 2, timestamp: '2026-10-07' },
+    { type: 6, count: 1, timestamp: '2026-10-13' },
+    { type: 5, count: 3, timestamp: '2026-10-04' },
+    { type: 0, count: 50, timestamp: '2026-10-13' },
+    { type: 3, count: -2, timestamp: '2026-10-13' },
+    { type: 1, count: 5, timestamp: '2026-10-14' },
+  ];
+  const summary = JSON.parse(JSON.stringify(api.summarizeProtections(rows, now)));
+  assert.deepEqual(summary.today, { trackers: 10, cookies: 0, cryptominers: 0, fingerprinters: 1, social: 0, bounce: 0, total: 11 });
+  assert.deepEqual(summary.week, { trackers: 10, cookies: 4, cryptominers: 0, fingerprinters: 3, social: 0, bounce: 0, total: 17 });
 });

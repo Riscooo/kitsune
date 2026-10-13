@@ -562,6 +562,10 @@ class HomeHandler(BaseHTTPRequestHandler):
         if path == "/api/rendimiento":
             self.json_response(200, self.server.memory(), head=head)
             return
+        if path == "/api/privacidad":
+            appearance = self.server.appearance
+            self.json_response(200, appearance.privacy() if appearance is not None else {"available": False}, head=head)
+            return
         if path == "/api/wallpapers":
             index = self.server.wallpapers()
             self.json_response(200, {"categories": index["categories"]}, head=head)

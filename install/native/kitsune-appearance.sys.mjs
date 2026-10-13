@@ -346,6 +346,40 @@ function applySupportUrl() {
   supportHome = home;
 }
 
+// Privacidad que se ve: lo que Gecko ha bloqueado hoy y en los últimos 7 días (su base de
+// datos de protecciones, la de about:protections), resumido en <perfil>/chrome/kitsune-privacy.json
+// para que el inicio lo enseñe. Solo números por tipo: ni webs ni direcciones.
+const PROTECTION_KINDS = Object.freeze({ 1: 'trackers', 2: 'cookies', 3: 'cryptominers', 4: 'fingerprinters', 5: 'social', 6: 'fingerprinters', 7: 'bounce' });
+const emptyCounts = () => ({ trackers: 0, cookies: 0, cryptominers: 0, fingerprinters: 0, social: 0, bounce: 0, total: 0 });
+// Gecko apunta cada evento con su día en UTC («AAAA-MM-DD», toISOString): se compara igual.
+const utcDay = time => new Date(time).toISOString().slice(0, 10);
+/** Filas { type, count, timestamp } → { today, week } por tipo (hoy y los 6 días de antes, en UTC como Gecko). */
+function summarizeProtections(rows, now = Date.now()) {
+  const today = utcDay(now), week = utcDay(now - 6 * 86400000);
+  const result = { today: emptyCounts(), week: emptyCounts() };
+  for (const row of rows) {
+    const kind = PROTECTION_KINDS[row.type];
+    const count = Number(row.count);
+    const day = typeof row.timestamp === 'number' ? utcDay(row.timestamp) : String(row.timestamp ?? '').slice(0, 10);
+    if (!kind || !Number.isFinite(count) || count <= 0 || !/^\d{4}-\d{2}-\d{2}$/.test(day) || day < week || day > today) continue;
+    for (const bucket of day === today ? [result.today, result.week] : [result.week]) { bucket[kind] += count; bucket.total += count; }
+  }
+  return result;
+}
+let lastPrivacy = 0;
+async function writePrivacyStats(force = false) {
+  if (!force && Date.now() - lastPrivacy < 10 * 60000) return;
+  lastPrivacy = Date.now();
+  const service = Cc['@mozilla.org/tracking-db-service;1'].getService(Ci.nsITrackingDBService);
+  const from = Date.now() - 8 * 86400000;
+  const rows = (await service.getEventsByDateRange(from, Date.now())).map(row => ({
+    type: row.getResultByName('type'), count: row.getResultByName('count'), timestamp: row.getResultByName('timestamp') }));
+  const directory = PathUtils.join(profileDirectory(), 'chrome');
+  await IOUtils.makeDirectory(directory, { ignoreExisting: true, permissions: 0o700 });
+  await IOUtils.writeJSON(PathUtils.join(directory, 'kitsune-privacy.json'), { version: 1, at: Date.now(), ...summarizeProtections(rows) },
+    { tmpPath: PathUtils.join(directory, '.kitsune-privacy.tmp'), permissions: 0o600 });
+}
+
 async function update() {
   if (busy) return;
   busy = true;
@@ -381,6 +415,7 @@ async function update() {
     }
     reportedError = false;
     void watchMemory().catch(() => {});
+    void writePrivacyStats().catch(() => {});
   } catch (error) {
     // No payload, profile path or private state enters the browser log.
     if (error.name !== 'NotFoundError' && !reportedError) {
@@ -414,6 +449,8 @@ function registerIdentity() {
 
 export const KitsuneAppearance = {
   integratedHome: INTEGRATED_HOME,
+  /** Escribe ya el resumen de privacidad (las pruebas no esperan los 10 minutos). */
+  writePrivacyStats: () => writePrivacyStats(true),
   // Cada ventana nueva: el aspecto de Kitsune del motor si el perfil no trae el suyo.
   decorate(window) {
     // Antes de pintar: los botones elegidos (o los del sistema según dónde corre, si aún no hay ajustes).

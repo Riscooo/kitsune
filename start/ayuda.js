@@ -8,6 +8,7 @@ const TOPICS = [
   [/download/u, 'descargas'],
   [/home|new-?tab|wallpaper|customiz|toolbar|appearance/u, 'apariencia'],
   [/keyboard|shortcut/u, 'atajos'],
+  [/tab|sidebar|split|workspace|container/u, 'pestanas'],
 ]
 // /ayuda/<tema> en el servidor de Linux; ayuda.html?tema=<tema> en el inicio integrado.
 const topic = (new URLSearchParams(location.search).get('tema') ?? decodeURIComponent(location.pathname.split('/').filter(Boolean).slice(1).join('/'))).toLowerCase()

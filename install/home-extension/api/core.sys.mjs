@@ -18,6 +18,7 @@ export const ACTIONS = Object.freeze({
   switch: null,
   google: 'https://accounts.google.com/ServiceLogin',
   privacy: 'about:preferences#privacy',
+  protections: 'about:protections',
   passwords: 'about:logins',
   settings: 'about:preferences',
   general: 'about:preferences#general',
@@ -355,4 +356,19 @@ export function coverCrop(width, height, targetWidth, targetHeight) {
   const scale = Math.min(width / targetWidth, height / targetHeight)
   const w = Math.max(1, Math.round(targetWidth * scale)), h = Math.max(1, Math.round(targetHeight * scale))
   return { x: Math.floor((width - w) / 2), y: Math.floor((height - h) / 2), width: w, height: h }
+}
+
+// Privacidad que se ve: el resumen que escribe el módulo nativo, igual que valid_privacy de appearance.py.
+const PRIVACY_KINDS = ['trackers', 'cookies', 'cryptominers', 'fingerprinters', 'social', 'bounce', 'total']
+export function validPrivacy(value, now = Date.now()) {
+  if (!isObject(value) || value.version !== 1 || Object.keys(value).sort().join() !== 'at,today,version,week') return { available: false }
+  if (typeof value.at !== 'number' || !(now - value.at >= 0 && now - value.at < 2 * 86400000)) return { available: false }
+  const out = { available: true, at: Math.trunc(value.at) }
+  for (const period of ['today', 'week']) {
+    const counts = value[period]
+    if (!isObject(counts) || Object.keys(counts).sort().join() !== [...PRIVACY_KINDS].sort().join() ||
+        PRIVACY_KINDS.some(kind => !Number.isSafeInteger(counts[kind]) || counts[kind] < 0)) return { available: false }
+    out[period] = Object.fromEntries(PRIVACY_KINDS.map(kind => [kind, counts[kind]]))
+  }
+  return out
 }

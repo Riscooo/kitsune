@@ -536,6 +536,11 @@ this.kitsuneHome = class extends ExtensionAPI {
         return bytes(await readFile(wallpaperPath(wallpaper[1], true), 1024 * 1024), 'image/jpeg')
       }
       if (method === 'GET' && path === '/api/rendimiento') return json(200, await memory())
+      if (method === 'GET' && path === '/api/privacidad') {
+        let value = null
+        try { value = JSON.parse(await readText(PathUtils.join(chromeDir(), 'kitsune-privacy.json'), 4096)) } catch { /* aún no */ }
+        return json(200, core.validPrivacy(value))
+      }
       if (method === 'GET' && path === '/api/profiles') {
         const { record, baseId } = await loadProfiles()
         return json(200, { ...core.profilesSnapshot(record, await tabUser(record, baseId), baseId), token: TOKEN })

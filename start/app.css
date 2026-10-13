@@ -386,3 +386,10 @@ body[data-motion=off] *, body[data-motion=off] *::before, body[data-motion=off] 
 
 /* macOS: los botones de la ventana son los semáforos nativos; no se pueden mover ni quitar. */
 :root[data-platform=mac] :is(.setting-row:has([data-window-controls]), .setting-row[for=minimize-toggle]) { display: none; }
+
+/* Privacidad que se ve: una línea discreta bajo el buscador. */
+.privacy-line { display: flex; align-items: center; justify-content: center; gap: 8px; margin: 14px 0 0; color: var(--muted); font-size: 12px; }
+.privacy-line svg { width: 14px; height: 14px; color: var(--secondary, var(--muted)); flex: none; }
+.privacy-line .privacy-report { appearance: none; padding: 0; border: 0; background: none; color: var(--secondary, var(--text)); font: inherit; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
+.privacy-line .privacy-report:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 3px; }
+:root[data-background=on] .privacy-line { text-shadow: 0 0 3px var(--bg), 0 0 14px var(--bg); }

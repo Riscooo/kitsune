@@ -1,4 +1,4 @@
-# Kitsune 0.7 · Tinta · motor propio
+# Kitsune 0.8 · Tinta · motor propio
 
 Kitsune es un navegador propio: se compila en este PC desde el código fuente
 oficial y firmado de Gecko (Mozilla), con su nombre, su marca, su módulo nativo
@@ -34,6 +34,49 @@ claros salen de la fuente
 Las páginas internas y el módulo nativo usan solo los diez primeros.
 
 Tipografías: Noto Sans en la interfaz y Noto Serif en títulos, saludo y «kitsune».
+
+## Qué cambia en 0.8 · lo de Zen, y lo que Zen no tiene
+
+Zen y Kitsune usan el mismo motor (Gecko 157): la diferencia está en la forma de
+navegar. 0.8 trae lo que hace que la gente use Zen y lo que Zen no tiene.
+
+- **Pestañas a un lado.** «Tu inicio» → Ajustes → Pestañas: Arriba, A un lado (las
+  verticales de Gecko, de papel y con un trazo de óxido en la activa) o Iconos (la barra
+  estrecha que se abre al pasar el ratón). Viaja en el control de apariencia v8; el
+  módulo solo cambia algo cuando cambia la elección y respeta unas verticales puestas a
+  mano. Sin la tarjeta de Mozilla de «arrastra aquí las pestañas».
+- **Espacios** (`kitsune-spaces.sys.mjs`). Grupos de pestañas que se ven por separado,
+  como los de Zen: nombre, una de las seis tintas de los usuarios y un usuario opcional
+  para sus pestañas. Selector junto al logo (con un solo espacio, solo el «+») o abajo en
+  la barra lateral; panel para crearlos y editarlos; «Mover a otro espacio» en el menú de
+  la pestaña; <kbd>Ctrl</kbd><kbd>Alt</kbd><kbd>1…9</kbd> y <kbd>AvPág</kbd>/<kbd>RePág</kbd>.
+  Las fijadas se ven en todos. La lista va en `kitsune-spaces.json` y el espacio de cada
+  pestaña y ventana en la sesión de Gecko, así que sobrevive a cerrar.
+- **Vista dividida y modo compacto** (`kitsune-layout.sys.mjs`).
+  <kbd>Ctrl</kbd><kbd>Alt</kbd><kbd>D</kbd> divide la pestaña (la vista dividida de Gecko,
+  con su página para elegir la otra pestaña ya en papel) o la separa;
+  <kbd>Ctrl</kbd><kbd>Alt</kbd><kbd>C</kbd> esconde las barras (y la barra lateral), que
+  salen con el ratón, al enfocar la barra de direcciones o con un menú abierto.
+- **Vista rápida** (`kitsune-glance*.sys.mjs`). <kbd>Alt</kbd>+clic en un enlace lo abre
+  flotando sobre la página, con el usuario de la pestaña; «Dividir», «Abrir en pestaña»,
+  Esc. El actor de las webs solo manda la dirección (comprobada); el permiso lo pone el
+  proceso principal (`safeForUntrustedWebProcess`, que Gecko 157 exige).
+- **Paleta** (`kitsune-palette.sys.mjs`, <kbd>Ctrl</kbd><kbd>K</kbd>). Pestañas de todos
+  los espacios, espacios, marcadores, historial y unas 40 acciones, cada una con su atajo
+  real (sacado de su tecla con ShortcutUtils). «?» lista los atajos. Lo que parece una
+  dirección se abre y lo demás se busca. Ctrl+K deja de ser «buscar en la web» de Gecko.
+- **Traer de otro navegador** (`kitsune-import.sys.mjs`). Zen (con sus espacios y sus
+  Essentials), Firefox, LibreWolf, Floorp y Waterfox: marcadores, un año de historial y
+  pestañas, leyendo una copia de sus archivos. Chrome, Edge, Brave…: el asistente de
+  Gecko. La primera vez lo ofrece una barra; siempre está en el menú.
+- **Modo ahorro a la vista** (`kitsune-saver.sys.mjs`). La RAM de Kitsune en la barra
+  mientras el modo está puesto, su panel (dormir las que no usas, «No dormir nunca» esta
+  web) y las pestañas dormidas, apagadas. `tools/ram_benchmark.py` compara la RAM (PSS de
+  todos los procesos) con los mismos sitios reales en Kitsune y en otros navegadores.
+
+Pruebas con el motor real: `vertical_tabs_native.py`, `spaces_native.py`,
+`layout_native.py`, `glance_native.py`, `palette_native.py`, `import_native.py` y
+`saver_native.py`, además de las unitarias de cada módulo (`native_*.test.mjs`).
 
 ## Qué cambia en 0.7
 
