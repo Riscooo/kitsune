@@ -15,6 +15,11 @@
     const { KitsuneSpaces } = ChromeUtils.importESModule('chrome://browser/content/kitsune-spaces.sys.mjs');
     void KitsuneSpaces.decorate(window).catch(() => {});
   } catch { /* sin espacios, Kitsune sigue igual */ }
+  // Vista dividida (Ctrl+Alt+D) y modo compacto (Ctrl+Alt+C).
+  try {
+    const { KitsuneLayout } = ChromeUtils.importESModule('chrome://browser/content/kitsune-layout.sys.mjs');
+    void KitsuneLayout.decorate(window).catch(() => {});
+  } catch { /* sin atajos de distribución, Kitsune sigue igual */ }
   // Aviso de versión nueva (solo en los paquetes que se descargan: Windows, macOS y Linux).
   try {
     const { KitsuneUpdates } = ChromeUtils.importESModule('chrome://browser/content/kitsune-updates.sys.mjs');

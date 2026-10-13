@@ -1,0 +1,38 @@
+/* Distribución de la ventana: modo compacto (lo activa kitsune-layout.sys.mjs).
+ * Las barras se esconden hacia arriba (y la barra lateral hacia su lado) dejando un borde
+ * de 5 px para recuperarlas con el ratón; la web ocupa su sitio. Con un menú suyo abierto,
+ * la barra de direcciones enfocada o el ratón encima, vuelven a verse. */
+@-moz-document url("chrome://browser/content/browser.xhtml") {
+  :root[kitsune-compact] #navigator-toolbox {
+    position: relative;
+    z-index: 3;
+    margin-bottom: calc(-1 * var(--kitsune-toolbox-height, 0px) + 5px) !important;
+    transform: translateY(calc(-1 * var(--kitsune-toolbox-height, 0px) + 5px));
+    opacity: 0;
+    transition: transform 220ms cubic-bezier(.4, 0, .2, 1), opacity 180ms ease;
+    box-shadow: 0 1px 0 var(--kb-outline);
+  }
+  :root[kitsune-compact] #navigator-toolbox:is(:hover, :focus-within),
+  :root[kitsune-compact][kitsune-compact-reveal] #navigator-toolbox {
+    transform: none;
+    opacity: 1;
+  }
+  /* Pestañas a un lado: la barra lateral también, hacia su borde. */
+  :root[kitsune-compact] #sidebar-container:has(> sidebar-main) {
+    position: relative;
+    z-index: 2;
+    margin-inline-end: calc(-1 * var(--sidebar-width, 240px) + 5px);
+    width: var(--sidebar-width, 240px);
+    translate: calc(-100% + 5px) 0;
+    opacity: 0;
+    transition: translate 220ms cubic-bezier(.4, 0, .2, 1), opacity 180ms ease;
+  }
+  :root[kitsune-compact] #sidebar-container:has(> sidebar-main):is(:hover, :focus-within) {
+    translate: 0 0;
+    opacity: 1;
+  }
+  :root[kitsune-compact]:-moz-locale-dir(rtl) #sidebar-container:has(> sidebar-main):not(:hover, :focus-within) { translate: calc(100% - 5px) 0; }
+  @media (prefers-reduced-motion: reduce) {
+    :root[kitsune-compact] :is(#navigator-toolbox, #sidebar-container) { transition: none; }
+  }
+}

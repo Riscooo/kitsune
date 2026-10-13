@@ -2,7 +2,7 @@
 /* Kitsune 0.5 «Tinta». Solo páginas internas del navegador: nunca se publican
    variables ni estilos de Kitsune a webs normales. El módulo nativo reemplaza
    estos tokens en directo; aquí quedan como respaldo (los de InkShadow). */
-@-moz-document url("about:newtab"), url("about:home"), url("about:privatebrowsing"), url("about:downloads"), url-prefix("about:preferences"), url-prefix("about:addons"), url("about:protections"), url("about:logins"), url-prefix("about:reader") {
+@-moz-document url("about:newtab"), url("about:home"), url("about:privatebrowsing"), url("about:downloads"), url-prefix("about:preferences"), url-prefix("about:addons"), url("about:protections"), url("about:logins"), url-prefix("about:reader"), url("about:opentabs") {
   :root {
     --kb-bg: #f6f5f1;
     --kb-surface: #fbfaf7;
@@ -281,7 +281,7 @@
   /* La máscara privada, los textos y los avisos siguen siendo los nativos. */
 }
 
-@-moz-document url("about:downloads"), url-prefix("about:preferences"), url-prefix("about:addons"), url("about:protections"), url("about:logins") {
+@-moz-document url("about:downloads"), url-prefix("about:preferences"), url-prefix("about:addons"), url("about:protections"), url("about:logins"), url("about:opentabs") {
   :root {
     color-scheme: var(--kb-scheme, light) !important;
     --in-content-page-background: var(--kb-bg) !important;

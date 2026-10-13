@@ -53,7 +53,7 @@ UA_FIREFOX = 'imply_option("MOZ_APP_UA_NAME", "Firefox")'
 HERE = Path(__file__).resolve().parent
 RECIPE, BRANDING, NATIVE = HERE / "recipe", HERE / "branding", HERE / "native"
 NATIVE_FILES = ("kitsune-bootstrap.js", "kitsune-appearance.sys.mjs", "kitsune-updates.sys.mjs", "kitsune-users.sys.mjs",
-                "kitsune-spaces.sys.mjs")
+                "kitsune-spaces.sys.mjs", "kitsune-layout.sys.mjs")
 # Inicio integrado (Windows y macOS, sin servidor local): la extensión inicio@kitsune
 # con la API del inicio (install/home-extension) y las páginas de start/, dentro del
 # motor en resource://builtin-addons/kitsune-home/. En el PC de Risco start/ está junto
@@ -119,6 +119,16 @@ TEXT_PATCHES = {
          "          let options = {\n            relatedToCurrent,\n            resolveOnNewTabCreated: resolve,\n"
          "            // Kitsune: con el usuario (contenedor) de la pestaña en la que estás.\n"
          "            userContextId: window.gBrowser?.selectedTab?.userContextId ?? 0,\n          };"),
+    ],
+    # Vista dividida: la página para elegir la otra pestaña (about:opentabs) en papel y tinta,
+    # sin el degradado violeta de Mozilla (los tokens --kb-* llegan de userContent.css y del módulo).
+    "browser/components/tabbrowser/content/opentabs.css": [
+        ("  background: no-repeat light-dark(linear-gradient(#f0ebfd, #f7ebeb), linear-gradient(#332a50, #3f2a2f));",
+         "  background: var(--kb-bg, light-dark(#f6f5f1, #161a19));"),
+    ],
+    "browser/components/tabbrowser/content/opentabs-splitview.css": [
+        ("  background: linear-gradient(to bottom, light-dark(#f0ebfd, #332a50) 0%, light-dark(#f1ebf8, #342a47) 95%, transparent 100%);",
+         "  background: linear-gradient(to bottom, var(--kb-bg, Canvas) 0%, var(--kb-bg, Canvas) 95%, transparent 100%);"),
     ],
     # El inicio integrado se presenta como el inicio de Gecko: «Kitsune», no «Extensión (…)».
     "browser/base/content/browser-siteIdentity.js": [

@@ -83,7 +83,7 @@ function nativeCss(value) {
   const background = value.background
     ? `background:linear-gradient(color-mix(in srgb,var(--kb-bg) 30%,transparent),color-mix(in srgb,var(--kb-bg) 62%,transparent)),url("${backgroundUri(value.background)}") center/cover no-repeat fixed var(--kb-bg)!important;`
     : 'background-color:var(--kb-bg)!important;background-image:none!important;';
-  return `@-moz-document url("chrome://browser/content/browser.xhtml"),url("about:newtab"),url("about:home"),url("about:privatebrowsing"),url("about:downloads"),url-prefix("about:preferences"),url-prefix("about:addons"),url("about:protections"),url("about:logins"),url-prefix("about:reader"){ :root{${variables}} }
+  return `@-moz-document url("chrome://browser/content/browser.xhtml"),url("about:newtab"),url("about:home"),url("about:privatebrowsing"),url("about:downloads"),url-prefix("about:preferences"),url-prefix("about:addons"),url("about:protections"),url("about:logins"),url-prefix("about:reader"),url("about:opentabs"){ :root{${variables}} }
     @-moz-document url("about:newtab"),url("about:home"){
       :root body{${background}}
       ${!value.motion ? '.logo-and-wordmark,.logo-and-wordmark .logo,.search-inner-wrapper{animation:none!important;transition:none!important;scale:none!important;}' : ''}
