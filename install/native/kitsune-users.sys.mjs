@@ -194,7 +194,8 @@ const httpObserver = {
     channel.setRequestHeader(HEADER, userForContainer(state.map, info.originAttributes?.userContextId ?? 0) ?? state.baseId ?? 'default', false);
     const triggering = info.triggeringPrincipal;
     const target = switchTarget({
-      url: uri.spec, homeOrigin: home.origin, triggeringOrigin: triggering?.isContentPrincipal ? triggering.origin : null,
+      // Sin el sufijo del contenedor (^userContextId=N): también se cambia desde el inicio de otro usuario.
+      url: uri.spec, homeOrigin: home.origin, triggeringOrigin: triggering?.isContentPrincipal ? triggering.originNoSuffix : null,
       isDocument: info.externalContentPolicyType === Ci.nsIContentPolicy.TYPE_DOCUMENT,
     });
     if (!target) return;

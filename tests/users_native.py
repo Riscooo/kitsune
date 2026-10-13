@@ -180,6 +180,14 @@ def server_home(args, root, checks):
         assert session.page("return document.querySelector('#welcome-line').textContent") == 'Bienvenido, Insti'
         checks.append('servidor: /?cambiar=<id> desde el inicio cambia la pestaña y el servidor ve al usuario')
 
+        # Y de vuelta al principal desde el inicio de otro usuario (su origen lleva el sufijo del contenedor).
+        session.page("location.assign('/?cambiar=default'); return true")
+        eventually(lambda: any(tab['selected'] and tab['ucid'] == 0 and tab['url'] == origin + '/' for tab in session.tabs()))
+        session.follow_selected_tab()
+        eventually(lambda: session.page("return document.documentElement.dataset.profilesReady === 'true'"))
+        assert session.fetch('GET', '/api/profiles')['body']['currentId'] == 'default'
+        checks.append('servidor: desde el inicio de otro usuario se vuelve al principal')
+
         session.chrome("""const g = Services.wm.getMostRecentWindow('navigator:browser').gBrowser;
           g.selectedTab = g.addTab(arguments[0], {triggeringPrincipal: Services.scriptSecurityManager.getSystemPrincipal()});""",
                        f'http://127.0.0.1:{foreign.server_port}/')
