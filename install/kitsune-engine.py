@@ -151,6 +151,18 @@ TEXT_PATCHES = {
         ("login-intro-instructions-fxa-settings = Go to Settings > Sync > Turn on syncing… Select the Logins and passwords checkbox.",
          "login-intro-instructions-fxa-settings = You can also import them from a file in the ⋯ menu."),
     ),
+    # Kitsune no tiene patrocinadores: fuera «Apoyar a Kitsune» (accesos directos e historias
+    # patrocinados y «Nuestros patrocinadores…») de Ajustes → Inicio, en sus dos vistas.
+    "browser/extensions/newtab/lib/AboutPreferences.sys.mjs": (
+        ('      id: "support-firefox",\n      pref: {\n        feed: "showSponsoredCheckboxes",',
+         '      id: "support-firefox",\n      // Kitsune: sin patrocinadores.\n      shouldHidePref: true,\n'
+         '      pref: {\n        feed: "showSponsoredCheckboxes",'),
+        ('      id: "supportFirefox",\n      pref: "browser.newtabpage.activity-stream.showSponsoredCheckboxes",\n',
+         '      id: "supportFirefox",\n'
+         "      // Kitsune: sin patrocinadores (oculta también sus casillas y su mensaje).\n"
+         "      visible: () => false,\n"
+         '      pref: "browser.newtabpage.activity-stream.showSponsoredCheckboxes",\n'),
+    ),
     # Tarjeta «Soporte de Kitsune» de Ajustes: pendiente de la web de Kitsune.
     "browser/components/preferences/config/about-firefox.mjs": (
         ("  support: {\n    inProgress: true,",

@@ -42,7 +42,8 @@ Tipografías: Noto Sans en la interfaz y Noto Serif en títulos, saludo y «kits
   `kitsune.cfg`), ni Sync ni cuentas de Mozilla, ni temas de Firefox (Alpenglow, Dark,
   Light), ni marcadores de Mozilla en perfiles nuevos, ni Firefox View, Relay, VPN,
   Monitor, Pocket, recomendaciones o mensajes, ni notificaciones push (pasaban por un
-  servidor de Mozilla). La receta del motor (`rebrand_source`) pone nombres propios
+  servidor de Mozilla), ni «Apoyar a Kitsune» en Ajustes → Inicio: Kitsune no tiene
+  patrocinadores. La receta del motor (`rebrand_source`) pone nombres propios
   donde Gecko muestra sus marcas (Kitsune Home, Kitsune Translations, «extension
   store»…), oculta sus enlaces «Más información» y el menú Ayuda solo deja Modo de
   solución de problemas, Información técnica y Acerca de Kitsune. Los enlaces de ayuda

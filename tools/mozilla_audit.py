@@ -36,7 +36,7 @@ ALLOWED_HOSTS = re.compile(
     r"firefox\.settings\.services\.mozilla\.com|firefox-settings-attachments\.cdn\.mozilla\.net|"
     r"content-signature-2\.cdn\.mozilla\.net|shavar\.services\.mozilla\.com|tracking-protection\.cdn\.mozilla\.net|"
     r"versioncheck-bg\.addons\.mozilla\.org|aus5\.mozilla\.org|redirector\.gvt1\.com|ciscobinary\.openh264\.org)$")
-WORDS = re.compile(r"mozilla|firefox|pocket", re.I)
+WORDS = re.compile(r"mozilla|firefox|pocket|patrocin|sponsor", re.I)
 # Se quedan: about:license (avisos legales de la licencia MPL del código) y
 # about:support (página técnica de diagnóstico: agente de usuario e identificadores
 # internos, necesarios para la compatibilidad).
@@ -55,7 +55,7 @@ return {firefoxView: v(document.getElementById('firefox-view-button')),
   discoverPref: Services.prefs.getBoolPref('extensions.getAddons.showPane', true)};"""
 
 VISIBLE_TEXT = r"""
-const words = /mozilla|firefox|pocket/i, found = new Set();
+const words = /mozilla|firefox|pocket|patrocin|sponsor/i, found = new Set();
 const visible = el => { if (!el || !el.getClientRects || !el.getClientRects().length) return false;
   const s = el.ownerDocument.defaultView.getComputedStyle(el); return s.visibility !== 'hidden' && s.display !== 'none'; };
 function walk(root) {
