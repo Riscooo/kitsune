@@ -161,6 +161,7 @@ p { margin: 0; text-wrap: pretty; }
 kbd { display: inline-block; min-width: 1.6em; padding: 0 5px; border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 6px; background: var(--surface); color: var(--text); font: 500 .82em/1.5 var(--sans); text-align: center; white-space: nowrap; }
 .keys { white-space: nowrap; }
 .grid-section > .eyebrow { margin-bottom: 14px; }
+.tabs-shot { margin: 0 0 28px; }
 
 /* Tintas: un inicio en miniatura por tinta, mitad Claro y mitad Oscuro. */
 .tintas { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px 14px; margin: 0; padding: 0; list-style: none; }
