@@ -102,8 +102,8 @@
 }
 :root[zero] #browser:has(> #sidebar-box:not([hidden], [sidebar-positionend])) #tabbrowser-tabpanels { margin-left: 0 !important; }
 :root[zero] #browser:has(> #sidebar-box[sidebar-positionend]:not([hidden])) #tabbrowser-tabpanels { margin-right: 0 !important; }
-:root[zero][zero-full] #sidebar-box:not([hidden]) { margin: 0 !important; border-radius: 0 !important; box-shadow: none !important; }
-:root[zero][zero-full] #sidebar-splitter:not([hidden]) { width: 1px !important; min-width: 1px !important; max-width: 1px !important; opacity: 1; background: rgba(127, 127, 127, .25) !important; }
+:root[zero]:is([zero-full], [inFullscreen]) #sidebar-box:not([hidden]) { margin: 0 !important; border-radius: 0 !important; box-shadow: none !important; }
+:root[zero]:is([zero-full], [inFullscreen]) #sidebar-splitter:not([hidden]) { width: 1px !important; min-width: 1px !important; max-width: 1px !important; opacity: 1; background: rgba(127, 127, 127, .25) !important; }
 :root[zero][inDOMFullscreen] :is(#sidebar-box, #sidebar-splitter) { display: none !important; }
 @keyframes zero-side-in { from { opacity: 0; transform: scale(.985); } }
 

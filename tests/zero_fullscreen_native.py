@@ -6,6 +6,8 @@
 3. Con F11 (pantalla completa del navegador), igual.
 4. La isla abierta lleva el botón de las extensiones (sus ventanas se pueden abrir).
 5. Un aviso de permiso (la ubicación) sale abierto y colocado bajo la isla, no en una esquina.
+6. Con la barra lateral abierta y F11, la barra lateral también va pegada a los bordes (sin márgenes de
+   tarjeta) junto a la web; al salir vuelve a ser una tarjeta.
 
 --zero-del-repo: Zero sale de zero/ del repositorio (ver zero_harness.py).
 """
@@ -124,6 +126,23 @@ def main():
             return { top: r.top, left: r.left, w: r.width, islandBottom: n.bottom, islandLeft: n.left, islandRight: n.right };""")
         assert place['w'] > 100 and place['top'] >= place['islandBottom'] - 2 and place['top'] < place['islandBottom'] + 80 and place['left'] < place['islandRight'] + 40 and place['left'] + place['w'] > place['islandLeft'] - 40, place
         check('Un aviso de permiso sale abierto y bajo la isla')
+
+        chrome("PopupNotifications.panel.hidePopup()")
+        chrome("SidebarController.show('viewHistorySidebar')")
+        side = """const s = document.getElementById('sidebar-box').getBoundingClientRect(); const p = document.getElementById('tabbrowser-tabpanels').getBoundingClientRect();
+            return { s: [s.left, s.top, s.width, s.bottom], p: [p.left, p.top, p.right, p.bottom], H: innerHeight, W: innerWidth, full: !!window.fullScreen,
+                     radius: getComputedStyle(document.getElementById('sidebar-box')).borderTopLeftRadius };"""
+        until(lambda: chrome(side)['s'][2] > 150)
+        chrome("window.fullScreen = true")
+        try:
+            until(lambda: (q := chrome(side))['full'] and q['s'][0] <= 1 and q['s'][1] <= 1 and abs(q['s'][3] - q['H']) <= 1 and q['radius'] == '0px'
+                  and abs(q['p'][2] - q['W']) <= 1 and abs(q['p'][3] - q['H']) <= 1)
+        except AssertionError:
+            raise AssertionError(f'barra lateral con F11: {chrome(side)}') from None
+        chrome("window.fullScreen = false")
+        until(lambda: (q := chrome(side))['s'][0] >= 49 and q['radius'] == '18px')
+        chrome("SidebarController.hide()")
+        check('Con la barra lateral abierta y F11, la barra lateral va pegada a los bordes; al salir vuelve a ser tarjeta')
         report['status'] = 'passed'
     finally:
         if driver: driver.close()
