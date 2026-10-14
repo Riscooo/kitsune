@@ -20,6 +20,17 @@ test('ranking needs every word to match and keeps the best ones', () => {
   assert.equal(palette.rank('', items, 2).length, 2)
 })
 
+test('letters in order only count when nothing matches better, and every kind competes together', () => {
+  const items = [
+    { label: 'General', detail: 'Espacio', keywords: ['espacio', 'workspace'], weight: 1.05 },
+    { label: 'Nueva ventana privada', keywords: ['incognito', 'privado'] },
+    { label: 'Copia de Kitsune (llevar tus cosas a otro ordenador)', keywords: ['backup'] },
+  ]
+  assert.deepEqual(palette.rank('copia', items).map(item => item.label), ['Copia de Kitsune (llevar tus cosas a otro ordenador)'])
+  // Si no hay nada mejor, las letras en orden siguen sirviendo.
+  assert.equal(palette.rank('nvp', items)[0].label, 'Nueva ventana privada')
+})
+
 test('an address is something.tld without spaces, or a URL with its scheme', () => {
   for (const text of ['kitsune.example', 'es.wikipedia.org/wiki/Zorro', 'https://x.example/a b', 'about:config', 'localhost.dev:8080/x']) {
     assert.equal(palette.looksLikeAddress(text), !text.includes(' '), text)

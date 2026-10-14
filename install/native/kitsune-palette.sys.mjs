@@ -30,14 +30,18 @@ export function score(query, text) {
   return index === q.length ? 20 + 20 * (q.length / t.length) : 0;
 }
 
-/** Lo mejor de cada lista, por puntos y sin pasar de `limit`. Las palabras sueltas deben encajar todas. */
+/** Lo mejor de cada lista, por puntos y sin pasar de `limit`. Las palabras sueltas deben encajar todas.
+ * Las letras sueltas en orden solo valen si no hay nada mejor: con «copia» no sale «Nueva ventana
+ * privada» (por i-n-c-o-g-n-i-t-o…) si hay algo que de verdad empieza o contiene «copia». */
 export function rank(query, items, limit = 8) {
   const words = fold(query).split(/\s+/).filter(Boolean);
-  return items.map(item => {
+  const scored = items.map(item => {
     const haystack = [item.label, item.detail, ...(item.keywords ?? [])].join(' ');
     const points = words.length ? Math.min(...words.map(word => Math.max(score(word, item.label), score(word, haystack) * 0.9))) : 1;
-    return { item, points: points * (item.weight ?? 1) };
-  }).filter(entry => entry.points > 0).sort((a, b) => b.points - a.points).slice(0, limit).map(entry => entry.item);
+    return { item, points, weighted: points * (item.weight ?? 1) };
+  }).filter(entry => entry.points > 0);
+  const good = scored.some(entry => entry.points >= 50);
+  return scored.filter(entry => !good || entry.points >= 50).sort((a, b) => b.weighted - a.weighted).slice(0, limit).map(entry => entry.item);
 }
 
 /** ¿Lo escrito es una dirección? (algo.algo sin espacios, o con su esquema). */
@@ -135,7 +139,8 @@ export function localResults(win, query) {
     keywords: ['espacio', 'workspace'], run: () => module.switchTo(win, space.id), weight: 1.05,
   }));
   if (!query.trim()) return [...rank('', tabs.filter(tab => tab.weight > 1), 6), ...actions.slice(0, 6)];
-  const results = [...rank(query, [...spaceItems, ...tabs], 6), ...rank(query, actions, 6)];
+  // Todo junto, por puntos: lo que mejor encaja primero, sea pestaña, espacio o acción.
+  const results = rank(query, [...spaceItems, ...tabs, ...actions], 10);
   const typed = query.trim();
   const web = looksLikeAddress(typed)
     ? { type: 'web', label: t(`Ir a ${typed}`, `Go to ${typed}`), run: () => win.openTrustedLinkIn(/^[a-z]+:/i.test(typed) ? typed : `https://${typed}`, 'current') }
