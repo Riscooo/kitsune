@@ -105,11 +105,16 @@ navegar. 0.8 trae lo que hace que la gente use Zen y lo que Zen no tiene.
   lateral, o compacta en la barra con las pestañas arriba). Usa el `MediaController` de Gecko;
   la carátula se pide con el principal de la pestaña, como su favicon. Un clic en el título
   lleva a la pestaña y a su espacio.
+- **Atajos de teclado a tu gusto** (`kitsune-keys.sys.mjs`): los de Kitsune y los más usados de
+  Gecko, en un panel (paleta o menú → «Atajos de teclado…»). Avisa si la combinación ya es de
+  otra cosa; Retroceso deja uno sin atajo. Se guardan en `kitsune.keys.custom` y se aplican a
+  los `<key>` de cada ventana (reinsertando su keyset, que Gecko solo lee al conectarlo, y sin
+  el `data-l10n-id` de Fluent, que si no les devolvería su letra).
 - **Bienvenida** (`start/bienvenida.mjs`): la primera vez que se abre «Tu inicio» en un perfil
   nuevo, tema, tinta y pestañas (se guardan al momento) y dos pistas: `Ctrl+K` y traer lo de
   otro navegador. Quien ya usaba Kitsune no la ve (ajustes sin la clave `bienvenida`).
 - **Seguir a Firefox sin tocar nada** (`tools/seguir_firefox.py`). Con cada Gecko nuevo:
-  motor, 24 pruebas con el motor real, ajustes de fábrica, paquetes de los tres sistemas y
+  motor, 25 pruebas con el motor real, ajustes de fábrica, paquetes de los tres sistemas y
   un borrador de versión en GitHub. Lo lanza cada día `kitsune-engine-update.timer`.
 
 Pruebas con el motor real: `vertical_tabs_native.py`, `spaces_native.py`,

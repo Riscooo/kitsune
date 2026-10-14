@@ -45,6 +45,11 @@
     const { KitsuneMedia } = ChromeUtils.importESModule('chrome://browser/content/kitsune-media.sys.mjs');
     void KitsuneMedia.decorate(window).catch(() => {});
   } catch { /* sin tarjeta, la música sigue igual */ }
+  // Atajos de teclado a tu gusto (después de los módulos que ponen los suyos).
+  try {
+    const { KitsuneKeys } = ChromeUtils.importESModule('chrome://browser/content/kitsune-keys.sys.mjs');
+    void KitsuneKeys.decorate(window).catch(() => {});
+  } catch { /* con los atajos de serie */ }
   // Copia de Kitsune: tus cosas en un archivo cifrado, para otro ordenador.
   try {
     const { KitsuneCopia } = ChromeUtils.importESModule('chrome://browser/content/kitsune-copia.sys.mjs');

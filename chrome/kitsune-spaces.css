@@ -143,6 +143,34 @@
   }
   .kitsune-space-panel .kitsune-space-panel-actions > button:focus-visible { outline: 2px solid var(--kitsune-focus); outline-offset: 1px; }
 
+  /* Atajos de teclado (kitsune-keys.sys.mjs): una fila por atajo, con su combinación en un botón. */
+  #kitsune-keys-panel .kitsune-keys-form { width: 400px; }
+  #kitsune-keys-panel .kitsune-keys-help { margin: 0; color: var(--kitsune-quiet); font-size: 12px; line-height: 1.45; }
+  #kitsune-keys-panel .kitsune-keys-list { display: flex; flex-direction: column; max-height: 360px; margin-inline: -6px; overflow-y: auto; }
+  #kitsune-keys-panel .kitsune-keys-row { display: grid; grid-template-columns: minmax(0, 1fr) auto 24px; align-items: center; gap: 6px; min-height: 32px; padding-inline: 6px; border-radius: calc(7px * var(--kb-round, 1)); }
+  #kitsune-keys-panel .kitsune-keys-row:hover { background: var(--kb-hover); }
+  #kitsune-keys-panel .kitsune-keys-label { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+  #kitsune-keys-panel .kitsune-keys-combo {
+    appearance: none;
+    min-width: 96px;
+    height: 26px;
+    margin: 0;
+    padding: 0 8px;
+    border: 1px solid var(--kitsune-rule);
+    border-radius: calc(6px * var(--kb-round, 1));
+    background: var(--kb-bg, transparent);
+    color: var(--kitsune-text);
+    font: 500 12px "Noto Sans", "Kitsune Sans", sans-serif;
+  }
+  #kitsune-keys-panel .kitsune-keys-combo[recording] { border-color: var(--kb-primary); color: var(--kb-primary); }
+  #kitsune-keys-panel :is(.kitsune-keys-combo, .kitsune-keys-reset):focus-visible { outline: 2px solid var(--kitsune-focus); outline-offset: 1px; }
+  #kitsune-keys-panel .kitsune-keys-reset { appearance: none; width: 24px; height: 24px; margin: 0; padding: 0; border: 0; border-radius: calc(6px * var(--kb-round, 1)); background: transparent; color: var(--kitsune-quiet); font-size: 14px; }
+  #kitsune-keys-panel .kitsune-keys-reset:hover { background: var(--kb-hover); color: var(--kitsune-text); }
+  #kitsune-keys-panel .kitsune-keys-reset[hidden] { visibility: hidden; display: block; }
+  #kitsune-keys-panel .kitsune-keys-status { margin: 0; color: var(--kb-primary); font-size: 12px; }
+  #kitsune-keys-panel .kitsune-keys-status:empty { display: none; }
+  #kitsune-keys-panel .kitsune-space-panel-actions > button { white-space: nowrap; }
+
   /* Traer de otro navegador: la lista de navegadores y qué traer. */
   .kitsune-import-panel .kitsune-import-form { width: 330px; }
   #kitsune-copia-panel .kitsune-import-form { width: 380px; }
@@ -168,6 +196,9 @@
   .kitsune-import-panel :is(.kitsune-import-status, .kitsune-import-zen):empty { display: none; }
   .kitsune-import-panel a { color: var(--kb-secondary); }
   .kitsune-import-panel input:is([type="radio"], [type="checkbox"]) { width: 14px; height: 14px; margin: 0; accent-color: var(--kb-primary); }
+
+  /* Un grupo de pestañas que está entero en otro espacio no se ve (kitsune-spaces.sys.mjs). */
+  #main-window tab-group[kitsune-space-hidden] { display: none !important; }
 
   /* Con varios espacios, la ventana lleva la tinta del espacio: una línea bajo las barras y,
      con las pestañas al lado, el borde de la barra lateral. Con uno solo, nada cambia. */

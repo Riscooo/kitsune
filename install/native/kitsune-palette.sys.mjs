@@ -80,6 +80,7 @@ const ACTIONS = [
   { label: t('Copia de Kitsune (llevar tus cosas a otro ordenador)', 'Kitsune copy (take your things to another computer)'), run: win => copia()?.open(win), keywords: ['copia', 'backup', 'exportar', 'sincronizar', 'sync'] },
   { label: t('Pausar o seguir lo que suena', 'Pause or play what is playing'), run: win => media()?.toggle(win), keywords: ['musica', 'music', 'play', 'pause', 'video', 'spotify', 'youtube'] },
   { label: t('Ir a lo que suena', 'Go to what is playing'), run: win => media()?.go(win), keywords: ['musica', 'music', 'audio', 'video'] },
+  { label: t('Atajos de teclado…', 'Keyboard shortcuts…'), run: win => keys()?.open(win), keywords: ['atajos', 'teclas', 'shortcuts', 'keys', 'teclado'] },
   { label: t('Tu inicio', 'Your home'), key: 'goHome', keywords: ['home', 'ajustes de kitsune', 'tema', 'fondo', 'modo ahorro'] },
   { label: t('Descargas', 'Downloads'), key: 'key_openDownloads' },
   { label: t('Historial', 'History'), key: 'showAllHistoryKb' },
@@ -101,6 +102,7 @@ const lazy = {
 const spaces = () => { try { return ChromeUtils.importESModule('chrome://browser/content/kitsune-spaces.sys.mjs'); } catch { return null; } };
 const importer = () => { try { return ChromeUtils.importESModule('chrome://browser/content/kitsune-import.sys.mjs').KitsuneImport; } catch { return null; } };
 const media = () => { try { return ChromeUtils.importESModule('chrome://browser/content/kitsune-media.sys.mjs').KitsuneMedia; } catch { return null; } };
+const keys = () => { try { return ChromeUtils.importESModule('chrome://browser/content/kitsune-keys.sys.mjs').KitsuneKeys; } catch { return null; } };
 const copia = () => { try { return ChromeUtils.importESModule('chrome://browser/content/kitsune-copia.sys.mjs').KitsuneCopia; } catch { return null; } };
 function setTabs(vertical, visibility) {
   Services.prefs.setBoolPref('sidebar.verticalTabs', vertical);
