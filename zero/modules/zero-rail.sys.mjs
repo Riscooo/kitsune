@@ -311,6 +311,17 @@ export function attach(win, ctx) {
   st.rail.addEventListener('mouseleave', () => { pointerY = null; win.cancelAnimationFrame(frame); frame = 0; dock(st, null); });
 
   const container = win.gBrowser.tabContainer;
+  // Con muchas pestañas el raíl se desplaza: la elegida siempre a la vista, con un poco de aire.
+  // Se mide con offsetTop y no con el rectángulo: la que acaba de abrirse aún entra encogida.
+  const keepInView = (instant = false) => win.requestAnimationFrame(() => {
+    const node = st.tabsBox.querySelector('.zero-tab[selected]:not([leaving])');
+    if (!node || node.offsetParent !== st.rail) return;
+    const air = 7, top = node.offsetTop - air, bottom = node.offsetTop + node.offsetHeight + air;
+    const { scrollTop, clientHeight } = st.rail;
+    const to = top < scrollTop ? top : bottom > scrollTop + clientHeight ? bottom - clientHeight : null;
+    if (to !== null) st.rail.scrollTo({ top: to, behavior: instant || quiet(win) ? 'instant' : 'smooth' });
+  });
+  listen(container, 'TabSelect', () => keepInView());
   listen(container, 'TabOpen', event => { st.fresh.add(event.target); render(win, st); });
   for (const type of ['TabClose', 'TabSelect', 'TabMove', 'TabPinned', 'TabUnpinned', 'TabShow', 'TabHide']) {
     listen(container, type, () => render(win, st));
@@ -319,10 +330,11 @@ export function attach(win, ctx) {
     const node = st.items.get(event.target);
     if (node) fill(win, st, event.target, node);
   });
-  const unwatch = host.spaces?.watch?.(win, () => render(win, st));
+  const unwatch = host.spaces?.watch?.(win, () => { render(win, st); keepInView(true); });
   if (unwatch) st.cleanups.push(unwatch);
 
   render(win, st);
+  keepInView(true);
 }
 
 export function detach(win) {

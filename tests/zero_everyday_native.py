@@ -2,6 +2,9 @@
 
 1. Guardar en marcadores (Ctrl+D) abre su panel bajo la isla, no en una esquina.
 2. Cambiar el tamaño de la web (Ctrl + / −) lo dice la isla un momento («Tamaño · 110 %»).
+3. Buscar en la página (Ctrl+F) saca su barra dentro de la tarjeta.
+4. Con muchas pestañas el raíl cabe en la ventana, se desplaza, y la pestaña elegida siempre se ve
+   (también al entrar en Zero con ella abajo del todo).
 
 --zero-del-repo: Zero sale de zero/ del repositorio (ver zero_harness.py).
 """
@@ -73,6 +76,35 @@ def main():
         chrome("FullZoom.reset()")
         eventually(lambda: '100 %' in alert(), timeout=5)
         check('Cambiar el tamaño de la web lo dice la isla un momento')
+
+        driver.context('chrome')
+        bar = driver.script("""const done = arguments[arguments.length - 1];
+            gBrowser.getFindBar().then(fb => { fb.open(); setTimeout(() => { const r = fb.getBoundingClientRect(); const p = document.getElementById('tabbrowser-tabpanels').getBoundingClientRect();
+              done({ ok: !fb.hidden && r.width > 100 && r.height > 20 && r.left >= p.left - 1 && r.right <= p.right + 1 && r.bottom <= p.bottom + 1 }); fb.close(); }, 600); });""", [], asynchronous=True)
+        assert bar['ok'], bar
+        check('Buscar en la página saca su barra dentro de la tarjeta')
+
+        for i in range(40):
+            chrome("gBrowser.addTab(arguments[0], { triggeringPrincipal: Services.scriptSecurityManager.getSystemPrincipal(), skipAnimation: true })", [f'{origin}/{i}'])
+        look = """const rail = document.getElementById('zero-rail'); const r = rail.getBoundingClientRect(); const sel = rail.querySelector('.zero-tab[selected]')?.getBoundingClientRect();
+            return { fits: r.top >= 0 && r.bottom <= innerHeight, scrolls: rail.scrollHeight > rail.clientHeight, seen: !!sel && sel.top >= r.top - 1 && sel.bottom <= r.bottom + 1,
+                     rail: [r.top, r.bottom], scrollTop: rail.scrollTop, selected: sel && [sel.top, sel.bottom] };"""
+
+        def selected_in_view(what):
+            try:
+                eventually(lambda: (l := chrome(look))['fits'] and l['scrolls'] and l['seen'], timeout=5)
+            except AssertionError:
+                raise AssertionError(f'{what}: {chrome(look)}') from None
+
+        for pick in ('gBrowser.visibleTabs.at(-1)', 'gBrowser.visibleTabs[0]', 'gBrowser.visibleTabs[25]'):
+            chrome(f"gBrowser.selectedTab = {pick}")
+            selected_in_view(pick)
+        chrome("gBrowser.selectedTab = gBrowser.visibleTabs.at(-2)")
+        chrome("document.getElementById('kitsune-zero-key').doCommand()")
+        eventually(lambda: chrome("return !document.getElementById('zero-rail')"), timeout=5)
+        chrome("document.getElementById('kitsune-zero-key').doCommand()")
+        selected_in_view('al entrar en Zero')
+        check('Con muchas pestañas el raíl cabe, se desplaza y la elegida siempre se ve (también al entrar en Zero)')
         report['status'] = 'passed'
     finally:
         if driver: driver.close()
