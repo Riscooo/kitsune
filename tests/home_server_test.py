@@ -82,7 +82,8 @@ class HomeServerTests(unittest.TestCase):
         self.assertEqual(status, 200)
         self.assertEqual(value["version"], 2)
         self.assertEqual(value["revision"], 0)
-        self.assertEqual(value["data"], module.DEFAULT_DATA)
+        # Un perfil nuevo: lo de serie, y la bienvenida aún por ver.
+        self.assertEqual(value["data"], {**module.DEFAULT_DATA, "bienvenida": False})
         self.assertGreaterEqual(len(value["token"]), 32)
         self.assertEqual(headers["Cache-Control"], "no-store")
         self.assertEqual(headers["X-Content-Type-Options"], "nosniff")

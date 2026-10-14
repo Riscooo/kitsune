@@ -100,8 +100,11 @@ navegar. 0.8 trae lo que hace que la gente use Zen y lo que Zen no tiene.
   (PBKDF2-SHA-256 de 600 000 vueltas y AES-GCM), para llevarlo a otro ordenador sin servidor.
   Al traerla, los marcadores van a su carpeta, los espacios se crean o se reutilizan por nombre,
   las pestañas se abren sin cargar y una contraseña repetida no se duplica. Menú y paleta.
+- **Bienvenida** (`start/bienvenida.mjs`): la primera vez que se abre «Tu inicio» en un perfil
+  nuevo, tema, tinta y pestañas (se guardan al momento) y dos pistas: `Ctrl+K` y traer lo de
+  otro navegador. Quien ya usaba Kitsune no la ve (ajustes sin la clave `bienvenida`).
 - **Seguir a Firefox sin tocar nada** (`tools/seguir_firefox.py`). Con cada Gecko nuevo:
-  motor, 21 pruebas con el motor real, ajustes de fábrica, paquetes de los tres sistemas y
+  motor, 23 pruebas con el motor real, ajustes de fábrica, paquetes de los tres sistemas y
   un borrador de versión en GitHub. Lo lanza cada día `kitsune-engine-update.timer`.
 
 Pruebas con el motor real: `vertical_tabs_native.py`, `spaces_native.py`,

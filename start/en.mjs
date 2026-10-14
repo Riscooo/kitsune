@@ -288,6 +288,12 @@ export default Object.freeze({
   'Ese fondo de serie no está disponible.': 'That built-in background is not available.',
   'Esa tinta no está en el catálogo.': 'That ink is not in the catalog.',
   'La densidad no es válida.': 'The density is not valid.',
+  // Bienvenida
+  'Te damos la bienvenida a Kitsune': 'Welcome to Kitsune',
+  'Tres cosas para que sea tuyo. Puedes cambiarlas cuando quieras en Tu inicio → Apariencia.': 'Three things to make it yours. You can change them whenever you like in Your home → Appearance.',
+  'lo busca todo: pestañas, marcadores, historial y acciones.': 'finds everything: tabs, bookmarks, history and actions.',
+  '¿Vienes de otro navegador? Menú → «Traer de otro navegador…».': 'Coming from another browser? Menu → «Bring from another browser…».',
+  'Empezar': 'Get started',
   'Densidad': 'Density',
   'Compacta': 'Compact',
   'Con «Compacta», las barras y las pestañas ocupan menos alto.': 'With «Compact», the toolbars and the tabs take up less height.',

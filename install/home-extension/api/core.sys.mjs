@@ -55,6 +55,8 @@ export const DEFAULT_DATA = Object.freeze({
   tabs: 'arriba',
   tinta: 'papel',
   densidad: 'normal',
+  // La bienvenida ya se vio (unos ajustes de antes que no lo dicen); un perfil nuevo empieza con false.
+  bienvenida: true,
 })
 // Botones de la ventana: los de Kitsune, los del sistema o según el sistema (auto: los de Apple en macOS).
 export const WINDOW_BUTTONS = Object.freeze(['auto', 'kitsune', 'sistema'])
@@ -102,6 +104,7 @@ export function validateSettings(value, base = null) {
   if (!TABS.includes(data.tabs)) throw invalid('La posición de las pestañas no es válida.')
   if (!TINTAS.some(tinta => tinta.id === data.tinta)) throw invalid('Esa tinta no está en el catálogo.')
   if (!['normal', 'compacta'].includes(data.densidad)) throw invalid('La densidad no es válida.')
+  if (typeof data.bienvenida !== 'boolean') throw invalid('Las preferencias deben ser verdaderas o falsas.')
   if (!['normal', 'ahorro'].includes(data.performance) || ![1024, 2048, 4096].includes(data.ramLimit)) throw invalid('El modo de rendimiento no es válido.')
   if (data.background !== null && (typeof data.background !== 'string' || !HASH.test(data.background))) throw invalid('El fondo no es válido.')
   const modules = data.modules
@@ -137,7 +140,8 @@ export function parseSettingsRecord(text) {
   }
 }
 
-export const defaultSettingsRecord = () => ({ version: 2, data: clone(DEFAULT_DATA), revision: 0 })
+// Perfil nuevo: «Tu inicio» enseña la bienvenida la primera vez.
+export const defaultSettingsRecord = () => ({ version: 2, data: { ...clone(DEFAULT_DATA), bienvenida: false }, revision: 0 })
 
 /** PUT /api/settings: solo con la revisión vigente; el fondo solo se queda, se quita o pasa al recién guardado. */
 export function updateSettings(record, data, revision, newBackground = null) {

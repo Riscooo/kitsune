@@ -409,3 +409,13 @@ body[data-motion=off] *, body[data-motion=off] *::before, body[data-motion=off] 
 :root[data-esquinas=rectas] { --k-round: .25; }
 :root[data-esquinas=redondas] { --k-round: 1.6; }
 :root[data-letra=serif] :is(.quick-link > a span, .tinta-name, .users-card-item, .settings-tabs button) { font-family: var(--serif); }
+
+/* La bienvenida (bienvenida.mjs): la primera vez en un perfil nuevo. */
+.welcome-dialog { width: min(520px, calc(100vw - 32px)); text-align: left; }
+.welcome-logo { display: block; width: 72px; height: 72px; margin: 0 auto 10px; }
+.welcome-dialog h2 { margin: 0; font: 500 24px var(--serif); letter-spacing: -.3px; text-align: center; }
+.welcome-lead { margin: 8px 0 14px; color: var(--muted); font-size: 14px; text-align: center; }
+.welcome-dialog .setting-label { margin: 16px 0 8px; }
+.welcome-tips { margin: 18px 0 0; padding-left: 18px; color: var(--muted); font-size: 13px; line-height: 1.6; }
+.welcome-tips kbd { padding: 0 5px; border: 1px solid var(--line); border-bottom-width: 2px; border-radius: calc(5px * var(--k-round, 1)); background: var(--surface-high); color: var(--text); font: 500 12px var(--sans, inherit); }
+.welcome-start { display: block; width: 100%; margin-top: 20px; }

@@ -303,6 +303,11 @@
 		"Ese fondo de serie no está disponible.": "That built-in background is not available.",
 		"Esa tinta no está en el catálogo.": "That ink is not in the catalog.",
 		"La densidad no es válida.": "The density is not valid.",
+		"Te damos la bienvenida a Kitsune": "Welcome to Kitsune",
+		"Tres cosas para que sea tuyo. Puedes cambiarlas cuando quieras en Tu inicio → Apariencia.": "Three things to make it yours. You can change them whenever you like in Your home → Appearance.",
+		"lo busca todo: pestañas, marcadores, historial y acciones.": "finds everything: tabs, bookmarks, history and actions.",
+		"¿Vienes de otro navegador? Menú → «Traer de otro navegador…».": "Coming from another browser? Menu → «Bring from another browser…».",
+		"Empezar": "Get started",
 		"Densidad": "Density",
 		"Compacta": "Compact",
 		"Con «Compacta», las barras y las pestañas ocupan menos alto.": "With «Compact», the toolbars and the tabs take up less height.",
@@ -1435,7 +1440,8 @@
 			windowButtons: ["kitsune", "sistema"].includes(value?.windowButtons) ? value.windowButtons : "auto",
 			tabs: TABS.includes(value?.tabs) ? value.tabs : "arriba",
 			tinta: typeof value?.tinta === "string" && /^[a-z][a-z0-9-]{1,23}$/u.test(value.tinta) ? value.tinta : "papel",
-			densidad: value?.densidad === "compacta" ? "compacta" : "normal"
+			densidad: value?.densidad === "compacta" ? "compacta" : "normal",
+			bienvenida: value?.bienvenida !== false
 		};
 	}
 	function mergeSettings(current, patch) {
@@ -2258,6 +2264,67 @@
 		return { render };
 	}
 	//#endregion
+	//#region start/bienvenida.mjs
+	function initializeBienvenida({ $, save }) {
+		const dialog = $("#welcome-dialog");
+		if (!dialog) return { sync() {} };
+		let shown = false;
+		let catalog = [];
+		const grid = $("#welcome-tintas");
+		fetch("/api/tintas", {
+			credentials: "omit",
+			cache: "no-store",
+			signal: AbortSignal.timeout(5e3)
+		}).then((response) => response.ok ? response.json() : { tintas: [] }).then((value) => {
+			catalog = value.tintas ?? [];
+			if (last) sync(...last);
+		}).catch(() => {});
+		let last = null;
+		for (const button of dialog.querySelectorAll("[data-welcome-theme]")) button.addEventListener("click", () => void save({ theme: button.dataset.welcomeTheme }));
+		for (const button of dialog.querySelectorAll("[data-welcome-tabs]")) button.addEventListener("click", () => void save({ tabs: button.dataset.welcomeTabs }));
+		$("#welcome-start").addEventListener("click", () => {
+			save({ bienvenida: true });
+			dialog.close();
+		});
+		dialog.addEventListener("cancel", () => {
+			save({ bienvenida: true });
+		});
+		function sync(settings, ready) {
+			last = [settings, ready];
+			for (const button of dialog.querySelectorAll("[data-welcome-theme]")) button.setAttribute("aria-pressed", String(button.dataset.welcomeTheme === settings.theme));
+			for (const button of dialog.querySelectorAll("[data-welcome-tabs]")) button.setAttribute("aria-pressed", String(button.dataset.welcomeTabs === settings.tabs));
+			grid.replaceChildren(...catalog.map((tinta) => {
+				const palette = tinta[settings.theme] ?? tinta.claro;
+				const button = document.createElement("button");
+				button.type = "button";
+				button.className = "tinta";
+				button.setAttribute("role", "radio");
+				button.setAttribute("aria-checked", String(tinta.id === settings.tinta));
+				button.title = tinta.name;
+				const swatch = document.createElement("span");
+				swatch.className = "tinta-swatch";
+				swatch.setAttribute("aria-hidden", "true");
+				swatch.style.setProperty("--swatch-bg", palette.bg);
+				swatch.style.setProperty("--swatch-primary", palette.primary);
+				swatch.style.setProperty("--swatch-secondary", palette.secondary);
+				swatch.style.setProperty("--swatch-text", palette.text);
+				const name = document.createElement("span");
+				name.className = "tinta-name";
+				name.textContent = tinta.name;
+				button.append(swatch, name);
+				button.addEventListener("click", () => void save({ tinta: tinta.id }));
+				return button;
+			}));
+			const automated = navigator.webdriver && !new URLSearchParams(location.search).has("bienvenida");
+			if (!shown && ready && settings.bienvenida === false && !dialog.open && !automated) {
+				shown = true;
+				dialog.showModal();
+				$("#welcome-start").focus();
+			}
+		}
+		return { sync };
+	}
+	//#endregion
 	//#region start/app.js
 	let toastTimer;
 	let mode = "all";
@@ -2265,6 +2332,7 @@
 	let appearance;
 	let presets;
 	let tintas;
+	let welcome;
 	const announce = (message) => {
 		clearTimeout(toastTimer);
 		$("#status").textContent = message;
@@ -2328,6 +2396,7 @@
 			$("#background-remove").disabled = !state.ready;
 			presets?.sync(settings, state.ready);
 			tintas?.render(settings, state.ready);
+			welcome?.sync(settings, state.ready);
 			$("#focus-toggle").setAttribute("aria-pressed", String(settings.focus));
 			$("#focus-toggle").disabled = !state.ready;
 			$("#focus-toggle").textContent = settings.focus ? "Salir de enfoque" : "Enfoque";
@@ -2381,6 +2450,10 @@
 		getSettings: () => store.data
 	}).then((value) => {
 		tintas = value;
+	});
+	welcome = initializeBienvenida({
+		$,
+		save
 	});
 	presets = initializePresets({ async choose(preset) {
 		const result = preset ? await store.setBackground({ preset }) : { ok: await store.save({ background: null }) };

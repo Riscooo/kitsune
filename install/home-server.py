@@ -101,6 +101,9 @@ DEFAULT_DATA = {
     "tinta": "papel",
     # Densidad de la ventana: normal o compacta (las barras y las pestañas, más bajas).
     "densidad": "normal",
+    # La bienvenida ya se vio. Un perfil nuevo empieza con False (abajo, en SettingsStore); unos
+    # ajustes de antes que no lo dicen ya llevaban tiempo usándose: True.
+    "bienvenida": True,
 }
 # Cabecera con el usuario de la pestaña (usuarios en la misma ventana).
 USER_HEADER = "X-Kitsune-Usuario"
@@ -144,6 +147,8 @@ def validate_data(value, base=None):
         raise InvalidSettings("Esa tinta no está en el catálogo.")
     if value["densidad"] not in ("normal", "compacta"):
         raise InvalidSettings("La densidad no es válida.")
+    if type(value["bienvenida"]) is not bool:
+        raise InvalidSettings("Las preferencias deben ser verdaderas o falsas.")
     if value["performance"] not in ("normal", "ahorro") or type(value["ramLimit"]) is not int or value["ramLimit"] not in (1024, 2048, 4096):
         raise InvalidSettings("El modo de rendimiento no es válido.")
     background = value["background"]
@@ -214,7 +219,8 @@ class SettingsStore:
             self.data = validate_data(record["data"])
             self.revision = record["revision"]
         except FileNotFoundError:
-            pass
+            # Perfil nuevo: «Tu inicio» enseña la bienvenida la primera vez.
+            self.data["bienvenida"] = False
         except (OSError, ValueError, TypeError):
             # Never silently replace a corrupt/unreadable state with defaults.
             self.unavailable = True
