@@ -297,6 +297,34 @@ class RecipeTests(unittest.TestCase):
         with self.assertRaises(engine.EngineError):
             engine.rebrand_source(root)
 
+    def test_the_recipe_also_fits_gecko_158(self):
+        # Gecko 158 quitó la vista antigua de «Apoyar a Firefox» y la ilustración de about:logins,
+        # y su enlace de ayuda llama antes a su clase base: la receta sigue sin tocar nada más.
+        root = self.rebrand_tree()
+        settings = root / "browser/extensions/newtab/lib/AboutPreferences.sys.mjs"
+        old_view = next(old for old in engine.TEXT_PATCHES_ONLY_IF)
+        settings.write_text(settings.read_text().replace(old_view, ""))
+        for relative in engine.MASCOT_GONE_OK:
+            (root / relative).unlink()
+        link = root / "toolkit/content/widgets/moz-support-link/moz-support-link.mjs"
+        link.write_text("class MozSupportLink {\n" + engine.SUPPORT_LINK_158 + "\n  }\n}\n")
+        engine.rebrand_source(root)
+        engine.rebrand_source(root)
+        text = link.read_text()
+        self.assertEqual(text.count("display"), 1)
+        self.assertIn("super.connectedCallback();", text)
+        # Pero si el archivo sigue teniendo la vista antigua y el texto cambió, se para.
+        settings.write_text('feed: "showSponsoredCheckboxes"\n')
+        with self.assertRaises(engine.EngineError):
+            engine.rebrand_source(root)
+        rules = root / "config/makefiles/rust.mk"
+        rules.parent.mkdir(parents=True)
+        rules.write_text("ifdef RUST_LIBRARY_LTO\ncargo_rustc_flags += -Clto\nendif\n")
+        (root / "browser/moz.configure").write_text(engine.UA_ANCHOR + "\n")
+        engine.tune_build(root)
+        engine.tune_build(root)
+        self.assertEqual(rules.read_text(), "ifdef RUST_LIBRARY_LTO\n" + engine.RUST_THIN_LTO + "\nendif\n")
+
     def test_rust_uses_thin_lto_and_tuning_can_be_reapplied(self):
         root = self.source_tree()
         rules = root / "config/makefiles/rust.mk"

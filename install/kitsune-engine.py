@@ -45,6 +45,8 @@ GKRUST_RESERVE_GIB = 6
 # more than 13 GiB. Thin LTO, what Mozilla's own cross-language LTO builds use
 # for Rust, optimizes the same crates in parallel with a fraction of the memory.
 RUST_FAT_LTO = "cargo_rustc_flags += -Clto$(if $(filter full,$(MOZ_LTO_RUST_CROSS)),=fat)"
+# Desde Gecko 158 la línea es más sencilla (sin el caso de LTO cruzado).
+RUST_PLAIN_LTO = "cargo_rustc_flags += -Clto\n"
 RUST_THIN_LTO = "cargo_rustc_flags += -Clto=thin"
 # The user agent keeps Firefox's standard product token (websites decide by it)
 # while the application identity is Kitsune. Gecko only accepts this implied.
@@ -215,6 +217,17 @@ KITSUNE_BOOKMARKS = """#filter substitution
 # Ni un zorro de Firefox: cada ilustración suya pasa a ser la mascota de Kitsune
 # (install/mascot, de tools/mascot/generate.py) en la pose que pide su sitio, y
 # cada logo de Firefox, el de Kitsune.
+# Parches de TEXT_PATCHES que un Gecko más nuevo ya no necesita porque quitó lo que cambiaban:
+# si en el archivo no está su «señal», se dan por buenos. Todos los demás tienen que estar.
+TEXT_PATCHES_ONLY_IF = {
+    # Gecko 158 quitó la vista antigua de Ajustes → Inicio; la nueva («supportFirefox») sigue con su parche.
+    '      id: "support-firefox",\n      pref: {\n        feed: "showSponsoredCheckboxes",': 'feed: "showSponsoredCheckboxes"',
+}
+# Ilustraciones de MASCOT_POSES que un Gecko más nuevo ya no tiene, sin que haga falta otra en su lugar.
+MASCOT_GONE_OK = {
+    # Gecko 158: about:logins usa ya la de megalist (cpm-fox-illustration.svg), que también se cambia.
+    "browser/components/aboutlogins/content/icons/intro-illustration.svg",
+}
 MASCOT_POSES = {
     "guardia": ("browser/themes/shared/identity-block/trustpanel-graphic-enabled.svg",
                 "browser/components/controlcenter/content/assets/breach-alert-shield-check.svg",
@@ -309,8 +322,13 @@ L10N_PATCHES = {
 }
 THEMES_MAP = re.compile(r"export const BuiltInThemeConfig = new Map\(\[.*?\n\]\);", re.S)
 SUPPORT_LINK = "  connectedCallback() {\n    this.#register();"
-SUPPORT_LINK_HIDDEN = ("  connectedCallback() {\n    // Kitsune: sin enlaces a la ayuda de Mozilla.\n"
+SUPPORT_LINK_MARK = "    // Kitsune: sin enlaces a la ayuda de Mozilla.\n"
+SUPPORT_LINK_HIDDEN = ("  connectedCallback() {\n" + SUPPORT_LINK_MARK +
                        "    this.style.setProperty(\"display\", \"none\", \"important\");\n    this.#register();")
+# Desde Gecko 158 llama antes a su clase base (StylesMixin).
+SUPPORT_LINK_158 = "  connectedCallback() {\n    super.connectedCallback();\n    this.#register();"
+SUPPORT_LINK_HIDDEN_158 = ("  connectedCallback() {\n    super.connectedCallback();\n" + SUPPORT_LINK_MARK +
+                           "    this.style.setProperty(\"display\", \"none\", \"important\");\n    this.#register();")
 BRAND_FTL = """# This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -480,7 +498,8 @@ def recipe_code() -> str:
     parts = [inspect.getsource(function) for function in (write_branding, integrate_native, rebrand_source, prepare_l10n,
                                                           tune_build, write_mozconfig, integrate_home, stage_home_extension)]
     parts += [BRAND_FTL, BRAND_PROPERTIES, BRAND_CONFIGURE, KITSUNE_BOOTSTRAP, ABOUT_CREDIT, RUST_THIN_LTO,
-              json.dumps(TEXT_PATCHES, sort_keys=True), KITSUNE_BOOKMARKS, SUPPORT_LINK_HIDDEN,
+              json.dumps(TEXT_PATCHES, sort_keys=True), json.dumps(TEXT_PATCHES_ONLY_IF, sort_keys=True), repr(sorted(MASCOT_GONE_OK)),
+              KITSUNE_BOOKMARKS, SUPPORT_LINK_HIDDEN, SUPPORT_LINK_HIDDEN_158, RUST_PLAIN_LTO,
               json.dumps(MASCOT_POSES, sort_keys=True), repr(KITSUNE_LOGOS), json.dumps(L10N_PATCHES, sort_keys=True),
               repr(L10N_LOCALES), L10N_REPO,
               UA_FIREFOX, json.dumps(BRAND_CONTENT, sort_keys=True), repr(ICON_SIZES), repr(NATIVE_FILES),
@@ -705,7 +724,10 @@ def rebrand_source(source: Path):
             if old in text:
                 text = text.replace(old, new)
             elif new not in text:
-                raise EngineError(f"El texto «{old[:40]}» cambió en esta versión de Gecko; la receta necesita revisión")
+                # Sin su señal en el archivo, este Gecko ya no tiene lo que el parche cambiaba.
+                signal = TEXT_PATCHES_ONLY_IF.get(old)
+                if signal is None or signal in text:
+                    raise EngineError(f"El texto «{old[:40]}» cambió en esta versión de Gecko; la receta necesita revisión")
         path.write_text(text)
     (source / "browser/base/content/default-bookmarks.html").write_text(KITSUNE_BOOKMARKS)
     themes = source / "browser/themes/BuiltInThemeConfig.sys.mjs"
@@ -717,6 +739,8 @@ def rebrand_source(source: Path):
     for pose, targets in MASCOT_POSES.items():
         for relative in targets:
             if not (source / relative).is_file():
+                if relative in MASCOT_GONE_OK:
+                    continue
                 raise EngineError(f"La ilustración {relative} ya no existe en esta versión de Gecko; la receta necesita revisión")
             shutil.copyfile(MASCOT / f"{pose}.svg", source / relative)
     for relative in KITSUNE_LOGOS:
@@ -725,8 +749,10 @@ def rebrand_source(source: Path):
         shutil.copyfile(BRANDING / "icon-small.svg", source / relative)
     link = source / "toolkit/content/widgets/moz-support-link/moz-support-link.mjs"
     text = link.read_text()
-    if SUPPORT_LINK_HIDDEN not in text:
-        link.write_text(replace_once(text, SUPPORT_LINK, SUPPORT_LINK_HIDDEN, "El enlace de ayuda de Gecko"))
+    if SUPPORT_LINK_MARK not in text:
+        anchors = ((SUPPORT_LINK, SUPPORT_LINK_HIDDEN), (SUPPORT_LINK_158, SUPPORT_LINK_HIDDEN_158))
+        anchor, hidden = next(((a, h) for a, h in anchors if text.count(a) == 1), (SUPPORT_LINK, SUPPORT_LINK_HIDDEN))
+        link.write_text(replace_once(text, anchor, hidden, "El enlace de ayuda de Gecko"))
 
 
 def prepare_l10n(layout: Layout, source: Path, log=print, run=subprocess.run) -> Path:
@@ -772,7 +798,10 @@ def tune_build(source: Path):
     rules = source / "config/makefiles/rust.mk"
     text = rules.read_text()
     if RUST_THIN_LTO not in text:
-        rules.write_text(replace_once(text, RUST_FAT_LTO, RUST_THIN_LTO, "La optimización LTO de Rust"))
+        if text.count(RUST_PLAIN_LTO) == 1 and RUST_FAT_LTO not in text:
+            rules.write_text(text.replace(RUST_PLAIN_LTO, RUST_THIN_LTO + "\n"))
+        else:
+            rules.write_text(replace_once(text, RUST_FAT_LTO, RUST_THIN_LTO, "La optimización LTO de Rust"))
     configure = source / "browser/moz.configure"
     text = configure.read_text()
     if UA_FIREFOX not in text:
