@@ -51,6 +51,7 @@ npm run check                                         # sintaxis, pruebas de Nod
 python3 -m unittest discover -s tests -p '*_test.py'  # pruebas de Python
 python3 tools/privacy_modes.py --check                # kitsune.cfg al día con las mediciones
 python3 tests/spaces_native.py                        # y las *_native.py de lo que toques
+python3 tools/pruebas_nativas.py                      # o todas, con su resumen
 ```
 
 Las pruebas `*_native.py` abren el motor real con un perfil temporal (sin tocar el tuyo) y
