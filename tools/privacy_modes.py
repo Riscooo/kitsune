@@ -74,6 +74,8 @@ IGNORE = [
     # se queda el valor de Gecko, nunca el de 154.
     r"(browser\.newtabpage\.activity-stream\.discoverystream\.endpoint.*|browser\.newtabpage\.activity-stream\.widgets\.sportsWidget\.pollLiveMs)",
     r"(layout\.disable-pixel-alignment|media\.webrtc\.send_mlkem_keyshare|network\.dns\.mru_to_tail)",
+    # Cuándo arranca Glean (la telemetría de Gecko): su subida ya está apagada y bloqueada.
+    r"telemetry\.fog\.init_on_shutdown",
 ]
 
 # Sync stays available in both modes (it only does anything after signing in);

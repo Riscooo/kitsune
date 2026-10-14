@@ -23,7 +23,10 @@ from engine_probe import dump_prefs  # noqa: E402
 # Remote rollouts and region lookup off, as in Kitsune's common settings (the
 # harness names are left out of the result; privacy_modes.py keeps them common).
 NO_REMOTE_DEFAULTS = {"app.normandy.api_url": "", "browser.region.network.url": "",
-                      "browser.region.update.enabled": False}
+                      "browser.region.update.enabled": False,
+                      # Desde Gecko 158 los despliegues llegan también por Nimbus (Remote Settings).
+                      "app.normandy.enabled": False, "app.shield.optoutstudies.enabled": False,
+                      "messaging-system.rsexperimentloader.enabled": False, "nimbus.rollouts.enabled": False}
 
 
 def factory_prefs(browser: Path, env):

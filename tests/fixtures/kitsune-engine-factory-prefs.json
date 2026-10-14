@@ -198,17 +198,11 @@
    "type": "bool",
    "user": null
   },
-  "app.normandy.enabled": {
-   "default": true,
-   "locked": false,
-   "type": "bool",
-   "user": null
-  },
   "app.normandy.first_run": {
    "default": true,
    "locked": false,
    "type": "bool",
-   "user": null
+   "user": false
   },
   "app.normandy.last_seen_buildid": {
    "default": "",
@@ -250,13 +244,7 @@
    "default": null,
    "locked": false,
    "type": "string",
-   "user": "dc319a6c-acd3-429b-aa7e-06dfb75c8a92"
-  },
-  "app.shield.optoutstudies.enabled": {
-   "default": true,
-   "locked": false,
-   "type": "bool",
-   "user": null
+   "user": "f851ea44-902a-400c-8d9b-3edc4139be6a"
   },
   "app.support.baseURL": {
    "default": "http://127.0.0.1:49721/ayuda/",
@@ -334,7 +322,7 @@
    "default": null,
    "locked": false,
    "type": "int",
-   "user": 0
+   "user": 1791948084
   },
   "app.update.lastUpdateTime.xpi-signature-verification": {
    "default": null,
@@ -1948,7 +1936,7 @@
    "default": null,
    "locked": false,
    "type": "string",
-   "user": "79de41cc-4ccf-41bd-a0c1-2338d38172fe"
+   "user": "7b0465d2-5ee7-4165-a96a-7b8d6e07d1c0"
   },
   "browser.contextual-services.contextId.rotation-in-days": {
    "default": 3,
@@ -1966,7 +1954,7 @@
    "default": null,
    "locked": false,
    "type": "int",
-   "user": 1791947581
+   "user": 1791948083
   },
   "browser.crashReporter.memtest": {
    "default": true,
@@ -3186,12 +3174,6 @@
    "type": "bool",
    "user": null
   },
-  "browser.ml.chat.nimbus": {
-   "default": null,
-   "locked": false,
-   "type": "string",
-   "user": "copilot-chatbot-sunset:control"
-  },
   "browser.ml.chat.page": {
    "default": true,
    "locked": false,
@@ -3242,12 +3224,6 @@
   },
   "browser.ml.chat.provider": {
    "default": "",
-   "locked": false,
-   "type": "string",
-   "user": null
-  },
-  "browser.ml.chat.providers": {
-   "default": "claude,chatgpt,gemini,lechat",
    "locked": false,
    "type": "string",
    "user": null
@@ -4420,7 +4396,7 @@
    "default": null,
    "locked": false,
    "type": "string",
-   "user": "{9825be0b-15f3-45b7-9fc7-198a8ce86633}"
+   "user": "{94a27dbb-4b4d-44b7-8e8d-ec2e54e0b3b3}"
   },
   "browser.newtabpage.activity-stream.improvesearch.handoffToAwesomebar": {
    "default": true,
@@ -5344,7 +5320,7 @@
    "default": true,
    "locked": false,
    "type": "bool",
-   "user": false
+   "user": null
   },
   "browser.newtabpage.activity-stream.widgets.sportsWidget.interaction": {
    "default": false,
@@ -5368,7 +5344,7 @@
    "default": 180000,
    "locked": false,
    "type": "int",
-   "user": 60000
+   "user": null
   },
   "browser.newtabpage.activity-stream.widgets.sportsWidget.pollMatchDayMs": {
    "default": 1800000,
@@ -6096,6 +6072,12 @@
    "type": "string",
    "user": null
   },
+  "browser.safebrowsing.provider.mozilla.lastupdatetime": {
+   "default": null,
+   "locked": false,
+   "type": "string",
+   "user": "1791948084365"
+  },
   "browser.safebrowsing.provider.mozilla.lists": {
    "default": "base-track-digest256,mozstd-trackwhite-digest256,google-trackwhite-digest256,content-track-digest256,ads-track-digest256,social-track-digest256,analytics-track-digest256,base-fingerprinting-track-digest256,content-fingerprinting-track-digest256,base-cryptomining-track-digest256,content-cryptomining-track-digest256,fanboyannoyance-ads-digest256,fanboysocial-ads-digest256,easylist-ads-digest256,easyprivacy-ads-digest256,adguard-ads-digest256,social-tracking-protection-digest256,social-tracking-protection-facebook-digest256,social-tracking-protection-linkedin-digest256,social-tracking-protection-twitter-digest256,base-email-track-digest256,content-email-track-digest256,consent-manager-track-digest256,anti-fraud-track-digest256,harmful-addon-block-digest256,harmful-addon-entitylist-digest256",
    "locked": false,
@@ -6118,7 +6100,7 @@
    "default": "1",
    "locked": false,
    "type": "string",
-   "user": null
+   "user": "1791969684365"
   },
   "browser.safebrowsing.provider.mozilla.pver": {
    "default": "2.2",
@@ -6251,6 +6233,12 @@
    "locked": false,
    "type": "bool",
    "user": null
+  },
+  "browser.search.serpEventTelemetryCategorization.regionEnabled": {
+   "default": null,
+   "locked": false,
+   "type": "bool",
+   "user": false
   },
   "browser.search.serpMetricsRecordedCounter": {
    "default": 0,
@@ -6953,6 +6941,12 @@
    "locked": false,
    "type": "string",
    "user": "ignore"
+  },
+  "browser.startup.lastColdStartupCheck": {
+   "default": null,
+   "locked": false,
+   "type": "int",
+   "user": 1791948084
   },
   "browser.startup.page": {
    "default": 1,
@@ -8692,7 +8686,7 @@
    "default": null,
    "locked": false,
    "type": "int",
-   "user": 1791947
+   "user": 1791948
   },
   "captchadetection.loglevel": {
    "default": "Warn",
@@ -8872,13 +8866,13 @@
    "default": null,
    "locked": false,
    "type": "string",
-   "user": "e9613e83-007c-4f48-b836-e9f1979aadea"
+   "user": "a8d97e59-e9d8-4eff-87eb-44d5838060ab"
   },
   "datareporting.dau.cachedUsageProfileID": {
    "default": null,
    "locked": false,
    "type": "string",
-   "user": "babdf27a-c707-4357-bf8b-bbde87a400cf"
+   "user": "8ca4418a-b946-4432-af33-7970aca32be4"
   },
   "datareporting.healthreport.infoURL": {
    "default": "https://www.mozilla.org/legal/privacy/firefox.html#health-report",
@@ -8908,7 +8902,7 @@
    "default": 0,
    "locked": false,
    "type": "int",
-   "user": 2
+   "user": null
   },
   "datareporting.policy.dataSubmissionPolicyBypassNotification": {
    "default": false,
@@ -8920,7 +8914,7 @@
    "default": "0",
    "locked": false,
    "type": "string",
-   "user": "1791947581926"
+   "user": null
   },
   "datareporting.policy.firstRunURL": {
    "default": "https://www.mozilla.org/privacy/firefox/",
@@ -12472,7 +12466,7 @@
    "default": "",
    "locked": false,
    "type": "string",
-   "user": "3ec193e700e74821ad0c2c5123e6ff41"
+   "user": "99db284016c9418391ad1524f225002f"
   },
   "dom.quotaManager.artificialFailure.categories": {
    "default": 0,
@@ -15112,7 +15106,7 @@
    "default": null,
    "locked": false,
    "type": "string",
-   "user": "{\"formautofill@mozilla.org\":\"182314a3-6226-4c0b-a06d-97e0bc7167e4\",\"ipp-activator@mozilla.com\":\"664d95ef-007a-4841-bcfc-46554f6a6e0b\",\"inicio@kitsune\":\"ce9af6a4-9ef9-4a99-afe8-3c5d9bfd0f43\",\"pictureinpicture@mozilla.org\":\"c6ab7dd1-9c72-4a01-a482-e153747f32cb\",\"addons-search-detection@mozilla.com\":\"4ae23168-6f0b-4332-a310-782f29f8e4b3\",\"webcompat@mozilla.org\":\"9a310967-e580-48bf-b3e8-4eafebbc122d\",\"newtab@mozilla.org\":\"4758708f-4654-45c0-9c55-bdf0b22d7048\",\"uBlock0@raymondhill.net\":\"e95eb012-1fac-4c83-b3a1-8fe87632b9d5\",\"default-theme@mozilla.org\":\"07e343e3-d52a-48af-82c5-87c5f31e6943\"}"
+   "user": "{\"formautofill@mozilla.org\":\"b890d9d8-1c54-4a60-be44-35e93f82d938\",\"ipp-activator@mozilla.com\":\"6e9ea883-420a-4ae0-b1c3-d7e598dca28b\",\"inicio@kitsune\":\"d14518dd-54da-46ac-baf2-9d88acdb7cad\",\"pictureinpicture@mozilla.org\":\"095b96e1-d7f1-4149-a691-1bfe4c0fbe4e\",\"addons-search-detection@mozilla.com\":\"b2b3aecf-ad74-4dd0-bbb0-e24829e7386b\",\"webcompat@mozilla.org\":\"9a310967-e580-48bf-b3e8-4eafebbc122d\",\"newtab@mozilla.org\":\"8d350de6-3034-453b-9d3d-013b85379101\",\"uBlock0@raymondhill.net\":\"4f8d23af-aac0-4c28-9956-0ebeea0d8b07\",\"default-theme@mozilla.org\":\"3967adf8-7249-4e66-adac-d33266d739d0\"}"
   },
   "extensions.webidl-api.expose_mock_interface": {
    "default": false,
@@ -26173,7 +26167,7 @@
    "user": null
   },
   "network.http.dictionaries.enable": {
-   "default": true,
+   "default": false,
    "locked": false,
    "type": "bool",
    "user": null
@@ -28480,7 +28474,13 @@
    "default": false,
    "locked": false,
    "type": "bool",
-   "user": null
+   "user": true
+  },
+  "nimbus.migrations.after-remote-settings-update": {
+   "default": null,
+   "locked": false,
+   "type": "int",
+   "user": 0
   },
   "nimbus.migrations.after-store-initialized": {
    "default": null,
@@ -28498,7 +28498,7 @@
    "default": null,
    "locked": false,
    "type": "string",
-   "user": "650a5ef0-1a70-4c89-a8bc-c72bcbd162be"
+   "user": "a2fd0fce-b72d-49c6-8aec-703019f2a14b"
   },
   "nimbus.profilesdatastoreservice.enabled": {
    "default": true,
@@ -28528,12 +28528,6 @@
    "default": "default",
    "locked": false,
    "type": "string",
-   "user": null
-  },
-  "nimbus.rollouts.enabled": {
-   "default": true,
-   "locked": false,
-   "type": "bool",
    "user": null
   },
   "nimbus.telemetry.targetingContextEnabled": {
@@ -33160,7 +33154,7 @@
    "default": true,
    "locked": false,
    "type": "bool",
-   "user": null
+   "user": false
   },
   "telemetry.fog.test.activity_limit": {
    "default": 120,
@@ -33448,7 +33442,7 @@
    "default": null,
    "locked": false,
    "type": "string",
-   "user": "a6e314f7"
+   "user": "24618ad6"
   },
   "toolkit.rust-components.logging.crates": {
    "default": "",
@@ -33562,13 +33556,13 @@
    "default": null,
    "locked": false,
    "type": "string",
-   "user": "f5d88a09-c716-4dd8-91e5-e4646f0988cb"
+   "user": "0ba5f962-8dd7-4538-b5ef-e144eaf32470"
   },
   "toolkit.telemetry.cachedProfileGroupID": {
    "default": null,
    "locked": false,
    "type": "string",
-   "user": "ef2e9f64-1ed8-49ba-a1d6-30380a98855f"
+   "user": "e20732a7-4b7c-485b-a222-4b8339e14fac"
   },
   "toolkit.telemetry.dap.helper.hpke": {
    "default": "ACkAACAAAQABACAucqWdIQRN6BxumPBRXIlg2JsxcznwWX7vyqzM3cjuQA",
