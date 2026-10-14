@@ -29,10 +29,12 @@ from pathlib import Path
 import platform
 import shutil
 import signal
+import socket
 import subprocess
 import sys
 import tempfile
 import time
+import urllib.request
 
 ROOT = Path(__file__).resolve().parents[1]
 # Sitios reales y estables (artículos, documentación, código, noticias, vídeo): la lista
@@ -100,9 +102,25 @@ def launch(name: str, binary: Path, urls: list[str], profile: Path, headless: bo
     env = dict(os.environ)
     if 'chrom' in binary.name.lower() or 'brave' in binary.name.lower() or 'edge' in binary.name.lower():
         command = [str(binary), f'--user-data-dir={profile}', '--no-first-run', '--no-default-browser-check', '--disable-sync']
-        if headless:
-            command.append('--headless=new')
-        return subprocess.Popen(command + urls, env=env, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True)
+        if not headless:
+            return subprocess.Popen(command + urls, env=env, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True)
+        # Sin ventana, Chromium solo admite una dirección al arrancar: las demás, por su puerto de depuración.
+        with socket.socket() as probe:
+            probe.bind(('127.0.0.1', 0))
+            port = probe.getsockname()[1]
+        process = subprocess.Popen(command + ['--headless=new', f'--remote-debugging-port={port}', urls[0]], env=env,
+                                   stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True)
+        for _ in range(100):
+            try:
+                urllib.request.urlopen(f'http://127.0.0.1:{port}/json/version', timeout=2).close()
+                break
+            except OSError:
+                time.sleep(0.2)
+        for url in urls[1:]:
+            request = urllib.request.Request(f'http://127.0.0.1:{port}/json/new?{url}', method='PUT')
+            with contextlib.suppress(OSError):
+                urllib.request.urlopen(request, timeout=10).close()
+        return process
     # Gecko (Kitsune, Firefox, Zen, LibreWolf…): perfil limpio, sin restaurar nada.
     profile.mkdir(parents=True, exist_ok=True)
     (profile / 'user.js').write_text('\n'.join([
