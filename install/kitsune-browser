@@ -27,7 +27,7 @@ if [ "${1:-}" = "--kitsune-action" ]; then
     profile_action="$2"
     shift 2
     case "${profile_action}" in
-        home|google|privacy|passwords|settings|general|search|downloads|extensions) ;;
+        home|google|privacy|protections|passwords|settings|general|search|downloads|extensions) ;;
         *) printf '%s\n' 'La acción del perfil no es válida.' >&2; exit 1 ;;
     esac
 fi
@@ -95,6 +95,7 @@ fi
 case "${profile_action}" in
     google) set -- --new-tab 'https://accounts.google.com/ServiceLogin' "$@" ;;
     privacy) set -- --new-tab 'about:preferences#privacy' "$@" ;;
+    protections) set -- --new-tab 'about:protections' "$@" ;;
     passwords) set -- --new-tab 'about:logins' "$@" ;;
     settings) set -- --new-tab 'about:preferences' "$@" ;;
     general) set -- --new-tab 'about:preferences#general' "$@" ;;

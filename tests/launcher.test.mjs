@@ -189,3 +189,17 @@ test('every settings action reaches the matching native destination in the selec
     assert.equal(actual.remoting, created.remoting);
   }
 });
+
+test('every action the home page can ask for opens its page (none is turned away)', async () => {
+  // Las acciones que acepta el servidor del inicio (install/profiles.py, ACTIONS) y su página.
+  const profiles = await readFile(new URL('../install/profiles.py', import.meta.url), 'utf8');
+  const block = profiles.match(/^ACTIONS = \{\n([\s\S]*?)^\}/m)[1];
+  const actions = [...block.matchAll(/^\s+"(\w+)": (None|"([^"]+)"),$/gm)].map(([, name, , url]) => [name, url ?? null]);
+  assert.ok(actions.some(([name]) => name === 'protections'), 'el informe de protecciones está entre las acciones');
+  for (const [action, url] of actions.filter(([, page]) => page)) {
+    const f = await setup();
+    await f.run('--kitsune-action', action);
+    const { args } = JSON.parse(await readFile(f.argsFile, 'utf8'));
+    assert.ok(args.includes(url), `${action} → ${url}: ${args.join(' ')}`);
+  }
+});
