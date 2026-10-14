@@ -40,8 +40,12 @@ export function attach(win, ctx = {}) {
 
   st.host = el(doc, 'span', { id: 'zero-host' });
   st.msg = el(doc, 'span', { id: 'zero-island-msg' });
-  navbar.append(st.host, st.msg);
-  st.cleanups.push(() => { st.host.remove(); st.msg.remove(); });
+  st.bar = el(doc, 'span', { id: 'zero-island-progress', 'aria-hidden': 'true' });
+  st.activities = new Map();
+  navbar.append(st.host, st.msg, st.bar);
+  st.cleanups.push(() => { st.host.remove(); st.msg.remove(); st.bar.remove(); });
+  // Un aviso o una actividad que se pueden pulsar (abrir lo descargado).
+  st.msg.addEventListener('click', () => { const action = st.action; if (action) { try { action(); } catch { /* ya no está */ } } });
   const icon = el(doc, 'img', { class: 'zero-host-icon', alt: '' });
   icon.addEventListener('error', () => { if (icon.getAttribute('src') !== NO_ICON) icon.setAttribute('src', NO_ICON); });
   const lock = el(doc, 'span', { class: 'zero-lock' });
@@ -116,18 +120,56 @@ const ICONS = {
   blocked: 'chrome://global/skin/icons/blocked.svg',
   scroll: 'chrome://global/skin/icons/arrow-down.svg',
   quiet: 'chrome://browser/skin/notification-icons/desktop-notification-blocked.svg',
+  download: 'chrome://browser/skin/downloads/downloads.svg',
+  done: 'chrome://global/skin/icons/check.svg',
 };
 
-/** Un aviso en la isla (lo usan el pomodoro y el silencio): se ensancha, lo dice y vuelve. Con
- *  `icon` (break, resume, blocked, scroll, quiet), un icono pequeño delante. */
-export function alert(win, text, detail = '', ms = 3200, icon = null) {
-  const st = state.get(win);
-  if (!st) return;
+/** Pinta un mensaje en la isla (aviso o actividad): icono, texto, detalle, barra y clic. */
+function show(win, st, { text, detail = '', icon = null, progress = null, action = null }) {
   const doc = win.document;
   const mark = ICONS[icon] ? [el(doc, 'span', { class: 'zero-alert-icon', 'aria-hidden': 'true', style: `--zero-icon: url("${ICONS[icon]}")` })] : [];
   st.msg.replaceChildren(...mark, el(doc, 'b', {}, [text]), ...(detail ? [el(doc, 'small', {}, [` · ${detail}`])] : []));
-  const toolbox = doc.getElementById('navigator-toolbox');
-  toolbox.setAttribute('zero-island-alert', '');
+  st.msg.toggleAttribute('action', !!action);
+  st.action = action;
+  st.bar.toggleAttribute('on', progress !== null);
+  if (progress !== null) st.bar.style.setProperty('--zero-progress', String(Math.min(1, Math.max(0, progress))));
+  doc.getElementById('navigator-toolbox').setAttribute('zero-island-alert', '');
+}
+
+/** Cuando acaba un aviso: si hay una actividad (una descarga), vuelve a ella; si no, la isla descansa. */
+function rest(win, st) {
+  const latest = [...st.activities.values()].at(-1);
+  if (latest) { show(win, st, latest); return; }
+  st.msg.removeAttribute('action');
+  st.action = null;
+  st.bar.removeAttribute('on');
+  win.document.getElementById('navigator-toolbox')?.removeAttribute('zero-island-alert');
+}
+
+/** Un aviso en la isla (lo usan el pomodoro y el silencio): se ensancha, lo dice y vuelve. Con
+ *  `icon` (break, resume, blocked, scroll, quiet, download, done), un icono pequeño delante; con
+ *  `action`, se puede pulsar. */
+export function alert(win, text, detail = '', ms = 3200, icon = null, { action = null } = {}) {
+  const st = state.get(win);
+  if (!st) return;
+  show(win, st, { text, detail, icon, action });
   win.clearTimeout(st.alertTimer);
-  st.alertTimer = win.setTimeout(() => toolbox.removeAttribute('zero-island-alert'), ms);
+  st.alerting = true;
+  st.alertTimer = win.setTimeout(() => { st.alerting = false; rest(win, st); }, ms);
+}
+
+/** Una actividad en directo (como en la Dynamic Island): se queda mientras dure, con su barra de
+ *  progreso (0 a 1, o null sin barra). Un aviso la tapa un momento y luego vuelve. */
+export function activity(win, key, data) {
+  const st = state.get(win);
+  if (!st) return;
+  st.activities.delete(key);
+  st.activities.set(key, data);
+  if (!st.alerting) show(win, st, data);
+}
+
+export function endActivity(win, key) {
+  const st = state.get(win);
+  if (!st || !st.activities.delete(key)) return;
+  if (!st.alerting) rest(win, st);
 }

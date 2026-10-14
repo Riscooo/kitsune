@@ -16,6 +16,7 @@ import * as mark from './zero-mark.sys.mjs';
 import * as pomodoro from './zero-pomodoro.sys.mjs';
 import * as silence from './zero-silence.sys.mjs';
 import * as sounds from './zero-sounds.sys.mjs';
+import * as downloads from './zero-downloads.sys.mjs';
 import * as glass from './zero-glass.sys.mjs';
 
 const SHEET = 'chrome://browser/content/zero/zero.css';
@@ -23,7 +24,7 @@ const REMEMBER = 'kitsune-zero';
 let host = null;
 // Las piezas de Zero, en orden: al encender se ponen así y al apagar se quitan al revés.
 // El cristal en vivo va el último: se pone detrás de las piezas que ya están.
-const pieces = [frame, island, rail, mark, pomodoro, silence, sounds, glass];
+const pieces = [frame, island, rail, mark, pomodoro, silence, sounds, downloads, glass];
 const decorated = new WeakSet();
 const listeners = new WeakMap(); // ventana → Set de funciones (active) => …
 
@@ -54,7 +55,11 @@ function toggle(win, on = !active(win)) {
     onChange: fn => onChange(win, fn),
     // Para las fases siguientes: sus filas en los ajustes y sus avisos en la isla.
     settings: { add: section => mark.addSection(win, section) },
-    island: { alert: (text, detail, ms, icon) => island.alert(win, text, detail, ms, icon) },
+    island: {
+      alert: (text, detail, ms, icon, options) => island.alert(win, text, detail, ms, icon, options),
+      activity: (key, data) => island.activity(win, key, data),
+      endActivity: key => island.endActivity(win, key),
+    },
   };
   if (on) {
     // La web pasa a tarjeta viajando desde donde estaba (flip), no de golpe.

@@ -204,7 +204,7 @@
 #main-window[zero] #nav-bar-customization-target { height: 32px !important; padding: 0 !important; gap: 0 !important; align-items: center !important; }
 
 /* Solo atrás, adelante, recargar, la dirección y el menú; lo demás, fuera de Zero. */
-#main-window[zero] #nav-bar > :not(#nav-bar-customization-target, #PanelUI-button, #zero-host, #zero-island-msg, toolbartabstop),
+#main-window[zero] #nav-bar > :not(#nav-bar-customization-target, #PanelUI-button, #zero-host, #zero-island-msg, #zero-island-progress, toolbartabstop),
 #main-window[zero] #nav-bar-customization-target > :not(#back-button, #forward-button, #stop-reload-button, #urlbar-container) { display: none !important; }
 
 /* Los botones: fuera en reposo; al abrirse la isla entran cuando ya ha empezado a crecer (forma
@@ -749,3 +749,23 @@
 }
 #zero-settings .zero-slider:active::-moz-range-thumb { transform: scale(1.15); }
 #zero-settings .zero-slider:focus-visible { outline: 2px solid #3a8f74; outline-offset: 2px; border-radius: 999px; }
+
+/* ---------------------------------------------------------------- actividades en la isla (descargas) */
+
+/* Un aviso que se puede pulsar (abrir lo descargado). */
+#main-window[zero] #zero-island-msg[action] { pointer-events: auto !important; cursor: pointer !important; }
+#main-window[zero] #zero-island-msg[action]:hover b { text-decoration: underline 1px; text-underline-offset: 3px; }
+/* La barra de progreso: una línea fina dentro de la isla, abajo, que se llena despacio. */
+#main-window[zero] #zero-island-progress {
+  position: absolute !important; left: 16px !important; right: 16px !important; bottom: 3px !important; height: 2px !important;
+  border-radius: 999px !important; overflow: hidden !important; pointer-events: none !important;
+  background: rgba(255, 255, 255, .22) !important;
+  opacity: 0 !important; transition: opacity var(--zero-t-fade) var(--zero-soft) !important;
+}
+#main-window[zero] #zero-island-progress::after {
+  content: "" !important; position: absolute !important; inset: 0 auto 0 0 !important;
+  width: calc(var(--zero-progress, 0) * 100%) !important; border-radius: inherit !important;
+  background: currentColor !important; transition: width 400ms var(--zero-calm) !important;
+}
+#main-window[zero] #navigator-toolbox[zero-island-alert] #zero-island-progress[on] { opacity: .85 !important; }
+#main-window[zero] #nav-bar:is([zero-ink], :where(:root[zero-frame-ink]:not([zero-full])) *) #zero-island-progress { background: rgba(29, 35, 33, .14) !important; }
