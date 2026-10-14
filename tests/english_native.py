@@ -73,10 +73,12 @@ def main():
         check(f'Espacios y modo compacto en inglés («{title}», «{compact}»)')
 
         chrome("ChromeUtils.importESModule('chrome://browser/content/kitsune-glance.sys.mjs').KitsuneGlance.open(window, 'https://example.com/', {})")
-        eventually(lambda: chrome("return document.getElementById('kitsune-glance')?.state") == 'open', timeout=10)
-        buttons = chrome("return [...document.querySelectorAll('#kitsune-glance .kitsune-glance-head button')].map(b => b.textContent)")
+        # Es una pestaña flotante con su barra en el panel (ver glance_native.py).
+        eventually(lambda: chrome("return document.querySelectorAll('[kitsune-glance-panel] .kitsune-glance-head button').length") == 3, timeout=10)
+        buttons = chrome("return [...document.querySelectorAll('[kitsune-glance-panel] .kitsune-glance-head button')].map(b => b.textContent)")
         assert buttons[:2] == ['Split', 'Open in tab'], buttons
-        chrome("document.getElementById('kitsune-glance').hidePopup()")
+        chrome("document.querySelector('[kitsune-glance-panel] .kitsune-glance-close').click()")
+        eventually(lambda: not chrome("return gBrowser.tabs.some(t => t.hasAttribute('kitsune-glance'))"), timeout=5)
         chrome("ChromeUtils.importESModule('chrome://browser/content/kitsune-import.sys.mjs').KitsuneImport.open(window)")
         eventually(lambda: chrome("return document.getElementById('kitsune-import-panel')?.state") == 'open', timeout=5)
         heading = chrome("return document.querySelector('#kitsune-import-panel h2').textContent")

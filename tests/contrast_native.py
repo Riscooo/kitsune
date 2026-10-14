@@ -108,7 +108,9 @@ def audit(browser, system_dark, theme, evidence):
         time.sleep(1.5)
         results['toolbox'] = driver.script(AUDIT, ['toolbox'])
         driver.script("gURLBar.view.close(); PanelUI.show();")
-        time.sleep(1.5)
+        # Con el PC cargado (justo después de compilar el motor) el menú tarda más de 1,5 s en abrirse.
+        eventually(lambda: driver.script("return PanelUI.panel.state") == 'open', timeout=15)
+        time.sleep(0.5)
         results['menu'] = driver.script(AUDIT, ['menu'])
         driver.script("PanelUI.hide(); gLazyFindCommand('onFindCommand');")
         time.sleep(1.5)
