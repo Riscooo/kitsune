@@ -20,6 +20,7 @@ install/version.json («release»); el borrador se niega si esa versión ya exis
     python3 tools/seguir_firefox.py                       # el Gecko estable más nuevo
     python3 tools/seguir_firefox.py --version 158.0 --solo linux
     python3 tools/seguir_firefox.py --borrador            # y deja el borrador en GitHub
+    python3 tools/seguir_firefox.py --borrador --notas docs/notas/0.8.0-beta.1.md
 """
 from __future__ import annotations
 
@@ -88,17 +89,32 @@ def newest(folder, pattern):
     return files[0] if files else None
 
 
+def release_notes(template, name, version, sums, day):
+    """Las notas del borrador: las de --notas ({release} y {gecko} cambiados) o una línea, y los SHA-256."""
+    if template:
+        body = template.replace('{release}', name).replace('{gecko}', version).rstrip() + '\n'
+    else:
+        body = f'Kitsune **{name}** con **Gecko {version}**, el motor de Firefox {version} con sus arreglos de seguridad.\n'
+    sha = ''.join(f'- `{file}`: `{digest}`\n' for digest, file in (line.split(maxsplit=1) for line in sums.splitlines() if line.strip()))
+    return (f'{body}\n**SHA-256**\n{sha}\nWeb: https://kitsune-navegador.vercel.app\n\n'
+            'Kitsune usa Gecko, el motor de código abierto de Mozilla (licencia MPL 2.0), compilado con nuestra receta. '
+            f'Todo el código está en este repositorio. Compilado y probado con `tools/seguir_firefox.py` el {day:%d/%m/%Y}.\n')
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument('--version', help='versión de Gecko (por defecto, la estable más nueva)')
     parser.add_argument('--solo', choices=('linux', 'windows', 'macos'), action='append', help='solo esos sistemas')
     parser.add_argument('--borrador', action='store_true', help='deja un borrador de versión en GitHub (nunca publica)')
+    parser.add_argument('--notas', type=Path, help='notas de la versión ({release} y {gecko} se cambian); los SHA-256 se añaden solos')
     parser.add_argument('--plan', action='store_true', help='dice qué haría, sin hacer nada')
     parser.add_argument('--desde-cero', action='store_true', help='olvida lo hecho para esta versión')
     args = parser.parse_args()
     version = args.version or latest()
     systems = args.solo or ['linux', 'windows', 'macos']
     name = release()
+    if args.notas and not args.notas.is_file():
+        parser.error(f'no existe {args.notas}')
     state = load_state(version)
     if args.desde_cero:
         state = {'version': version, 'done': {}}
@@ -174,8 +190,7 @@ def main():
         sums = folder / 'SHA256SUMS.txt'
         sums.write_text(''.join(f'{hashlib.sha256(path.read_bytes()).hexdigest()}  {path.name}\n' for path in files))
         notes = folder / 'notas.md'
-        notes.write_text(f'Kitsune **{name}** con **Gecko {version}**, el motor de Firefox {version} con sus arreglos de seguridad.\n\n'
-                         f'Compilado y probado con `tools/seguir_firefox.py` el {datetime.date.today():%d/%m/%Y}.\n')
+        notes.write_text(release_notes(args.notas.read_text() if args.notas else None, name, version, sums.read_text(), datetime.date.today()))
         created = subprocess.run(['gh', 'release', 'create', tag, '-R', REPO, '--draft', '--prerelease', '--title',
                                   f'Kitsune {name} · Gecko {version}', '--notes-file', str(notes), *map(str, files), str(sums)],
                                  capture_output=True, text=True)
