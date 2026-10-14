@@ -11,13 +11,13 @@ test('the profile template leaves the light/dark scheme to the native module', (
   }
 });
 
-test('version 0.7.0 (modo oscuro y fondo propio) runs Kitsune\'s own engine, with no LibreWolf left in the install', async () => {
+test('version 0.8.0 (lo de Zen y lo que Zen no tiene) runs Kitsune\'s own engine, with no LibreWolf left in the install', async () => {
   const version = JSON.parse(await readFile(new URL('../install/version.json', import.meta.url), 'utf8'));
   const pkg = JSON.parse(await readFile(new URL('../package.json', import.meta.url), 'utf8'));
-  assert.equal(version.version, '0.7.0');
+  assert.equal(version.version, '0.8.0');
   assert.equal(version.design, 'Tinta');
   assert.equal(version.brandingRevision, 4);
-  assert.equal(pkg.version, '0.7.0');
+  assert.equal(pkg.version, '0.8.0');
   assert.doesNotMatch(JSON.stringify(version), /librewolf/i);
   const engine = await readFile(new URL('../install/kitsune-engine.py', import.meta.url), 'utf8');
   assert.match(engine, /^BUILD_REVISION = \d+$/m);
