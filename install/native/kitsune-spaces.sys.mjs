@@ -171,11 +171,24 @@ async function contextFor(space) {
 }
 
 /** Pone la ventana en el espacio `id`: oculta las pestañas de los demás y selecciona la suya. */
+/** Al cambiar de espacio, las pestañas y la web entran deslizándose desde su lado (como en Zen). */
+function slide(win, from, to) {
+  const order = state.data.spaces.map(space => space.id);
+  const delta = Math.sign(order.indexOf(to) - order.indexOf(from));
+  if (!delta || from === to || win.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const options = { duration: 260, easing: 'cubic-bezier(.2, .8, .2, 1)' };
+  const frames = [{ opacity: 0.35, transform: `translateX(${18 * delta}px)` }, { opacity: 1, transform: 'none' }];
+  for (const node of [win.gBrowser.tabContainer, win.gBrowser.tabbox]) {
+    try { node?.animate(frames, options); } catch { /* sin animación */ }
+  }
+}
+
 export async function switchTo(win, id, { fresh = false } = {}) {
   await load();
   const gBrowser = win.gBrowser;
   const space = state.data.spaces.find(item => item.id === id);
   if (!gBrowser || !space || state.switching.has(win)) return;
+  const previous = win.__kitsuneSpace ?? null;
   state.switching.add(win);
   try {
     win.__kitsuneSpace = id;
@@ -197,6 +210,7 @@ export async function switchTo(win, id, { fresh = false } = {}) {
     state.switching.delete(win);
   }
   render(win);
+  if (previous) slide(win, previous, id);
 }
 
 /** Lleva una pestaña a otro espacio (y la ventana se queda donde estaba). */
@@ -237,6 +251,8 @@ function render(win) {
   const current = activeSpace(win);
   const active = state.data.spaces.find(space => space.id === current);
   doc.documentElement.setAttribute('kitsune-space-color', active?.color ?? 'teal');
+  // Con un solo espacio no se tiñe nada: la ventana es la de siempre.
+  doc.documentElement.toggleAttribute('kitsune-spaces-many', state.data.spaces.length > 1);
   for (const strip of doc.querySelectorAll('.kitsune-spaces')) {
     const buttons = state.data.spaces.map((space, index) => {
       const selected = space.id === current;

@@ -60,6 +60,8 @@
   --tab-text-color-hover: var(--kb-text) !important;
   --tab-text-color-selected: var(--kb-text) !important;
   --tab-box-shadow-selected: none !important;
+  /* El destello al terminar de cargar (y el sonido) llevaban el azul de Mozilla: óxido suave. */
+  --tab-loading-fill: color-mix(in srgb, var(--kb-primary) 45%, transparent) !important;
   --arrowpanel-background: var(--kb-surface) !important;
   --arrowpanel-color: var(--kb-text) !important;
   --arrowpanel-border-color: var(--kb-line) !important;

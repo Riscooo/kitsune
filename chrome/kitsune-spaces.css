@@ -165,4 +165,22 @@
   .kitsune-import-panel :is(.kitsune-import-status, .kitsune-import-zen):empty { display: none; }
   .kitsune-import-panel a { color: var(--kb-secondary); }
   .kitsune-import-panel input:is([type="radio"], [type="checkbox"]) { width: 14px; height: 14px; margin: 0; accent-color: var(--kb-primary); }
+
+  /* Con varios espacios, la ventana lleva la tinta del espacio: una línea bajo las barras y,
+     con las pestañas al lado, el borde de la barra lateral. Con uno solo, nada cambia. */
+  :root[kitsune-spaces-many] { --kitsune-space-current: var(--kb-secondary); }
+  :root[kitsune-spaces-many][kitsune-space-color="blue"] { --kitsune-space-current: light-dark(#35587a, #8fb0d4); }
+  :root[kitsune-spaces-many][kitsune-space-color="pink"] { --kitsune-space-current: light-dark(#9c4a68, #e09ab3); }
+  :root[kitsune-spaces-many][kitsune-space-color="violet"] { --kitsune-space-current: light-dark(#5b4a7a, #b4a3d6); }
+  :root[kitsune-spaces-many][kitsune-space-color="amber"] { --kitsune-space-current: light-dark(#8a6326, #d9ac62); }
+  :root[kitsune-spaces-many][kitsune-space-color="red"] { --kitsune-space-current: var(--kb-primary); }
+  :root[kitsune-spaces-many]#main-window #navigator-toolbox {
+    border-bottom: 2px solid var(--kitsune-space-current) !important;
+    transition: border-color 260ms ease;
+  }
+  :root[kitsune-spaces-many]#main-window #sidebar-container:has(> sidebar-main) {
+    border-inline-end: 2px solid color-mix(in srgb, var(--kitsune-space-current) 70%, transparent) !important;
+    transition: border-color 260ms ease;
+  }
 }
+
