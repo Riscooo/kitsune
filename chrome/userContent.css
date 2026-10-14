@@ -352,3 +352,25 @@
 :root {
   scrollbar-color: light-dark(color-mix(in srgb, #963d32 62%, transparent), color-mix(in srgb, #e0806b 72%, transparent)) transparent;
 }
+
+/* El informe de protecciones («Ver el informe», en el inicio), en papel y tinta: cada tipo de
+   rastreador con una de las tintas de los usuarios y el escudo de óxido en lugar del morado. */
+@-moz-document url("about:protections") {
+  :root {
+    --social-color: light-dark(#9c4a68, #e09ab3) !important;
+    --cookie-color: light-dark(#35587a, #8fb0d4) !important;
+    --tracker-color: var(--kb-secondary) !important;
+    --fingerprinter-color: light-dark(#8a6326, #d9ac62) !important;
+    --cryptominer-color: var(--kb-muted) !important;
+    --social-highlight-color: color-mix(in srgb, var(--social-color) 78%, var(--kb-text)) !important;
+    --cookie-highlight-color: color-mix(in srgb, var(--cookie-color) 78%, var(--kb-text)) !important;
+    --tracker-highlight-color: color-mix(in srgb, var(--tracker-color) 78%, var(--kb-text)) !important;
+    --fingerprinter-highlight-color: color-mix(in srgb, var(--fingerprinter-color) 78%, var(--kb-text)) !important;
+    --cryptominer-highlight-color: color-mix(in srgb, var(--cryptominer-color) 78%, var(--kb-text)) !important;
+  }
+  .etp-card .icon {
+    object-position: -9999px 0;
+    background: var(--kb-primary);
+    mask: url("chrome://browser/content/logos/tracking-protection.svg") center / contain no-repeat;
+  }
+}
