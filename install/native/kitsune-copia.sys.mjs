@@ -277,8 +277,8 @@ function buildPanel(win) {
     el(doc, 'p', { class: 'kitsune-import-status', role: 'status' }),
     el(doc, 'div', { class: 'kitsune-space-panel-actions' }, [
       el(doc, 'button', { type: 'button', class: 'kitsune-space-panel-cancel' }, [t('Cerrar', 'Close')]),
-      el(doc, 'button', { type: 'button', class: 'kitsune-copia-load' }, [t('Traer una copia…', 'Bring a copy…')]),
-      el(doc, 'button', { type: 'submit', class: 'kitsune-space-panel-save kitsune-copia-save' }, [t('Guardar una copia…', 'Save a copy…')])]),
+      el(doc, 'button', { type: 'button', class: 'kitsune-copia-load' }, [t('Traer copia…', 'Bring copy…')]),
+      el(doc, 'button', { type: 'submit', class: 'kitsune-space-panel-save kitsune-copia-save' }, [t('Guardar copia…', 'Save copy…')])]),
   ]);
   panel.append(form);
   const status = form.querySelector('.kitsune-import-status');

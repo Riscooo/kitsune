@@ -98,13 +98,14 @@
   .kitsune-space-panel label { display: flex; flex-direction: column; gap: 5px; color: var(--kitsune-quiet); font-size: 12px; }
   .kitsune-space-panel .kitsune-space-label { color: var(--kitsune-quiet); font-size: 12px; }
   .kitsune-space-panel :is(input:not([type="radio"], [type="checkbox"]), select) {
-    appearance: none;
-    height: 32px;
-    padding: 0 10px;
-    border: 1px solid var(--kitsune-rule);
-    border-radius: calc(9px * var(--kb-round, 1));
-    background: var(--kitsune-field);
-    color: var(--kitsune-text);
+    appearance: none !important;
+    box-sizing: border-box !important;
+    height: 32px !important;
+    padding: 0 10px !important;
+    border: 1px solid var(--kitsune-rule) !important;
+    border-radius: calc(9px * var(--kb-round, 1)) !important;
+    background: var(--kitsune-field) !important;
+    color: var(--kitsune-text) !important;
     font: inherit;
     font-size: 13px;
   }
@@ -144,6 +145,8 @@
 
   /* Traer de otro navegador: la lista de navegadores y qué traer. */
   .kitsune-import-panel .kitsune-import-form { width: 330px; }
+  #kitsune-copia-panel .kitsune-import-form { width: 380px; }
+  #kitsune-copia-panel .kitsune-space-panel-actions > button { white-space: nowrap; }
   .kitsune-import-panel .kitsune-import-sources { display: flex; flex-direction: column; gap: 6px; max-height: 260px; overflow-y: auto; }
   .kitsune-import-panel label.kitsune-import-source {
     flex-direction: row;
