@@ -327,6 +327,8 @@
               color var(--zero-t-ink) var(--zero-soft), text-shadow var(--zero-t-ink) var(--zero-soft) !important;
 }
 #main-window[zero] #navigator-toolbox[zero-island="open"] #zero-host { padding-inline: 100px !important; }
+/* Un título largo se corta al final con «…» (centrado, sin esto se saldría por los dos lados). */
+#main-window[zero] #zero-host .zero-host-text { min-width: 0 !important; overflow: hidden !important; text-overflow: ellipsis !important; white-space: nowrap !important; }
 #main-window[zero] #zero-host .zero-lock {
   display: inline-block !important; flex: none !important; width: 0 !important; height: 12px !important; opacity: 0 !important;
   background-color: currentColor !important; mask: url("chrome://global/skin/icons/security.svg") center / 12px no-repeat !important;
@@ -340,6 +342,22 @@
   pointer-events: auto !important; cursor: pointer !important;
 }
 #main-window[zero] #navigator-toolbox[zero-island="open"] #zero-host[site] .zero-lock:hover { opacity: 1 !important; }
+/* Las acciones que tocan en esta web (leer, traducir): solo con la isla abierta, a la derecha del
+   dominio, pequeñas y del color del texto; la que está en uso, entera. */
+#main-window[zero] #zero-host .zero-actions { display: none !important; flex: none !important; gap: 4px !important; align-items: center !important; }
+#main-window[zero] #navigator-toolbox[zero-island="open"] #zero-host[actions] .zero-actions { display: flex !important; }
+#main-window[zero] #zero-host .zero-action {
+  display: block !important; flex: none !important; width: 14px !important; height: 14px !important; padding: 4px !important; border-radius: 999px !important;
+  background-color: currentColor !important; background-clip: content-box !important; opacity: .7 !important;
+  mask: var(--zero-action-icon) center / 14px no-repeat !important;
+  pointer-events: auto !important; cursor: pointer !important;
+  transition: opacity var(--zero-t-fade) var(--zero-soft) !important;
+}
+#main-window[zero] #zero-host .zero-action[hidden] { display: none !important; }
+#main-window[zero] #zero-host .zero-action:is(:hover, [active]) { opacity: 1 !important; }
+#main-window[zero] #zero-host .zero-action[data-action="reader"] { --zero-action-icon: url("chrome://browser/skin/reader-mode.svg"); }
+#main-window[zero] #zero-host .zero-action[data-action="translate"] { --zero-action-icon: url("chrome://browser/skin/translations.svg"); }
+
 /* De donde cuelgan los paneles que se abren desde la isla (la información de la web). */
 #main-window[zero] #nav-bar > .zero-anchor { position: absolute !important; top: 0 !important; bottom: 0 !important; width: 1px !important; opacity: 0 !important; pointer-events: none !important; }
 #main-window[zero] #zero-host[site="insecure"] .zero-lock { mask-image: url("chrome://global/skin/icons/security-broken.svg") !important; }

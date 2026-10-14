@@ -25,7 +25,9 @@ const el = (doc, tag, attributes = {}, children = []) => {
 function label(win) {
   const browser = win.gBrowser.selectedBrowser;
   try {
-    const uri = browser.currentURI;
+    let uri = browser.currentURI;
+    // En la vista de lectura, la web que se lee.
+    if (uri.spec.startsWith('about:reader?')) uri = Services.io.newURI(new URLSearchParams(uri.spec.slice('about:reader?'.length)).get('url'));
     if (/^https?$/.test(uri.scheme) && uri.host) return { text: uri.host.replace(/^www\./, ''), site: uri.scheme === 'https' ? 'secure' : 'insecure' };
   } catch { /* sin dirección */ }
   return { text: win.gBrowser.selectedTab.label || '', site: null };
@@ -90,6 +92,39 @@ export function attach(win, ctx = {}) {
   navbar.append(st.anchor);
   st.cleanups.push(() => st.anchor.remove());
   for (const part of [lock, icon]) part.addEventListener('click', siteInfo);
+
+  // Lo que se puede hacer con esta web, solo cuando toca (como en la Dynamic Island): leerla en la
+  // vista de lectura y traducirla. Siguen a los botones de Gecko, que en Zero no se ven.
+  const t = ctx.host?.t ?? (es => es);
+  const actions = el(doc, 'span', { class: 'zero-actions' });
+  const action = (name, title, run) => {
+    const button = el(doc, 'span', { class: 'zero-action', 'data-action': name, role: 'button', title, 'aria-label': title, hidden: 'true' });
+    button.addEventListener('click', event => {
+      if (event.button !== 0 || toolbox.getAttribute('zero-island') !== 'open') return;
+      try { run(event); } catch (error) { console.error('Kitsune Zero:', error); }
+    });
+    return button;
+  };
+  const reader = action('reader', t('Vista de lectura', 'Reader view'), event => win.AboutReaderParent.toggleReaderMode(event));
+  // Sin venir de su botón, Gecko ancla el panel de traducir al menú ≡, que está en la isla.
+  const translate = action('translate', t('Traducir la página', 'Translate page'), event => win.FullPageTranslationsPanel.open(event));
+  actions.append(reader, translate);
+  st.host.append(actions);
+  const mirror = () => {
+    const geckoReader = doc.getElementById('reader-mode-button'), geckoTranslate = doc.getElementById('translations-button');
+    reader.hidden = !geckoReader || geckoReader.hidden;
+    reader.toggleAttribute('active', !!geckoReader?.hasAttribute('readeractive'));
+    translate.hidden = !geckoTranslate || geckoTranslate.hidden;
+    translate.toggleAttribute('active', !!geckoTranslate?.hasAttribute('translationsactive'));
+    st.host.toggleAttribute('actions', !reader.hidden || !translate.hidden);
+  };
+  const watcher = new win.MutationObserver(mirror);
+  for (const id of ['reader-mode-button', 'translations-button']) {
+    const node = doc.getElementById(id);
+    if (node) watcher.observe(node, { attributes: true, attributeFilter: ['hidden', 'readeractive', 'translationsactive'] });
+  }
+  st.cleanups.push(() => watcher.disconnect());
+  mirror();
   listen(win.gBrowser.tabContainer, 'TabSelect', update);
   listen(win.gBrowser.tabContainer, 'TabAttrModified', update);
   const progress = { onLocationChange: () => update() };

@@ -16,6 +16,11 @@
 12. Abierta, lleva el candado de la web (roto si no es https) y al pulsarlo sale la información de la
     web de Gecko (permisos, cookies, certificado) bajo la isla, que sigue abierta mientras tanto.
     Pulsar el dominio sigue siendo para escribir.
+13. Abierta, a la derecha del dominio salen las acciones que tocan en esa web: la vista de lectura si la
+    página se puede leer (y al pulsarla entra y sale de ella) y traducir si Gecko lo ofrece; si no, nada.
+    En la vista de lectura, la isla dice el dominio de la web que se lee (no el título).
+14. Un título largo (una página que no es una web, como about:…) se corta al final con «…», dentro de
+    la isla: no se sale por los dos lados.
 
 --zero-del-repo: Zero sale de zero/ del repositorio (ver zero_harness.py).
 """
@@ -36,6 +41,13 @@ class Handler(http.server.BaseHTTPRequestHandler):
         self.send_response(200)
         self.send_header('Content-Type', 'text/html; charset=utf-8')
         self.end_headers()
+        if self.path.startswith('/articulo'):
+            para = ('<p>Los zorros de Kioto viven entre los santuarios de Fushimi Inari, donde miles de torii naranjas forman '
+                    'túneles que suben por la montaña. Cuentan que son mensajeros de Inari y que guardan las cosechas de arroz, '
+                    'y por eso los visitantes les dejan ofrendas de tofu frito y figuritas de cerámica junto a cada altar.</p>')
+            self.wfile.write(('<!doctype html><meta charset=utf-8><title>Los zorros de Kioto</title><article><h1>Los zorros de Kioto</h1>'
+                              + para * 12 + '</article>').encode())
+            return
         self.wfile.write(b'<!doctype html><meta charset=utf-8><title>Kioto</title><h1>Los zorros de Kioto</h1>')
 
     def log_message(self, *args):
@@ -229,6 +241,51 @@ def main():
         away()
         until(lambda: sized(176), timeout=5)
         check('Abierta, el candado abre la información de la web bajo la isla; el dominio sigue siendo para escribir')
+
+        actions = """const seen = el => !!el && el.getBoundingClientRect().width >= 10 && getComputedStyle(el).display !== 'none' && Number(getComputedStyle(el).opacity) > 0.5;
+            const reader = document.querySelector('#zero-host .zero-action[data-action="reader"]'); const translate = document.querySelector('#zero-host .zero-action[data-action="translate"]');
+            return { reader: seen(reader), readerActive: !!reader?.hasAttribute('active'), translate: seen(translate), url: gBrowser.currentURI.spec,
+                     geckoReader: !document.getElementById('reader-mode-button').hidden };"""
+        hover('nav-bar')
+        until(lambda: sized(400), timeout=5)
+        assert not chrome(actions)['reader'] and not chrome(actions)['translate'], chrome(actions)
+        away()
+        driver.navigate(origin + '/articulo')
+        until(lambda: chrome(actions)['geckoReader'], timeout=10)
+        hover('nav-bar')
+        try:
+            until(lambda: sized(400) and chrome(actions)['reader'] and not chrome(actions)['translate'], timeout=5)
+            click('#zero-host .zero-action[data-action="reader"]')
+            until(lambda: chrome(actions)['url'].startswith('about:reader') and chrome(actions)['readerActive'], timeout=10)
+            until(lambda: (island()['host'] or '').startswith('127.0.0.1'), timeout=5)
+            hover('nav-bar')
+            until(lambda: chrome(actions)['reader'], timeout=5)
+            click('#zero-host .zero-action[data-action="reader"]')
+            until(lambda: chrome(actions)['url'].endswith('/articulo') and not chrome(actions)['readerActive'], timeout=10)
+            # Traducir: sale cuando Gecko enseña su botón (aquí se le hace salir a mano).
+            chrome("document.getElementById('translations-button').hidden = false")
+            hover('nav-bar')
+            until(lambda: chrome(actions)['translate'], timeout=5)
+            chrome("document.getElementById('translations-button').hidden = true")
+            until(lambda: not chrome(actions)['translate'], timeout=5)
+        except AssertionError:
+            raise AssertionError(f'acciones: {chrome(actions)}') from None
+        away()
+        driver.navigate(origin + '/kioto')
+        until(lambda: sized(176), timeout=5)
+        check('Abierta, salen las acciones que tocan en esa web: la vista de lectura (entra y sale) y traducir')
+
+        long_title = 'Los zorros de nueve colas que guardan los santuarios de Fushimi Inari en Kioto'
+        driver.navigate('data:text/html;charset=utf-8,<title>' + long_title.replace(' ', '%20') + '</title>hola')
+        clipped = """const t = document.querySelector('#zero-host .zero-host-text'); const r = t.getBoundingClientRect(); const n = document.getElementById('nav-bar').getBoundingClientRect();
+            return { text: t.textContent, inside: r.left >= n.left + 6 && r.right <= n.right - 6, ellipsis: getComputedStyle(t).textOverflow, cut: t.scrollWidth > t.clientWidth };"""
+        try:
+            until(lambda: (c := chrome(clipped))['text'] == long_title and c['inside'] and c['ellipsis'] == 'ellipsis' and c['cut'], timeout=5)
+        except AssertionError:
+            raise AssertionError(f'título largo: {chrome(clipped)}') from None
+        driver.navigate(origin + '/kioto')
+        until(lambda: sized(176) and island()['host'] == '127.0.0.1', timeout=5)
+        check('Un título largo se corta al final con «…», dentro de la isla')
 
         chrome("ChromeUtils.importESModule('chrome://browser/content/zero/zero-island.sys.mjs').alert(window, 'Tres avisos esperando', 'te los enseño en el descanso', 1500, 'quiet')")
         until(lambda: sized(470) and clear_of_card(), timeout=5)
