@@ -680,3 +680,30 @@
 @media (prefers-reduced-motion: reduce) {
   #zero-break, #zero-break *, #zero-pomo, #zero-pomo *, #zero-pomo *::before, #zero-notch::after { animation: none !important; transition-duration: 1ms !important; transition-delay: 0ms !important; }
 }
+
+/* ---------------------------------------------------------------- tinta sobre el marco claro */
+
+/* Con el fondo de la web y una web clara, el marco queda claro: lo que va encima de él pasa a tinta
+   (zero-frame-ink, lo pone zero-frame según la luz de la foto). Con la web ampliada no hay marco: ahí
+   manda el cristal en vivo de cada pieza (zero-ink). */
+#main-window[zero][zero-frame-ink]:not([zero-full]) #nav-bar:not([zero-ink]) {
+  color: #1d2321 !important; text-shadow: none !important;
+  --toolbarbutton-icon-fill: #1d2321 !important;
+  --toolbarbutton-hover-background: rgba(29, 35, 33, .1) !important;
+  --toolbarbutton-active-background: rgba(29, 35, 33, .16) !important;
+}
+#main-window[zero][zero-frame-ink]:not([zero-full]) #nav-bar:not([zero-ink]) :is(#zero-host, #zero-island-msg, #urlbar-input) { color: #1d2321 !important; text-shadow: none !important; }
+#main-window[zero][zero-frame-ink]:not([zero-full]) #navigator-toolbox[zero-island="typing"] #nav-bar:not([zero-ink]) #urlbar > .urlbar-input-container { background-color: rgba(29, 35, 33, .08) !important; }
+:root[zero-frame-ink]:not([zero-full]) #zero-pomo:not([zero-ink]) { color: #1d2321; text-shadow: none; }
+:root[zero-frame-ink]:not([zero-full]) #zero-pomo:not([zero-ink]) .zero-pomo-ring::before { background: conic-gradient(rgba(200, 85, 61, .9) 0 calc(var(--zero-pomo-p, 1) * 100%), rgba(29, 35, 33, .14) 0); }
+:root[zero-frame-ink]:not([zero-full]) #zero-pomo:is([phase="short"], [phase="long"]):not([zero-ink]) .zero-pomo-ring::before { background: conic-gradient(rgba(58, 143, 116, .95) 0 calc(var(--zero-pomo-p, 1) * 100%), rgba(29, 35, 33, .14) 0); }
+:root[zero-frame-ink]:not([zero-full]) #zero-pomo .zero-pomo-action:hover { background-color: rgba(29, 35, 33, .1); }
+:root[zero-frame-ink]:not([zero-full]) #zero-rail:not(:hover, [zero-ink]) { color: #1d2321; }
+:root[zero-frame-ink]:not([zero-full]) #zero-rail:not(:hover, [zero-ink]) :is(.zero-space, .zero-new) .zero-fav { background: rgba(29, 35, 33, .08); color: #1d2321; }
+:root[zero-frame-ink]:not([zero-full]) #zero-rail:not(:hover, [zero-ink]) .zero-sep { background: rgba(29, 35, 33, .18); }
+:root[zero-frame-ink]:not([zero-full]) #zero-rail:not(:hover, [zero-ink]) .zero-item[selected] .zero-fav { box-shadow: 0 0 0 1.5px rgba(29, 35, 33, .55), inset 0 1px 0 rgba(255, 255, 255, .35), 0 1px 3px rgba(0, 0, 0, .18); }
+:root[zero-frame-ink]:not([zero-full]) #zero-lights > button { background-color: rgba(29, 35, 33, .28); box-shadow: none; }
+:root[zero-frame-ink]:not([zero-full]) #zero-grow:not([zero-ink]) { color: #1d2321; background: rgba(255, 255, 255, .45); }
+:root[zero-frame-ink]:not([zero-full]) #zero-grow > button:hover { background-color: rgba(29, 35, 33, .1); }
+:root[zero-frame-ink]:not([zero-full]) #zero-mark { color: #1d2321; opacity: .26; filter: none; }
+:root[zero-frame-ink]:not([zero-full]) #zero-mark:is(:hover, [open]) { opacity: .8; }

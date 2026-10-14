@@ -15,6 +15,8 @@
    los de ampliar tapan la web.
 10. Al acercarse a esa esquina salen juntos los de ventana y los de ampliar y dividir, y al irse se
     vuelven a guardar.
+11. Con el fondo de la web, si el marco queda claro, lo que va encima (el dominio de la isla) pasa a
+    tinta; si queda oscuro, vuelve a blanco.
 
 --zero-del-repo: Zero sale de zero/ del repositorio (ver zero_harness.py).
 """
@@ -215,6 +217,14 @@ def main():
         eventually(resting, timeout=5)
         check('Al acercarse a la esquina salen juntos los de ventana y los de ampliar, y luego se guardan')
         chrome("document.querySelector('#zero-grow button[data-action=full]').click()")
+
+        ink = """const c = getComputedStyle(document.querySelector('#zero-host .zero-host-text')).color.match(/[\\d.]+/g).map(Number);
+            return { attr: document.documentElement.hasAttribute('zero-frame-ink'), light: (c[0] + c[1] + c[2]) / 3 };"""
+        driver.navigate(origin + '/claro')
+        eventually(lambda: chrome(ink)['attr'] and chrome(ink)['light'] < 100, timeout=10)
+        driver.navigate(origin + '/rojo')
+        eventually(lambda: not chrome(ink)['attr'] and chrome(ink)['light'] > 200, timeout=10)
+        check('Con el fondo de la web y el marco claro, lo de encima pasa a tinta; con el oscuro, a blanco')
         report['status'] = 'passed'
     finally:
         if driver: driver.close()

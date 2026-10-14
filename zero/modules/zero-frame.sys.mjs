@@ -7,6 +7,7 @@
  *   web»: una foto diminuta de la web, muy desenfocada, detrás de todo.
  * - Velo: el color dominante de la web, muy leve, que cambia despacio con cada página.
  */
+import { lightOf, inkFor } from './zero-light.mjs';
 
 /** El color que manda en una foto (RGBA): ni el papel blanco ni el texto negro, salvo que no haya más. */
 export function dominantColor(bytes) {
@@ -98,6 +99,9 @@ function paintColors(win, st) {
       ctx.drawImage(shot.canvas, -8, -8, 112, 76);
       root.style.setProperty('--zero-backdrop-image', `url("${canvas.toDataURL('image/png')}")`);
       canvas.dataset.painted = '1';
+      // El marco es esa foto: si es clara, lo que va encima (isla, anillo, raíl, botones) pasa a tinta.
+      st.frameInk = inkFor(lightOf(ctx.getImageData(0, 0, canvas.width, canvas.height).data), st.frameInk);
+      root.toggleAttribute('zero-frame-ink', st.frameInk === 'ink');
     }
   }).catch(() => {}).finally(done);
 }
@@ -111,7 +115,11 @@ function applyBackdrop(win, st) {
   const root = win.document.documentElement;
   const pref = (() => { try { return st.host.prefs.getStringPref(`${st.host.prefix}backdrop`, 'auto'); } catch { return 'auto'; } })();
   root.setAttribute('zero-backdrop', backdropMode(pref, st.env));
-  if (root.getAttribute('zero-backdrop') !== 'web') { root.style.removeProperty('--zero-backdrop-image'); delete st.backdrop.dataset.painted; }
+  if (root.getAttribute('zero-backdrop') !== 'web') {
+    root.style.removeProperty('--zero-backdrop-image'); delete st.backdrop.dataset.painted;
+    // Con el cristal del sistema, detrás está el escritorio: no se sabe su luz, se queda en blanco.
+    root.removeAttribute('zero-frame-ink'); st.frameInk = 'white';
+  }
   paintColors(win, st);
 }
 
@@ -260,6 +268,6 @@ export function detach(win) {
   win.clearTimeout(st.timer);
   for (const undo of st.cleanups.reverse()) { try { undo(); } catch { /* ya no estaba */ } }
   const root = win.document.documentElement;
-  for (const name of ['zero-full', 'zero-backdrop', 'zero-corner-open']) root.removeAttribute(name);
+  for (const name of ['zero-full', 'zero-backdrop', 'zero-corner-open', 'zero-frame-ink']) root.removeAttribute(name);
   for (const name of ['--zero-tint', '--zero-backdrop-image', '--zero-corner-left']) root.style.removeProperty(name);
 }
