@@ -196,6 +196,10 @@ test('every action the home page can ask for opens its page (none is turned away
   const block = profiles.match(/^ACTIONS = \{\n([\s\S]*?)^\}/m)[1];
   const actions = [...block.matchAll(/^\s+"(\w+)": (None|"([^"]+)"),$/gm)].map(([, name, , url]) => [name, url ?? null]);
   assert.ok(actions.some(([name]) => name === 'protections'), 'el informe de protecciones está entre las acciones');
+  // Las mismas que el inicio integrado de Windows y macOS (que además tiene «switch», de los usuarios).
+  const { ACTIONS } = await import('../install/home-extension/api/core.sys.mjs');
+  assert.deepEqual(Object.keys(ACTIONS).filter(name => name !== 'switch').sort(), actions.map(([name]) => name).sort());
+  for (const [name, url] of actions) assert.equal(ACTIONS[name], url, name);
   for (const [action, url] of actions.filter(([, page]) => page)) {
     const f = await setup();
     await f.run('--kitsune-action', action);
