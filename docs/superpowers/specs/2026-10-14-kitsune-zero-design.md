@@ -194,6 +194,25 @@ Risco las vea y estén tan pulidas como Kitsune. Diferencias con lo de arriba, d
 - Sonidos: los bucles se hacen al preparar las grabaciones (fundido cruzado de 4 s, ver
   `zero/SONIDOS.md`), no al sonar: en el navegador, cada capa es un bucle sin más.
 
+### Uso diario (pulido de la noche del 15-10)
+
+Lo que Gecko pone en sitios que Zero esconde (la barra de pestañas, la de direcciones) tiene que
+seguir a mano en Zero, con su aspecto:
+- **Barra lateral** (historial, marcadores, extensiones): otra tarjeta junto a la web, a su lado de
+  siempre; la web se aparta. Las pestañas verticales de Gecko siguen fuera (las hace el raíl).
+- **Barras de aviso** (ventana emergente bloqueada…): tarjetas bajo la isla, centradas.
+- **Diálogos de la pestaña** (imprimir): enteros dentro de la tarjeta.
+- **La dirección de un enlace**: una píldora separada de la esquina.
+- **Las sugerencias al escribir**: con cristal en vivo debajo, como la isla.
+- **De quién es cada pestaña** (los usuarios de Kitsune, en contenedores): una raya de su tinta en
+  el raíl y un punto en la isla, que abierta dice su nombre. **Ventana privada**: el antifaz en la isla.
+- **La información de la web** (permisos, cookies, certificado): el candado de la isla abierta.
+- **Leer y traducir**: con la isla abierta, solo cuando la web lo ofrece (como la Dynamic Island).
+- **Grupos de pestañas**: su fila en el raíl (círculo de su color), que los pliega y despliega.
+- **Ventanas nuevas**: nacen como la ventana desde la que se abren (fila «Ventanas nuevas: como esta
+  · en Zero · normales» en los ajustes); la que nace en Zero ya se pinta en Zero desde el primer
+  fotograma. Una ventana que restaura la sesión vuelve como era.
+
 ## Pruebas
 
 - Por cada módulo, una prueba con el motor real (`tests/zero_*_native.py`, perfil temporal y
@@ -220,3 +239,6 @@ Risco las vea y estén tan pulidas como Kitsune. Diferencias con lo de arriba, d
 - **El cristal en vivo gasta CPU:** se para en reposo, se limita a las piezas visibles y baja de
   frecuencia con el modo ahorro de Kitsune.
 - **La barra de direcciones de Gecko es delicada:** se reestila sin moverla del DOM.
+- **Internos de Gecko:** el panel de información de la web se abre prestándole a Gecko un ancla
+  (`gIdentityHandler._identityIconBox`) y los grupos usan sus eventos (`TabGroup…`). Si Gecko los
+  cambia, `zero_island_native` y `zero_rail_native` lo dicen al compilar un motor nuevo.
