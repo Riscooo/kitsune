@@ -63,9 +63,36 @@ def main():
             pixel = image.getpixel((int(image.width * 0.85), int(image.height * 0.8)))
             bg = 'rgb({}, {}, {})'.format(*pixel)
         assert bg == PAPER, bg
-        chrome("document.getElementById('kitsune-split-key').doCommand()")
+        chrome("document.getElementById('kitsune-unsplit-key').doCommand()")
         eventually(lambda: not chrome("return gBrowser.tabs.some(t => t.splitview)"), timeout=10)
-        check('Ctrl+Alt+D divide la pestaña (la otra mitad, para elegir pestaña, en papel) y la vuelve a separar')
+        check('Ctrl+Alt+D divide la pestaña (la otra mitad, para elegir pestaña, en papel) y Ctrl+Alt+Mayús+D la separa')
+
+        # Hasta cuatro webs: tres pestañas seleccionadas se juntan en columnas; otra pulsación añade
+        # la cuarta (en 2×2) y una quinta ya no hace nada.
+        chrome("""const P = Services.scriptSecurityManager.getSystemPrincipal();
+          const tabs = ['Uno', 'Dos', 'Tres'].map(t => gBrowser.addTab(`data:text/html,<title>${t}</title><h1>${t}</h1>`, {triggeringPrincipal: P}));
+          gBrowser.selectedTab = tabs[0]; gBrowser.addToMultiSelectedTabs(tabs[1]); gBrowser.addToMultiSelectedTabs(tabs[2]);""")
+        chrome("document.getElementById('kitsune-split-key').doCommand()")
+        LAYOUT = """const box = document.getElementById('tabbrowser-tabpanels');
+          const panels = [...box.querySelectorAll('.split-view-panel-active')].map(p => ({col: p.getAttribute('column'), ...p.getBoundingClientRect().toJSON()}))
+            .sort((a, b) => a.col - b.col);
+          const wrapper = gBrowser.selectedTab.splitview;
+          return {count: wrapper?.tabs.length ?? 0, attr: box.getAttribute('kitsune-split'), wrapper: wrapper?.getAttribute('kitsune-split'), panels};"""
+        three = eventually(lambda: (v := chrome(LAYOUT))['count'] == 3 and v['attr'] == '3' and v, timeout=10)
+        lefts = [round(p['left']) for p in three['panels']]
+        assert lefts == sorted(lefts) and len({round(p['top']) for p in three['panels']}) == 1 and three['wrapper'] == '3', three
+        driver.screenshot('tres.png', chrome=True)
+        chrome("document.getElementById('kitsune-split-key').doCommand()")
+        four = eventually(lambda: (v := chrome(LAYOUT))['count'] == 4 and v['attr'] == '4' and v, timeout=10)
+        tops = sorted({round(p['top']) for p in four['panels']})
+        assert len(tops) == 2 and four['panels'][0]['left'] == four['panels'][2]['left'], four
+        driver.screenshot('cuatro.png', chrome=True)
+        chrome("document.getElementById('kitsune-split-key').doCommand()")
+        time.sleep(0.5)
+        assert chrome(LAYOUT)['count'] == 4
+        chrome("document.getElementById('kitsune-unsplit-key').doCommand()")
+        eventually(lambda: not chrome("return gBrowser.tabs.some(t => t.splitview)") and not chrome("return document.getElementById('tabbrowser-tabpanels').hasAttribute('kitsune-split')"), timeout=10)
+        check('Hasta cuatro webs: tres seleccionadas se juntan en columnas, la cuarta va en 2×2 y Ctrl+Alt+Mayús+D lo separa todo')
 
         normal = chrome(TOOLBOX)
         assert not normal['compact'] and normal['browserTop'] >= normal['bottom'] - 1, normal

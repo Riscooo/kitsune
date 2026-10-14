@@ -1,9 +1,10 @@
 /* Distribución de la ventana de Kitsune: vista dividida y modo compacto.
  *
- * - Vista dividida: la de Gecko 157 (dos webs a la vez, con el divisor para cambiar el
- *   tamaño). Kitsune le pone atajo: Ctrl+Alt+D divide la pestaña en la que estás (la otra
- *   mitad deja elegir pestaña) y, si ya está dividida, la separa. Alt+clic en una pestaña
- *   la divide con la actual (eso ya lo hace Gecko).
+ * - Vista dividida: la de Gecko, pero hasta con cuatro webs (Gecko solo usa dos). Ctrl+Alt+D
+ *   divide la pestaña en la que estás (la otra mitad deja elegir pestaña) y, si ya está
+ *   dividida, le añade otro panel; con varias pestañas seleccionadas (Ctrl+clic), las junta.
+ *   Ctrl+Alt+Mayús+D la separa. Tres webs van en columnas y cuatro en una cuadrícula de 2×2
+ *   (kitsune-layout.css, con el número de paneles en [kitsune-split]).
  * - Modo compacto: solo se ve la web. Las barras (y la barra lateral, con las pestañas a un
  *   lado) se esconden y salen al acercar el ratón al borde, al enfocar la barra de
  *   direcciones (Ctrl+L) o mientras haya un menú suyo abierto. Ctrl+Alt+C lo activa y lo
@@ -24,12 +25,45 @@ const xul = (doc, tag, attributes = {}) => {
   return node;
 };
 
-/** Divide la pestaña en la que estás o, si ya está dividida, la separa. */
+export const MAX_SPLIT = 4;
+
+/** Qué hace Ctrl+Alt+D: juntar las seleccionadas, dividir, añadir un panel o nada (ya hay cuatro). */
+export function splitAction({ splitCount = 0, selected = 1 } = {}) {
+  if (splitCount) return splitCount < MAX_SPLIT ? 'add' : 'full';
+  return selected >= 2 ? 'join' : 'split';
+}
+
+/** Ctrl+Alt+D: divide la pestaña; si ya está dividida, le añade un panel para elegir pestaña. */
 export function toggleSplit(win) {
-  const tab = win.gBrowser?.selectedTab;
-  if (!tab) return;
-  if (tab.splitview) tab.splitview.unsplitTabs('keyboard_shortcut');
-  else win.BrowserCommands?.addTabSplitView();
+  const gBrowser = win.gBrowser;
+  const tab = gBrowser?.selectedTab;
+  if (!tab || tab.pinned || tab.hidden) return;
+  const chosen = gBrowser.selectedTabs.filter(item => !item.pinned && !item.splitview);
+  const action = splitAction({ splitCount: tab.splitview?.tabs.length ?? 0, selected: chosen.length });
+  if (action === 'join') {
+    gBrowser.addTabSplitView(chosen.slice(0, MAX_SPLIT), { insertBefore: chosen[0], trigger: 'keyboard_shortcut' });
+  } else if (action === 'split') {
+    win.BrowserCommands?.addTabSplitView();
+  } else if (action === 'add') {
+    const fresh = gBrowser.addTrustedTab('about:opentabs');
+    tab.splitview.addTabs([fresh]);
+    gBrowser.selectedTab = fresh;
+  }
+  markSplit(win);
+}
+
+/** Ctrl+Alt+Mayús+D: separa la vista dividida en la que estás. */
+export function unsplit(win) {
+  win.gBrowser?.selectedTab?.splitview?.unsplitTabs('keyboard_shortcut');
+  markSplit(win);
+}
+
+/** El número de paneles, para el CSS: en la web que se ve (3 en columnas, 4 en 2×2) y en cada
+ * grupo de la barra de pestañas (con sitio para todas sus pestañas). */
+function markSplit(win) {
+  const mark = (node, count) => count > 2 ? node?.setAttribute('kitsune-split', String(count)) : node?.removeAttribute('kitsune-split');
+  mark(win.document.getElementById('tabbrowser-tabpanels'), win.gBrowser?.selectedTab?.splitview?.tabs.length ?? 0);
+  for (const wrapper of win.gBrowser?.tabContainer?.querySelectorAll('tab-split-view-wrapper') ?? []) mark(wrapper, wrapper.tabs?.length ?? 0);
 }
 
 export const compactEnabled = () => Services.prefs.getBoolPref(COMPACT_PREF, false);
@@ -79,12 +113,13 @@ function decorateCompact(win) {
 function decorateKeys(win) {
   const doc = win.document;
   const keyset = xul(doc, 'keyset', { id: 'kitsune-layout-keys' });
-  const add = (id, key, run) => {
-    const node = xul(doc, 'key', { id, key, modifiers: 'accel,alt' });
+  const add = (id, key, run, modifiers = 'accel,alt') => {
+    const node = xul(doc, 'key', { id, key, modifiers });
     node.addEventListener('command', run);
     keyset.append(node);
   };
   add('kitsune-split-key', 'D', () => toggleSplit(win));
+  add('kitsune-unsplit-key', 'D', () => unsplit(win), 'accel,alt,shift');
   add('kitsune-compact-key', 'C', () => setCompact(!compactEnabled()));
   doc.documentElement.append(keyset);
 }
@@ -98,8 +133,14 @@ export const KitsuneLayout = {
     if (!observing) { Services.prefs.addObserver(COMPACT_PREF, prefObserver); observing = true; }
     decorateKeys(win);
     decorateCompact(win);
+    // Al cambiar de pestaña o al cambiar los paneles (soltar una pestaña, cerrar uno…), se recoloca.
+    const remark = () => markSplit(win);
+    for (const type of ['TabSelect', 'SplitViewCreated', 'TabSplitViewActivate', 'TabSplitViewDeactivate', 'TabClose']) {
+      win.gBrowser.tabContainer.addEventListener(type, () => win.setTimeout(remark, 0));
+    }
   },
   toggleSplit: win => toggleSplit(win),
+  unsplit: win => unsplit(win),
   compactEnabled: () => compactEnabled(),
   setCompact: enabled => setCompact(enabled),
 };
