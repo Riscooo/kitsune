@@ -109,12 +109,12 @@ export function detach(win) {
   toolbox?.removeAttribute('zero-icons');
 }
 
-// Los iconos de los avisos (de Gecko): pequeños y del color del texto.
+// Los iconos de los avisos (los de Zero y algunos de Gecko): pequeños y del color del texto.
 const ICONS = {
-  break: 'chrome://browser/content/browser/profiles/assets/16_leaf.svg',
-  resume: 'chrome://browser/content/browser/profiles/assets/16_heart-rate.svg',
+  break: 'chrome://browser/content/zero/zero-icono-hoja.svg',
+  resume: 'chrome://browser/content/zero/zero-icono-seguir.svg',
   blocked: 'chrome://global/skin/icons/blocked.svg',
-  scroll: 'chrome://global/skin/icons/autoscroll-vertical.svg',
+  scroll: 'chrome://global/skin/icons/arrow-down.svg',
   quiet: 'chrome://browser/skin/notification-icons/desktop-notification-blocked.svg',
 };
 
