@@ -86,6 +86,24 @@ class ProfileTests(unittest.TestCase):
         self.assertNotIn("identity.fxaccounts", prefs)
         self.assertEqual(stat.S_IMODE(first["profile"].stat().st_mode), 0o700)
 
+    def test_new_profiles_take_the_language_of_the_main_profile(self):
+        main = self.browser / "profile/prefs.js"
+        # Un perfil principal de antes de 0.8 (castellano sin elegirlo): el nuevo, en castellano.
+        main.write_text('user_pref("browser.startup.page", 0);\nuser_pref("kitsune.privacy.applied", "estricto");\n')
+        first = self.manager.resolve(self.create()["createdId"])["profile"]
+        self.assertEqual((first / "prefs.js").read_text(), 'user_pref("intl.locale.requested", "es-ES");\n')
+        # Uno que eligió inglés: el nuevo, en inglés.
+        main.write_text('user_pref("intl.locale.requested", "en-US");\nuser_pref("kitsune.privacy.applied", "comodo");\n')
+        second = self.manager.resolve(self.create(name="Casa")["createdId"])["profile"]
+        self.assertIn('"intl.locale.requested", "en-US"', (second / "prefs.js").read_text())
+        # Sin nada elegido (perfil nuevo que sigue al sistema): el nuevo también sigue al sistema.
+        main.write_text('user_pref("browser.startup.page", 0);\n')
+        third = self.manager.resolve(self.create(name="Clase")["createdId"])["profile"]
+        self.assertFalse((third / "prefs.js").exists())
+        # Lo raro no pasa: solo letras, números, guiones y comas.
+        main.write_text('user_pref("intl.locale.requested", "es\\"); evil(");\n')
+        self.assertIsNone(profiles.profile_locale(self.browser / "profile"))
+
     def test_edit_default_and_actions_do_not_merge_or_delete_user_data(self):
         result = self.create()
         identifier = result["createdId"]

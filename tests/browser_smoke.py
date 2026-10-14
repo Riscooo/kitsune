@@ -195,6 +195,8 @@ def prepare_profile(test_root: Path):
         "browser.helperApps.neverAsk.saveToDisk": "application/octet-stream,text/plain",
         # Sin la barra de «¿Vienes de otro navegador?» (la prueba de importar la quita).
         "kitsune.import.offered": True,
+        # Las pruebas miran textos en castellano: sin esto, el perfil nuevo seguiría al sistema.
+        "intl.locale.requested": "es-ES",
     }
     template = ROOT / "install/user.js"
     base_prefs = template.read_text() if template.is_file() else ""

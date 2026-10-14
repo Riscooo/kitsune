@@ -124,6 +124,26 @@ def read_regular(path, limit=MAX_FILE):
         return data
 
 
+# El idioma elegido en un perfil (prefs.js); lo demás de prefs.js no se lee.
+LOCALE_PREF = re.compile(r'^user_pref\("intl\.locale\.requested", "([A-Za-z0-9_,-]{0,64})"\);$', re.M)
+
+
+def profile_locale(profile):
+    """El idioma de un perfil para que uno nuevo salga igual, o None si sigue al sistema.
+
+    Desde 0.8, un perfil nuevo sale en el idioma del sistema (kitsune.cfg). Pero quien ya usa
+    Kitsune en castellano con el sistema en inglés espera sus perfiles nuevos en castellano: se
+    copia el del perfil principal. Uno de antes de 0.8 que nunca eligió idioma era castellano."""
+    try:
+        text = read_regular(profile / "prefs.js", 8 * 1024 * 1024).decode("utf-8", "replace")
+    except (OSError, ProfilesUnavailable):
+        return None
+    match = LOCALE_PREF.search(text)
+    if match:
+        return match.group(1)
+    return "es-ES" if 'user_pref("kitsune.privacy.applied",' in text else None
+
+
 def atomic_write(path, data):
     temporary = None
     try:
@@ -473,6 +493,10 @@ class ProfileManager:
         temporary = Path(tempfile.mkdtemp(prefix=".profile-", dir=destination.parent))
         try:
             atomic_write(temporary / "user.js", prefs.encode("utf-8"))
+            # En prefs.js y no en user.js: así se puede cambiar después en Ajustes → Idioma.
+            locale = profile_locale(self.browser_root / "profile")
+            if locale is not None:
+                atomic_write(temporary / "prefs.js", ('user_pref("intl.locale.requested", ' + json.dumps(locale) + ');\n').encode("utf-8"))
             chrome_source = templates / "chrome"
             if not chrome_source.is_dir() or chrome_source.is_symlink():
                 raise ProfilesUnavailable("Falta la plantilla visual de Kitsune.")
