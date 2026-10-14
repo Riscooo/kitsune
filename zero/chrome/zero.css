@@ -398,6 +398,17 @@
 #zero-rail:hover .zero-item:hover .zero-tt { font-weight: 600; }
 #zero-rail .zero-tab:focus-visible { outline: 2px solid rgba(58, 143, 116, .8); outline-offset: -2px; }
 
+/* Reordenar arrastrando: la que se arrastra va levantada (sin transición: sigue al ratón) y las demás
+   se apartan despacio para hacerle hueco. Al soltar, nada salta (settling quita la transición). */
+#zero-rail[reordering] .zero-tab { transition: transform 220ms var(--zero-calm), margin 200ms var(--zero-calm), background-color 260ms var(--zero-soft); }
+#zero-rail .zero-tab[dragging] {
+  z-index: 2; transition: none !important; cursor: grabbing;
+  background-color: rgba(255, 255, 255, .55) !important;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, .16);
+}
+#zero-rail[settling] .zero-tab { transition: none !important; }
+#zero-rail[reordering] .zero-tt { transition-delay: 0ms !important; }
+
 /* Lo que suena: un altavoz pequeño en la esquina del icono (un clic silencia o vuelve a dar sonido). */
 #zero-rail .zero-tab { position: relative; }
 #zero-rail .zero-sound {

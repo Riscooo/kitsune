@@ -176,6 +176,71 @@ function render(win, st) {
   st.add.style.setProperty('--i', String(offset + tabs.length));
 }
 
+/** Reordenar arrastrando (con el puntero, para cuidar la animación): pasados 6 px, la pestaña se
+ *  levanta y sigue al ratón, las de su grupo (fijadas o no) le hacen hueco, y al soltarla Gecko la
+ *  mueve. Un arrastre más corto es un clic. */
+function reorder(win, st) {
+  let drag = null;
+  const DEAD = 6;
+  st.rail.addEventListener('pointerdown', event => {
+    st.dragged = false;
+    if (event.button !== 0) return;
+    const node = event.target.closest('.zero-tab');
+    if (!node || node.hasAttribute('leaving') || event.target.closest('.zero-close, .zero-sound')) return;
+    drag = { node, tab: st.tabOf.get(node), startY: event.clientY, pointerId: event.pointerId, active: false };
+  });
+  st.rail.addEventListener('pointermove', event => {
+    if (!drag || event.pointerId !== drag.pointerId || !drag.tab) return;
+    const dy = event.clientY - drag.startY;
+    if (!drag.active) {
+      if (Math.abs(dy) < DEAD) return;
+      drag.active = true;
+      try { st.rail.setPointerCapture(event.pointerId); } catch { /* sin captura */ }
+      st.rail.setAttribute('reordering', '');
+      dock(st, null);
+      drag.rows = [...st.tabsBox.children].filter(row => !row.hasAttribute('leaving') && st.tabOf.get(row)?.pinned === drag.tab.pinned);
+      drag.index = drag.rows.indexOf(drag.node);
+      drag.centers = drag.rows.map(row => { const r = row.getBoundingClientRect(); return r.top + r.height / 2; });
+      drag.step = drag.rows.length > 1 ? (drag.centers.at(-1) - drag.centers[0]) / (drag.rows.length - 1) : 28;
+      drag.node.setAttribute('dragging', '');
+    }
+    drag.node.style.transform = `translateY(${dy}px) scale(1.04)`;
+    // Dónde caería: pasa al sitio de una vecina cuando su centro cruza el de ella.
+    const center = drag.centers[drag.index] + dy;
+    let target = drag.index;
+    while (target > 0 && center < drag.centers[target - 1]) target--;
+    while (target < drag.centers.length - 1 && center > drag.centers[target + 1]) target++;
+    drag.target = target;
+    drag.rows.forEach((row, i) => {
+      if (row === drag.node) return;
+      const shift = target < drag.index && i >= target && i < drag.index ? drag.step
+        : target > drag.index && i <= target && i > drag.index ? -drag.step : 0;
+      row.style.transform = shift ? `translateY(${shift}px)` : '';
+    });
+  });
+  const end = event => {
+    if (!drag || (event?.pointerId !== undefined && event.pointerId !== drag.pointerId)) return;
+    const done = drag;
+    drag = null;
+    if (!done.active) return; // un clic: lo elige el clic
+    st.dragged = true;        // y el clic que llega detrás de soltar no la elige
+    // Sin transición al soltar: la fila ya está donde va y el orden nuevo llega a la vez.
+    st.rail.setAttribute('settling', '');
+    for (const row of done.rows) row.style.transform = '';
+    done.node.removeAttribute('dragging');
+    st.rail.removeAttribute('reordering');
+    if (done.target !== undefined && done.target !== done.index) {
+      const anchor = st.tabOf.get(done.rows[done.target]);
+      if (anchor && !done.tab.closing) {
+        if (done.target < done.index) win.gBrowser.moveTabBefore(done.tab, anchor);
+        else win.gBrowser.moveTabAfter(done.tab, anchor);
+      }
+    }
+    win.requestAnimationFrame(() => win.requestAnimationFrame(() => st.rail?.removeAttribute('settling')));
+  };
+  for (const type of ['pointerup', 'pointercancel', 'lostpointercapture']) st.rail.addEventListener(type, end);
+}
+
 /** Efecto Dock: cada icono crece según lo cerca que esté del ratón y aparta a sus vecinos. */
 function dock(st, pointerY) {
   const nodes = [...st.rail.querySelectorAll('.zero-item:not([leaving], [hidden] > *)')];
@@ -203,6 +268,7 @@ export function attach(win, ctx) {
 
   const close = tab => { if (tab && !tab.closing) win.gBrowser.removeTab(tab, { animate: true }); };
   st.rail.addEventListener('click', event => {
+    if (st.dragged) { st.dragged = false; return; } // venía de arrastrar
     const node = event.target.closest('.zero-item');
     if (!node || node.hasAttribute('leaving')) return;
     // La ×: cierra esa pestaña sin elegirla; el altavoz la silencia o le devuelve el sonido.
@@ -236,7 +302,9 @@ export function attach(win, ctx) {
   });
 
   let frame = 0, pointerY = null;
+  reorder(win, st);
   st.rail.addEventListener('mousemove', event => {
+    if (st.rail.hasAttribute('reordering')) return; // arrastrando: el Dock se aparta
     pointerY = event.clientY;
     if (!frame) frame = win.requestAnimationFrame(() => { frame = 0; dock(st, pointerY); });
   });
