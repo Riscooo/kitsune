@@ -80,7 +80,7 @@
     background: var(--kb-surface);
     box-shadow: 0 18px 60px color-mix(in srgb, var(--kb-text) 26%, transparent);
   }
-  #kitsune-glance .kitsune-glance-head {
+  .kitsune-glance-head {
     display: flex;
     align-items: center;
     gap: 8px;
@@ -91,9 +91,9 @@
     color: var(--kb-text);
     font: 500 12px "Noto Sans", "Kitsune Sans", sans-serif;
   }
-  #kitsune-glance .kitsune-glance-title { flex: 1 1 auto; min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-weight: 600; }
-  #kitsune-glance .kitsune-glance-host { flex: 0 1 auto; color: var(--kb-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  #kitsune-glance .kitsune-glance-head > button {
+  .kitsune-glance-title { flex: 1 1 auto; min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-weight: 600; }
+  .kitsune-glance-host { flex: 0 1 auto; color: var(--kb-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .kitsune-glance-head > button {
     appearance: none;
     height: 26px;
     padding: 0 10px;
@@ -103,10 +103,39 @@
     color: var(--kb-text);
     font: inherit;
   }
-  #kitsune-glance .kitsune-glance-head > button:hover { background: color-mix(in srgb, var(--kb-text) 7%, var(--kb-surface)); }
-  #kitsune-glance .kitsune-glance-head > button:focus-visible { outline: 2px solid var(--kb-primary); outline-offset: 1px; }
-  #kitsune-glance .kitsune-glance-close { width: 26px; padding: 0 !important; font-size: 16px !important; }
+  .kitsune-glance-head > button:hover { background: color-mix(in srgb, var(--kb-text) 7%, var(--kb-surface)); }
+  .kitsune-glance-head > button:focus-visible { outline: 2px solid var(--kb-primary); outline-offset: 1px; }
+  .kitsune-glance-close { width: 26px; padding: 0 !important; font-size: 16px !important; }
   #kitsune-glance .kitsune-glance-browser { flex: 1 1 auto; min-height: 0; }
+  /* Como pestaña (la de siempre): va unida a la de debajo con la vista dividida de Gecko, que es lo
+     que deja pintar las dos, pero flota encima en vez de ponerse al lado; en la barra de pestañas
+     solo se ve la de debajo. */
+  #tabbrowser-tabpanels[splitview][kitsune-glance] > .split-view-panel-active:not([kitsune-glance-panel]) {
+    flex: 1 1 auto !important;
+    width: auto !important;
+    max-width: none !important;
+    filter: brightness(.86) saturate(.9);
+    transition: filter 180ms ease;
+  }
+  #tabbrowser-tabpanels[splitview][kitsune-glance] > [kitsune-glance-panel] {
+    position: absolute !important;
+    inset: 6% 9% !important;
+    flex-direction: column !important;
+    width: auto !important;
+    min-width: 0 !important;
+    max-width: none !important;
+    margin: 0 !important;
+    z-index: 3;
+    overflow: hidden;
+    border: 1px solid var(--kb-outline);
+    border-radius: calc(14px * var(--kb-round, 1));
+    background: var(--kb-surface);
+    box-shadow: 0 18px 60px color-mix(in srgb, var(--kb-text) 26%, transparent);
+  }
+  #tabbrowser-tabpanels[splitview][kitsune-glance] > [kitsune-glance-panel] .browserContainer { border-radius: 0 !important; }
+  #tabbrowser-tabpanels[kitsune-glance] :is(.split-view-splitter, split-view-footer) { display: none !important; }
+  .tabbrowser-tab[kitsune-glance] { display: none !important; }
+  #tabbrowser-tabs[orient="horizontal"] tab-split-view-wrapper[kitsune-glance] { grid-template-columns: 1fr !important; }
 
   /* Paleta (Ctrl+K): arriba, centrada, de papel. */
   #kitsune-palette { --panel-padding: 0; appearance: none; background: transparent; border: 0; }

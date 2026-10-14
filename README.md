@@ -61,8 +61,11 @@ navegar. 0.8 trae lo que hace que la gente use Zen y lo que Zen no tiene.
   salen con el ratón, al enfocar la barra de direcciones o con un menú abierto.
 - **Vista rápida** (`kitsune-glance*.sys.mjs`). <kbd>Alt</kbd>+clic en un enlace lo abre
   flotando sobre la página, con el usuario de la pestaña; «Dividir», «Abrir en pestaña»,
-  Esc. El actor de las webs solo manda la dirección (comprobada); el permiso lo pone el
-  proceso principal (`safeForUntrustedWebProcess`, que Gecko 157 exige).
+  Esc. Como en Zen, es una pestaña oculta en la barra, unida a la actual con la vista
+  dividida de Gecko (que pinta las dos) y que el CSS hace flotar: al pasarla a pestaña no se
+  vuelve a cargar. Desde una pestaña fijada o ya dividida, flota en un panel. El actor de las
+  webs solo manda la dirección (comprobada); el permiso lo pone el proceso principal
+  (`safeForUntrustedWebProcess`, que Gecko 157 exige).
 - **Paleta** (`kitsune-palette.sys.mjs`, <kbd>Ctrl</kbd><kbd>K</kbd>). Pestañas de todos
   los espacios, espacios, marcadores, historial y unas 40 acciones, cada una con su atajo
   real (sacado de su tecla con ShortcutUtils). «?» lista los atajos. Lo que parece una
