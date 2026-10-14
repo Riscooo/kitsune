@@ -9,9 +9,12 @@ la ventana a Zero y la devuelve, con las mismas pestañas. Diseño completo en
 - `modules/`: los módulos de chrome. `zero.sys.mjs` es la entrada; cada pieza es un módulo con
   `attach(win, ctx)` y `detach(win)`, en su lista de piezas. Se importan entre sí con rutas relativas y
   **no importan nada de Kitsune**. Las piezas, en orden:
-  - `zero-frame`: la ventana de cristal, la web en tarjeta (y ampliada), la vista dividida, los botones
-    de ventana y el velo del color de la web;
-  - `zero-island`: la isla (la barra de navegación de Gecko, reestilada) y sus avisos (`alert()`);
+  - `zero-frame`: la ventana de cristal, la web en tarjeta (y ampliada), la vista dividida, la barra
+    lateral de Gecko (historial, marcadores, extensiones) como otra tarjeta, los botones de ventana y
+    el velo del color de la web;
+  - `zero-island`: la isla (la barra de navegación de Gecko, reestilada), sus avisos (`alert()`) y
+    las actividades en directo (las descargas, en `zero-downloads`); las barras de aviso de Gecko
+    salen de ella como tarjetas;
   - `zero-rail`: el raíl de pestañas con efecto Dock (`zero-dock.mjs`) y los espacios del anfitrión;
   - `zero-mark`: la marca de agua y los ajustes;
   - `zero-pomodoro`: el anillo, los avisos y los descansos (el reloj, puro, en `zero-pomodoro.mjs`);

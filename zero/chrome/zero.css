@@ -18,7 +18,7 @@
   /* Lo que lleva tiempos propios (los colores, la marca, los interruptores…), también. */
   :root[zero] :is(#navigator-toolbox, #navigator-toolbox *, #tabbrowser-tabbox, #tabbrowser-tabpanels, #tabbrowser-tabpanels > .browserSidebarContainer,
                   #zero-lights, #zero-lights *, #zero-grow, #zero-grow *, #zero-rail, #zero-rail *, #zero-mark, #zero-mark *,
-                  #zero-settings, #zero-settings *, #zero-settings *::after),
+                  #zero-settings, #zero-settings *, #zero-settings *::after, #sidebar-box),
   :root[zero] :is(#navigator-toolbox, #zero-rail, #zero-grow, #zero-settings) *::after {
     transition-duration: 1ms !important; transition-delay: 0ms !important;
     animation: none !important;
@@ -50,11 +50,13 @@
   transition: background-color var(--zero-t-color) var(--zero-soft);
 }
 
-/* Lo que Zero sustituye: las pestañas de arriba y la barra lateral de Gecko (el raíl las hace),
+/* Lo que Zero sustituye: las pestañas de arriba y las verticales de Gecko (el raíl las hace),
    y la barra de marcadores. La barra de navegación se queda (la isla). */
 :root[zero] #sidebar-main,
-:root[zero] #sidebar-box,
-:root[zero] #sidebar-splitter,
+:root[zero] #sidebar-container,
+:root[zero] #sidebar-launcher-splitter,
+:root[zero] #sidebar-box[hidden],
+:root[zero] #sidebar-splitter[hidden],
 :root[zero] #ai-window-splitter {
   display: none !important;
 }
@@ -84,6 +86,31 @@
 }
 :root[zero] #tabbrowser-tabpanels > .browserSidebarContainer .browserContainer { border-radius: 0 !important; border: none !important; }
 :root[zero][zero-full] #tabbrowser-tabpanels > .browserSidebarContainer { border-radius: 0 !important; box-shadow: none !important; }
+/* La barra lateral de Gecko (historial, marcadores, la de una extensión): otra tarjeta junto a la
+   web, con su mismo borde, y la web se aparta; el divisor es un hueco de 10 px que se puede arrastrar. */
+:root[zero] #sidebar-box:not([hidden]) {
+  margin: 46px 0 12px 50px !important;
+  border: none !important; border-radius: 18px !important;
+  overflow: clip !important;
+  box-shadow: 0 18px 50px rgba(0, 0, 0, .22), 0 0 0 1px rgba(255, 255, 255, .35) !important;
+  animation: zero-side-in var(--zero-t-move) var(--zero-calm);
+}
+:root[zero] #sidebar-box[sidebar-positionend]:not([hidden]) { margin: 46px 12px 12px 0 !important; }
+:root[zero] #sidebar-splitter:not([hidden]) {
+  width: 10px !important; min-width: 10px !important; max-width: 10px !important;
+  margin: 0 !important; border: none !important; background: transparent !important; opacity: 0;
+}
+:root[zero] #browser:has(> #sidebar-box:not([hidden], [sidebar-positionend])) #tabbrowser-tabpanels { margin-left: 0 !important; }
+:root[zero] #browser:has(> #sidebar-box[sidebar-positionend]:not([hidden])) #tabbrowser-tabpanels { margin-right: 0 !important; }
+:root[zero][zero-full] #sidebar-box:not([hidden]) { margin: 0 !important; border-radius: 0 !important; box-shadow: none !important; }
+:root[zero][zero-full] #sidebar-splitter:not([hidden]) { width: 1px !important; min-width: 1px !important; max-width: 1px !important; opacity: 1; background: rgba(127, 127, 127, .25) !important; }
+:root[zero][inDOMFullscreen] :is(#sidebar-box, #sidebar-splitter) { display: none !important; }
+@keyframes zero-side-in { from { opacity: 0; transform: scale(.985); } }
+
+/* Los diálogos de la pestaña (imprimir…): Gecko los sube 5 px para que cuelguen de la barra; en Zero
+   la tarjeta les recortaría las esquinas de arriba, así que flotan un poco por debajo de su borde. */
+:root[zero] :not(.content-prompt-dialog) > .dialogOverlay > .dialogBox:not(.spotlightBox) { margin-top: 10px !important; }
+
 /* Vista dividida (2 a 4): tarjetas separadas por 10 px. */
 :root[zero] #tabbrowser-tabpanels[splitview] > .split-view-panel.split-view-panel-active { margin: 0 !important; }
 :root[zero] #tabbrowser-tabpanels[splitview] > .split-view-splitter {
@@ -179,6 +206,22 @@
 #main-window[zero] #navigator-toolbox[zero-island="open"] { --zero-island-w: 400px !important; }
 #main-window[zero] #navigator-toolbox[zero-island-alert] { --zero-island-w: 470px !important; }
 #main-window[zero] #navigator-toolbox[zero-island="typing"] { --zero-island-w: 560px !important; }
+
+/* Los avisos de Gecko (una ventana emergente bloqueada, una traducción…) viven en la barra de
+   herramientas, que en Zero es la isla: salen de ella como tarjetas bajo la isla, centradas. Con 100vw
+   y no con %: en F11 la isla lleva transform y entonces lo fijo se coloca respecto a ella. */
+#main-window[zero] #notifications-toolbar {
+  position: fixed !important; top: 46px !important; left: 0 !important; right: 0 !important;
+  width: min(620px, calc(100vw - 140px)) !important; margin: 0 auto !important; padding: 6px 0 0 !important;
+  border: none !important; background: transparent !important; box-shadow: none !important;
+  pointer-events: none;
+  --info-bar-margin: 0 0 6px;
+}
+#main-window[zero] #notifications-toolbar notification-message {
+  pointer-events: auto;
+  border-radius: 14px !important;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, .16), 0 0 0 1px rgba(255, 255, 255, .45) !important;
+}
 
 /* Cristal casi transparente, como en la maqueta: el brillo del borde dibuja la forma. */
 #main-window[zero] #nav-bar {
