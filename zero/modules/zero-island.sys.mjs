@@ -89,6 +89,23 @@ export function attach(win, ctx = {}) {
   listen(doc, 'popuphidden', event => { if (st.menus.delete(event.target)) refresh(); });
   refresh();
 
+  // El tamaño de la web: en Zero no se ve su indicador, así que la isla lo dice un momento al cambiarlo
+  // (no al llegar a una web que ya tenía el suyo guardado: ahí cambia la dirección).
+  const zoomOf = browser => { try { return Math.round(win.ZoomManager.getZoomForBrowser(browser) * 100); } catch { return null; } };
+  const where = browser => { try { return browser.currentURI.spec; } catch { return ''; } };
+  st.zoom = { spec: where(win.gBrowser.selectedBrowser), value: zoomOf(win.gBrowser.selectedBrowser) };
+  listen(win, 'FullZoomChange', event => {
+    const browser = event.target;
+    if (browser !== win.gBrowser.selectedBrowser) return;
+    const value = zoomOf(browser), spec = where(browser);
+    if (value !== null && spec === st.zoom.spec && value !== st.zoom.value) {
+      const t = ctx.host?.t ?? (es => es);
+      alert(win, t('Tamaño', 'Zoom'), `${value} %`, 1600, 'zoom');
+    }
+    st.zoom = { spec, value };
+  });
+  listen(win.gBrowser.tabContainer, 'TabSelect', () => { st.zoom = { spec: where(win.gBrowser.selectedBrowser), value: zoomOf(win.gBrowser.selectedBrowser) }; });
+
   // Solo iconos (ajuste de Zero): en reposo, el icono de la web; abierta, los botones sin el dominio.
   const { host } = ctx;
   if (host?.prefs) {
@@ -121,6 +138,7 @@ const ICONS = {
   scroll: 'chrome://global/skin/icons/arrow-down.svg',
   quiet: 'chrome://browser/skin/notification-icons/desktop-notification-blocked.svg',
   download: 'chrome://browser/skin/downloads/downloads.svg',
+  zoom: 'chrome://global/skin/icons/search-glass.svg',
   done: 'chrome://global/skin/icons/check.svg',
 };
 
