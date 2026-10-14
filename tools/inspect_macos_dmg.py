@@ -7,10 +7,13 @@ integrado y el estilo en el motor, el identificador io.github.riscooo.kitsune, e
 icono de Kitsune (sin el catálogo genérico), la firma ad hoc, y el fondo de la
 ventana y el icono del disco. Sale con error si falta algo.
 
-    python3 tools/inspect_macos_dmg.py <kitsune.dmg>
+    python3 tools/inspect_macos_dmg.py <kitsune.dmg> [--arch arm64|x86_64]
+
+Con --arch comprueba además que el ejecutable sea de esa arquitectura (Apple Silicon o Intel).
 """
 from __future__ import annotations
 
+import argparse
 import hashlib
 import json
 from pathlib import Path
@@ -24,9 +27,20 @@ ROOT = Path(__file__).resolve().parents[1]
 TOOLS = Path.home() / ".mozbuild"
 KEY = Path.home() / ".config/kitsune-browser/safebrowsing-api-key"
 BRANDING = ROOT / "install/branding/macos"
+# CPU_TYPE de las cabeceras Mach-O de 64 bits.
+CPU_TYPES = {"arm64": 0x0100000C, "x86_64": 0x01000007}
 
 
-def main(dmg: Path) -> int:
+def macho_arch(path: Path) -> str | None:
+    """La arquitectura de un ejecutable Mach-O de 64 bits (o None si no lo es)."""
+    header = path.read_bytes()[:8]
+    if header[:4] != bytes.fromhex("cffaedfe"):
+        return None
+    cpu = int.from_bytes(header[4:8], "little")
+    return next((name for name, value in CPU_TYPES.items() if value == cpu), None)
+
+
+def main(dmg: Path, arch: str | None = None) -> int:
     problems, notes = [], []
     with tempfile.TemporaryDirectory() as folder:
         out = Path(folder)
@@ -58,6 +72,11 @@ def main(dmg: Path) -> int:
             problems.append("kitsune.cfg no es el de la receta")
         if not (contents / "_CodeSignature/CodeResources").is_file():
             problems.append("la app no está firmada (falta _CodeSignature)")
+        executable = contents / "MacOS/kitsune"
+        found_arch = macho_arch(executable) if executable.is_file() else None
+        notes.append(f"ejecutable {found_arch or 'desconocido'}")
+        if arch and found_arch != arch:
+            problems.append(f"el ejecutable es {found_arch}, no {arch}")
         omni = resources / "browser/omni.ja"
         if omni.is_file():
             with zipfile.ZipFile(omni) as archive:
@@ -90,9 +109,13 @@ def report(problems, notes, dmg: Path) -> int:
         print("·", note)
     for problem in problems:
         print("✗", problem)
-    print("✓ listo para publicar" if not problems else f"✗ {len(problems)} problemas")
+    print("✓ listo para publicar" if not problems else f"✗ {len(problems)} problema{'' if len(problems) == 1 else 's'}")
     return 1 if problems else 0
 
 
 if __name__ == "__main__":
-    sys.exit(main(Path(sys.argv[1])))
+    parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser.add_argument("dmg", type=Path)
+    parser.add_argument("--arch", choices=sorted(CPU_TYPES))
+    args = parser.parse_args()
+    sys.exit(main(args.dmg, args.arch))

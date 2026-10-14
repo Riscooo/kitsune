@@ -53,8 +53,10 @@ const updater = () => {
   try { return ChromeUtils.importESModule(new URL('kitsune-updater.sys.mjs', import.meta.url).href).KitsuneUpdater; } catch { return null; }
 };
 /** El sistema en downloads.json: windows, macos o linux. */
-export const platformFor = os => ({ WINNT: 'windows', Darwin: 'macos', Linux: 'linux' })[os] ?? null;
-const platformKey = () => platformFor(Services.appinfo.OS);
+/** El sistema en downloads.json: windows, macos (Apple Silicon), macos-intel o linux. */
+export const platformFor = (os, abi = '') => os === 'Darwin' && /^x86_64/.test(abi) ? 'macos-intel'
+  : ({ WINNT: 'windows', Darwin: 'macos', Linux: 'linux' })[os] ?? null;
+const platformKey = () => platformFor(Services.appinfo.OS, Services.appinfo.XPCOMABI);
 
 export async function showUpdateNotice(win, info) {
   const box = win.gNotificationBox;

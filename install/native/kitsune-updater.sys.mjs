@@ -26,8 +26,10 @@ const PACKAGES = Object.freeze({
   linux: release => `Kitsune-${release}-Linux-x86_64.tar.xz`,
   windows: release => `Kitsune-${release}-Windows-x64.exe`,
   macos: release => `Kitsune-${release}-macOS-AppleSilicon.dmg`,
+  'macos-intel': release => `Kitsune-${release}-macOS-Intel.dmg`,
 });
-export const platformOf = os => ({ WINNT: 'windows', Darwin: 'macos', Linux: 'linux' })[os] ?? null;
+export const platformOf = (os, abi = '') => os === 'Darwin' && /^x86_64/.test(abi) ? 'macos-intel'
+  : ({ WINNT: 'windows', Darwin: 'macos', Linux: 'linux' })[os] ?? null;
 
 /** El paquete de una versión para un sistema y su lista de SHA-256, si la dirección es la de esa versión. */
 export function releasePackage(platform, entry, release, origin = GITHUB) {
@@ -59,10 +61,10 @@ const modules = () => lazy ??= {
 };
 const home = () => Services.dirsvc.get('Home', Ci.nsIFile).path;
 const xdg = (name, fallback) => Services.env.get(name) || PathUtils.join(home(), ...fallback);
-const platform = () => platformOf(Services.appinfo.OS);
+const platform = () => platformOf(Services.appinfo.OS, Services.appinfo.XPCOMABI);
 /** Dónde se prepara la versión nueva: la caché de cada sistema. */
 function cacheRoot() {
-  if (platform() === 'macos') return PathUtils.join(home(), 'Library', 'Caches', 'Kitsune', 'actualizacion');
+  if (platform().startsWith('macos')) return PathUtils.join(home(), 'Library', 'Caches', 'Kitsune', 'actualizacion');
   if (platform() === 'windows') {
     let local = null;
     try { local = Services.dirsvc.get('LocalAppData', Ci.nsIFile).path; } catch { local = Services.env.get('LOCALAPPDATA'); }
@@ -88,7 +90,7 @@ const testing = () => /^http:\/\/127\.0\.0\.1:\d{2,5}\//.test(Services.prefs.get
 /** ¿Se puede actualizar solo este Kitsune? (el paquete de Linux, una app de macOS o una instalación de Windows) */
 async function installed() {
   if (platform() === 'linux') return !!await packagedFolder();
-  if (platform() === 'macos') return !!macBundle();
+  if (platform().startsWith('macos')) return !!macBundle();
   return platform() === 'windows';
 }
 
@@ -249,7 +251,7 @@ export const KitsuneUpdater = {
     try {
       let done = false;
       if (platform() === 'linux') done = await run('/bin/sh', [PathUtils.join(folder, 'kitsune', 'instalar.sh')], 2 * MINUTE) === 0;
-      else if (platform() === 'macos') done = await installMac(folder);
+      else if (platform().startsWith('macos')) done = await installMac(folder);
       else if (platform() === 'windows') return launchWindowsInstaller(folder);
       if (done) await IOUtils.remove(folder, { recursive: true, ignoreAbsent: true });
       return done;

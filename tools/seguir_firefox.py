@@ -56,7 +56,8 @@ TESTS = ('contrast_native', 'theme_native', 'appearance_native', 'newtab_native'
 # Si aun así falta memoria, el núcleo mata antes la compilación que las aplicaciones de quien usa el PC.
 LIMITS = ['-p', 'MemoryMax=65%', '-p', 'MemorySwapMax=0', '-p', 'Nice=19', '-p', 'IOSchedulingClass=idle', '-p', 'CPUWeight=idle',
           '-p', 'OOMScoreAdjust=900']
-ASSETS = {'linux': 'Linux-x86_64.tar.xz', 'windows': 'Windows-x64.exe', 'macos': 'macOS-AppleSilicon.dmg'}
+ASSETS = {'linux': 'Linux-x86_64.tar.xz', 'windows': 'Windows-x64.exe', 'macos': 'macOS-AppleSilicon.dmg', 'macos-intel': 'macOS-Intel.dmg'}
+SYSTEMS = list(ASSETS)
 
 
 def log(message):
@@ -148,7 +149,7 @@ def release_notes(template, name, version, sums, day):
 def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument('--version', help='versión de Gecko (por defecto, la estable más nueva)')
-    parser.add_argument('--solo', choices=('linux', 'windows', 'macos'), action='append', help='solo esos sistemas')
+    parser.add_argument('--solo', choices=SYSTEMS, action='append', help='solo esos sistemas')
     parser.add_argument('--borrador', action='store_true', help='deja un borrador de versión en GitHub (nunca publica)')
     parser.add_argument('--notas', type=Path, help='notas de la versión ({release} y {gecko} se cambian); los SHA-256 se añaden solos')
     parser.add_argument('--plan', action='store_true', help='dice qué haría, sin hacer nada')
@@ -197,7 +198,7 @@ def automatic(args):
 
 
 def pipeline(args, version):
-    systems = args.solo or ['linux', 'windows', 'macos']
+    systems = args.solo or SYSTEMS
     name = release()
     state = load_state(version)
     if args.desde_cero:
@@ -256,8 +257,9 @@ def pipeline(args, version):
             ok = unit(f'paquete-{system}', [sys.executable, str(ENGINE), 'build', '--version', version, '--target', system], logfile, release=name)
             file = newest(out / system, '*.installer.exe' if system == 'windows' else '*.dmg')
             if ok and file:
-                tool = 'tools/inspect_windows_installer.py' if system == 'windows' else 'tools/inspect_macos_dmg.py'
-                ok = subprocess.run([sys.executable, tool, str(file)], cwd=ROOT, stdout=logfile.open('a'), stderr=subprocess.STDOUT).returncode == 0
+                tool = ['tools/inspect_windows_installer.py'] if system == 'windows' else \
+                    ['tools/inspect_macos_dmg.py', '--arch', 'x86_64' if system == 'macos-intel' else 'arm64']
+                ok = subprocess.run([sys.executable, *tool, str(file)], cwd=ROOT, stdout=logfile.open('a'), stderr=subprocess.STDOUT).returncode == 0
         if not ok or not file:
             return stop(f'no se ha podido hacer el paquete de {system}')
         finish(step, file=str(file))

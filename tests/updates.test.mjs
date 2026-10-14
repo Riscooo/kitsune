@@ -71,3 +71,11 @@ test('each system updates from its own package of that release, and nothing else
   assert.equal(releasePackage('android', { url: `${base}.apk`, release: '0.8.0' }, '0.8.0'), null)
   assert.deepEqual(['WINNT', 'Darwin', 'Linux', 'Android'].map(platformOf), ['windows', 'macos', 'linux', null])
 })
+
+test('an Intel Mac looks for its own download and package', () => {
+  assert.equal(platformFor('Darwin', 'x86_64-gcc3'), 'macos-intel')
+  assert.equal(platformFor('Darwin', 'aarch64-gcc3'), 'macos')
+  assert.equal(platformOf('Darwin', 'x86_64-gcc3'), 'macos-intel')
+  const url = 'https://github.com/Riscooo/kitsune/releases/download/v0.8.0/Kitsune-0.8.0-macOS-Intel.dmg'
+  assert.equal(releasePackage('macos-intel', { url, release: '0.8.0' }, '0.8.0').name, 'Kitsune-0.8.0-macOS-Intel.dmg')
+})

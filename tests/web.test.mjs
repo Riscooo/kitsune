@@ -63,3 +63,10 @@ test('the download cards use the note translator, not a variable with the same n
   assert.match(source, /const noteText = text =>/)
   assert.doesNotMatch(source, /\bnote\(file\.note\)/)
 })
+
+test('the Intel Mac download is read too, as an extra link for the macOS card', async () => {
+  const { parseDownloads, EXTRAS } = await import('../web/descargas.mjs')
+  assert.equal(EXTRAS['macos-intel'].card, 'macos')
+  const parsed = parseDownloads({ 'macos-intel': { url: 'https://github.com/Riscooo/kitsune/releases/download/v0.8.0/Kitsune-0.8.0-macOS-Intel.dmg', size: '110 MB' } }, ORIGIN)
+  assert.equal(parsed.files['macos-intel'].size, '110 MB')
+})

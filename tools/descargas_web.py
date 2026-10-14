@@ -22,6 +22,8 @@ SYSTEMS = {
     'macos': ('macOS-AppleSilicon.dmg', 'Apple Silicon · aún sin firmar'),
     'linux': ('Linux-x86_64.tar.xz', 'se instala sin sudo'),
 }
+# Los que una versión puede no traer (las anteriores a la 0.8 no tienen Mac con Intel).
+OPTIONAL = {'macos-intel': ('macOS-Intel.dmg', 'Intel · aún sin firmar')}
 
 
 def label(release):
@@ -38,9 +40,11 @@ def downloads(tag, assets):
     release = tag[1:]
     beta = '-beta.' in release
     result = {'version': label(release)}
-    for system, (suffix, note) in SYSTEMS.items():
+    for system, (suffix, note) in {**SYSTEMS, **OPTIONAL}.items():
         name = f'Kitsune-{release}-{suffix}'
         asset = next((item for item in assets if item.get('name') == name), None)
+        if asset is None and system in OPTIONAL:
+            continue
         if asset is None:
             raise ValueError(f'a la versión {tag} le falta {name}')
         url = f'https://github.com/{REPO}/releases/download/{tag}/{name}'

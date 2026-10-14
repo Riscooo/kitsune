@@ -29,6 +29,13 @@ class DownloadsTest(unittest.TestCase):
         self.assertEqual(listing['linux']['note'], 'se instala sin sudo')
         self.assertEqual(descargas.downloads('v0.8.1', assets('v0.8.1'))['version'], '0.8.1')
 
+    def test_the_intel_mac_is_listed_only_when_the_release_has_it(self):
+        with_intel = assets('v0.8.0') + [{'name': 'Kitsune-0.8.0-macOS-Intel.dmg', 'size': 115343360,
+                                          'url': f'{BASE}/v0.8.0/Kitsune-0.8.0-macOS-Intel.dmg'}]
+        listing = descargas.downloads('v0.8.0', with_intel)
+        self.assertEqual(listing['macos-intel']['size'], '110 MB')
+        self.assertNotIn('macos-intel', descargas.downloads('v0.8.0', assets('v0.8.0')))
+
     def test_missing_or_misplaced_packages_are_refused(self):
         with self.assertRaises(ValueError):
             descargas.downloads('v0.8.0', assets('v0.8.0')[1:])

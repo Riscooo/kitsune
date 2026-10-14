@@ -1213,12 +1213,13 @@ def build(layout: Layout, version=None, if_new=False, notify_user=False, log=pri
 # sus herramientas (el kit de Visual Studio y el SDK de macOS de Apple) con
 # --enable-bootstrap. Se empaquetan para la web de descarga; no se instalan ni se
 # prueban en este PC. Con la clave de Safe Browsing de Risco, si está (lo decidió él).
-TARGETS = {"windows": "x86_64-pc-windows-msvc", "macos": "aarch64-apple-darwin"}
+# macos es Apple Silicon (M1 o posterior); macos-intel, los Mac con Intel (el mismo SDK y el mismo empaquetado).
+TARGETS = {"windows": "x86_64-pc-windows-msvc", "macos": "aarch64-apple-darwin", "macos-intel": "x86_64-apple-darwin"}
 CROSS_MIN_FREE_BYTES = 24 * 2**30
 # Si ya hay una compilación anterior para ese sistema, solo se recompila lo que cambia.
 CROSS_REBUILD_MIN_FREE_BYTES = 8 * 2**30
 # Windows: el paquete .zip y el instalador .exe que arma `mach package` (NSIS).
-TARGET_ARTIFACTS = {"windows": ("*.win64.zip", "*.win64.installer.exe"), "macos": ("*.mac.dmg",)}
+TARGET_ARTIFACTS = {"windows": ("*.win64.zip", "*.win64.installer.exe"), "macos": ("*.mac.dmg",), "macos-intel": ("*.mac.dmg",)}
 
 
 # Programas de Arch que solo hacen falta al compilar para Windows: msiextract
@@ -1231,6 +1232,9 @@ ARCH_TOOLS = {
     ),
     # macOS: Gecko monta el .app con rsync.
     "macos": (
+        ("rsync", ("rsync",), ("rsync",)),
+    ),
+    "macos-intel": (
         ("rsync", ("rsync",), ("rsync",)),
     ),
 }
@@ -1249,7 +1253,7 @@ LD_LIBRARY_PATH="$here/usr/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}" exec "$here
 
 def cross_tools(layout: Layout, tools: Path, target: str, log=print, run=subprocess.run) -> None:
     """Programas que solo hacen falta al compilar para otro sistema."""
-    if target == "macos":
+    if target.startswith("macos"):
         root = layout.private(layout.cache / "toolchain") / f"rcodesign-{RCODESIGN_VERSION}"
         if not (root / "rcodesign").is_file():
             log(f"Preparando rcodesign {RCODESIGN_VERSION} (firma de la app de macOS)")
@@ -1375,7 +1379,7 @@ def write_target_mozconfig(layout: Layout, version: str, target: str) -> Path:
     if target == "windows":
         # Sin el agente del navegador predeterminado (tarea programada que informa a Mozilla).
         text += "ac_add_options --disable-default-browser-agent\n"
-    if target == "macos":
+    if target.startswith("macos"):
         # La app se identifica como io.github.riscooo.kitsune, no como org.mozilla.kitsune.
         text += "ac_add_options --with-distribution-id=io.github.riscooo\n"
     if SAFEBROWSING_KEY.is_file():
@@ -1459,11 +1463,11 @@ def finish_windows_package(layout: Layout, version: str, source: Path, env, logf
 
 
 def finish_macos_package(layout: Layout, version: str, source: Path, env, logfile: Path, log=print, run=subprocess.run,
-                         addons=distribution_addons):
+                         addons=distribution_addons, target="macos"):
     """Lo que en Linux se añade al instalar el motor, dentro de la app de macOS: kitsune.cfg
     con su cargador y uBlock Origin. Luego se firma ad hoc y se rehace el .dmg con el fondo,
     la colocación de los iconos y el icono del disco de Kitsune."""
-    dist = layout.cache / f"obj-{version}-macos" / "dist"
+    dist = layout.cache / f"obj-{version}-{target}" / "dist"
     staged = [app for app in sorted(dist.glob("*/*.app"))
               if app.parent.name != "bin" and (app / "Contents/Resources").is_dir() and not (app / "Contents/MacOS").is_symlink()
               and not any(path.is_symlink() for path in (app / "Contents/MacOS").iterdir())]
@@ -1578,8 +1582,8 @@ def build_target(layout: Layout, version: str, target: str, log=print, run=subpr
             mach(source, ["package-multi-locale", "--locales", "en-US", *L10N_LOCALES], env, logfile, run)
             if target == "windows":
                 finish_windows_package(layout, version, source, env, logfile, log, run)
-            if target == "macos":
-                finish_macos_package(layout, version, source, env, logfile, log, run)
+            if target.startswith("macos"):
+                finish_macos_package(layout, version, source, env, logfile, log, run, target=target)
             dist = layout.cache / f"obj-{version}-{target}" / "dist"
             out = layout.private(layout.cache / "packages" / target)
             ready = []

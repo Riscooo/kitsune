@@ -597,7 +597,7 @@ class TargetTests(unittest.TestCase):
             self.assertIn(f"obj-157.0.1-{target}", text)
             self.assertEqual("safebrowsing-api-keyfile" in text, engine.SAFEBROWSING_KEY.is_file())
             self.assertEqual("--disable-default-browser-agent" in text, target == "windows")
-            self.assertEqual("--with-distribution-id=io.github.riscooo" in text, target == "macos")
+            self.assertEqual("--with-distribution-id=io.github.riscooo" in text, target.startswith("macos"))
         with self.assertRaises(engine.EngineError):
             engine.build_target(layout, "157.0.1", "beos")
 

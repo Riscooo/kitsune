@@ -162,6 +162,8 @@ kbd { display: inline-block; min-width: 1.6em; padding: 0 5px; border: 1px solid
 .keys { white-space: nowrap; }
 .grid-section > .eyebrow { margin-bottom: 14px; }
 .tabs-shot { margin: 0 0 28px; }
+.platform-alt { display: block; margin-top: 10px; color: var(--muted); font-size: 13px; text-decoration: underline; text-underline-offset: 3px; }
+.platform-alt:hover { color: var(--accent); }
 
 /* Tintas: un inicio en miniatura por tinta, mitad Claro y mitad Oscuro. */
 .tintas { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px 14px; margin: 0; padding: 0; list-style: none; }

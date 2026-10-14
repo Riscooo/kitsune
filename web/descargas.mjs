@@ -4,6 +4,9 @@ export const PLATFORMS = {
   macos: { name: 'macOS' },
   linux: { name: 'Linux' },
 }
+// Descargas que no tienen tarjeta propia: van como enlace en la de su sistema. Desde la web no se
+// sabe si un Mac es Intel o Apple Silicon (los dos dicen «Intel Mac» en su identificación).
+export const EXTRAS = { 'macos-intel': { name: 'macOS (Intel)', card: 'macos' } }
 
 /** El sistema de quien visita, para el botón grande. */
 export function detectPlatform(agent = navigator.userAgent, platform = navigator.userAgentData?.platform ?? navigator.platform ?? '') {
@@ -18,7 +21,7 @@ export function detectPlatform(agent = navigator.userAgent, platform = navigator
 /** downloads.json: solo enlaces del propio sitio o https de GitHub, con versión, tamaño y nota opcionales. */
 export function parseDownloads(value, origin) {
   const result = { version: typeof value?.version === 'string' ? value.version.slice(0, 20) : null, files: {} }
-  for (const key of Object.keys(PLATFORMS)) {
+  for (const key of [...Object.keys(PLATFORMS), ...Object.keys(EXTRAS)]) {
     const entry = value?.[key]
     if (!entry || typeof entry.url !== 'string') continue
     let url

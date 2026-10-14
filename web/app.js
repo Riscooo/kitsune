@@ -1,5 +1,5 @@
 // Web de descarga de Kitsune: tema con la veta de tinta y los botones de descarga.
-import { PLATFORMS, detectPlatform, parseDownloads } from './descargas.mjs'
+import { EXTRAS, PLATFORMS, detectPlatform, parseDownloads } from './descargas.mjs'
 
 const INK_MS = 1200
 const INK_EASING = 'cubic-bezier(.65, 0, .35, 1)'
@@ -10,9 +10,11 @@ const ENGLISH = root.lang === 'en'
 const TEXT = ENGLISH ? {
   toLight: 'Switch to the light theme', toDark: 'Switch to the dark theme', download: 'Download', downloadFor: name => `Download for ${name}`,
   allReady: 'These are betas: if something breaks, tell us on GitHub.', someReady: 'If your system still says «Coming soon», it is nearly there.', version: 'Version',
+  intel: size => `Mac with Intel? Download it here${size ? ` · ${size}` : ''}`,
 } : {
   toLight: 'Cambiar a tema claro', toDark: 'Cambiar a tema oscuro', download: 'Descargar', downloadFor: name => `Descargar para ${name}`,
   allReady: 'Son betas: si algo falla, cuéntanoslo en GitHub.', someReady: 'Si tu sistema aún pone «Próximamente», ya casi está.', version: 'Versión',
+  intel: size => `¿Mac con Intel? Descárgalo aquí${size ? ` · ${size}` : ''}`,
 }
 // Las notas de downloads.json van en castellano.
 const NOTES_EN = [['aún sin firmar', 'not signed yet'], ['se instala sin sudo', 'installs without sudo']]
@@ -62,7 +64,18 @@ function render({ version, files }) {
       button.after(note)
     }
   }
-  const ready = Object.keys(files).length
+  // El Mac con Intel, como enlace en la tarjeta de macOS.
+  for (const [key, extra] of Object.entries(EXTRAS)) {
+    const file = files[key]
+    const card = document.querySelector(`.platform[data-platform=${extra.card}]`)
+    if (!file || !card) continue
+    const link = document.createElement('a')
+    link.className = 'platform-alt'
+    link.href = file.url
+    link.textContent = TEXT.intel(file.size)
+    card.append(link)
+  }
+  const ready = Object.keys(files).filter(key => Object.hasOwn(PLATFORMS, key)).length
   if (ready) document.querySelector('#downloads-note').textContent = ready === Object.keys(PLATFORMS).length
     ? TEXT.allReady
     : TEXT.someReady
