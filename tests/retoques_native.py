@@ -58,8 +58,8 @@ def main():
         assert before['margin'] == '0px' and before['center'] != 'center' and before['extensions'] != 'none', before
         for name in ('flotante', 'centrada', 'sinextensiones'):
             assert chrome(TOGGLE, name) is True
-        after = eventually(lambda: (value := chrome(LOOK))['margin'] == '8px' and value, timeout=5)
-        assert after['radius'] != '0px' and after['center'] == 'center' and after['extensions'] == 'none', after
+        after = eventually(lambda: (value := chrome(LOOK))['margin'] == '8px' and value['extensions'] == 'none' and value, timeout=5)
+        assert after['radius'] != '0px' and after['center'] == 'center', after
         chrome("document.getElementById('kitsune-retoques-panel').hidePopup()")
         time.sleep(0.5)
         driver.screenshot('flotante.png', chrome=True)
