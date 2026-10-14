@@ -93,6 +93,8 @@ install -m 755 "${repo}/install/kitsune-browser" "${bin}/kitsune-browser"
 for unit in kitsune-home.service kitsune-home@.service kitsune-engine-update.service kitsune-engine-update.timer; do
     install -m 644 "${repo}/install/${unit}" "${units}/${unit}"
 done
+# La comprobación diaria usa las herramientas de este repositorio (tools/seguir_firefox.py --auto).
+sed -i "s|@REPO@|${repo}|g" "${units}/kitsune-engine-update.service"
 systemctl --user daemon-reload
 systemctl --user enable --now kitsune-engine-update.timer
 systemctl --user try-restart kitsune-home.service 'kitsune-home@*.service'

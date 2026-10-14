@@ -1,11 +1,15 @@
 [Unit]
-Description=Kitsune: compila su motor propio si hay una versión nueva de Gecko
+Description=Kitsune: motor propio al día y, con un Gecko nuevo, sus paquetes y un borrador de versión
 After=network-online.target
 Wants=network-online.target
 
 [Service]
 Type=oneshot
-ExecStart=/usr/bin/python3 %h/.local/share/kitsune-browser/kitsune-engine.py build --if-new --notify
+# install.sh pone aquí la carpeta del repositorio. tools/seguir_firefox.py --auto compila el
+# motor de este PC si hay Gecko o receta nuevos y, con un Gecko nuevo, los paquetes de Linux,
+# Windows y macOS, sus pruebas y un borrador en GitHub (nunca publica). Cada paso va en su
+# propia unidad con los límites de abajo; este proceso solo los encadena.
+ExecStart=/usr/bin/python3 @REPO@/tools/seguir_firefox.py --auto
 # Prioridad mínima de CPU y disco: compilar no debe notarse mientras se usa el PC.
 Nice=19
 IOSchedulingClass=idle
@@ -16,4 +20,5 @@ MemoryMax=65%
 MemorySwapMax=0
 # Y si aun así falta memoria en el PC, el núcleo mata antes la compilación que tus aplicaciones.
 OOMScoreAdjust=900
-TimeoutStartSec=6h
+# Los tres sistemas desde cero pueden llevar más de un día con prioridad mínima.
+TimeoutStartSec=infinity

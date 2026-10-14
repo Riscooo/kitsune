@@ -11,7 +11,13 @@ uno detrás de otro para no congelar el ordenador:
   4. paquete de Linux (.tar.xz), y Windows y macOS compilados desde Linux y revisados por dentro;
   5. con --borrador, un borrador de versión en GitHub con los tres paquetes y sus SHA-256.
 
-Nunca publica: el borrador lo publica una persona (el «visto bueno»). Si se corta (un apagón,
+Nunca publica: el borrador lo publica una persona (el «visto bueno»).
+
+Con --auto (lo lanza cada día kitsune-engine-update.timer) hace todo eso solo: primero el
+motor de este PC si hay Gecko o receta nuevos (como siempre) y, si el Gecko estable más nuevo
+aún no tiene borrador, los tres paquetes, sus pruebas y el borrador. La versión sale de
+version.json sin tocarlo: la primera beta del código si va por delante de lo publicado (0.8.0 →
+0.8.0-beta.1) y, mientras ya exista en GitHub, la siguiente (beta N → beta N+1, x.y.z → x.y.z+1). Solo con el repositorio en main y sin cambios a medias. Si se corta (un apagón,
 un reinicio), al volver a lanzarlo sigue donde iba: el estado vive en
 ~/.local/state/kitsune-browser/seguir-firefox.json. La versión que se publica es la de
 install/version.json («release»); el borrador se niega si esa versión ya existe en GitHub.
@@ -30,6 +36,7 @@ import hashlib
 import json
 import os
 from pathlib import Path
+import re
 import shutil
 import subprocess
 import sys
@@ -68,13 +75,14 @@ def save_state(state):
     STATE.write_text(json.dumps(state, indent=2, ensure_ascii=False) + '\n')
 
 
-def unit(name, command, logfile):
+def unit(name, command, logfile, release=None):
     """Una orden en su unidad de systemd con límites, esperando a que acabe; True si sale bien."""
     with logfile.open('a') as out:
         out.write(f'\n=== {datetime.datetime.now().isoformat(timespec="seconds")} {" ".join(command)}\n')
         out.flush()
+        setenv = [f'--setenv=KITSUNE_RELEASE={release}'] if release else []
         result = subprocess.run(['systemd-run', '--user', '--wait', '--pipe', '--collect', '--quiet', f'--unit=kitsune-seguir-{name}',
-                                 f'--working-directory={ROOT}', *LIMITS, *command], stdout=out, stderr=subprocess.STDOUT)
+                                 f'--working-directory={ROOT}', *LIMITS, *setenv, *command], stdout=out, stderr=subprocess.STDOUT)
     return result.returncode == 0
 
 
@@ -83,7 +91,40 @@ def latest():
 
 
 def release():
-    return json.loads((ROOT / 'install/version.json').read_text())['release']
+    return os.environ.get('KITSUNE_RELEASE') or json.loads((ROOT / 'install/version.json').read_text())['release']
+
+
+RELEASE = re.compile(r'(\d+)\.(\d+)\.(\d+)(?:-beta\.(\d+))?')
+
+
+def next_release(release):
+    """La versión que sigue a una publicada, para un Gecko nuevo: beta N → beta N+1; x.y.z → x.y.z+1."""
+    match = RELEASE.fullmatch(release or '')
+    if not match:
+        raise ValueError(f'versión no válida: {release!r}')
+    major, minor, patch, beta = match.groups()
+    return f'{major}.{minor}.{patch}-beta.{int(beta) + 1}' if beta else f'{major}.{minor}.{int(patch) + 1}'
+
+
+def auto_release(code, release, is_published):
+    """El nombre de un borrador automático: si el código (version) va por delante de lo publicado
+    (release), su primera beta; si no, la versión publicada. Y, mientras ya exista, la siguiente."""
+    numbers = lambda text: tuple(int(n) for n in RELEASE.fullmatch(text).groups()[:3])
+    candidate = f'{code}-beta.1' if numbers(code) > numbers(release) else release
+    while is_published(candidate):
+        candidate = next_release(candidate)
+    return candidate
+
+
+def published(tag):
+    return subprocess.run(['gh', 'release', 'view', tag, '-R', REPO], capture_output=True).returncode == 0
+
+
+def clean_main():
+    """¿Está el repositorio en main y sin cambios a medias? (un borrador nunca sale de trabajo sin guardar)"""
+    branch = subprocess.run(['git', '-C', str(ROOT), 'rev-parse', '--abbrev-ref', 'HEAD'], capture_output=True, text=True).stdout.strip()
+    dirty = subprocess.run(['git', '-C', str(ROOT), 'status', '--porcelain', '--untracked-files=no'], capture_output=True, text=True).stdout.strip()
+    return branch == 'main' and not dirty
 
 
 def newest(folder, pattern):
@@ -110,13 +151,53 @@ def main():
     parser.add_argument('--borrador', action='store_true', help='deja un borrador de versión en GitHub (nunca publica)')
     parser.add_argument('--notas', type=Path, help='notas de la versión ({release} y {gecko} se cambian); los SHA-256 se añaden solos')
     parser.add_argument('--plan', action='store_true', help='dice qué haría, sin hacer nada')
+    parser.add_argument('--auto', action='store_true', help='lo de cada día: motor de este PC y, con Gecko nuevo, paquetes y borrador')
     parser.add_argument('--desde-cero', action='store_true', help='olvida lo hecho para esta versión')
     args = parser.parse_args()
-    version = args.version or latest()
-    systems = args.solo or ['linux', 'windows', 'macos']
-    name = release()
     if args.notas and not args.notas.is_file():
         parser.error(f'no existe {args.notas}')
+    if args.auto:
+        return automatic(args)
+    return pipeline(args, args.version or latest())
+
+
+def automatic(args):
+    """Lo de cada día (kitsune-engine-update.service): el motor de este PC y, con Gecko nuevo, el borrador."""
+    logfile = Path(tempfile.gettempdir()) / 'kitsune-seguir-auto.log'
+    if args.plan:
+        version = latest()
+        state = load_state(version)
+        info = json.loads((ROOT / 'install/version.json').read_text())
+        name = state.get('release') or auto_release(info['version'], info['release'], lambda name: published(f'v{name}'))
+        log(f'Gecko estable: {version} · borrador: {"hecho" if "borrador" in state["done"] else "falta"} · '
+            f'versión: {name} · repositorio en main y sin cambios: {"sí" if clean_main() else "no (no habría borrador)"}')
+        return 0
+    # Como siempre: el motor de este PC, si hay Gecko o receta nuevos (si no, no hace nada).
+    if not unit('motor-diario', [sys.executable, str(ENGINE), 'build', '--if-new', '--notify'], logfile):
+        log(f'PARADO: no se ha podido preparar el motor de este PC (registro: {logfile})')
+        return 1
+    version = latest()
+    state = load_state(version)
+    if 'borrador' in state['done']:
+        log(f"Gecko {version} ya tiene su borrador: {state['done']['borrador'].get('url', '')}")
+        return 0
+    if not clean_main():
+        log('El repositorio no está en main o tiene cambios a medias: no se prepara ningún borrador.')
+        return 0
+    if 'release' not in state:
+        info = json.loads((ROOT / 'install/version.json').read_text())
+        state['release'] = auto_release(info['version'], info['release'], lambda name: published(f'v{name}'))
+        save_state(state)
+    os.environ['KITSUNE_RELEASE'] = state['release']
+    args.solo, args.borrador, args.plan = None, True, False
+    notes = ROOT / 'docs/notas' / f"{state['release']}.md"
+    args.notas = args.notas or (notes if notes.is_file() else None)
+    return pipeline(args, version)
+
+
+def pipeline(args, version):
+    systems = args.solo or ['linux', 'windows', 'macos']
+    name = release()
     state = load_state(version)
     if args.desde_cero:
         state = {'version': version, 'done': {}}
@@ -168,10 +249,10 @@ def main():
             continue
         log(f'Paquete para {system}…')
         if system == 'linux':
-            ok = unit('paquete-linux', [sys.executable, str(ENGINE), 'package-linux', '--version', version], logfile)
+            ok = unit('paquete-linux', [sys.executable, str(ENGINE), 'package-linux', '--version', version], logfile, release=name)
             file = newest(out / 'linux', f'Kitsune-{name}-Linux-x86_64.tar.xz')
         else:
-            ok = unit(f'paquete-{system}', [sys.executable, str(ENGINE), 'build', '--version', version, '--target', system], logfile)
+            ok = unit(f'paquete-{system}', [sys.executable, str(ENGINE), 'build', '--version', version, '--target', system], logfile, release=name)
             file = newest(out / system, '*.installer.exe' if system == 'windows' else '*.dmg')
             if ok and file:
                 tool = 'tools/inspect_windows_installer.py' if system == 'windows' else 'tools/inspect_macos_dmg.py'

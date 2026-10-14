@@ -191,10 +191,14 @@ Pruebas con el motor real: `vertical_tabs_native.py`, `spaces_native.py`,
   propio, sin actualizador de Mozilla ni informe de fallos) y lo instala en
   `~/.local/share/kitsune-browser/engine/<versión>-<huella>/`. Solo se activa
   (`engine/current`) tras una prueba de humo sin ventana.
-- **Actualización automática.** `kitsune-engine-update.timer` comprueba cada día
-  la versión estable de Gecko y, si hay una nueva, compila con prioridad mínima de
-  CPU y disco y avisa al terminar. La ventana abierta sigue con su motor; la
-  siguiente apertura usa el nuevo. Se guardan el motor activo y el anterior.
+- **Actualización automática.** `kitsune-engine-update.timer` lanza cada día
+  `tools/seguir_firefox.py --auto`: si hay un Gecko estable o una receta nuevos,
+  compila el motor de este PC con prioridad mínima de CPU y disco y avisa al
+  terminar. La ventana abierta sigue con su motor; la siguiente apertura usa el
+  nuevo. Se guardan el motor activo y el anterior. Con un Gecko nuevo, y si el
+  repositorio está en `main` sin cambios a medias, prepara además los paquetes de
+  Linux, Windows y macOS, pasa las pruebas y deja un borrador de versión en GitHub
+  (la siguiente beta o la siguiente versión menor); publicarlo es el visto bueno.
   `kitsune-browser --actualizar-motor` y `--estado-motor` lo hacen a mano.
 - **Modos de privacidad por perfil**, en Perfiles → Editar: **Estricto** (el de
   siempre: borra cookies y sesiones al cerrar salvo Google si lo pides, HTTPS

@@ -28,5 +28,29 @@ class ReleaseNotesTest(unittest.TestCase):
         self.assertIn(f"- `K.dmg`: `{'c' * 64}`", notes)
 
 
+class AutomaticTest(unittest.TestCase):
+    def test_a_new_gecko_alone_gets_the_next_beta_or_the_next_patch_release(self):
+        self.assertEqual(seguir.next_release('0.8.0-beta.1'), '0.8.0-beta.2')
+        self.assertEqual(seguir.next_release('0.8.0-beta.9'), '0.8.0-beta.10')
+        self.assertEqual(seguir.next_release('0.8.0'), '0.8.1')
+        for bad in ('', None, '0.8', '0.8.0-rc.1', '0.8.0-beta.1; rm -rf /'):
+            with self.assertRaises(ValueError):
+                seguir.next_release(bad)
+
+    def test_the_automatic_name_starts_the_code_version_betas_and_skips_published_ones(self):
+        out = {'0.7.0-beta.6', '0.8.0-beta.1'}
+        self.assertEqual(seguir.auto_release('0.8.0', '0.7.0-beta.6', out.__contains__), '0.8.0-beta.2')
+        self.assertEqual(seguir.auto_release('0.8.0', '0.7.0-beta.6', set().__contains__), '0.8.0-beta.1')
+        # El código no ha cambiado de versión: solo un Gecko nuevo sobre lo publicado.
+        self.assertEqual(seguir.auto_release('0.8.0', '0.8.0', {'0.8.0'}.__contains__), '0.8.1')
+        self.assertEqual(seguir.auto_release('0.7.0', '0.7.0-beta.6', out.__contains__), '0.7.0-beta.7')
+
+    def test_the_daily_unit_runs_the_automatic_follow_up_from_the_repository(self):
+        unit = (ROOT / 'install/kitsune-engine-update.service').read_text()
+        self.assertIn('ExecStart=/usr/bin/python3 @REPO@/tools/seguir_firefox.py --auto', unit)
+        self.assertIn('OOMScoreAdjust=900', unit)
+        self.assertIn('s|@REPO@|${repo}|g', (ROOT / 'install/install.sh').read_text())
+
+
 if __name__ == '__main__':
     unittest.main()

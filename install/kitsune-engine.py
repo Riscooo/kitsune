@@ -1387,8 +1387,11 @@ def write_target_mozconfig(layout: Layout, version: str, target: str) -> Path:
 
 
 def published_release() -> str:
-    """La versión que se publica (version.json → release), p. ej. 0.7.0-beta.5."""
-    release = json.loads((HERE / "version.json").read_text()).get("release")
+    """La versión que se publica (version.json → release), p. ej. 0.7.0-beta.5.
+
+    tools/seguir_firefox.py --auto la cambia con KITSUNE_RELEASE para una versión que solo trae
+    un Gecko nuevo (0.8.0-beta.1 → 0.8.0-beta.2), sin tocar version.json."""
+    release = os.environ.get("KITSUNE_RELEASE") or json.loads((HERE / "version.json").read_text()).get("release")
     if not isinstance(release, str) or not re.fullmatch(r"\d+\.\d+\.\d+(?:-beta\.\d+)?", release):
         raise EngineError("version.json no dice qué versión se publica (release)")
     return release
