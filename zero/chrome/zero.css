@@ -259,7 +259,7 @@
 #main-window[zero] #nav-bar-customization-target { height: 32px !important; padding: 0 !important; gap: 0 !important; align-items: center !important; }
 
 /* Solo atrás, adelante, recargar, la dirección, las extensiones (si Gecko las enseña) y el menú; lo demás, fuera de Zero. */
-#main-window[zero] #nav-bar > :not(#nav-bar-customization-target, #PanelUI-button, #unified-extensions-button, #zero-host, #zero-island-msg, #zero-island-progress, toolbartabstop),
+#main-window[zero] #nav-bar > :not(#nav-bar-customization-target, #PanelUI-button, #unified-extensions-button, #zero-host, #zero-island-msg, #zero-island-progress, .zero-anchor, toolbartabstop),
 #main-window[zero] #nav-bar-customization-target > :not(#back-button, #forward-button, #stop-reload-button, #urlbar-container, #unified-extensions-button) { display: none !important; }
 
 /* Los botones: fuera en reposo; al abrirse la isla entran cuando ya ha empezado a crecer (forma
@@ -332,7 +332,18 @@
   background-color: currentColor !important; mask: url("chrome://global/skin/icons/security.svg") center / 12px no-repeat !important;
   transition: width var(--zero-t-morph) var(--zero-calm), opacity var(--zero-t-fade) var(--zero-soft) !important;
 }
-#main-window[zero] #navigator-toolbox[zero-island="open"] #zero-host[secure] .zero-lock { width: 12px !important; opacity: .8 !important; }
+/* Abierta, el candado de la web (roto si no es https) se puede pulsar: abre la información de la web.
+   El hueco que se pulsa es algo mayor que el icono. */
+#main-window[zero] #navigator-toolbox[zero-island="open"] #zero-host[site] .zero-lock {
+  width: 12px !important; opacity: .8 !important;
+  padding: 5px !important; margin: -5px !important; box-sizing: content-box !important;
+  pointer-events: auto !important; cursor: pointer !important;
+}
+#main-window[zero] #navigator-toolbox[zero-island="open"] #zero-host[site] .zero-lock:hover { opacity: 1 !important; }
+/* De donde cuelgan los paneles que se abren desde la isla (la información de la web). */
+#main-window[zero] #nav-bar > .zero-anchor { position: absolute !important; top: 0 !important; bottom: 0 !important; width: 1px !important; opacity: 0 !important; pointer-events: none !important; }
+#main-window[zero] #zero-host[site="insecure"] .zero-lock { mask-image: url("chrome://global/skin/icons/security-broken.svg") !important; }
+#main-window[zero] #navigator-toolbox[zero-icons][zero-island="open"] #zero-host[site] .zero-host-icon { pointer-events: auto !important; cursor: pointer !important; }
 /* De qué usuario es la web (Kitsune los lleva en contenedores): un punto de su tinta; con la isla
    abierta, una pastilla con su nombre. El usuario base no lleva nada. */
 #main-window[zero] #zero-host .zero-user {

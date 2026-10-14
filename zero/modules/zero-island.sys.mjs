@@ -20,14 +20,15 @@ const el = (doc, tag, attributes = {}, children = []) => {
   return node;
 };
 
-/** Lo que dice la isla en reposo: el dominio de la web, o el título si no es una web (el inicio, about:…). */
+/** Lo que dice la isla en reposo: el dominio de la web, o el título si no es una web (el inicio, about:…).
+ *  `site`: 'secure' (https), 'insecure' (http) o null si no es una web. */
 function label(win) {
   const browser = win.gBrowser.selectedBrowser;
   try {
     const uri = browser.currentURI;
-    if (/^https?$/.test(uri.scheme) && uri.host) return { text: uri.host.replace(/^www\./, ''), secure: uri.scheme === 'https' };
+    if (/^https?$/.test(uri.scheme) && uri.host) return { text: uri.host.replace(/^www\./, ''), site: uri.scheme === 'https' ? 'secure' : 'insecure' };
   } catch { /* sin dirección */ }
-  return { text: win.gBrowser.selectedTab.label || '', secure: false };
+  return { text: win.gBrowser.selectedTab.label || '', site: null };
 }
 
 export function attach(win, ctx = {}) {
@@ -55,9 +56,10 @@ export function attach(win, ctx = {}) {
   const user = el(doc, 'span', { class: 'zero-user' });
   st.host.append(icon, user, lock, text);
   const update = () => {
-    const { text: value, secure } = label(win);
+    const { text: value, site } = label(win);
     text.textContent = value;
-    st.host.toggleAttribute('secure', secure);
+    st.host.toggleAttribute('secure', site === 'secure');
+    if (site) st.host.setAttribute('site', site); else st.host.removeAttribute('site');
     const who = userOf(win, win.gBrowser.selectedTab);
     st.host.toggleAttribute('user', !!who);
     paintUser(user, who);
@@ -67,6 +69,27 @@ export function attach(win, ctx = {}) {
     if (icon.getAttribute('src') !== (src || NO_ICON)) icon.setAttribute('src', src || NO_ICON);
   };
   update();
+  // La información de la web (permisos, cookies, certificado): con la isla abierta, el candado (o el
+  // icono, con «solo iconos») se pulsa. El panel de Gecko se ancla al candado de su barra, que en Zero
+  // no se ve: se le presta el de la isla solo mientras se abre.
+  const siteInfo = event => {
+    const handler = win.gIdentityHandler;
+    if (!handler || event.button !== 0 || !st.host.hasAttribute('site') || toolbox.getAttribute('zero-island') !== 'open') return;
+    event.preventDefault();
+    // Si se escribió algo en la isla y se dejó sin ir, Gecko no abre el panel: la isla en reposo ya
+    // enseña la web de verdad, así que la barra vuelve a ella.
+    if (win.gURLBar.getAttribute('pageproxystate') !== 'valid' && !win.gURLBar.focused) win.gURLBar.handleRevert();
+    // El ancla: un punto del alto de la isla bajo lo pulsado, para que el panel salga debajo de ella.
+    const from = event.currentTarget.getBoundingClientRect(), bar = navbar.getBoundingClientRect();
+    st.anchor.style.left = `${from.left - bar.left}px`;
+    const own = handler._identityIconBox;
+    handler._identityIconBox = st.anchor;
+    try { handler.handleIdentityButtonEvent(event); } finally { handler._identityIconBox = own; }
+  };
+  st.anchor = el(doc, 'span', { class: 'zero-anchor', 'aria-hidden': 'true' });
+  navbar.append(st.anchor);
+  st.cleanups.push(() => st.anchor.remove());
+  for (const part of [lock, icon]) part.addEventListener('click', siteInfo);
   listen(win.gBrowser.tabContainer, 'TabSelect', update);
   listen(win.gBrowser.tabContainer, 'TabAttrModified', update);
   const progress = { onLocationChange: () => update() };

@@ -13,6 +13,9 @@
     redondas y filas redondeadas.
 11. Con «solo iconos», la isla en reposo es una pastilla pequeña con el icono de la web y sin texto, y
     abierta enseña los botones sin el dominio.
+12. Abierta, lleva el candado de la web (roto si no es https) y al pulsarlo sale la información de la
+    web de Gecko (permisos, cookies, certificado) bajo la isla, que sigue abierta mientras tanto.
+    Pulsar el dominio sigue siendo para escribir.
 
 --zero-del-repo: Zero sale de zero/ del repositorio (ver zero_harness.py).
 """
@@ -197,6 +200,35 @@ def main():
         chrome("Services.prefs.setBoolPref('kitsune.zero.islandIcons', false)")
         until(lambda: sized(176) and chrome(icons)['text'], timeout=5)
         check('Con «solo iconos», la isla es una pastilla pequeña con el icono de la web, sin texto')
+
+        def click(selector):
+            driver.context('chrome')
+            element = driver.command('POST', '/element', {'using': 'css selector', 'value': selector})
+            driver.command('POST', '/actions', {'actions': [{'type': 'pointer', 'id': 'raton', 'parameters': {'pointerType': 'mouse'},
+                'actions': [{'type': 'pointerMove', 'origin': element, 'x': 0, 'y': 0}, {'type': 'pointerDown', 'button': 0}, {'type': 'pointerUp', 'button': 0}]}]})
+        site = """const p = gIdentityHandler._identityPopup; const lock = document.querySelector('#zero-host .zero-lock'); const l = lock.getBoundingClientRect();
+            const r = p?.getBoundingClientRect() ?? {}; const n = document.getElementById('nav-bar').getBoundingClientRect();
+            return { state: p?.state ?? 'closed', anchored: !!p && !!p.anchorNode && document.getElementById('nav-bar').contains(p.anchorNode), lock: l.width, top: r.top, islandBottom: n.bottom, island: document.getElementById('navigator-toolbox').getAttribute('zero-island') };"""
+        hover('nav-bar')
+        until(lambda: sized(400) and chrome(site)['lock'] >= 10, timeout=5)
+        click('#zero-host .zero-lock')
+        try:
+            until(lambda: (q := chrome(site))['state'] == 'open' and q['anchored'] and q['islandBottom'] - 2 <= q['top'] <= q['islandBottom'] + 30, timeout=5)
+            away()
+            time.sleep(0.6)
+            assert chrome(site)['island'] == 'open', chrome(site)
+        except AssertionError:
+            raise AssertionError(f'información de la web: {chrome(site)}') from None
+        chrome("PanelMultiView.hidePopup(gIdentityHandler._identityPopup)")
+        until(lambda: chrome(site)['state'] == 'closed' and sized(176), timeout=5)
+        hover('nav-bar')
+        until(lambda: sized(400), timeout=5)
+        click('#zero-host .zero-host-text')
+        until(lambda: island()['state'] == 'typing', timeout=5)
+        chrome("gURLBar.handleRevert(); gBrowser.selectedBrowser.focus();")
+        away()
+        until(lambda: sized(176), timeout=5)
+        check('Abierta, el candado abre la información de la web bajo la isla; el dominio sigue siendo para escribir')
 
         chrome("ChromeUtils.importESModule('chrome://browser/content/zero/zero-island.sys.mjs').alert(window, 'Tres avisos esperando', 'te los enseño en el descanso', 1500, 'quiet')")
         until(lambda: sized(470) and clear_of_card(), timeout=5)
