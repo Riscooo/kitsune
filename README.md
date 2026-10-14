@@ -124,9 +124,11 @@ navegar. 0.8 trae lo que hace que la gente use Zen y lo que Zen no tiene.
 
 Pruebas con el motor real: `vertical_tabs_native.py`, `spaces_native.py`,
 `layout_native.py`, `glance_native.py`, `palette_native.py`, `import_native.py`,
-`saver_native.py`, `english_native.py`, `locale_native.py` y `updater_native.py`, además de
-las unitarias de cada módulo (`native_*.test.mjs`). Todas a la vez:
-`python3 tools/pruebas_nativas.py`.
+`saver_native.py`, `english_native.py`, `locale_native.py`, `updater_native.py`,
+`copia_native.py`, `bienvenida_native.py`, `media_native.py`, `keys_native.py` y
+`retoques_native.py`, además de las unitarias de cada módulo (`native_*.test.mjs`). Todas a
+la vez: `python3 tools/pruebas_nativas.py`. Un módulo nuevo se puede probar antes de
+compilar cargándolo desde el disco con una sustitución `resource://` y su `decorate(window)`.
 
 ## Qué cambia en 0.7
 
