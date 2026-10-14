@@ -1,8 +1,10 @@
 """Kitsune Zero en el motor real: encender y apagar por ventana (perfil temporal, sin ventana en pantalla).
 
 1. Ctrl+Alt+0 pone Zero en la ventana (atributo «zero» y su hoja de estilo) y lo quita.
-2. Otra ventana abierta no cambia.
-3. Con kitsune.zero.always, una ventana nueva nace en Zero.
+2. Otra ventana ya abierta no cambia.
+3. Una ventana nueva nace como la ventana desde la que se abre (Ctrl+N en una en Zero, en Zero; en una
+   normal, normal); con «Ventanas nuevas: normales» (kitsune.zero.inherit = false), siempre normal; y
+   con kitsune.zero.always, siempre en Zero.
 4. La ventana recuerda Zero para la próxima sesión (SessionStore) y lo olvida al apagarlo.
 5. Al apagarlo no queda nada de Zero: ni nodos «zero-…», ni atributos «zero…» en ningún nodo, ni
    variables «--zero-…» en la raíz.
@@ -63,13 +65,17 @@ def main():
         eventually(lambda: chrome("return !!document.getElementById('kitsune-zero-key')"), timeout=10)
         assert state()['zero'] is False and state()['sheet'] == '', state()
 
+        # Otra ventana, ya abierta antes de encender Zero en esta.
+        chrome("OpenBrowserWindow()")
+        eventually(lambda: len(chrome(STATE, ['all'])) == 2, timeout=15)
+        eventually(lambda: chrome("return [...Services.wm.getEnumerator('navigator:browser')].every(w => w.document.getElementById('kitsune-zero-key'))"), timeout=15)
+        chrome("window.focus()")
+        eventually(lambda: chrome("return Services.focus.activeWindow === window"), timeout=5)
+
         press_zero()
         eventually(lambda: state()['zero'] and state()['sheet'] == '1', timeout=5)
         check('Ctrl+Alt+0 pone Zero en la ventana, con su hoja de estilo')
 
-        chrome("OpenBrowserWindow()")
-        eventually(lambda: len(chrome(STATE, ['all'])) == 2, timeout=15)
-        eventually(lambda: chrome("return [...Services.wm.getEnumerator('navigator:browser')].every(w => w.document.getElementById('kitsune-zero-key'))"), timeout=15)
         windows = chrome(STATE, ['all'])
         assert sum(w['zero'] for w in windows) == 1, windows
         check('Otra ventana abierta no cambia')
@@ -99,6 +105,31 @@ def main():
         s = state()
         assert s['leftovers'] == [] and s['attrs'] == [] and s['vars'] == [], s
         check('Tampoco queda nada si se apaga en pleno uso')
+
+        # Ventanas nuevas: como la ventana desde la que se abren.
+        WINDOWS = "return [...Services.wm.getEnumerator('navigator:browser')]"
+        def focus(which):
+            chrome(f"const w = {which}; w.focus(); window.__foco = w;")
+            eventually(lambda: chrome("return Services.focus.activeWindow === window.__foco"), timeout=5)
+        def open_from(which):
+            focus(which)
+            chrome("window.__nueva = window.__foco.OpenBrowserWindow();")
+            eventually(lambda: chrome("const w = window.__nueva; return !!w.document?.getElementById('kitsune-zero-key') && w.gBrowserInit?.delayedStartupFinished"), timeout=15)
+            born = chrome("return window.__nueva.document.documentElement.hasAttribute('zero')")
+            chrome("window.__nueva.close(); delete window.__nueva;")
+            eventually(lambda: len(chrome(WINDOWS)) == 2, timeout=10)
+            return born
+        press_zero()
+        eventually(lambda: state()['zero'], timeout=5)
+        assert open_from('window') is True, 'desde una ventana en Zero, la nueva debería nacer en Zero'
+        assert open_from("[...Services.wm.getEnumerator('navigator:browser')].find(w => w !== window)") is False, 'desde una normal, normal'
+        chrome("Services.prefs.setBoolPref('kitsune.zero.inherit', false)")
+        assert open_from('window') is False, 'con «normales», normal aunque se abra desde Zero'
+        chrome("Services.prefs.clearUserPref('kitsune.zero.inherit')")
+        focus('window')
+        press_zero()
+        eventually(lambda: not state()['zero'], timeout=5)
+        check('Una ventana nueva nace como la ventana desde la que se abre (y con «normales», normal)')
 
         chrome("Services.prefs.setBoolPref('kitsune.zero.always', true); OpenBrowserWindow()")
         eventually(lambda: len(chrome(STATE, ['all'])) == 3, timeout=15)

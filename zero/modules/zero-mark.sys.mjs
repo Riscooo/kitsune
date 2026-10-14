@@ -13,7 +13,7 @@
  * ([{ value, label }], para segment), placeholder? (para list), get() → valor, set(valor),
  * watch?(fn) → dejar, when?() → si sale }.
  */
-import { prefName, PREFS } from './zero-config.sys.mjs';
+import { prefName, PREFS, readPrefs } from './zero-config.sys.mjs';
 
 const HTML = 'http://www.w3.org/1999/xhtml';
 const state = new WeakMap();      // ventana → { cleanups, mark, panel, … }
@@ -26,7 +26,7 @@ const el = (doc, tag, attributes = {}, children = []) => {
   return node;
 };
 
-/** La sección de Zero: abrir siempre en Zero y el fondo de la ventana. */
+/** La sección de Zero: las ventanas nuevas, el fondo de la ventana y la isla. */
 function zeroSection(win, host) {
   const { prefs, prefix } = host;
   const watchPref = key => fn => {
@@ -38,12 +38,20 @@ function zeroSection(win, host) {
     id: 'zero',
     rows: [
       {
-        kind: 'switch', id: PREFS.always,
-        label: host.t('Abrir siempre en Zero', 'Always open in Zero'),
-        detail: host.t('Las ventanas nuevas nacen en Zero', 'New windows start in Zero'),
-        get: () => { try { return prefs.getBoolPref(prefName(prefix, PREFS.always), false); } catch { return false; } },
-        set: value => prefs.setBoolPref(prefName(prefix, PREFS.always), value),
-        watch: watchPref(PREFS.always),
+        // Una fila para dos ajustes: como la ventana de origen (de serie), siempre en Zero o normales.
+        kind: 'segment', id: 'windows',
+        label: host.t('Ventanas nuevas', 'New windows'),
+        options: [{ value: 'inherit', label: host.t('Como esta', 'Like this') }, { value: 'always', label: host.t('En Zero', 'In Zero') },
+                  { value: 'normal', label: host.t('Normales', 'Normal') }],
+        get: () => {
+          const { always, inherit } = readPrefs(prefs, prefix);
+          return always ? 'always' : inherit ? 'inherit' : 'normal';
+        },
+        set: value => {
+          prefs.setBoolPref(prefName(prefix, PREFS.always), value === 'always');
+          prefs.setBoolPref(prefName(prefix, PREFS.inherit), value !== 'normal');
+        },
+        watch: fn => { const undo = [watchPref(PREFS.always)(fn), watchPref(PREFS.inherit)(fn)]; return () => undo.forEach(u => u()); },
       },
       {
         kind: 'segment', id: PREFS.backdrop,

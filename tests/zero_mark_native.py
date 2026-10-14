@@ -2,8 +2,8 @@
 
 1. La marca está abajo a la izquierda (a 13 px y 16 px de los bordes), en blanco y con opacidad 0,34.
 2. Un clic abre los ajustes (#zero-settings), que brotan de la marca; se cierran con un clic fuera o con Esc.
-3. «Abrir siempre en Zero» cambia kitsune.zero.always, y «Fondo» (del sistema / de la web) cambia
-   kitsune.zero.backdrop y el aspecto al momento. «Isla» (con texto / solo iconos) cambia
+3. «Ventanas nuevas» (como esta / en Zero / normales) cambia kitsune.zero.inherit y kitsune.zero.always,
+   y «Fondo» (del sistema / de la web) cambia kitsune.zero.backdrop y el aspecto al momento. «Isla» (con texto / solo iconos) cambia
    kitsune.zero.islandIcons.
 4. No salen filas de fases sin hacer (pomodoro, silencio, sonidos…).
 5. Con la web ampliada la marca se aparta, y vuelve al acercarse al borde izquierdo.
@@ -48,6 +48,7 @@ return {
   open: !!panel?.hasAttribute('open'), panelOpacity: ps ? Number(ps.opacity) : null, origin,
   rows: [...(panel?.querySelectorAll('.zero-row') ?? [])].map(row => row.textContent.trim()),
   always: Services.prefs.getBoolPref('kitsune.zero.always', false),
+  inherit: Services.prefs.getBoolPref('kitsune.zero.inherit', true),
   backdropPref: Services.prefs.getStringPref('kitsune.zero.backdrop', 'auto'),
   backdrop: document.documentElement.getAttribute('zero-backdrop'),
   full: document.documentElement.hasAttribute('zero-full'),
@@ -126,19 +127,21 @@ def main():
 
         click('#zero-mark')
         until(lambda: mark()['open'] and mark()['panelOpacity'] == 1)
-        click('#zero-settings [data-pref="always"]')
-        until(lambda: mark()['always'] is True)
-        click('#zero-settings [data-pref="always"]')
-        until(lambda: mark()['always'] is False)
+        click('#zero-settings [data-pref="windows"] [data-value="always"]')
+        until(lambda: mark()['always'] is True and mark()['inherit'] is True)
+        click('#zero-settings [data-pref="windows"] [data-value="normal"]')
+        until(lambda: mark()['always'] is False and mark()['inherit'] is False)
+        click('#zero-settings [data-pref="windows"] [data-value="inherit"]')
+        until(lambda: mark()['always'] is False and mark()['inherit'] is True)
         click('#zero-settings [data-pref="backdrop"] [data-value="web"]')
         until(lambda: mark()['backdropPref'] == 'web' and mark()['backdrop'] == 'web')
         click('#zero-settings [data-pref="backdrop"] [data-value="system"]')
         until(lambda: mark()['backdropPref'] == 'system' and mark()['backdrop'] == 'system')
         assert mark()['open'], mark()  # tocar dentro no lo cierra
-        check('«Abrir siempre en Zero» y «Fondo» cambian sus ajustes y el aspecto al momento')
+        check('«Ventanas nuevas» y «Fondo» cambian sus ajustes y el aspecto al momento')
 
         rows = mark()['rows']
-        # Las de Zero (abrir siempre, fondo, isla) y los interruptores del pomodoro, el silencio y los
+        # Las de Zero (ventanas nuevas, fondo, isla) y los interruptores del pomodoro, el silencio y los
         # sonidos, apagados: sin sus opciones.
         assert len(rows) == 6 and [r.split(' ')[0][:8] for r in rows[3:]] == ['Pomodoro', 'Silencio', 'SonidosG'], rows
         assert not any(word in ' '.join(rows) for word in ('Tiempos', 'Webs vetadas', 'Aviso de scroll', 'Lluvia')), rows

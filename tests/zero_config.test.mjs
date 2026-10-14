@@ -12,7 +12,7 @@ test('Zero reads its settings from the host prefs, and falls back to its default
   assert.deepEqual(readPrefs(prefs, 'kitsune.zero.'), { ...DEFAULTS, always: true })
   const broken = { getBoolPref() { throw new Error('sin ajustes') }, getStringPref() { throw new Error('sin ajustes') } }
   assert.deepEqual(readPrefs(broken, 'kitsune.zero.'), DEFAULTS)
-  assert.deepEqual(DEFAULTS, { always: false, backdrop: 'auto', islandIcons: false,
+  assert.deepEqual(DEFAULTS, { always: false, inherit: true, backdrop: 'auto', islandIcons: false,
     pomodoro: false, pomodoroPreset: '25', pomodoroBreak: 'soft', pomodoroGuide: 'breathe', pomodoroState: '',
     silence: false, silenceNotify: true, silenceBlock: true, silenceBlocked: '', silenceOnlyWork: false, silenceScroll: true,
     sounds: false, soundsLevels: '{"lluvia":0.5}', soundsPause: true })
@@ -20,4 +20,5 @@ test('Zero reads its settings from the host prefs, and falls back to its default
   assert.equal(prefName('kitsune.zero.', PREFS.silenceBlocked), 'kitsune.zero.silence.blocked')
   assert.equal(prefName('kitsune.zero.', PREFS.pomodoroBreak), 'kitsune.zero.pomodoro.break')
   assert.equal(prefName('kitsune.zero.', PREFS.islandIcons), 'kitsune.zero.islandIcons')
+  assert.equal(prefName('kitsune.zero.', PREFS.inherit), 'kitsune.zero.inherit')
 })

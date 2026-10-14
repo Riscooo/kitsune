@@ -4,6 +4,7 @@
  */
 export const PREFS = Object.freeze({
   always: 'always',       // las ventanas nuevas nacen en Zero
+  inherit: 'inherit',     // las ventanas nuevas nacen como la ventana desde la que se abren
   backdrop: 'backdrop',   // 'auto' | 'system' (desenfoque del compositor) | 'web' (fondo del color de la web)
   islandIcons: 'islandIcons', // la isla con solo iconos (sin el dominio)
   pomodoro: 'pomodoro',               // el pomodoro, encendido o no (apagado de serie)
@@ -22,7 +23,7 @@ export const PREFS = Object.freeze({
   soundsPause: 'sounds.pauseInBreak', // callarse en los descansos del pomodoro
 });
 
-export const DEFAULTS = Object.freeze({ always: false, backdrop: 'auto', islandIcons: false,
+export const DEFAULTS = Object.freeze({ always: false, inherit: true, backdrop: 'auto', islandIcons: false,
   pomodoro: false, pomodoroPreset: '25', pomodoroBreak: 'soft', pomodoroGuide: 'breathe', pomodoroState: '',
   silence: false, silenceNotify: true, silenceBlock: true, silenceBlocked: '', silenceOnlyWork: false, silenceScroll: true,
   sounds: false, soundsLevels: '{"lluvia":0.5}', soundsPause: true });

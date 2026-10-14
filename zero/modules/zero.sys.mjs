@@ -30,6 +30,17 @@ const listeners = new WeakMap(); // ventana → Set de funciones (active) => …
 
 const active = win => win.document.documentElement.hasAttribute('zero');
 
+// Las ventanas que restaura la sesión al arrancar siguen su propio recuerdo, no la de al lado.
+let sessionRestored = false;
+
+/** La ventana desde la que se abre esta: la última que tuvo el foco (la nueva aún no lo tiene). */
+function openedFrom(win) {
+  try {
+    const { BrowserWindowTracker } = ChromeUtils.importESModule('resource:///modules/BrowserWindowTracker.sys.mjs');
+    return BrowserWindowTracker.orderedWindows.find(other => other !== win && !other.closed) ?? null;
+  } catch { return null; }
+}
+
 function remembered(win) {
   try { return win.SessionStore.getCustomWindowValue(win, REMEMBER) === '1'; } catch { return false; }
 }
@@ -82,16 +93,19 @@ function onChange(win, fn) {
 
 async function decorate(win) {
   if (!host || decorated.has(win)) return;
+  // De dónde viene, antes de esperar: luego la nueva ya tiene el foco.
+  const from = sessionRestored ? openedFrom(win) : null;
+  win.SessionStore?.promiseAllWindowsRestored?.then(() => { sessionRestored = true; }, () => {});
   // El arranque de Kitsune llama mientras se lee browser.xhtml, cuando aún no hay gBrowser: se espera
   // a que la ventana termine de arrancar antes de mirar nada.
   if (!win.gBrowser || !win.gBrowserInit?.delayedStartupFinished) await win.delayedStartupPromise;
   if (decorated.has(win) || !win.gBrowser || !win.toolbar?.visible) return;
   decorated.add(win);
   host.keys?.add(win, 'kitsune-zero-key', '0', 'accel,alt', () => toggle(win));
-  const { always } = readPrefs(host.prefs, host.prefix);
-  if (always || remembered(win)) toggle(win, true);
-  // La sesión se restaura después de abrir la ventana: si esta estaba en Zero, vuelve en Zero.
-  win.addEventListener('SSWindowRestored', () => { if (remembered(win)) toggle(win, true); });
+  const { always, inherit } = readPrefs(host.prefs, host.prefix);
+  if (always || remembered(win) || (inherit && from && active(from))) toggle(win, true);
+  // La sesión se restaura después de abrir la ventana: vuelve como estaba (en Zero o no).
+  win.addEventListener('SSWindowRestored', () => toggle(win, readPrefs(host.prefs, host.prefix).always || remembered(win)));
 }
 
 export const Zero = {
