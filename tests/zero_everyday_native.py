@@ -11,6 +11,8 @@
    no aplastada dentro de la isla.
 7. Un diálogo de la pestaña (imprimir) cabe entero en la tarjeta: Gecko lo sube 5 px para que cuelgue
    de la barra, y en Zero la tarjeta le recortaría las esquinas de arriba.
+8. La dirección de un enlace (al pasar por encima) sale como una píldora separada de la esquina de la
+   tarjeta, no como la etiqueta cuadrada de Gecko pegada al borde.
 
 --zero-del-repo: Zero sale de zero/ del repositorio (ver zero_harness.py).
 """
@@ -160,6 +162,18 @@ def main():
             raise AssertionError(f'imprimir: {chrome(sheet)}') from None
         chrome("document.querySelector('.printSettingsBrowser')?.contentDocument?.querySelector('#cancel-button')?.click()")
         check('Un diálogo de la pestaña (imprimir) cabe entero en la tarjeta')
+
+        chrome("XULBrowserWindow.setOverLink(arguments[0])", [origin + '/zorros/de/kioto'])
+        pill = """const l = document.getElementById('statuspanel-label'); const p = document.getElementById('statuspanel'); const r = l.getBoundingClientRect(); const cs = getComputedStyle(l);
+            const c = gBrowser.selectedBrowser.closest('.browserSidebarContainer').getBoundingClientRect();
+            return { shown: !p.hidden && !p.hasAttribute('inactive') && r.width > 20, l: r.left, b: r.bottom, cardL: c.left, cardB: c.bottom,
+                     radii: [cs.borderTopLeftRadius, cs.borderTopRightRadius, cs.borderBottomLeftRadius, cs.borderBottomRightRadius].map(parseFloat) };"""
+        try:
+            eventually(lambda: (q := chrome(pill))['shown'] and min(q['radii']) >= 8 and q['l'] >= q['cardL'] + 8 and q['b'] <= q['cardB'] - 8, timeout=5)
+        except AssertionError:
+            raise AssertionError(f'enlace: {chrome(pill)}') from None
+        chrome("XULBrowserWindow.setOverLink('')")
+        check('La dirección de un enlace sale como una píldora separada de la esquina')
         report['status'] = 'passed'
     finally:
         if driver: driver.close()

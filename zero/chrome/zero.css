@@ -111,6 +111,18 @@
    la tarjeta les recortaría las esquinas de arriba, así que flotan un poco por debajo de su borde. */
 :root[zero] :not(.content-prompt-dialog) > .dialogOverlay > .dialogBox:not(.spotlightBox) { margin-top: 10px !important; }
 
+/* La dirección de un enlace al pasar por encima: una píldora pequeña separada de la esquina de la
+   tarjeta (la de Gecko es una etiqueta cuadrada pegada al borde, que aquí cortaba la curva). */
+:root[zero] #statuspanel-label {
+  margin: 0 0 8px 8px !important;
+  padding: 3px 10px !important;
+  border: none !important; border-radius: 9px !important;
+  color: #1d2321 !important;
+  background: rgba(250, 249, 246, .96) !important;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, .14), 0 0 0 1px rgba(29, 35, 33, .08) !important;
+}
+:root[zero] #statuspanel[mirror] > #statuspanel-label { margin: 0 8px 8px 0 !important; }
+
 /* Vista dividida (2 a 4): tarjetas separadas por 10 px. */
 :root[zero] #tabbrowser-tabpanels[splitview] > .split-view-panel.split-view-panel-active { margin: 0 !important; }
 :root[zero] #tabbrowser-tabpanels[splitview] > .split-view-splitter {
