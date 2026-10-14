@@ -22,7 +22,9 @@ const USER_ID = /^(default|p-[0-9a-f]{16})$/;
 const HEADER = 'X-Kitsune-Usuario';
 const MAP_FILE = 'kitsune-users.json';
 const SAMPLES_PREF = 'kitsune.users.samplesRemoved';
-const SAMPLES = Object.freeze(['user-context-personal', 'user-context-work', 'user-context-banking', 'user-context-shopping']);
+// Los contenedores de ejemplo de Mozilla; Gecko 158 les cambió el nombre (…2) y migra los de antes.
+const SAMPLES = Object.freeze(['user-context-personal', 'user-context-work', 'user-context-banking', 'user-context-shopping',
+  'user-context-personal2', 'user-context-work2', 'user-context-banking2', 'user-context-shopping2']);
 // Los seis colores de los usuarios de Kitsune, en los de los contenedores de Gecko 157 (que
 // renombró turquoise a cyan y añadió violet). Con un Gecko anterior, sus nombres de entonces.
 export const GECKO_COLORS = Object.freeze({ blue: 'blue', pink: 'pink', violet: 'violet', teal: 'cyan', amber: 'orange', red: 'red' });
@@ -165,7 +167,10 @@ function removeSamples() {
   const open = new Set();
   for (const win of Services.wm.getEnumerator('navigator:browser')) for (const tab of win.gBrowser?.tabs ?? []) open.add(tab.userContextId);
   for (const identity of service.getPublicIdentities()) {
-    if (!SAMPLES.includes(identity.l10nId) || open.has(identity.userContextId)) continue;
+    // De ejemplo: con su l10nId (Gecko 157) o, desde Gecko 158, sin nombre ni l10nId (su etiqueta sale
+    // de los de fábrica). Los usuarios de Kitsune siempre tienen nombre.
+    const sample = SAMPLES.includes(identity.l10nId) || (!identity.name && !identity.l10nId);
+    if (!sample || open.has(identity.userContextId)) continue;
     if (Services.cookies.getCookiesWithOriginAttributes(JSON.stringify({ userContextId: identity.userContextId })).length) continue;
     service.remove(identity.userContextId);
   }

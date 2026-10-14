@@ -72,6 +72,8 @@ def main():
           for (const u of arguments[0]) gBrowser.addTab(u, {triggeringPrincipal: P});""",
                [[f'http://127.0.0.1:{port}/fondo-uno', f'http://127.0.0.1:{port}/fondo-dos', f'http://localhost:{port}/musica']])
         eventually(lambda: chrome("return [...gBrowser.tabs].filter(t => /fondo|musica/.test(t.label)).length") == 3, timeout=15)
+        # Cargadas del todo: mientras carga, la dirección de una pestaña aún es about:blank.
+        eventually(lambda: chrome("return [...gBrowser.tabs].filter(t => /\\/(fondo-uno|fondo-dos|musica)$/.test(t.linkedBrowser.currentURI.spec)).length") == 3, timeout=15)
         chrome("Services.prefs.setStringPref('kitsune.saver.keepAwake', 'localhost')")
         slept = chrome("return ChromeUtils.importESModule('chrome://browser/content/kitsune-saver.sys.mjs').KitsuneSaver.sleepAll(window)")
         state = chrome("""return Object.fromEntries([...gBrowser.tabs].map(t => [t.label, {asleep: t.hasAttribute('pending'),
