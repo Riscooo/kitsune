@@ -699,14 +699,16 @@
 
 /* Una hoja clara de esquinas redondas, como los ajustes de Zero, con las filas redondeadas y el
    paso del ratón muy suave. Los menús son ventanas aparte: el desenfoque no ve lo de detrás, así que
-   la hoja es casi opaca. */
+   la hoja es opaca (translúcida, solo asomaría el texto de la web). Su sombra, suave, cabe en el margen
+   que Gecko reserva alrededor de la ventana del menú: si no, se corta en recto. */
 #main-window[zero] #appMenu-popup {
-  --panel-background-color: rgba(248, 247, 244, .97) !important;
+  --panel-background-color: rgb(248, 247, 244) !important;
+  --panel-box-shadow-margin: 36px !important;
   --panel-text-color: #1d2321 !important;
   --panel-border-color: rgba(29, 35, 33, .08) !important;
   --panel-border-radius: 18px !important;
   --panel-padding: 6px !important;
-  --panel-box-shadow: 0 24px 60px rgba(0, 0, 0, .22), 0 2px 8px rgba(0, 0, 0, .08) !important;
+  --panel-box-shadow: 0 10px 30px rgba(0, 0, 0, .16), 0 1px 3px rgba(0, 0, 0, .08) !important;
   --menuitem-border-radius: 10px !important;
   --menuitem-padding-block: 7px !important;
   --menuitem-padding-inline: 10px !important;

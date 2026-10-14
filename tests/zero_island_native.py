@@ -10,7 +10,8 @@
 8. Las sugerencias salen debajo de la isla, centradas con ella y de su mismo ancho.
 9. El botón del menú (≡) es redondo, como los demás de la isla.
 10. El menú de Kitsune, abierto desde la isla, va con el aspecto de Zero: hoja clara de esquinas
-    redondas y filas redondeadas.
+    redondas y filas redondeadas. Opaca (un menú es una ventana aparte: lo de detrás no se desenfoca, solo
+    asomaría), y con su sombra dentro del margen que Gecko le deja (si no, la sombra se corta en recto).
 11. Con «solo iconos», la isla en reposo es una pastilla pequeña con el icono de la web y sin texto, y
     abierta enseña los botones sin el dominio.
 12. Abierta, lleva el candado de la web (roto si no es https) y al pulsarlo sale la información de la
@@ -189,9 +190,15 @@ def main():
         look = chrome("""const panel = PanelUI.panel; const content = panel.shadowRoot?.querySelector('[part=content]') ?? panel;
             const cs = getComputedStyle(content); const row = document.querySelector('#appMenu-mainView .subviewbutton');
             const bg = cs.backgroundColor.match(/[\\d.]+/g).map(Number);
-            return { radius: parseFloat(cs.borderTopLeftRadius), bg, row: parseFloat(getComputedStyle(row).borderTopLeftRadius) };""")
+            // Hasta dónde llega la sombra (desplazamiento + desenfoque + extensión, de cada capa) y el margen que tiene.
+            const reach = cs.boxShadow.split(/,(?![^(]*\\))/).map(layer => { const n = layer.replace(/rgba?\\([^)]*\\)/, '').trim().split(/\\s+/).map(parseFloat).filter(v => !isNaN(v));
+              const [x = 0, y = 0, blur = 0, spread = 0] = n; return Math.max(Math.abs(x), Math.abs(y)) + blur + spread; });
+            return { radius: parseFloat(cs.borderTopLeftRadius), bg, row: parseFloat(getComputedStyle(row).borderTopLeftRadius),
+                     shadow: Math.max(0, ...reach), margin: parseFloat(getComputedStyle(panel).getPropertyValue('--panel-box-shadow-margin')) || 0 };""")
         light = sum(look['bg'][:3]) / 3
         assert look['radius'] >= 16 and light > 225 and look['row'] >= 8, look
+        assert len(look['bg']) == 3 or look['bg'][3] == 1, look  # opaca
+        assert look['shadow'] <= look['margin'] * 1.25, look   # la sombra cabe (la cola de un desenfoque gaussiano apenas se ve)
         chrome("PanelUI.hide()")
         away()
         until(lambda: sized(176), timeout=5)
