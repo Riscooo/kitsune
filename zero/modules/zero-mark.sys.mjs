@@ -56,6 +56,14 @@ function zeroSection(win, host) {
           return () => observer.disconnect();
         },
       },
+      {
+        kind: 'segment', id: PREFS.islandIcons,
+        label: host.t('Isla', 'Island'),
+        options: [{ value: 'text', label: host.t('Con texto', 'With text') }, { value: 'icons', label: host.t('Solo iconos', 'Icons only') }],
+        get: () => { try { return prefs.getBoolPref(prefName(prefix, PREFS.islandIcons), false) ? 'icons' : 'text'; } catch { return 'text'; } },
+        set: value => prefs.setBoolPref(prefName(prefix, PREFS.islandIcons), value === 'icons'),
+        watch: watchPref(PREFS.islandIcons),
+      },
     ],
   };
 }

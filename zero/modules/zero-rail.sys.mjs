@@ -38,6 +38,16 @@ function item(doc, kind, extra = {}) {
   ]);
 }
 
+/** Una pestaña: una fila (no un botón, porque lleva dentro el de cerrar) que se maneja igual con el
+ *  teclado: Intro o espacio la eligen y Supr la cierra. La × sale al pasar el ratón con el raíl abierto. */
+function tabItem(doc, host) {
+  return el(doc, 'div', { class: 'zero-item zero-tab', role: 'tab', tabindex: '0' }, [
+    el(doc, 'span', { class: 'zero-fav', 'aria-hidden': 'true' }),
+    el(doc, 'span', { class: 'zero-tt' }),
+    el(doc, 'button', { type: 'button', class: 'zero-close', tabindex: '-1', title: host.t('Cerrar pestaña', 'Close tab'), 'aria-label': host.t('Cerrar pestaña', 'Close tab') }),
+  ]);
+}
+
 /** El icono: el favicon en un círculo claro, o la inicial sobre su color. */
 function setFav(doc, fav, icon, letter, hue) {
   if (icon) {
@@ -133,7 +143,7 @@ function render(win, st) {
   tabs.forEach((tab, index) => {
     let node = st.items.get(tab);
     if (!node) {
-      node = item(doc, 'zero-tab');
+      node = tabItem(doc, st.host);
       st.items.set(tab, node);
       st.tabOf.set(node, tab);
     }
@@ -185,9 +195,12 @@ export function attach(win, ctx) {
   doc.body.append(st.edge, st.rail);
   st.cleanups.push(() => { st.edge.remove(); st.rail.remove(); });
 
+  const close = tab => { if (tab && !tab.closing) win.gBrowser.removeTab(tab, { animate: true }); };
   st.rail.addEventListener('click', event => {
     const node = event.target.closest('.zero-item');
     if (!node || node.hasAttribute('leaving')) return;
+    // La ×: cierra esa pestaña sin elegirla.
+    if (event.target.closest('.zero-close')) { event.stopPropagation(); close(st.tabOf.get(node)); return; }
     if (node.classList.contains('zero-space')) { void Promise.resolve(host.spaces?.select(win, node.dataset.space)).catch(() => {}); return; }
     if (node === st.add) { (win.BrowserCommands?.openTab ?? win.BrowserOpenTab)?.call(win.BrowserCommands ?? win); return; }
     const tab = st.tabOf.get(node);
@@ -197,9 +210,16 @@ export function attach(win, ctx) {
   st.rail.addEventListener('auxclick', event => {
     if (event.button !== 1) return;
     const tab = st.tabOf.get(event.target.closest('.zero-tab'));
-    if (tab && !tab.closing) { event.preventDefault(); win.gBrowser.removeTab(tab, { animate: true }); }
+    if (tab && !tab.closing) { event.preventDefault(); close(tab); }
   });
   st.rail.addEventListener('mousedown', event => { if (event.button === 1) event.preventDefault(); }); // sin autodesplazamiento
+  st.rail.addEventListener('keydown', event => {
+    const node = event.target.closest?.('.zero-tab');
+    if (!node) return;
+    const tab = st.tabOf.get(node);
+    if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); if (tab && !tab.closing) win.gBrowser.selectedTab = tab; }
+    else if (event.key === 'Delete') { event.preventDefault(); close(tab); }
+  });
 
   let frame = 0, pointerY = null;
   st.rail.addEventListener('mousemove', event => {

@@ -3,7 +3,8 @@
 1. La marca está abajo a la izquierda (a 13 px y 16 px de los bordes), en blanco y con opacidad 0,34.
 2. Un clic abre los ajustes (#zero-settings), que brotan de la marca; se cierran con un clic fuera o con Esc.
 3. «Abrir siempre en Zero» cambia kitsune.zero.always, y «Fondo» (del sistema / de la web) cambia
-   kitsune.zero.backdrop y el aspecto al momento.
+   kitsune.zero.backdrop y el aspecto al momento. «Isla» (con texto / solo iconos) cambia
+   kitsune.zero.islandIcons.
 4. No salen filas de fases sin hacer (pomodoro, silencio, sonidos…).
 5. Con la web ampliada la marca se aparta, y vuelve al acercarse al borde izquierdo.
 
@@ -137,7 +138,11 @@ def main():
         check('«Abrir siempre en Zero» y «Fondo» cambian sus ajustes y el aspecto al momento')
 
         rows = mark()['rows']
-        assert len(rows) == 2 and not any(word in ' '.join(rows) for word in ('Pomodoro', 'Silencio', 'Sonidos', 'vetadas', 'scroll')), rows
+        assert len(rows) == 3 and not any(word in ' '.join(rows) for word in ('Pomodoro', 'Silencio', 'Sonidos', 'vetadas', 'scroll')), rows
+        click('#zero-settings [data-pref="islandIcons"] [data-value="icons"]')
+        until(lambda: chrome("return Services.prefs.getBoolPref('kitsune.zero.islandIcons', false)") is True)
+        click('#zero-settings [data-pref="islandIcons"] [data-value="text"]')
+        until(lambda: chrome("return Services.prefs.getBoolPref('kitsune.zero.islandIcons', false)") is False)
         check('No salen filas de fases sin hacer')
         keys('')
         until(lambda: not mark()['open'])

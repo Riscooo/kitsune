@@ -8,6 +8,11 @@
 6. Un aviso la ensancha a 470 × 32 un momento y vuelve a reposo.
 7. Con un menú suyo abierto (el de Kitsune) sigue abierta aunque el ratón se vaya, y se cierra con él.
 8. Las sugerencias salen debajo de la isla, centradas con ella y de su mismo ancho.
+9. El botón del menú (≡) es redondo, como los demás de la isla.
+10. El menú de Kitsune, abierto desde la isla, va con el aspecto de Zero: hoja clara de esquinas
+    redondas y filas redondeadas.
+11. Con «solo iconos», la isla en reposo es una pastilla pequeña con el icono de la web y sin texto, y
+    abierta enseña los botones sin el dominio.
 
 --zero-del-repo: Zero sale de zero/ del repositorio (ver zero_harness.py).
 """
@@ -155,6 +160,43 @@ def main():
         i = island()
         assert i['tabs'] == 0 and i['bookmarks'] == 0, i
         check('Las pestañas de arriba y la barra de marcadores de Gecko no se ven')
+
+        menu_button = chrome("""const stack = document.querySelector('#PanelUI-menu-button .toolbarbutton-badge-stack');
+            const cs = getComputedStyle(stack); const r = stack.getBoundingClientRect();
+            return { radius: parseFloat(cs.borderTopLeftRadius), w: r.width };""")
+        assert menu_button['radius'] >= menu_button['w'] / 2 - 1, menu_button
+        check('El botón del menú (≡) es redondo, como los demás de la isla')
+
+        hover('nav-bar')
+        until(lambda: sized(400), timeout=5)
+        chrome("PanelUI.show()")
+        until(lambda: chrome("return PanelUI.panel.state") == 'open', timeout=5)
+        look = chrome("""const panel = PanelUI.panel; const content = panel.shadowRoot?.querySelector('[part=content]') ?? panel;
+            const cs = getComputedStyle(content); const row = document.querySelector('#appMenu-mainView .subviewbutton');
+            const bg = cs.backgroundColor.match(/[\\d.]+/g).map(Number);
+            return { radius: parseFloat(cs.borderTopLeftRadius), bg, row: parseFloat(getComputedStyle(row).borderTopLeftRadius) };""")
+        light = sum(look['bg'][:3]) / 3
+        assert look['radius'] >= 16 and light > 225 and look['row'] >= 8, look
+        chrome("PanelUI.hide()")
+        away()
+        until(lambda: sized(176), timeout=5)
+        check('El menú de Kitsune va con el aspecto de Zero')
+
+        chrome("Services.prefs.setBoolPref('kitsune.zero.islandIcons', true)")
+        icons = """const host = document.getElementById('zero-host'); const icon = host.querySelector('.zero-host-icon'); const text = host.querySelector('.zero-host-text');
+            const seen = el => el && el.getBoundingClientRect().width > 2 && getComputedStyle(el).display !== 'none' && Number(getComputedStyle(el).opacity) > 0.5;
+            return { icon: seen(icon), text: seen(text), hostOpacity: Number(getComputedStyle(host).opacity) };"""
+        until(lambda: island()['island']['w'] <= 64 and chrome(icons)['icon'] and not chrome(icons)['text'], timeout=5)
+        hover('nav-bar')
+        until(lambda: island()['back'] and island()['reload'] and not chrome(icons)['text'] and island()['island']['w'] < 260, timeout=5)
+        # El icono de la web, en el hueco: ni encima de ↻ ni de ≡.
+        gap = chrome("""const r = id => document.getElementById(id).getBoundingClientRect(); const i = document.querySelector('#zero-host .zero-host-icon').getBoundingClientRect();
+            return { icon: [i.left, i.right], reload: r('reload-button').right, menu: r('PanelUI-button').left };""")
+        assert gap['icon'][0] >= gap['reload'] and gap['icon'][1] <= gap['menu'], gap
+        away()
+        chrome("Services.prefs.setBoolPref('kitsune.zero.islandIcons', false)")
+        until(lambda: sized(176) and chrome(icons)['text'], timeout=5)
+        check('Con «solo iconos», la isla es una pastilla pequeña con el icono de la web, sin texto')
 
         chrome("ChromeUtils.importESModule('chrome://browser/content/zero/zero-island.sys.mjs').alert(window, 'Tres avisos esperando', 'te los enseño en el descanso', 1500)")
         until(lambda: sized(470) and clear_of_card(), timeout=5)

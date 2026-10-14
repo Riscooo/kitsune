@@ -8,6 +8,8 @@
 6. Con la web ampliada se aparta (opacidad 0) y vuelve al acercarse al borde izquierdo.
 7. Con dos espacios o más, arriba salen sus iconos y un clic cambia de espacio.
 8. La vista rápida de Kitsune no sale en el raíl (es de paso) y flota encima de la tarjeta.
+9. Con el raíl abierto, la fila bajo el ratón enseña una × que cierra esa pestaña sin elegirla; con el
+   raíl cerrado no sale.
 
 --zero-del-repo: Zero sale de zero/ del repositorio (ver zero_harness.py).
 """
@@ -187,6 +189,25 @@ def main():
         until(lambda: (g := chrome(glance)) is not None and g['inside'] and g['round'], timeout=8)
         until(lambda: len(rail()['tabs']) == count and [t['title'] for t in rail()['tabs'] if t['on']] == [under])
         check('La vista rápida no sale en el raíl y flota encima de la tarjeta')
+
+        chrome("gBrowser.selectedTab.splitview?.unsplitTabs?.()")
+        for path in ('/osaka', '/uji'):
+            add_tab(path)
+        until(lambda: len(rail()['tabs']) >= 3)
+        closer = """const rows = [...document.querySelectorAll('#zero-rail .zero-tab')];
+            return rows.map(row => { const x = row.querySelector('.zero-close'); const cs = x && getComputedStyle(x); const r = x?.getBoundingClientRect();
+              return { title: row.querySelector('.zero-tt').textContent, seen: !!x && Number(cs.opacity) > 0.4 && r.width > 8 && cs.visibility !== 'hidden' }; });"""
+        away()
+        until(lambda: not any(row['seen'] for row in chrome(closer)))
+        hover('#zero-rail .zero-tab:last-child')
+        until(lambda: abs(rail()['rail']['w'] - 186) <= 1)
+        rows = chrome(closer)
+        until(lambda: [row['seen'] for row in chrome(closer)] == [False] * (len(rows) - 1) + [True])
+        selected = chrome("return gBrowser.selectedTab.label")
+        doomed = rows[-1]['title']
+        driver.command('POST', f"/element/{list(element('#zero-rail .zero-tab:last-child .zero-close').values())[0]}/click", {})
+        until(lambda: doomed not in [t['title'] for t in rail()['tabs']] and chrome("return gBrowser.selectedTab.label") == selected, timeout=6)
+        check('Con el raíl abierto, la × de la fila bajo el ratón cierra esa pestaña sin elegirla')
         report['status'] = 'passed'
     finally:
         if driver: driver.close()

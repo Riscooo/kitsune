@@ -38,6 +38,23 @@ pestañas, y cada pieza de abajo se puede encender y apagar por separado en sus 
   una marca de agua blanca, muy sutil, abajo a la izquierda, y abre los ajustes de Zero.
 - **Animaciones**: sutiles, calmadas, fluidas y dóciles. Cada una cuidada.
 
+### Tras verlo en pantalla (14-10, noche)
+
+- **No se fusiona ni se publica** hasta que Zero esté tan depurado como Kitsune normal; hasta
+  entonces es pre-alfa y vive en su rama.
+- **Fluidez**: nada puede ir a tirones («parece que todo va a 20 Hz»). El cristal sigue a su pieza
+  en cada fotograma y ampliar no redimensiona la web en cada fotograma.
+- **Los botones de ampliar y dividir no pueden tapar la web**: con la tarjeta van en el marco; con
+  la web ampliada, en la zona de arriba que menos usan las webs, según un estudio con webs reales
+  (`tools/zonas_web.py`).
+- **La isla, con opción de solo iconos** (sin el dominio).
+- **El menú (≡)**, rediseñado con el aspecto de Zero.
+- **Cerrar pestañas desde el raíl**, de forma ultralimpia: una × en la fila bajo el ratón con el
+  raíl abierto.
+- **El pomodoro se puede poner o no**: un interruptor en los ajustes de Zero; apagado, no sale
+  nada suyo (ni el anillo).
+- **El anillo de foco de niri** no puede teñir el cristal (la regla de niri lo deja en el borde).
+
 ## Separable: Zero como módulo, Kitsune como anfitrión
 
 Todo Zero vive en `zero/`, y Kitsune lo incluye a través de una sola pieza. Así, sacar

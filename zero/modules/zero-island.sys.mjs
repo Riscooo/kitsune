@@ -6,7 +6,10 @@
  * altura no cambia nunca: la isla vive en su franja y no pisa la web.
  * Estado en el atributo zero-island del #navigator-toolbox: "" (reposo), "open" o "typing".
  */
+import { prefName, PREFS } from './zero-config.sys.mjs';
+
 const HTML = 'http://www.w3.org/1999/xhtml';
+const NO_ICON = 'chrome://global/skin/icons/defaultFavicon.svg';
 const state = new WeakMap(); // ventana → { cleanups, … }
 
 const el = (doc, tag, attributes = {}, children = []) => {
@@ -26,7 +29,7 @@ function label(win) {
   return { text: win.gBrowser.selectedTab.label || '', secure: false };
 }
 
-export function attach(win) {
+export function attach(win, ctx = {}) {
   const doc = win.document;
   const toolbox = doc.getElementById('navigator-toolbox');
   const navbar = doc.getElementById('nav-bar');
@@ -39,13 +42,18 @@ export function attach(win) {
   st.msg = el(doc, 'span', { id: 'zero-island-msg' });
   navbar.append(st.host, st.msg);
   st.cleanups.push(() => { st.host.remove(); st.msg.remove(); });
+  const icon = el(doc, 'img', { class: 'zero-host-icon', alt: '' });
+  icon.addEventListener('error', () => { if (icon.getAttribute('src') !== NO_ICON) icon.setAttribute('src', NO_ICON); });
   const lock = el(doc, 'span', { class: 'zero-lock' });
   const text = el(doc, 'span', { class: 'zero-host-text' });
-  st.host.append(lock, text);
+  st.host.append(icon, lock, text);
   const update = () => {
     const { text: value, secure } = label(win);
     text.textContent = value;
     st.host.toggleAttribute('secure', secure);
+    let src = null;
+    try { src = win.gBrowser.getIcon(win.gBrowser.selectedTab); } catch { /* sin icono */ }
+    if (icon.getAttribute('src') !== (src || NO_ICON)) icon.setAttribute('src', src || NO_ICON);
   };
   update();
   listen(win.gBrowser.tabContainer, 'TabSelect', update);
@@ -76,6 +84,17 @@ export function attach(win) {
   listen(doc, 'popupshowing', event => { if (fromIsland(event.target)) { st.menus.add(event.target); refresh(); } });
   listen(doc, 'popuphidden', event => { if (st.menus.delete(event.target)) refresh(); });
   refresh();
+
+  // Solo iconos (ajuste de Zero): en reposo, el icono de la web; abierta, los botones sin el dominio.
+  const { host } = ctx;
+  if (host?.prefs) {
+    const name = prefName(host.prefix, PREFS.islandIcons);
+    const apply = () => { let on = false; try { on = host.prefs.getBoolPref(name, false); } catch { /* de serie */ } toolbox.toggleAttribute('zero-icons', on); };
+    const observer = { observe: apply };
+    host.prefs.addObserver(name, observer);
+    st.cleanups.push(() => host.prefs.removeObserver(name, observer));
+    apply();
+  }
 }
 
 export function detach(win) {
@@ -87,6 +106,7 @@ export function detach(win) {
   const toolbox = win.document.getElementById('navigator-toolbox');
   toolbox?.removeAttribute('zero-island');
   toolbox?.removeAttribute('zero-island-alert');
+  toolbox?.removeAttribute('zero-icons');
 }
 
 /** Un aviso en la isla (lo usan el pomodoro y el silencio): se ensancha, lo dice y vuelve. */

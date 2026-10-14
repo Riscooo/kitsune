@@ -6,9 +6,15 @@
 4. Ampliar la deja a 0 px y radio 0; dejar de ampliar la devuelve. Mientras se anima, la web cambia
    de tamaño una sola vez (la animación es de transformación, no de márgenes).
 5. Los botones de ventana van en fila arriba a la izquierda; el marco se arrastra y la web no.
+   Con la web en tarjeta, los de ampliar y dividir van en el marco, a su derecha: no tapan la web.
 6. Con el fondo de la web, detrás hay una foto de la web y la raíz ya no es transparente.
 7. El velo del marco (alrededor de la tarjeta) toma el color de la web (rojo con una página roja).
 8. Y el de lo que se ve, no el del principio de la página (azul con una página abierta en su parte azul).
+9. Con la web ampliada, en reposo solo queda un tirador fino pegado al filo de arriba, en la esquina
+   derecha (la zona que menos usan las webs, según tools/zonas_web.py): ni los botones de ventana ni
+   los de ampliar tapan la web.
+10. Al acercarse a esa esquina salen juntos los de ventana y los de ampliar y dividir, y al irse se
+    vuelven a guardar.
 
 --zero-del-repo: Zero sale de zero/ del repositorio (ver zero_harness.py).
 """
@@ -143,7 +149,9 @@ def main():
         assert len(lights) == 3 and len({round(l['y']) for l in lights}) == 1, lights
         assert lights[0]['x'] < lights[1]['x'] < lights[2]['x'] and lights[0]['x'] < 40 and lights[0]['y'] < 30, lights
         assert f['drag'] == 'drag' and f['webDrag'] == 'no-drag', f
-        check('Los botones de ventana van en fila arriba a la izquierda; el marco se arrastra y la web no')
+        grow = chrome("const r = document.getElementById('zero-grow').getBoundingClientRect(); return { x: r.left, y: r.top, right: r.right, bottom: r.bottom }")
+        assert grow['bottom'] <= f['panels']['y'] and grow['x'] > lights[2]['x'] + lights[2]['w'], (grow, f['panels'], lights)
+        check('Los botones de ventana van en fila arriba a la izquierda (y los de ampliar, en el marco a su derecha); el marco se arrastra y la web no')
 
         chrome("Services.prefs.setStringPref('kitsune.zero.backdrop', 'web')")
         eventually(lambda: frame()['mode'] == 'web' and frame()['backdrop'] and frame()['painted'], timeout=10)
@@ -172,6 +180,41 @@ def main():
         except AssertionError:
             raise AssertionError(f'velo {frame()["tint"]}') from None
         check('El velo toma el color de lo que se ve, no el del principio de la página')
+
+        corner = """const seen = id => { const el = document.getElementById(id); if (!el) return null; const r = el.getBoundingClientRect(); const cs = getComputedStyle(el);
+              return { x: r.left, y: r.top, right: r.right, bottom: r.bottom, w: r.width, h: r.height, on: Number(cs.opacity) > 0.5 && cs.visibility !== 'hidden' }; };
+            return { W: innerWidth, notch: seen('zero-notch'), lights: seen('zero-lights'), grow: seen('zero-grow'), full: document.documentElement.hasAttribute('zero-full') };"""
+        def pointer(x, y):
+            driver.context('chrome')
+            driver.command('POST', '/actions', {'actions': [{'type': 'pointer', 'id': 'raton', 'parameters': {'pointerType': 'mouse'},
+                                                             'actions': [{'type': 'pointerMove', 'origin': 'viewport', 'x': x, 'y': y}]}]})
+        chrome("document.querySelector('#zero-grow button[data-action=full]').click()")
+        pointer(700, 600)
+        def resting():
+            c = chrome(corner)
+            n = c['notch']
+            return (c['full'] and n and n['on'] and n['h'] <= 6 and n['y'] <= 1 and c['W'] - n['right'] <= 16
+                    and not c['lights']['on'] and not c['grow']['on'])
+        try:
+            eventually(resting, timeout=5)
+        except AssertionError:
+            raise AssertionError(chrome(corner)) from None
+        check('Con la web ampliada, en reposo solo queda un tirador fino en el filo de arriba, a la derecha')
+
+        c = chrome(corner)
+        pointer(c['W'] - 30, 4)
+        def revealed():
+            c = chrome(corner)
+            return (c['lights']['on'] and c['grow']['on'] and not c['notch']['on']
+                    and c['lights']['x'] > c['W'] / 2 and c['grow']['x'] > c['W'] / 2 and c['lights']['y'] < 40 and c['grow']['y'] < 40)
+        try:
+            eventually(revealed, timeout=5)
+        except AssertionError:
+            raise AssertionError(chrome(corner)) from None
+        pointer(700, 600)
+        eventually(resting, timeout=5)
+        check('Al acercarse a la esquina salen juntos los de ventana y los de ampliar, y luego se guardan')
+        chrome("document.querySelector('#zero-grow button[data-action=full]').click()")
         report['status'] = 'passed'
     finally:
         if driver: driver.close()

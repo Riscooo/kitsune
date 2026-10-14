@@ -115,18 +115,33 @@ function applyBackdrop(win, st) {
   paintColors(win, st);
 }
 
-/** Dónde van los botones de ampliar: junto a la esquina de la tarjeta, o junto a los de ventana si está ampliada. */
+/** Dónde van los botones de ampliar y dividir. Con la tarjeta, en el marco, a la derecha de los de
+ *  ventana: no tapan la web. Con la web ampliada no queda marco y van encima, en la zona de arriba que
+ *  menos usan las webs (ver FULL_SPOT). */
 function placeGrow(win, st) {
   const doc = win.document, root = doc.documentElement;
   const card = doc.getElementById('tabbrowser-tabpanels').getBoundingClientRect();
+  const height = st.grow.getBoundingClientRect().height || 30;
   if (root.hasAttribute('zero-full')) {
-    st.grow.style.setProperty('--zero-grow-x', '80px');
-    st.grow.style.setProperty('--zero-grow-y', '9px');
+    // Arriba a la derecha, juntos: los de ampliar pegados al borde y los de ventana a su izquierda.
+    const grow = st.grow.getBoundingClientRect(), lights = st.lights.getBoundingClientRect();
+    const growX = win.innerWidth - CORNER.right - grow.width;
+    st.grow.style.setProperty('--zero-grow-x', `${Math.round(growX)}px`);
+    st.grow.style.setProperty('--zero-grow-y', `${CORNER.top}px`);
+    st.lights.style.setProperty('--zero-lights-x', `${Math.round(growX - CORNER.gap - lights.width)}px`);
+    st.lights.style.setProperty('--zero-lights-y', `${Math.round(CORNER.top + (grow.height - lights.height) / 2)}px`);
   } else {
-    st.grow.style.setProperty('--zero-grow-x', `${Math.round(card.left + 10)}px`);
-    st.grow.style.setProperty('--zero-grow-y', `${Math.round(card.top + 10)}px`);
+    const lights = doc.getElementById('zero-lights')?.getBoundingClientRect();
+    st.grow.style.setProperty('--zero-grow-x', `${Math.round((lights?.right ?? 62) + 14)}px`);
+    st.grow.style.setProperty('--zero-grow-y', `${Math.max(2, Math.round((card.top - height) / 2))}px`);
   }
 }
+
+// Con la web ampliada no queda marco: los botones de ventana y los de ampliar se guardan en un tirador
+// fino pegado al filo de arriba, en la esquina derecha, y salen al acercarse. Es la zona que menos usan
+// las webs (tools/zonas_web.py, 52 webs a dos anchos): ahí un tirador de 36 × 6 solo toca algo en el
+// 9,6 % de ellas; donde estaban (arriba a la izquierda), los de ampliar tapaban algo en el 58,7 %.
+const CORNER = { top: 6, right: 8, gap: 6 };
 
 /** Cambia el sitio de la tarjeta (ampliar, entrar en Zero) sin redimensionar la web en cada
  *  fotograma: la web toma su tamaño nuevo una sola vez y la tarjeta viaja desde donde estaba con una
@@ -168,7 +183,7 @@ export function attach(win, ctx) {
   const listen = (target, type, fn, options) => { target.addEventListener(type, fn, options); st.cleanups.push(() => target.removeEventListener(type, fn, options)); };
 
   // Botones de ventana, en fila, como los de Kitsune: cerrar, minimizar y ampliar.
-  const lights = el(doc, 'div', { id: 'zero-lights' }, [
+  const lights = st.lights = el(doc, 'div', { id: 'zero-lights' }, [
     el(doc, 'button', { 'data-action': 'close', title: host.t('Cerrar', 'Close') }),
     el(doc, 'button', { 'data-action': 'min', title: host.t('Minimizar', 'Minimize') }),
     el(doc, 'button', { 'data-action': 'max', title: host.t('Maximizar', 'Maximize') }),
@@ -191,8 +206,9 @@ export function attach(win, ctx) {
     else if (action === 'split') win.BrowserCommands?.addTabSplitView?.();
   });
   st.backdrop = el(doc, 'canvas', { id: 'zero-backdrop', hidden: 'true' });
-  doc.body.append(lights, st.grow, st.backdrop);
-  st.cleanups.push(() => { lights.remove(); st.grow.remove(); st.backdrop.remove(); });
+  st.notch = el(doc, 'div', { id: 'zero-notch', 'aria-hidden': 'true' });
+  doc.body.append(lights, st.grow, st.backdrop, st.notch);
+  st.cleanups.push(() => { lights.remove(); st.grow.remove(); st.backdrop.remove(); st.notch.remove(); });
   setFull(win, st, false);
 
   let frame = 0;
@@ -201,10 +217,16 @@ export function attach(win, ctx) {
     frame = win.requestAnimationFrame(() => {
       frame = 0;
       const card = doc.getElementById('tabbrowser-tabpanels').getBoundingClientRect();
-      const g = st.grow.getBoundingClientRect();
-      const nearCard = event.clientX >= card.left - 8 && event.clientX <= card.left + 150 && event.clientY >= card.top - 8 && event.clientY <= card.top + 80;
-      const onPill = event.clientX >= g.left - 6 && event.clientX <= g.right + 6 && event.clientY >= g.top - 6 && event.clientY <= g.bottom + 6;
-      st.grow.classList.toggle('near', nearCard || onPill);
+      const on = el => { const r = el.getBoundingClientRect(); return event.clientX >= r.left - 6 && event.clientX <= r.right + 6 && event.clientY >= r.top - 6 && event.clientY <= r.bottom + 6; };
+      const full = root.hasAttribute('zero-full');
+      // Salen al acercarse: con la tarjeta, a su rincón de arriba a la izquierda; con la web ampliada,
+      // a la esquina de arriba a la derecha (o estando encima de ellos).
+      const near = full
+        ? (event.clientX >= win.innerWidth - 240 && event.clientY <= 56) || (st.grow.classList.contains('near') && (on(st.grow) || on(lights)))
+        : (event.clientX <= card.left + 150 && event.clientY <= card.top + 60) || on(st.grow);
+      st.grow.classList.toggle('near', near);
+      lights.classList.toggle('near', full && near);
+      st.notch.classList.toggle('away', near);
     });
   });
   listen(win, 'resize', () => placeGrow(win, st));

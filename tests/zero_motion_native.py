@@ -94,10 +94,15 @@ def main():
 
         chrome("Services.prefs.setIntPref('ui.prefersReducedMotion', 1)")
         eventually(lambda: chrome("return matchMedia('(prefers-reduced-motion: reduce)').matches"), timeout=5)
-        slow = {sel: [(t['prop'], t['duration'], t['delay']) for t in ts if t['prop'] != 'none' and (t['duration'] > 0.002 or t['delay'] > 0)]
-                for sel, ts in motion().items() if ts}
-        slow = {sel: ts for sel, ts in slow.items() if ts}
-        assert not slow, slow
+        def slow():
+            found = {sel: [(t['prop'], t['duration'], t['delay']) for t in ts if t['prop'] != 'none' and (t['duration'] > 0.002 or t['delay'] > 0)]
+                     for sel, ts in motion().items() if ts}
+            return {sel: ts for sel, ts in found.items() if ts}
+        # El cambio llega a todos los elementos en el siguiente repintado (con el PC cargado, algo después).
+        try:
+            eventually(lambda: not slow(), timeout=5)
+        except AssertionError:
+            raise AssertionError(slow()) from None
         check('Con «reducir movimiento», todo lo de Zero es instantáneo')
         report['status'] = 'passed'
     finally:

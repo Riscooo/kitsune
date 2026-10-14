@@ -356,6 +356,7 @@ const PIECES = [
   { id: 'nav-bar', reach: here => { const middle = (here.left + here.right) / 2; return box(middle - ISLAND_MAX / 2, here.top, middle + ISLAND_MAX / 2, here.bottom); } },
   { id: 'zero-rail', reach: here => box(here.left, here.top, here.left + RAIL_OPEN, here.bottom) },
   { id: 'zero-grow' },
+  { id: 'zero-lights' },
   { id: 'zero-settings' },
 ];
 
