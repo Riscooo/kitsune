@@ -89,7 +89,9 @@ for (const disabled of document.querySelectorAll('.platform-button[aria-disabled
 
 async function loadDownloads() {
   try {
-    const response = await fetch('/downloads.json', { cache: 'no-store' })
+    // «?web»: así, en las visitas de Vercel, las de la web no se cuentan con las comprobaciones
+    // diarias de Kitsune, que piden /downloads.json sin nada (son las que dicen cuántos lo usan).
+    const response = await fetch('/downloads.json?web', { cache: 'no-store' })
     render(parseDownloads(response.ok ? await response.json() : null, location.origin))
   } catch { render(parseDownloads(null, location.origin)) }
 }
