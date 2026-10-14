@@ -3,7 +3,7 @@
  * Zero no conoce a Kitsune: este módulo le da lo que necesita, que es lo único que cambiaría si
  * Zero saliera como navegador aparte. Le pasa los textos en el idioma de Kitsune, los ajustes
  * (con el prefijo kitsune.zero.), los atajos (en su propio <keyset>, como los de kitsune-layout),
- * los espacios (para el raíl) y si está el modo ahorro (para el cristal en vivo).
+ * los espacios y las pestañas de paso (para el raíl) y si está el modo ahorro (para el cristal en vivo).
  */
 // Textos en el idioma de Kitsune (kitsune-i18n.sys.mjs); sin Gecko, en castellano.
 const t = (spanish, english) => {
@@ -49,7 +49,10 @@ const spaces = {
 // El modo ahorro de Kitsune: con él, el cristal en vivo repinta a 15 fps.
 const saver = { get active() { return Services.prefs.getStringPref('kitsune.performance.applied', 'normal') === 'ahorro'; } };
 
-const host = () => ({ t, prefs: Services.prefs, prefix: 'kitsune.zero.', keys: { add: addKey }, spaces, saver });
+// Las pestañas «de paso», que el raíl no enseña: la vista rápida (va unida a la de debajo).
+const tabs = { passing: tab => tab.hasAttribute('kitsune-glance') };
+
+const host = () => ({ t, prefs: Services.prefs, prefix: 'kitsune.zero.', keys: { add: addKey }, spaces, saver, tabs });
 
 export const KitsuneZeroHost = {
   decorate(win) {

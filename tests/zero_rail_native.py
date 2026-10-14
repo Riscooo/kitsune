@@ -7,6 +7,7 @@
 5. Con el ratón encima, el icono más cercano es el que más crece (efecto Dock).
 6. Con la web ampliada se aparta (opacidad 0) y vuelve al acercarse al borde izquierdo.
 7. Con dos espacios o más, arriba salen sus iconos y un clic cambia de espacio.
+8. La vista rápida de Kitsune no sale en el raíl (es de paso) y flota encima de la tarjeta.
 
 --zero-del-repo: Zero sale de zero/ del repositorio (ver zero_harness.py).
 """
@@ -172,6 +173,20 @@ def main():
         until(lambda: chrome("return ChromeUtils.importESModule('chrome://browser/content/kitsune-spaces.sys.mjs').KitsuneSpaces.active(window)") == space
               and rail()['spaces'][1]['on'], timeout=8)
         check('Con dos espacios o más, arriba salen sus iconos y un clic cambia de espacio')
+
+        # Las del espacio anterior se desvanecen antes de irse: se cuenta cuando ya no están.
+        until(lambda: len(rail()['tabs']) == len(rail()['gecko']))
+        count = len(rail()['tabs'])
+        under = chrome("return gBrowser.selectedTab.label")
+        chrome("ChromeUtils.importESModule('chrome://browser/content/kitsune-glance.sys.mjs').KitsuneGlance.open(window, arguments[0])", [origin + '/nara'])
+        glance = """const panel = document.querySelector('#tabbrowser-tabpanels [kitsune-glance-panel]');
+            const card = document.getElementById('tabbrowser-tabpanels').getBoundingClientRect();
+            const r = panel?.getBoundingClientRect();
+            return panel ? { inside: r.left > card.left + 20 && r.right < card.right - 20 && r.top > card.top + 10 && r.bottom < card.bottom - 10,
+                             round: parseFloat(getComputedStyle(panel).borderTopLeftRadius) >= 12 } : null;"""
+        until(lambda: (g := chrome(glance)) is not None and g['inside'] and g['round'], timeout=8)
+        until(lambda: len(rail()['tabs']) == count and [t['title'] for t in rail()['tabs'] if t['on']] == [under])
+        check('La vista rápida no sale en el raíl y flota encima de la tarjeta')
         report['status'] = 'passed'
     finally:
         if driver: driver.close()

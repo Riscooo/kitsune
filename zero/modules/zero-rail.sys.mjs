@@ -58,6 +58,18 @@ function setFav(doc, fav, icon, letter, hue) {
   }
 }
 
+/** Las pestañas «de paso» del anfitrión (en Kitsune, la vista rápida) no salen en el raíl. */
+function passing(st, tab) {
+  try { return !!st.host.tabs?.passing?.(tab); } catch { return false; }
+}
+
+/** La que se marca como elegida: la elegida o, si es de paso, la que tiene debajo (su vista dividida). */
+function current(win, st) {
+  const selected = win.gBrowser.selectedTab;
+  if (!passing(st, selected)) return selected;
+  return selected.splitview?.tabs?.find(tab => tab !== selected && !passing(st, tab)) ?? selected;
+}
+
 function fill(win, st, tab, node) {
   const doc = win.document;
   const label = tab.label || '';
@@ -67,7 +79,7 @@ function fill(win, st, tab, node) {
   let icon = null;
   try { icon = win.gBrowser.getIcon?.(tab) ?? tab.getAttribute('image'); } catch { /* sin icono */ }
   setFav(doc, node.querySelector('.zero-fav'), icon || null, initialOf(label), hueOf(siteOf(tab)));
-  node.toggleAttribute('selected', tab.selected);
+  node.toggleAttribute('selected', tab === current(win, st));
   node.toggleAttribute('pinned', tab.pinned);
   node.toggleAttribute('busy', tab.hasAttribute('busy'));
 }
@@ -116,7 +128,7 @@ function renderSpaces(win, st) {
 function render(win, st) {
   const doc = win.document;
   const offset = renderSpaces(win, st);
-  const tabs = win.gBrowser.visibleTabs.filter(tab => !tab.closing);
+  const tabs = win.gBrowser.visibleTabs.filter(tab => !tab.closing && !passing(st, tab));
   const live = [];
   tabs.forEach((tab, index) => {
     let node = st.items.get(tab);
