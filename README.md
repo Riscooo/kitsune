@@ -95,6 +95,11 @@ navegar. 0.8 trae lo que hace que la gente use Zen y lo que Zen no tiene.
 - **Kitsune para Linux se actualiza solo** (`kitsune-updater.sys.mjs`): descarga el paquete
   de la versión nueva, comprueba su SHA-256 con el `SHA256SUMS.txt` de la versión y lo
   instala al cerrar Kitsune con su `instalar.sh`. Se apaga con `kitsune.update.auto`.
+- **Copia de Kitsune** (`kitsune-copia.sys.mjs`): marcadores, espacios con sus pestañas y, si
+  quieres, historial (90 días) y contraseñas en un archivo `.kitsune` cifrado con tu contraseña
+  (PBKDF2-SHA-256 de 600 000 vueltas y AES-GCM), para llevarlo a otro ordenador sin servidor.
+  Al traerla, los marcadores van a su carpeta, los espacios se crean o se reutilizan por nombre,
+  las pestañas se abren sin cargar y una contraseña repetida no se duplica. Menú y paleta.
 - **Seguir a Firefox sin tocar nada** (`tools/seguir_firefox.py`). Con cada Gecko nuevo:
   motor, 21 pruebas con el motor real, ajustes de fábrica, paquetes de los tres sistemas y
   un borrador de versión en GitHub. Lo lanza cada día `kitsune-engine-update.timer`.

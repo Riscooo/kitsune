@@ -40,6 +40,11 @@
     const { KitsuneSaver } = ChromeUtils.importESModule('chrome://browser/content/kitsune-saver.sys.mjs');
     void KitsuneSaver.decorate(window).catch(() => {});
   } catch { /* sin medidor, el modo ahorro sigue igual */ }
+  // Copia de Kitsune: tus cosas en un archivo cifrado, para otro ordenador.
+  try {
+    const { KitsuneCopia } = ChromeUtils.importESModule('chrome://browser/content/kitsune-copia.sys.mjs');
+    void KitsuneCopia.decorate(window).catch(() => {});
+  } catch { /* sin copia, Kitsune sigue igual */ }
   // Aviso de versión nueva (solo en los paquetes que se descargan: Windows, macOS y Linux).
   try {
     const { KitsuneUpdates } = ChromeUtils.importESModule('chrome://browser/content/kitsune-updates.sys.mjs');

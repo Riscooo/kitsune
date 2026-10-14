@@ -73,6 +73,7 @@ const ACTIONS = [
   { label: t('Pestañas a un lado', 'Tabs at the side'), run: () => setTabs(true, 'always-show'), keywords: ['vertical', 'barra lateral'] },
   { label: t('Pestañas a un lado, solo iconos', 'Tabs at the side, icons only'), run: () => setTabs(true, 'expand-on-hover'), keywords: ['vertical', 'plegada'] },
   { label: t('Traer de otro navegador', 'Bring from another browser'), run: win => importer()?.open(win), keywords: ['importar', 'zen', 'chrome', 'firefox'] },
+  { label: t('Copia de Kitsune (llevar tus cosas a otro ordenador)', 'Kitsune copy (take your things to another computer)'), run: win => copia()?.open(win), keywords: ['copia', 'backup', 'exportar', 'sincronizar', 'sync'] },
   { label: t('Tu inicio', 'Your home'), key: 'goHome', keywords: ['home', 'ajustes de kitsune', 'tema', 'fondo', 'modo ahorro'] },
   { label: t('Descargas', 'Downloads'), key: 'key_openDownloads' },
   { label: t('Historial', 'History'), key: 'showAllHistoryKb' },
@@ -93,6 +94,7 @@ const lazy = {
 };
 const spaces = () => { try { return ChromeUtils.importESModule('chrome://browser/content/kitsune-spaces.sys.mjs'); } catch { return null; } };
 const importer = () => { try { return ChromeUtils.importESModule('chrome://browser/content/kitsune-import.sys.mjs').KitsuneImport; } catch { return null; } };
+const copia = () => { try { return ChromeUtils.importESModule('chrome://browser/content/kitsune-copia.sys.mjs').KitsuneCopia; } catch { return null; } };
 function setTabs(vertical, visibility) {
   Services.prefs.setBoolPref('sidebar.verticalTabs', vertical);
   if (vertical) Services.prefs.setStringPref('sidebar.visibility', visibility);
