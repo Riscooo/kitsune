@@ -354,3 +354,28 @@
 :root[zero-full] #zero-rail { transform: translate(-64px, -50%); opacity: 0; pointer-events: none; }
 :root[zero-full] #zero-edge:hover ~ #zero-rail,
 :root[zero-full] #zero-rail:hover { transform: translateY(-50%); opacity: 1; pointer-events: auto; }
+
+/* ---------------------------------------------------------------- cristal en vivo (zero-glass) */
+
+/* La foto desenfocada de la web, justo debajo de cada pieza de cristal (la coloca zero-glass). */
+.zero-glass { position: fixed; margin: 0; padding: 0; pointer-events: none; }
+.zero-glass[hidden] { display: none !important; }
+
+/* Texto que se adapta a lo que tiene detrás: tinta sobre lo claro (con un fundido de 420 ms). */
+#main-window[zero] #nav-bar,
+#main-window[zero] :is(#zero-host, #zero-island-msg),
+#main-window[zero] #urlbar-input { transition-property: color, opacity, filter, padding, text-shadow !important; transition-duration: 420ms, var(--zero-t-fade), var(--zero-t-fade), var(--zero-t-morph), 420ms !important; }
+#main-window[zero] #nav-bar[zero-ink] {
+  color: #1d2321 !important;
+  text-shadow: none !important;
+  --toolbarbutton-icon-fill: #1d2321 !important;
+  --toolbarbutton-icon-fill-attention: #1d2321 !important;
+  --toolbarbutton-hover-background: rgba(29, 35, 33, .1) !important;
+  --toolbarbutton-active-background: rgba(29, 35, 33, .16) !important;
+}
+#main-window[zero] #nav-bar[zero-ink] :is(#zero-host, #zero-island-msg, #urlbar-input) { color: #1d2321 !important; }
+#main-window[zero] #nav-bar[zero-ink] #urlbar-input::placeholder { color: rgba(29, 35, 33, .55) !important; }
+#main-window[zero] #navigator-toolbox[zero-island="typing"] #nav-bar[zero-ink] #urlbar > .urlbar-input-container { background-color: rgba(29, 35, 33, .08) !important; }
+#zero-rail[zero-ink], #zero-grow[zero-ink] { color: #1d2321; }
+#zero-rail[zero-ink] .zero-sep { background: rgba(29, 35, 33, .18); }
+#zero-rail[zero-ink] :is(.zero-space, .zero-new) .zero-fav { background: rgba(29, 35, 33, .08); color: #1d2321; }

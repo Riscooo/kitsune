@@ -7,6 +7,7 @@
 5. Los botones de ventana van en fila arriba a la izquierda; el marco se arrastra y la web no.
 6. Con el fondo de la web, detrás hay una foto de la web y la raíz ya no es transparente.
 7. El velo del marco (alrededor de la tarjeta) toma el color de la web (rojo con una página roja).
+8. Y el de lo que se ve, no el del principio de la página (azul con una página abierta en su parte azul).
 
 --zero-del-repo: Zero sale de zero/ del repositorio (ver zero_harness.py).
 """
@@ -23,6 +24,9 @@ import zero_harness
 PAGES = {
     '/rojo': '<!doctype html><meta charset=utf-8><title>Rojo</title><body style="margin:0;background:#c8553d"><h1 style="color:#fff">Rojo</h1>',
     '/claro': '<!doctype html><meta charset=utf-8><title>Claro</title><body style="margin:0;background:#fbfaf7"><p>Hola</p>',
+    # Roja arriba y azul más abajo: abierta en #azul, lo que se ve es azul.
+    '/abajo': '<!doctype html><meta charset=utf-8><title>Abajo</title><body style="margin:0"><div style="height:2400px;background:#c8553d"></div>'
+              '<div id=azul style="height:3000px;background:#2f5fb8"></div>',
 }
 
 
@@ -138,19 +142,28 @@ def main():
         assert frame()['root'] != 'rgba(0, 0, 0, 0)', frame()
         check('Con el fondo de la web, detrás hay una foto de la web y la raíz ya no es transparente')
 
-        def reddish():
+        def tint_rgb():
             # rgb(r, g, b[, a]) o color(srgb r g b / a), que es como sale un color-mix()
             tint = frame()['tint'] or ''
             inside = tint[tint.find('(') + 1:tint.rfind(')')].split('/')[0].replace(',', ' ').split()
             if inside and inside[0] == 'srgb':
-                r, g, b = (float(x) * 255 for x in inside[1:4])
-            elif len(inside) >= 3:
-                r, g, b = (float(x) for x in inside[:3])
-            else:
-                return False
-            return r > b + 60
+                return tuple(float(x) * 255 for x in inside[1:4])
+            if len(inside) >= 3:
+                return tuple(float(x) for x in inside[:3])
+            return None
+
+        def reddish():
+            rgb = tint_rgb()
+            return rgb is not None and rgb[0] > rgb[2] + 60
         eventually(reddish, timeout=10)
         check('El velo toma el color de la web (rojo con una página roja)')
+
+        driver.navigate(origin + '/abajo#azul')
+        try:
+            eventually(lambda: (rgb := tint_rgb()) is not None and rgb[2] > rgb[0] + 30, timeout=10)
+        except AssertionError:
+            raise AssertionError(f'velo {frame()["tint"]}') from None
+        check('El velo toma el color de lo que se ve, no el del principio de la página')
         report['status'] = 'passed'
     finally:
         if driver: driver.close()

@@ -64,13 +64,15 @@ async function compositorEnv() {
   return { niri, rule };
 }
 
-/** Una foto pequeña de lo que se ve en la web: { bytes, canvas } (o null si no se puede). */
+/** Una foto pequeña de lo que se ve en la web: { bytes, canvas } (o null si no se puede). Sin
+ *  rectángulo, drawSnapshot fotografía la vista (con su scroll); con uno, mediría desde el principio
+ *  del documento. */
 async function snapshot(win, width, height) {
   const browser = win.gBrowser.selectedBrowser;
   const global = browser.browsingContext?.currentWindowGlobal;
   if (!global || !browser.clientWidth) return null;
   const scale = Math.min(width / browser.clientWidth, height / browser.clientHeight);
-  const bitmap = await global.drawSnapshot(new win.DOMRect(0, 0, browser.clientWidth, browser.clientHeight), scale, 'white');
+  const bitmap = await global.drawSnapshot(null, scale, 'white');
   const canvas = new win.OffscreenCanvas(bitmap.width, bitmap.height);
   const ctx = canvas.getContext('2d');
   ctx.drawImage(bitmap, 0, 0);
