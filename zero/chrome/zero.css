@@ -54,7 +54,9 @@
 :root[zero] #zero-lights,
 :root[zero] #zero-grow,
 :root[zero] #zero-rail,
-:root[zero] #zero-edge { -moz-window-dragging: no-drag; }
+:root[zero] #zero-edge,
+:root[zero] #zero-mark,
+:root[zero] #zero-settings { -moz-window-dragging: no-drag; }
 
 /* La web, una tarjeta dentro de la ventana; ampliada, toda la ventana. */
 :root[zero] #tabbrowser-tabpanels {
@@ -379,3 +381,74 @@
 #zero-rail[zero-ink], #zero-grow[zero-ink] { color: #1d2321; }
 #zero-rail[zero-ink] .zero-sep { background: rgba(29, 35, 33, .18); }
 #zero-rail[zero-ink] :is(.zero-space, .zero-new) .zero-fav { background: rgba(29, 35, 33, .08); color: #1d2321; }
+
+/* ---------------------------------------------------------------- la marca y los ajustes (zero-mark) */
+
+/* El logo «máscara en el cero», en blanco y muy tenue; al acercarse se enciende despacio. */
+#zero-mark {
+  position: fixed; left: 13px; bottom: 16px; z-index: 6;
+  appearance: none; box-sizing: content-box; width: 24px; height: 24px; min-width: 0; padding: 0; margin: 0;
+  border: none; border-radius: 50%; background: transparent; cursor: pointer;
+  color: #fff; opacity: .34;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, .28));
+  transition: opacity 700ms var(--zero-soft), transform 700ms var(--zero-calm), color 600ms var(--zero-soft);
+}
+#zero-mark:hover, #zero-mark[open] { opacity: .92; transform: scale(1.06); }
+#zero-mark:focus-visible { outline: 2px solid rgba(255, 255, 255, .7); outline-offset: 3px; }
+.zero-logo {
+  display: inline-block; flex: none; width: 24px; height: 24px;
+  background-color: currentColor;
+  mask: url("chrome://browser/content/zero/zero-logo.svg") center / contain no-repeat;
+}
+
+/* Con la web ampliada se aparta, como el raíl, y vuelve desde el borde izquierdo. */
+:root[zero-full] #zero-mark { opacity: 0; transform: translateX(-30px); pointer-events: none; }
+:root[zero-full] #zero-edge:hover ~ #zero-mark,
+:root[zero-full] #zero-mark:is(:hover, [open]) { opacity: .92; transform: none; pointer-events: auto; }
+
+/* Los ajustes: una hoja de cristal esmerilado que brota de la marca. */
+#zero-settings {
+  position: fixed; left: 46px; bottom: 16px; z-index: 7;
+  box-sizing: border-box; width: 300px; max-height: calc(100% - 80px); overflow-y: auto; scrollbar-width: none;
+  padding: 14px 14px 6px; border-radius: 22px;
+  color: #1d2321; font: 500 12.5px system-ui, sans-serif;
+  background: rgba(246, 245, 241, .72);
+  backdrop-filter: blur(24px) saturate(1.8);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .95), inset 0 0 0 1px rgba(255, 255, 255, .55), 0 24px 60px rgba(0, 0, 0, .22);
+  transform-origin: -21px calc(100% - 12px);
+  opacity: 0; transform: scale(.94) translateY(6px); filter: blur(4px); pointer-events: none;
+  /* Al cerrar, el contenido se va antes que la forma. */
+  transition: opacity 280ms var(--zero-soft), transform var(--zero-t-morph) var(--zero-calm), filter 280ms var(--zero-soft);
+}
+#zero-settings[open] {
+  opacity: 1; transform: none; filter: none; pointer-events: auto;
+  transition: opacity 360ms var(--zero-soft), transform var(--zero-t-morph) var(--zero-calm), filter 360ms var(--zero-soft);
+}
+#zero-settings h4 { margin: 2px 2px 10px; font: 600 14px system-ui, sans-serif; display: flex; align-items: center; gap: 8px; }
+#zero-settings h4 .zero-logo { width: 18px; height: 18px; }
+#zero-settings h4 small { margin-inline-start: auto; font: 500 10.5px system-ui, sans-serif; color: rgba(29, 35, 33, .5); }
+#zero-settings .zero-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 8px 2px; border-top: 1px solid rgba(29, 35, 33, .08); }
+#zero-settings .zero-row-text small { display: block; margin-top: 1px; color: rgba(29, 35, 33, .55); font-size: 11px; font-weight: 400; }
+
+/* Interruptor y segmento, como los de la maqueta. */
+#zero-settings .zero-switch {
+  appearance: none; position: relative; flex: none; box-sizing: border-box;
+  width: 34px; height: 20px; min-width: 0; padding: 0; margin: 0; border: none; border-radius: 999px; cursor: pointer;
+  background: rgba(29, 35, 33, .16);
+  transition: background-color 360ms var(--zero-soft);
+}
+#zero-settings .zero-switch::after {
+  content: ""; position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; border-radius: 50%;
+  background: #fff; box-shadow: 0 1px 3px rgba(0, 0, 0, .25);
+  transition: transform 420ms var(--zero-calm);
+}
+#zero-settings .zero-switch[on] { background: #3a8f74; }
+#zero-settings .zero-switch[on]::after { transform: translateX(14px); }
+#zero-settings .zero-segment { display: flex; flex: none; padding: 2px; border-radius: 999px; background: rgba(29, 35, 33, .08); }
+#zero-settings .zero-segment > button {
+  appearance: none; min-width: 0; margin: 0; padding: 3px 10px; border: none; border-radius: 999px; cursor: pointer;
+  background: transparent; color: inherit; font: 500 11.5px system-ui, sans-serif;
+  transition: background-color 360ms var(--zero-soft), box-shadow 360ms var(--zero-soft);
+}
+#zero-settings .zero-segment > button[on] { background: #fff; box-shadow: 0 1px 3px rgba(0, 0, 0, .14); }
+#zero-settings :is(.zero-switch, .zero-segment > button):focus-visible { outline: 2px solid #3a8f74; outline-offset: 2px; }

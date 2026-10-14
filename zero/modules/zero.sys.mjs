@@ -12,13 +12,15 @@ import { readPrefs } from './zero-config.sys.mjs';
 import * as frame from './zero-frame.sys.mjs';
 import * as island from './zero-island.sys.mjs';
 import * as rail from './zero-rail.sys.mjs';
+import * as mark from './zero-mark.sys.mjs';
 import * as glass from './zero-glass.sys.mjs';
 
 const SHEET = 'chrome://browser/content/zero/zero.css';
 const REMEMBER = 'kitsune-zero';
 let host = null;
 // Las piezas de Zero, en orden: al encender se ponen así y al apagar se quitan al revés.
-const pieces = [frame, island, rail, glass];
+// El cristal en vivo va el último: se pone detrás de las piezas que ya están.
+const pieces = [frame, island, rail, mark, glass];
 const decorated = new WeakSet();
 const listeners = new WeakMap(); // ventana → Set de funciones (active) => …
 
@@ -44,7 +46,7 @@ function sheet(win, on) {
 
 function toggle(win, on = !active(win)) {
   if (on === active(win)) return;
-  const ctx = { host, onChange: fn => onChange(win, fn) };
+  const ctx = { host, onChange: fn => onChange(win, fn), settings: { add: section => mark.addSection(win, section) } };
   if (on) {
     win.document.documentElement.setAttribute('zero', '');
     sheet(win, true);

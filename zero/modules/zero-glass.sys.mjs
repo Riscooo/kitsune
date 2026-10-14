@@ -200,7 +200,7 @@ function stop(win) {
 
 // ---------------------------------------------------------------- la pieza
 
-const PIECES = ['nav-bar', 'zero-rail', 'zero-grow'];
+const PIECES = ['nav-bar', 'zero-rail', 'zero-grow', 'zero-settings'];
 
 export function attach(win, ctx) {
   for (const id of PIECES) {
