@@ -518,6 +518,18 @@
 
 /* Lo que suena: un altavoz pequeño en la esquina del icono (un clic silencia o vuelve a dar sonido). */
 #zero-rail .zero-tab { position: relative; }
+/* Un grupo de pestañas: un círculo de su color (con su inicial, o cuántas tiene si está plegado). Sus
+   pestañas, una raya de su color al otro lado del icono. */
+#zero-rail .zero-group .zero-fav {
+  background: color-mix(in srgb, var(--zero-group, #888) 78%, transparent) !important; color: #fff;
+  font-size: 12px; font-weight: 700; box-shadow: none;
+}
+#zero-rail .zero-group[collapsed] .zero-fav { background: transparent !important; color: var(--zero-group, currentColor); box-shadow: inset 0 0 0 1.5px var(--zero-group, currentColor); }
+#zero-rail .zero-tab[grouped]::after {
+  content: ''; position: absolute; left: 27px; top: 50%; width: 2px; height: 12px; margin-top: -6px;
+  border-radius: 1px; background: var(--zero-group, currentColor); opacity: .9; pointer-events: none;
+}
+
 /* De qué usuario es la pestaña: una raya fina con su tinta junto al icono (el base, sin raya). */
 #zero-rail .zero-tab[user]::before {
   content: ''; position: absolute; left: -2px; top: 50%; width: 2px; height: 12px; margin-top: -6px;

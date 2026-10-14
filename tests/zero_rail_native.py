@@ -13,6 +13,10 @@
 10. El clic derecho en una pestaña abre el menú de pestaña de Gecko para esa pestaña.
 11. Una pestaña que suena lleva un altavoz en su icono; un clic en él la silencia (y otro le devuelve el
     sonido) sin elegirla.
+12. Un grupo de pestañas de Gecko lleva una fila propia (un círculo de su color; abierto el raíl, su
+    nombre) y sus pestañas, una raya de su color. Un clic en la fila lo pliega (sus pestañas se van y el
+    círculo dice cuántas tiene) y otro lo despliega (o Intro, con el teclado); si lo pliega Gecko, el
+    raíl también se entera.
 
 --zero-del-repo: Zero sale de zero/ del repositorio (ver zero_harness.py).
 """
@@ -235,6 +239,42 @@ def main():
         driver.command('POST', f"/element/{list(element('#zero-rail .zero-tab:last-child .zero-sound').values())[0]}/click", {})
         until(lambda: not chrome("return gBrowser.visibleTabs.at(-1).hasAttribute('muted')"))
         check('Una pestaña que suena lleva un altavoz; un clic la silencia y otro le devuelve el sonido')
+
+        groups = """const rows = [...document.querySelectorAll('#zero-rail .zero-tabs > .zero-item:not([leaving])')];
+            const color = el => getComputedStyle(el).getPropertyValue('--zero-group').trim();
+            return rows.map(r => r.classList.contains('zero-group')
+              ? { group: r.querySelector('.zero-tt').textContent, fav: r.querySelector('.zero-fav').textContent, collapsed: r.hasAttribute('collapsed'),
+                  bg: getComputedStyle(r.querySelector('.zero-fav')).backgroundColor }
+              : { tab: r.title, grouped: r.hasAttribute('grouped'), line: r.hasAttribute('grouped') ? getComputedStyle(r, '::after').backgroundColor : null });"""
+        add_tab('/uji')
+        add_tab('/ise')
+        until(lambda: chrome("return gBrowser.visibleTabs.length") >= 5)
+        chrome("window.__grupo = gBrowser.addTabGroup(gBrowser.visibleTabs.slice(-2), { label: 'Zorros', color: 'orange' });")
+        clear = ('rgba(0, 0, 0, 0)', 'transparent', None, '')
+        def grouped_rows(collapsed):
+            g = chrome(groups)
+            head = [i for i, r in enumerate(g) if r.get('group') == 'Zorros']
+            if len(head) != 1 or g[head[0]]['bg'] in clear or g[head[0]]['collapsed'] != collapsed:
+                return False
+            inside = [r for r in g[head[0] + 1:head[0] + 3] if 'tab' in r]
+            if collapsed:
+                return g[head[0]]['fav'] == '2' and not any(r.get('grouped') for r in g)
+            return len(inside) == 2 and all(r['grouped'] and r['line'] not in clear for r in inside) and g[head[0]]['fav'] == 'Z'
+        try:
+            until(lambda: grouped_rows(False))
+            driver.command('POST', f"/element/{list(element('#zero-rail .zero-group').values())[0]}/click", {})
+            until(lambda: grouped_rows(True) and chrome("return window.__grupo.collapsed"))
+            driver.command('POST', f"/element/{list(element('#zero-rail .zero-group').values())[0]}/click", {})
+            until(lambda: grouped_rows(False) and not chrome("return window.__grupo.collapsed"))
+            chrome("window.__grupo.collapsed = true")
+            until(lambda: grouped_rows(True))
+            # Con el teclado: Intro en la fila lo despliega.
+            chrome("document.querySelector('#zero-rail .zero-group').focus()")
+            driver.command('POST', '/actions', {'actions': [{'type': 'key', 'id': 'teclado', 'actions': [{'type': 'keyDown', 'value': '\ue007'}, {'type': 'keyUp', 'value': '\ue007'}]}]})
+            until(lambda: grouped_rows(False))
+        except AssertionError:
+            raise AssertionError(f'grupos: {chrome(groups)}') from None
+        check('Un grupo lleva su fila y sus pestañas su raya; un clic lo pliega y otro lo despliega, y si lo pliega Gecko también')
         report['status'] = 'passed'
     finally:
         if driver: driver.close()

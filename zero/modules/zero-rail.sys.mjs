@@ -97,6 +97,10 @@ function fill(win, st, tab, node) {
   // Lo que suena (y lo silenciado), con su altavoz en el icono.
   node.toggleAttribute('soundplaying', tab.hasAttribute('soundplaying'));
   node.toggleAttribute('muted', tab.hasAttribute('muted'));
+  // De qué grupo es: una raya con su color al otro lado del icono.
+  node.toggleAttribute('grouped', !!tab.group);
+  if (tab.group) node.style.setProperty('--zero-group', `var(--tab-group-${tab.group.color || 'blue'})`);
+  else node.style.removeProperty('--zero-group');
   // De qué usuario es: una raya con su color junto al icono (el base, sin raya).
   const who = userOf(win, tab);
   node.toggleAttribute('user', !!who);
@@ -147,18 +151,42 @@ function renderSpaces(win, st) {
 function render(win, st) {
   const doc = win.document;
   const offset = renderSpaces(win, st);
-  const tabs = win.gBrowser.visibleTabs.filter(tab => !tab.closing && !passing(st, tab));
+  const shown = new Set(win.gBrowser.visibleTabs.filter(tab => !tab.closing && !passing(st, tab)));
+  // En el orden de Gecko: cada grupo de pestañas con su fila (aunque esté plegado) y, detrás, las suyas
+  // que se ven. Las de otro espacio (hidden) no cuentan, ni para su grupo.
+  const order = [];
+  let last = null;
+  for (const tab of win.gBrowser.tabs) {
+    if (tab.closing || tab.hidden || passing(st, tab)) continue;
+    const group = tab.group ?? null;
+    if (group && group !== last) order.push(group);
+    last = group;
+    if (shown.has(tab)) order.push(tab);
+  }
   const live = [];
-  tabs.forEach((tab, index) => {
-    let node = st.items.get(tab);
-    if (!node) {
-      node = tabItem(doc, st.host);
-      st.items.set(tab, node);
-      st.tabOf.set(node, tab);
-      // El menú de pestaña de Gecko mira «.tab» en lo que se ha pulsado (la fila o lo de dentro).
-      for (const part of [node, ...node.querySelectorAll('*')]) part.tab = tab;
+  order.forEach((entry, index) => {
+    let node;
+    if (shown.has(entry)) {
+      const tab = entry;
+      node = st.items.get(tab);
+      if (!node) {
+        node = tabItem(doc, st.host);
+        st.items.set(tab, node);
+        st.tabOf.set(node, tab);
+        // El menú de pestaña de Gecko mira «.tab» en lo que se ha pulsado (la fila o lo de dentro).
+        for (const part of [node, ...node.querySelectorAll('*')]) part.tab = tab;
+      }
+      fill(win, st, tab, node);
+    } else {
+      const group = entry;
+      node = st.items.get(group);
+      if (!node) {
+        node = groupItem(doc, st.host);
+        st.items.set(group, node);
+        st.groupOf.set(node, group);
+      }
+      fillGroup(win, st, group, node);
     }
-    fill(win, st, tab, node);
     node.style.setProperty('--i', String(offset + index));
     live.push(node);
   });
@@ -172,13 +200,36 @@ function render(win, st) {
     if (fresh && st.fresh.has(st.tabOf.get(node))) fadeIn(win, node);
   }
   st.fresh.clear();
-  const keep = new Set(tabs);
-  for (const [tab, node] of st.items) {
-    if (keep.has(tab)) continue;
-    st.items.delete(tab);
+  const keep = new Set(order);
+  for (const [entry, node] of st.items) {
+    if (keep.has(entry)) continue;
+    st.items.delete(entry);
     fadeOut(win, node);
   }
-  st.add.style.setProperty('--i', String(offset + tabs.length));
+  st.add.style.setProperty('--i', String(offset + order.length));
+}
+
+/** Un grupo de pestañas de Gecko: una fila con un círculo de su color (su inicial; plegado, cuántas
+ *  pestañas tiene) y su nombre. Un clic lo pliega o lo despliega. */
+function groupItem(doc, host) {
+  return el(doc, 'div', { class: 'zero-item zero-group', role: 'button', tabindex: '0' }, [
+    el(doc, 'span', { class: 'zero-fav', 'aria-hidden': 'true' }),
+    el(doc, 'span', { class: 'zero-tt' }),
+  ]);
+}
+
+function fillGroup(win, st, group, node) {
+  const name = group.label || st.host.t('Grupo', 'Group');
+  const count = group.tabs.filter(tab => !tab.closing && !tab.hidden).length;
+  const title = node.querySelector('.zero-tt');
+  if (title.textContent !== name) title.textContent = name;
+  node.title = name;
+  node.toggleAttribute('collapsed', !!group.collapsed);
+  node.setAttribute('aria-expanded', String(!group.collapsed));
+  const glyph = group.collapsed ? String(count) : initialOf(name);
+  const fav = node.querySelector('.zero-fav');
+  if (fav.textContent !== glyph) fav.textContent = glyph;
+  node.style.setProperty('--zero-group', `var(--tab-group-${group.color || 'blue'})`);
 }
 
 /** Reordenar arrastrando (con el puntero, para cuidar la animación): pasados 6 px, la pestaña se
@@ -256,7 +307,7 @@ function dock(st, pointerY) {
 
 export function attach(win, ctx) {
   const doc = win.document, { host } = ctx;
-  const st = { host, cleanups: [], items: new Map(), tabOf: new WeakMap(), fresh: new Set() };
+  const st = { host, cleanups: [], items: new Map(), tabOf: new WeakMap(), groupOf: new WeakMap(), fresh: new Set() };
   state.set(win, st);
   const listen = (target, type, fn, options) => { target.addEventListener(type, fn, options); st.cleanups.push(() => target.removeEventListener(type, fn, options)); };
 
@@ -280,6 +331,8 @@ export function attach(win, ctx) {
     if (event.target.closest('.zero-close')) { event.stopPropagation(); close(st.tabOf.get(node)); return; }
     if (event.target.closest('.zero-sound')) { event.stopPropagation(); st.tabOf.get(node)?.toggleMuteAudio(); return; }
     if (node.classList.contains('zero-space')) { void Promise.resolve(host.spaces?.select(win, node.dataset.space)).catch(() => {}); return; }
+    const group = st.groupOf.get(node);
+    if (group) { group.collapsed = !group.collapsed; return; }
     if (node === st.add) { (win.BrowserCommands?.openTab ?? win.BrowserOpenTab)?.call(win.BrowserCommands ?? win); return; }
     const tab = st.tabOf.get(node);
     if (tab && !tab.closing) win.gBrowser.selectedTab = tab;
@@ -299,6 +352,9 @@ export function attach(win, ctx) {
     doc.getElementById('tabContextMenu')?.openPopupAtScreen(event.screenX, event.screenY, true, event);
   });
   st.rail.addEventListener('keydown', event => {
+    // Un grupo: Intro o espacio lo pliegan o lo despliegan.
+    const group = st.groupOf.get(event.target.closest?.('.zero-group'));
+    if (group && (event.key === 'Enter' || event.key === ' ')) { event.preventDefault(); group.collapsed = !group.collapsed; return; }
     const node = event.target.closest?.('.zero-tab');
     if (!node) return;
     const tab = st.tabOf.get(node);
@@ -328,7 +384,8 @@ export function attach(win, ctx) {
   });
   listen(container, 'TabSelect', () => keepInView());
   listen(container, 'TabOpen', event => { st.fresh.add(event.target); render(win, st); });
-  for (const type of ['TabClose', 'TabSelect', 'TabMove', 'TabPinned', 'TabUnpinned', 'TabShow', 'TabHide']) {
+  for (const type of ['TabClose', 'TabSelect', 'TabMove', 'TabPinned', 'TabUnpinned', 'TabShow', 'TabHide',
+    'TabGroupCreate', 'TabGroupRemoved', 'TabGroupCollapse', 'TabGroupExpand', 'TabGrouped', 'TabUngrouped', 'TabGroupUpdate', 'TabGroupMoved']) {
     listen(container, type, () => render(win, st));
   }
   listen(container, 'TabAttrModified', event => {
