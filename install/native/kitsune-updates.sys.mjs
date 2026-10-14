@@ -1,11 +1,12 @@
 /* Aviso de versión nueva de Kitsune (Windows, macOS y el paquete de Linux).
  *
- * No hay actualizador: una vez al día se mira la lista de descargas de la web de
- * Kitsune (sin cookies ni identificadores) y, si hay una versión más nueva para este
- * sistema, se dice en una barra con un botón que lleva a la descarga. Se apaga con
- * kitsune.update.check = false. Solo actúa si el motor trae kitsune.release (lo ponen
- * los paquetes que se descargan); en el Linux de Risco el motor se compila y actualiza
- * solo, sin kitsune.release, y aquí no hace nada.
+ * Una vez al día se mira la lista de descargas de la web de Kitsune (sin cookies ni
+ * identificadores) y, si hay una versión más nueva para este sistema, se dice en una barra.
+ * En el paquete de Linux, kitsune-updater.sys.mjs la descarga, la comprueba y la deja lista
+ * para instalarse al cerrar («Reiniciar ahora»); en Windows y macOS, o si eso falla, la barra
+ * lleva a la descarga. Se apaga con kitsune.update.check = false. Solo actúa si el motor trae
+ * kitsune.release (lo ponen los paquetes que se descargan); en el Linux de Risco el motor se
+ * compila y actualiza solo, sin kitsune.release, y aquí no hace nada.
  */
 // Textos en el idioma de Kitsune (kitsune-i18n.sys.mjs); sin Gecko (pruebas de Node), en castellano.
 const t = (spanish, english) => {
@@ -46,6 +47,11 @@ export function releaseLabel(release) {
 }
 
 let pending = null, started = false;
+// El actualizador de Linux, junto a este archivo (en el motor, chrome://browser/content/; en las
+// pruebas, donde se cargue); con un motor que no lo trae, o en las pruebas de Node, null.
+const updater = () => {
+  try { return ChromeUtils.importESModule(new URL('kitsune-updater.sys.mjs', import.meta.url).href).KitsuneUpdater; } catch { return null; }
+};
 /** El sistema en downloads.json: windows, macos o linux. */
 export const platformFor = os => ({ WINNT: 'windows', Darwin: 'macos', Linux: 'linux' })[os] ?? null;
 const platformKey = () => platformFor(Services.appinfo.OS);
@@ -53,6 +59,18 @@ const platformKey = () => platformFor(Services.appinfo.OS);
 export async function showUpdateNotice(win, info) {
   const box = win.gNotificationBox;
   if (!box || box.getNotificationWithValue('kitsune-update')) return;
+  if (info.ready) {
+    await box.appendNotification('kitsune-update', {
+      label: t(`Kitsune ${releaseLabel(info.release)} está listo: se instala al cerrar Kitsune.`,
+               `Kitsune ${releaseLabel(info.release)} is ready: it installs when you close Kitsune.`),
+      priority: box.PRIORITY_INFO_MEDIUM,
+    }, [{
+      label: t('Reiniciar ahora', 'Restart now'),
+      accessKey: 'R',
+      callback: () => { updater()?.restart(); },
+    }]);
+    return;
+  }
   await box.appendNotification('kitsune-update', {
     label: t(`Hay una versión nueva de Kitsune: ${releaseLabel(info.release)}.`, `There is a new version of Kitsune: ${releaseLabel(info.release)}.`),
     priority: box.PRIORITY_INFO_MEDIUM,
@@ -72,6 +90,18 @@ export const KitsuneUpdates = {
     if (!installed || !Services.prefs.getBoolPref('kitsune.update.check', true) || !platformKey()) return;
     const { setTimeout } = ChromeUtils.importESModule('resource://gre/modules/Timer.sys.mjs');
     setTimeout(() => void this.check().catch(() => {}), 60 * 1000);
+    // Una versión que se preparó en otra sesión y no llegó a instalarse (Kitsune no se cerró bien).
+    void this.resume().catch(() => {});
+  },
+  async resume() {
+    const installed = Services.prefs.getStringPref('kitsune.release', '');
+    if (!installed || !await updater()?.available()) return null;
+    const release = await updater().resume(installed, compareReleases);
+    if (release && !pending) {
+      pending = { release, ready: true };
+      for (const win of Services.wm.getEnumerator('navigator:browser')) await showUpdateNotice(win, pending);
+    }
+    return release;
   },
   /** Mira la web (como mucho una vez al día) y avisa en las ventanas abiertas. */
   async check(now = Date.now()) {
@@ -96,6 +126,14 @@ export const KitsuneUpdates = {
       downloads = await response.json();
     } finally { clearTimeout(timer); }
     pending = newerRelease(downloads, platform, installed);
+    if (pending && platform === 'linux' && await updater()?.available()) {
+      try {
+        await updater().stage({ release: pending.release, entry: downloads.linux, ...(testing ? { origin: new URL(override).origin } : {}) });
+        pending = { ...pending, ready: true };
+      } catch (error) {
+        console.warn('Kitsune: no se ha podido preparar la versión nueva', error);
+      }
+    }
     if (pending) for (const win of Services.wm.getEnumerator('navigator:browser')) await showUpdateNotice(win, pending);
     return pending;
   },
