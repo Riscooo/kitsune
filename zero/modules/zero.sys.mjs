@@ -26,6 +26,7 @@ let host = null;
 // El cristal en vivo va el último: se pone detrás de las piezas que ya están.
 const pieces = [frame, island, rail, mark, pomodoro, silence, sounds, downloads, glass];
 const decorated = new WeakSet();
+const starting = new WeakSet(); // ventanas que ya esperan a terminar de arrancar
 const listeners = new WeakMap(); // ventana → Set de funciones (active) => …
 
 const active = win => win.document.documentElement.hasAttribute('zero');
@@ -92,10 +93,18 @@ function onChange(win, fn) {
 }
 
 async function decorate(win) {
-  if (!host || decorated.has(win)) return;
+  if (!host || decorated.has(win) || starting.has(win)) return;
+  starting.add(win);
   // De dónde viene, antes de esperar: luego la nueva ya tiene el foco.
   const from = sessionRestored ? openedFrom(win) : null;
   win.SessionStore?.promiseAllWindowsRestored?.then(() => { sessionRestored = true; }, () => {});
+  // Si la sesión restaura esta ventana (al arrancar o al reabrir una cerrada), vuelve como estaba, en
+  // Zero o no, y no hereda nada. Puede pasar antes de que termine de arrancar: se escucha desde ya.
+  let restored = false;
+  win.addEventListener('SSWindowRestored', () => {
+    restored = true;
+    if (decorated.has(win)) toggle(win, readPrefs(host.prefs, host.prefix).always || remembered(win));
+  });
   // El arranque de Kitsune llama mientras se lee browser.xhtml, cuando aún no hay gBrowser: se espera
   // a que la ventana termine de arrancar antes de mirar nada.
   if (!win.gBrowser || !win.gBrowserInit?.delayedStartupFinished) await win.delayedStartupPromise;
@@ -103,9 +112,7 @@ async function decorate(win) {
   decorated.add(win);
   host.keys?.add(win, 'kitsune-zero-key', '0', 'accel,alt', () => toggle(win));
   const { always, inherit } = readPrefs(host.prefs, host.prefix);
-  if (always || remembered(win) || (inherit && from && active(from))) toggle(win, true);
-  // La sesión se restaura después de abrir la ventana: vuelve como estaba (en Zero o no).
-  win.addEventListener('SSWindowRestored', () => toggle(win, readPrefs(host.prefs, host.prefix).always || remembered(win)));
+  if (always || remembered(win) || (inherit && !restored && from && active(from))) toggle(win, true);
 }
 
 export const Zero = {

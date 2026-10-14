@@ -4,7 +4,7 @@
 2. Otra ventana ya abierta no cambia.
 3. Una ventana nueva nace como la ventana desde la que se abre (Ctrl+N en una en Zero, en Zero; en una
    normal, normal); con «Ventanas nuevas: normales» (kitsune.zero.inherit = false), siempre normal; y
-   con kitsune.zero.always, siempre en Zero.
+   con kitsune.zero.always, siempre en Zero. Una ventana cerrada que se reabre vuelve como era.
 4. La ventana recuerda Zero para la próxima sesión (SessionStore) y lo olvida al apagarlo.
 5. Al apagarlo no queda nada de Zero: ni nodos «zero-…», ni atributos «zero…» en ningún nodo, ni
    variables «--zero-…» en la raíz.
@@ -17,6 +17,7 @@ import argparse
 import json
 from pathlib import Path
 import tempfile
+import time
 
 from browser_smoke import WebDriver, prepare_profile, eventually
 import zero_harness
@@ -126,6 +127,18 @@ def main():
         chrome("Services.prefs.setBoolPref('kitsune.zero.inherit', false)")
         assert open_from('window') is False, 'con «normales», normal aunque se abra desde Zero'
         chrome("Services.prefs.clearUserPref('kitsune.zero.inherit')")
+        # Reabrir una ventana cerrada (Ctrl+Shift+N) desde una en Zero: vuelve como era, no hereda.
+        other = "[...Services.wm.getEnumerator('navigator:browser')].find(w => w !== window)"
+        chrome(f"const o = {other}; o.gBrowser.selectedBrowser.loadURI(Services.io.newURI('data:text/html,<title>Nara</title>Nara'), {{ triggeringPrincipal: Services.scriptSecurityManager.getSystemPrincipal() }});")
+        eventually(lambda: chrome(f"return {other}.gBrowser.selectedTab.label") == 'Nara', timeout=10)
+        chrome(f"{other}.close()")
+        eventually(lambda: len(chrome(WINDOWS)) == 1 and chrome("return SessionStore.getClosedWindowCount()") >= 1, timeout=10)
+        focus('window')
+        chrome("window.__vuelta = SessionStore.undoCloseWindow(0);")
+        eventually(lambda: chrome("const w = window.__vuelta; return !!w.document?.getElementById('kitsune-zero-key') && w.gBrowserInit?.delayedStartupFinished && w.gBrowser.selectedTab.label === 'Nara'"), timeout=15)
+        time.sleep(1)
+        assert chrome("return window.__vuelta.document.documentElement.hasAttribute('zero')") is False, 'la ventana reabierta no estaba en Zero: no debería heredarlo'
+        chrome("delete window.__vuelta;")
         focus('window')
         press_zero()
         eventually(lambda: not state()['zero'], timeout=5)
