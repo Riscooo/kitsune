@@ -40,8 +40,11 @@ class PrivacyModesTests(unittest.TestCase):
         self.assertIs(strict["dom.security.https_only_mode"], True)
         self.assertIs(strict["privacy.fingerprintingProtection"], True)
         self.assertEqual(self.sets["common"]["toolkit.telemetry.server"], "data:,")
-        # Telemetry upload is already off at factory level (DisableTelemetry policy).
-        self.assertIs(modes.effective(self.factory["prefs"]["datareporting.healthreport.uploadEnabled"]), False)
+        # La fábrica de Gecko (medida sin kitsune.cfg) manda telemetría; Kitsune la apaga en los
+        # dos modos, y además la bloquea en su identidad (lockPref).
+        for name in ("datareporting.healthreport.uploadEnabled", "datareporting.usage.uploadEnabled", "toolkit.telemetry.archive.enabled"):
+            self.assertIs(self.sets["common"][name], False, name)
+            self.assertIn(f'"{name}"', self.cfg)
 
 
 if __name__ == "__main__":

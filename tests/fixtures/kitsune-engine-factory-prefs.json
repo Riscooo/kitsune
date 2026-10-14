@@ -1,25 +1,10 @@
 {
  "app": {
   "name": "Kitsune",
-  "platformVersion": "157.0.1",
-  "version": "157.0.1"
+  "platformVersion": "158.0",
+  "version": "158.0"
  },
- "policies": [
-  "DisableAppUpdate",
-  "DisableDefaultBrowserAgent",
-  "DisableFeedbackCommands",
-  "DisableFirefoxStudies",
-  "DisableSetDesktopBackground",
-  "DisableTelemetry",
-  "DontCheckDefaultBrowser",
-  "ExtensionSettings",
-  "FirefoxHome",
-  "FirefoxSuggest",
-  "NoDefaultBookmarks",
-  "OverridePostUpdatePage",
-  "SkipTermsOfUse",
-  "UserMessaging"
- ],
+ "policies": [],
  "prefs": {
   "about.glean.redesign.enabled": {
    "default": false,
@@ -101,6 +86,12 @@
   },
   "accessibility.tabfocus_applies_to_xul": {
    "default": false,
+   "locked": false,
+   "type": "bool",
+   "user": null
+  },
+  "accessibility.tagged_pdf_output.enabled": {
+   "default": true,
    "locked": false,
    "type": "bool",
    "user": null
@@ -250,10 +241,16 @@
    "user": null
   },
   "app.normandy.shieldLearnMoreUrl": {
-   "default": "https://support.mozilla.org/1/firefox/%VERSION%/%OS%/%LOCALE%/shield",
+   "default": "http://127.0.0.1:49721/ayuda/shield",
    "locked": false,
    "type": "string",
    "user": null
+  },
+  "app.normandy.user_id": {
+   "default": null,
+   "locked": false,
+   "type": "string",
+   "user": "dc319a6c-acd3-429b-aa7e-06dfb75c8a92"
   },
   "app.shield.optoutstudies.enabled": {
    "default": true,
@@ -262,7 +259,7 @@
    "user": null
   },
   "app.support.baseURL": {
-   "default": "https://support.mozilla.org/1/firefox/%VERSION%/%OS%/%LOCALE%/",
+   "default": "http://127.0.0.1:49721/ayuda/",
    "locked": false,
    "type": "string",
    "user": null
@@ -1072,7 +1069,7 @@
    "user": null
   },
   "browser.aboutwelcome.enabled": {
-   "default": false,
+   "default": true,
    "locked": false,
    "type": "bool",
    "user": false
@@ -1623,6 +1620,18 @@
    "type": "bool",
    "user": null
   },
+  "browser.contentanalysis.interception_point.clipboard_copy.enabled": {
+   "default": false,
+   "locked": false,
+   "type": "bool",
+   "user": null
+  },
+  "browser.contentanalysis.interception_point.clipboard_copy.plain_text_only": {
+   "default": true,
+   "locked": false,
+   "type": "bool",
+   "user": null
+  },
   "browser.contentanalysis.interception_point.download.enabled": {
    "default": false,
    "locked": false,
@@ -1768,13 +1777,13 @@
    "user": null
   },
   "browser.contentblocking.report.cookie.url": {
-   "default": "https://support.mozilla.org/1/firefox/%VERSION%/%OS%/%LOCALE%/cross-site-tracking-report",
+   "default": "http://127.0.0.1:49721/ayuda/cross-site-tracking-report",
    "locked": false,
    "type": "string",
    "user": null
   },
   "browser.contentblocking.report.cryptominer.url": {
-   "default": "https://support.mozilla.org/1/firefox/%VERSION%/%OS%/%LOCALE%/cryptominers-report",
+   "default": "http://127.0.0.1:49721/ayuda/cryptominers-report",
    "locked": false,
    "type": "string",
    "user": null
@@ -1786,7 +1795,7 @@
    "user": null
   },
   "browser.contentblocking.report.fingerprinter.url": {
-   "default": "https://support.mozilla.org/1/firefox/%VERSION%/%OS%/%LOCALE%/fingerprinters-report",
+   "default": "http://127.0.0.1:49721/ayuda/fingerprinters-report",
    "locked": false,
    "type": "string",
    "user": null
@@ -1804,7 +1813,7 @@
    "user": null
   },
   "browser.contentblocking.report.lockwise.how_it_works.url": {
-   "default": "https://support.mozilla.org/1/firefox/%VERSION%/%OS%/%LOCALE%/password-manager-report",
+   "default": "http://127.0.0.1:49721/ayuda/password-manager-report",
    "locked": false,
    "type": "string",
    "user": null
@@ -1876,13 +1885,13 @@
    "user": null
   },
   "browser.contentblocking.report.social.url": {
-   "default": "https://support.mozilla.org/1/firefox/%VERSION%/%OS%/%LOCALE%/social-media-tracking-report",
+   "default": "http://127.0.0.1:49721/ayuda/social-media-tracking-report",
    "locked": false,
    "type": "string",
    "user": null
   },
   "browser.contentblocking.report.tracker.url": {
-   "default": "https://support.mozilla.org/1/firefox/%VERSION%/%OS%/%LOCALE%/tracking-content-report",
+   "default": "http://127.0.0.1:49721/ayuda/tracking-content-report",
    "locked": false,
    "type": "string",
    "user": null
@@ -1939,7 +1948,7 @@
    "default": null,
    "locked": false,
    "type": "string",
-   "user": "b7c60eae-7a3e-4905-b831-5d18d12b75d4"
+   "user": "79de41cc-4ccf-41bd-a0c1-2338d38172fe"
   },
   "browser.contextual-services.contextId.rotation-in-days": {
    "default": 3,
@@ -1957,7 +1966,7 @@
    "default": null,
    "locked": false,
    "type": "int",
-   "user": 1791584422
+   "user": 1791947581
   },
   "browser.crashReporter.memtest": {
    "default": true,
@@ -2272,6 +2281,12 @@
    "user": null
   },
   "browser.download.viewableInternally.typeWasRegistered.avif": {
+   "default": null,
+   "locked": false,
+   "type": "bool",
+   "user": true
+  },
+  "browser.download.viewableInternally.typeWasRegistered.jxl": {
    "default": null,
    "locked": false,
    "type": "bool",
@@ -2902,7 +2917,7 @@
    "user": null
   },
   "browser.lna.warning.infoURL": {
-   "default": "https://support.mozilla.org/%LOCALE%/kb/control-personal-device-local-network-permissions-firefox",
+   "default": "http://127.0.0.1:49721/ayuda/control-personal-device-local-network-permissions-firefox",
    "locked": false,
    "type": "string",
    "user": null
@@ -3135,6 +3150,18 @@
    "type": "int",
    "user": 183
   },
+  "browser.mini-window.enabled": {
+   "default": false,
+   "locked": false,
+   "type": "bool",
+   "user": null
+  },
+  "browser.mini-window.log": {
+   "default": false,
+   "locked": false,
+   "type": "bool",
+   "user": null
+  },
   "browser.ml.chat.enabled": {
    "default": true,
    "locked": false,
@@ -3158,6 +3185,12 @@
    "locked": false,
    "type": "bool",
    "user": null
+  },
+  "browser.ml.chat.nimbus": {
+   "default": null,
+   "locked": false,
+   "type": "string",
+   "user": "copilot-chatbot-sunset:control"
   },
   "browser.ml.chat.page": {
    "default": true,
@@ -3213,6 +3246,12 @@
    "type": "string",
    "user": null
   },
+  "browser.ml.chat.providers": {
+   "default": "claude,chatgpt,gemini,lechat",
+   "locked": false,
+   "type": "string",
+   "user": null
+  },
   "browser.ml.chat.shortcut.onboardingMouseoverCount": {
    "default": 0,
    "locked": false,
@@ -3229,6 +3268,12 @@
    "default": true,
    "locked": false,
    "type": "bool",
+   "user": null
+  },
+  "browser.ml.chat.shortcuts.debounce": {
+   "default": 200,
+   "locked": false,
+   "type": "int",
    "user": null
   },
   "browser.ml.chat.shortcuts.longPress": {
@@ -3411,12 +3456,6 @@
    "type": "string",
    "user": null
   },
-  "browser.ml.onnxNativeAvailabilityReported": {
-   "default": false,
-   "locked": false,
-   "type": "bool",
-   "user": null
-  },
   "browser.ml.overridePipelineOptions": {
    "default": "{}",
    "locked": false,
@@ -3436,6 +3475,12 @@
    "user": null
   },
   "browser.navigation.requireUserInteraction": {
+   "default": true,
+   "locked": false,
+   "type": "bool",
+   "user": null
+  },
+  "browser.netError.illustration.enabled": {
    "default": true,
    "locked": false,
    "type": "bool",
@@ -3514,13 +3559,13 @@
    "user": null
   },
   "browser.newtabpage.activity-stream.asrouter.userprefs.cfr.addons": {
-   "default": false,
+   "default": true,
    "locked": false,
    "type": "bool",
    "user": null
   },
   "browser.newtabpage.activity-stream.asrouter.userprefs.cfr.features": {
-   "default": false,
+   "default": true,
    "locked": false,
    "type": "bool",
    "user": null
@@ -3615,14 +3660,8 @@
    "type": "bool",
    "user": null
   },
-  "browser.newtabpage.activity-stream.discoverystream.endpointSpocsClear": {
-   "default": "https://spocs.getpocket.com/user",
-   "locked": false,
-   "type": "string",
-   "user": null
-  },
   "browser.newtabpage.activity-stream.discoverystream.endpoints": {
-   "default": "https://getpocket.cdn.mozilla.net/,https://firefox-api-proxy.cdn.mozilla.net/,https://spocs.getpocket.com/,https://merino.services.mozilla.com/,https://ads.mozilla.org/",
+   "default": "https://getpocket.cdn.mozilla.net/,https://firefox-api-proxy.cdn.mozilla.net/,https://merino.services.mozilla.com/,https://ads.mozilla.org/",
    "locked": false,
    "type": "string",
    "user": null
@@ -3928,7 +3967,7 @@
    "user": null
   },
   "browser.newtabpage.activity-stream.discoverystream.sections.locale-content-config": {
-   "default": "en-US,en-CA,en-GB",
+   "default": "en-US,en-CA,en-GB,de,fr,it,es-ES,pl",
    "locked": false,
    "type": "string",
    "user": null
@@ -3976,7 +4015,7 @@
    "user": null
   },
   "browser.newtabpage.activity-stream.discoverystream.sections.region-content-config": {
-   "default": "US,GB,CA,IE",
+   "default": "US,GB,CA,IE,IN,DE,AT,CH,BE,FR,IT,ES,PL",
    "locked": false,
    "type": "string",
    "user": null
@@ -4252,7 +4291,7 @@
    "user": null
   },
   "browser.newtabpage.activity-stream.feeds.section.topstories": {
-   "default": false,
+   "default": true,
    "locked": false,
    "type": "bool",
    "user": false
@@ -4381,7 +4420,7 @@
    "default": null,
    "locked": false,
    "type": "string",
-   "user": "{bf37638e-de50-498b-aa9a-f5eed9ba0132}"
+   "user": "{9825be0b-15f3-45b7-9fc7-198a8ce86633}"
   },
   "browser.newtabpage.activity-stream.improvesearch.handoffToAwesomebar": {
    "default": true,
@@ -4504,7 +4543,7 @@
    "user": null
   },
   "browser.newtabpage.activity-stream.newtabWallpapers.customWallpaper.library.enabled": {
-   "default": false,
+   "default": true,
    "locked": false,
    "type": "bool",
    "user": null
@@ -4623,6 +4662,12 @@
    "type": "int",
    "user": null
   },
+  "browser.newtabpage.activity-stream.pageLayouts.spacesConfig": {
+   "default": "{\"order\":[\"games\",\"home\",\"living\"],\"default\":\"home\",\"spaces\":{\"home\":{\"label\":\"Home\",\"icon\":\"chrome://browser/skin/home.svg\",\"sections\":[\"top_stories_section\",\"headlines\",\"in-the-zeitgeist\",\"by-the-numbers\",\"government\",\"business\",\"finance\",\"explained\",\"in-conversation\",\"education-science\",\"tech\"],\"widgets\":[\"pictureOfTheDay\"]},\"games\":{\"label\":\"Games & Entertainment\",\"icon\":\"chrome://browser/content/profiles/assets/16_video-game-controller.svg\",\"sections\":[\"arts\",\"hobbies\",\"music\",\"movies\",\"tv\",\"featured-videos\",\"photojournalism\",\"sports\",\"nfl\",\"nhl\",\"mlb\",\"nba\",\"soccer\"],\"widgets\":[\"crossword\"]},\"living\":{\"label\":\"Living\",\"icon\":\"chrome://browser/content/profiles/assets/16_leaf.svg\",\"sections\":[\"food\",\"home\",\"travel\",\"society-parenting\",\"health\",\"small-wins\",\"education\",\"long-reads\",\"connections\"],\"widgets\":[\"lists\",\"focusTimer\"]}}}",
+   "locked": false,
+   "type": "string",
+   "user": null
+  },
   "browser.newtabpage.activity-stream.pageLayouts.variant": {
    "default": "nova-full-width",
    "locked": false,
@@ -4636,7 +4681,7 @@
    "user": null
   },
   "browser.newtabpage.activity-stream.privacyInfo.url": {
-   "default": "https://support.mozilla.org/1/firefox/157.0.1/Linux/en-US/sponsor-privacy",
+   "default": "http://127.0.0.1:49721/ayuda/sponsor-privacy",
    "locked": false,
    "type": "string",
    "user": null
@@ -4684,7 +4729,7 @@
    "user": null
   },
   "browser.newtabpage.activity-stream.sectionsLearnMore.url": {
-   "default": "https://support.mozilla.org/1/firefox/157.0.1/Linux/en-US/firefox-new-tab-personalization",
+   "default": "http://127.0.0.1:49721/ayuda/firefox-new-tab-personalization",
    "locked": false,
    "type": "string",
    "user": null
@@ -4702,7 +4747,7 @@
    "user": true
   },
   "browser.newtabpage.activity-stream.showSponsored": {
-   "default": false,
+   "default": true,
    "locked": false,
    "type": "bool",
    "user": false
@@ -4714,7 +4759,7 @@
    "user": null
   },
   "browser.newtabpage.activity-stream.showSponsoredTopSites": {
-   "default": false,
+   "default": true,
    "locked": false,
    "type": "bool",
    "user": false
@@ -4804,7 +4849,7 @@
    "user": null
   },
   "browser.newtabpage.activity-stream.support.url": {
-   "default": "https://support.mozilla.org/1/firefox/157.0.1/Linux/en-US/new-tab",
+   "default": "http://127.0.0.1:49721/ayuda/new-tab",
    "locked": false,
    "type": "string",
    "user": null
@@ -5299,7 +5344,7 @@
    "default": true,
    "locked": false,
    "type": "bool",
-   "user": null
+   "user": false
   },
   "browser.newtabpage.activity-stream.widgets.sportsWidget.interaction": {
    "default": false,
@@ -5323,7 +5368,7 @@
    "default": 180000,
    "locked": false,
    "type": "int",
-   "user": null
+   "user": 60000
   },
   "browser.newtabpage.activity-stream.widgets.sportsWidget.pollMatchDayMs": {
    "default": 1800000,
@@ -5542,7 +5587,7 @@
    "user": "{\"ids\":[\"bookmark\"],\"idsInUrlbar\":[\"bookmark\"],\"idsInUrlbarPreProton\":[],\"version\":1}"
   },
   "browser.pageextractor.youtube.enabled": {
-   "default": false,
+   "default": true,
    "locked": false,
    "type": "bool",
    "user": null
@@ -5558,18 +5603,6 @@
    "locked": false,
    "type": "int",
    "user": 3
-  },
-  "browser.partnerlink.attributionURL": {
-   "default": "https://topsites.services.mozilla.com/cid/",
-   "locked": false,
-   "type": "string",
-   "user": null
-  },
-  "browser.partnerlink.campaign.topsites": {
-   "default": "amzn_2020_a1",
-   "locked": false,
-   "type": "string",
-   "user": null
   },
   "browser.pdf.launchDefaultEdgeAsApp": {
    "default": true,
@@ -5613,12 +5646,6 @@
    "type": "int",
    "user": null
   },
-  "browser.policies.applied": {
-   "default": null,
-   "locked": false,
-   "type": "bool",
-   "user": true
-  },
   "browser.preferences.aiControls": {
    "default": true,
    "locked": false,
@@ -5644,12 +5671,18 @@
    "user": null
   },
   "browser.preferences.moreFromMozilla": {
-   "default": false,
+   "default": true,
    "locked": false,
    "type": "bool",
    "user": null
   },
   "browser.privacySegmentation.preferences.show": {
+   "default": false,
+   "locked": false,
+   "type": "bool",
+   "user": null
+  },
+  "browser.privateWindowRedesign.enabled": {
    "default": false,
    "locked": false,
    "type": "bool",
@@ -5668,6 +5701,12 @@
    "user": null
   },
   "browser.privatebrowsing.forceMediaMemoryCache": {
+   "default": false,
+   "locked": false,
+   "type": "bool",
+   "user": null
+  },
+  "browser.privatebrowsing.introAnimationShown": {
    "default": false,
    "locked": false,
    "type": "bool",
@@ -6555,6 +6594,12 @@
    "type": "int",
    "user": null
   },
+  "browser.shell.desktop-entry-api": {
+   "default": "default",
+   "locked": false,
+   "type": "string",
+   "user": null
+  },
   "browser.shell.didSkipDefaultBrowserCheckOnFirstRun": {
    "default": false,
    "locked": false,
@@ -6591,6 +6636,18 @@
    "type": "bool",
    "user": null
   },
+  "browser.smartwindow.agent.expiry.maxAgeDays": {
+   "default": 90,
+   "locked": false,
+   "type": "int",
+   "user": null
+  },
+  "browser.smartwindow.agent.expiry.noMatchDays": {
+   "default": 60,
+   "locked": false,
+   "type": "int",
+   "user": null
+  },
   "browser.smartwindow.agent.monitorAnnouncement": {
    "default": false,
    "locked": false,
@@ -6604,7 +6661,7 @@
    "user": null
   },
   "browser.smartwindow.agent.toolbar.enabled": {
-   "default": false,
+   "default": true,
    "locked": false,
    "type": "bool",
    "user": null
@@ -6652,7 +6709,7 @@
    "user": null
   },
   "browser.smartwindow.autoTabGrouping.minCandidateTabs": {
-   "default": 4,
+   "default": 2,
    "locked": false,
    "type": "int",
    "user": null
@@ -6777,6 +6834,12 @@
    "type": "bool",
    "user": null
   },
+  "browser.smartwindow.resumeCards.enabled": {
+   "default": false,
+   "locked": false,
+   "type": "bool",
+   "user": null
+  },
   "browser.smartwindow.searchQuery.apiKey": {
    "default": "",
    "locked": false,
@@ -6820,9 +6883,15 @@
    "user": null
   },
   "browser.smartwindow.smartformfill.enabled": {
-   "default": false,
+   "default": true,
    "locked": false,
    "type": "bool",
+   "user": null
+  },
+  "browser.smartwindow.smartformfill.minFormFields": {
+   "default": 4,
+   "locked": false,
+   "type": "int",
    "user": null
   },
   "browser.smartwindow.telemetryLogLevel": {
@@ -6884,12 +6953,6 @@
    "locked": false,
    "type": "string",
    "user": "ignore"
-  },
-  "browser.startup.lastColdStartupCheck": {
-   "default": null,
-   "locked": false,
-   "type": "int",
-   "user": 1791584423
   },
   "browser.startup.page": {
    "default": 1,
@@ -7419,6 +7482,12 @@
    "type": "bool",
    "user": null
   },
+  "browser.termsofuse.prefMigrationCheck": {
+   "default": null,
+   "locked": false,
+   "type": "bool",
+   "user": true
+  },
   "browser.theme.content-theme": {
    "default": 2,
    "locked": false,
@@ -7546,7 +7615,7 @@
    "user": null
   },
   "browser.translations.mostRecentTargetLanguages": {
-   "default": "en-US",
+   "default": "",
    "locked": false,
    "type": "string",
    "user": null
@@ -7609,7 +7678,7 @@
    "default": "",
    "locked": false,
    "type": "string",
-   "user": "{\"placements\":{\"widget-overflow-fixed-list\":[],\"unified-extensions-area\":[],\"nav-bar\":[\"sidebar-button\",\"back-button\",\"forward-button\",\"stop-reload-button\",\"customizableui-special-spring1\",\"vertical-spacer\",\"urlbar-container\",\"customizableui-special-spring2\",\"downloads-button\",\"fxa-toolbar-menu-button\",\"reset-pbm-toolbar-button\",\"unified-extensions-button\",\"ublock0_raymondhill_net-browser-action\"],\"toolbar-menubar\":[\"menubar-items\"],\"TabsToolbar\":[\"tabbrowser-tabs\",\"new-tab-button\",\"customizableui-special-spring3\",\"alltabs-button\",\"smartwindow-group-tabs-button\",\"ai-window-toggle\"],\"vertical-tabs\":[],\"PersonalToolbar\":[\"personal-bookmarks\"]},\"seen\":[\"reset-pbm-toolbar-button\",\"smartwindow-group-tabs-button\",\"ai-window-toggle\",\"developer-button\",\"ublock0_raymondhill_net-browser-action\",\"screenshot-button\"],\"dirtyAreaCache\":[\"nav-bar\",\"TabsToolbar\",\"vertical-tabs\"],\"currentVersion\":26,\"newElementCount\":3}"
+   "user": "{\"placements\":{\"widget-overflow-fixed-list\":[],\"unified-extensions-area\":[],\"nav-bar\":[\"sidebar-button\",\"back-button\",\"forward-button\",\"stop-reload-button\",\"customizableui-special-spring1\",\"vertical-spacer\",\"urlbar-container\",\"customizableui-special-spring2\",\"downloads-button\",\"fxa-toolbar-menu-button\",\"reset-pbm-toolbar-button\",\"ublock0_raymondhill_net-browser-action\",\"unified-extensions-button\"],\"toolbar-menubar\":[\"menubar-items\"],\"TabsToolbar\":[\"tabbrowser-tabs\",\"new-tab-button\",\"customizableui-special-spring3\",\"alltabs-button\",\"smartwindow-group-tabs-button\",\"ai-window-toggle\"],\"vertical-tabs\":[],\"PersonalToolbar\":[\"personal-bookmarks\"]},\"seen\":[\"reset-pbm-toolbar-button\",\"ublock0_raymondhill_net-browser-action\",\"smartwindow-group-tabs-button\",\"ai-window-toggle\",\"developer-button\",\"screenshot-button\"],\"dirtyAreaCache\":[\"unified-extensions-area\",\"nav-bar\",\"TabsToolbar\",\"vertical-tabs\"],\"currentVersion\":28,\"newElementCount\":3}"
   },
   "browser.uidensity": {
    "default": 0,
@@ -7935,6 +8004,18 @@
    "type": "bool",
    "user": null
   },
+  "browser.urlbar.newtab.variantA": {
+   "default": false,
+   "locked": false,
+   "type": "bool",
+   "user": null
+  },
+  "browser.urlbar.newtab.variantB": {
+   "default": false,
+   "locked": false,
+   "type": "bool",
+   "user": null
+  },
   "browser.urlbar.openintab": {
    "default": false,
    "locked": false,
@@ -8074,7 +8155,7 @@
    "user": null
   },
   "browser.urlbar.quicksuggest.online.enabled": {
-   "default": false,
+   "default": true,
    "locked": false,
    "type": "bool",
    "user": null
@@ -8611,7 +8692,7 @@
    "default": null,
    "locked": false,
    "type": "int",
-   "user": 1791584
+   "user": 1791947
   },
   "captchadetection.loglevel": {
    "default": "Warn",
@@ -8791,13 +8872,13 @@
    "default": null,
    "locked": false,
    "type": "string",
-   "user": "b0bacafe-b0ba-cafe-b0ba-cafeb0bacafe"
+   "user": "e9613e83-007c-4f48-b836-e9f1979aadea"
   },
   "datareporting.dau.cachedUsageProfileID": {
    "default": null,
    "locked": false,
    "type": "string",
-   "user": "beefbeef-beef-beef-beef-beeefbeefbee"
+   "user": "babdf27a-c707-4357-bf8b-bbde87a400cf"
   },
   "datareporting.healthreport.infoURL": {
    "default": "https://www.mozilla.org/legal/privacy/firefox.html#health-report",
@@ -8806,8 +8887,8 @@
    "user": null
   },
   "datareporting.healthreport.uploadEnabled": {
-   "default": false,
-   "locked": true,
+   "default": true,
+   "locked": false,
    "type": "bool",
    "user": null
   },
@@ -8818,8 +8899,8 @@
    "user": null
   },
   "datareporting.policy.dataSubmissionEnabled": {
-   "default": false,
-   "locked": true,
+   "default": true,
+   "locked": false,
    "type": "bool",
    "user": null
   },
@@ -8827,7 +8908,7 @@
    "default": 0,
    "locked": false,
    "type": "int",
-   "user": null
+   "user": 2
   },
   "datareporting.policy.dataSubmissionPolicyBypassNotification": {
    "default": false,
@@ -8839,7 +8920,7 @@
    "default": "0",
    "locked": false,
    "type": "string",
-   "user": null
+   "user": "1791947581926"
   },
   "datareporting.policy.firstRunURL": {
    "default": "https://www.mozilla.org/privacy/firefox/",
@@ -8860,8 +8941,8 @@
    "user": null
   },
   "datareporting.usage.uploadEnabled": {
-   "default": false,
-   "locked": true,
+   "default": true,
+   "locked": false,
    "type": "bool",
    "user": null
   },
@@ -10573,7 +10654,7 @@
    "default": null,
    "locked": false,
    "type": "string",
-   "user": "157.0.1"
+   "user": "158.0"
   },
   "distribution.iniFile.exists.value": {
    "default": null,
@@ -10600,6 +10681,12 @@
    "user": null
   },
   "docshell.shistory.bfcache.ship_allow_beforeunload_listeners": {
+   "default": true,
+   "locked": false,
+   "type": "bool",
+   "user": null
+  },
+  "docshell.shistory.restoreSubframesOnReload": {
    "default": true,
    "locked": false,
    "type": "bool",
@@ -10889,6 +10976,12 @@
   },
   "dom.disable_window_move_resize": {
    "default": false,
+   "locked": false,
+   "type": "bool",
+   "user": null
+  },
+  "dom.document.domcontentloaded.synchronous.enabled": {
+   "default": true,
    "locked": false,
    "type": "bool",
    "user": null
@@ -11218,6 +11311,12 @@
    "user": null
   },
   "dom.fetch.allow_force_allowed_dtd": {
+   "default": false,
+   "locked": false,
+   "type": "bool",
+   "user": null
+  },
+  "dom.fetch.streaming_upload": {
    "default": false,
    "locked": false,
    "type": "bool",
@@ -11631,12 +11730,6 @@
    "type": "bool",
    "user": null
   },
-  "dom.ipc.cpow.timeout": {
-   "default": 500,
-   "locked": false,
-   "type": "int",
-   "user": null
-  },
   "dom.ipc.disableContentProcessReuse": {
    "default": false,
    "locked": false,
@@ -11753,6 +11846,12 @@
   },
   "dom.ipc.processReuse.unusedGraceMs": {
    "default": 0,
+   "locked": false,
+   "type": "int",
+   "user": null
+  },
+  "dom.ipc.reply.timeout": {
+   "default": 500,
    "locked": false,
    "type": "int",
    "user": null
@@ -12190,7 +12289,7 @@
    "user": null
   },
   "dom.performance.deliverytype.enabled": {
-   "default": false,
+   "default": true,
    "locked": false,
    "type": "bool",
    "user": null
@@ -12255,18 +12354,6 @@
    "type": "bool",
    "user": null
   },
-  "dom.pointer-lock.reset-to-center-from-parent.enabled": {
-   "default": true,
-   "locked": false,
-   "type": "bool",
-   "user": null
-  },
-  "dom.pointer-lock.unadjusted-movement.enabled": {
-   "default": true,
-   "locked": false,
-   "type": "bool",
-   "user": null
-  },
   "dom.popup_allowed_events": {
    "default": "change click dblclick auxclick mousedown mouseup pointerdown pointerup notificationclick reset submit touchend contextmenu",
    "locked": false,
@@ -12311,6 +12398,12 @@
   },
   "dom.push.connection.enabled": {
    "default": true,
+   "locked": false,
+   "type": "bool",
+   "user": null
+  },
+  "dom.push.declarative.enabled": {
+   "default": false,
    "locked": false,
    "type": "bool",
    "user": null
@@ -12379,7 +12472,7 @@
    "default": "",
    "locked": false,
    "type": "string",
-   "user": null
+   "user": "3ec193e700e74821ad0c2c5123e6ff41"
   },
   "dom.quotaManager.artificialFailure.categories": {
    "default": 0,
@@ -12621,14 +12714,14 @@
    "type": "bool",
    "user": null
   },
-  "dom.reporting.featurePolicy.enabled": {
-   "default": false,
+  "dom.reporting.header.enabled": {
+   "default": true,
    "locked": false,
    "type": "bool",
    "user": null
   },
-  "dom.reporting.header.enabled": {
-   "default": true,
+  "dom.reporting.permissionsPolicy.enabled": {
+   "default": false,
    "locked": false,
    "type": "bool",
    "user": null
@@ -12783,24 +12876,6 @@
    "type": "bool",
    "user": null
   },
-  "dom.security.featurePolicy.experimental.enabled": {
-   "default": false,
-   "locked": false,
-   "type": "bool",
-   "user": null
-  },
-  "dom.security.featurePolicy.header.enabled": {
-   "default": false,
-   "locked": false,
-   "type": "bool",
-   "user": null
-  },
-  "dom.security.featurePolicy.webidl.enabled": {
-   "default": false,
-   "locked": false,
-   "type": "bool",
-   "user": null
-  },
   "dom.security.framebusting_intervention.enabled": {
    "default": true,
    "locked": false,
@@ -12917,6 +12992,24 @@
   },
   "dom.security.https_only_mode_send_http_background_request": {
    "default": true,
+   "locked": false,
+   "type": "bool",
+   "user": null
+  },
+  "dom.security.permissionsPolicy.experimental.enabled": {
+   "default": false,
+   "locked": false,
+   "type": "bool",
+   "user": null
+  },
+  "dom.security.permissionsPolicy.header.enabled": {
+   "default": false,
+   "locked": false,
+   "type": "bool",
+   "user": null
+  },
+  "dom.security.permissionsPolicy.webidl.enabled": {
+   "default": false,
    "locked": false,
    "type": "bool",
    "user": null
@@ -13143,6 +13236,12 @@
    "type": "string",
    "user": null
   },
+  "dom.speculation_rules.eager_hover_delay_ms": {
+   "default": 10,
+   "locked": false,
+   "type": "int",
+   "user": null
+  },
   "dom.speculation_rules.enabled": {
    "default": false,
    "locked": false,
@@ -13157,6 +13256,12 @@
   },
   "dom.speculation_rules.max_records_per_document": {
    "default": 20,
+   "locked": false,
+   "type": "int",
+   "user": null
+  },
+  "dom.speculation_rules.moderate_hover_delay_ms": {
+   "default": 200,
    "locked": false,
    "type": "int",
    "user": null
@@ -13875,12 +13980,6 @@
    "type": "bool",
    "user": null
   },
-  "dom.webnotifications.allowcrossoriginiframe": {
-   "default": false,
-   "locked": false,
-   "type": "bool",
-   "user": null
-  },
   "dom.webnotifications.block_if_on_safebrowsing": {
    "default": true,
    "locked": false,
@@ -13912,7 +14011,7 @@
    "user": null
   },
   "dom.webnotifications.navigate.enabled": {
-   "default": false,
+   "default": true,
    "locked": false,
    "type": "bool",
    "user": null
@@ -13960,7 +14059,7 @@
    "user": null
   },
   "dom.webserial.enabled": {
-   "default": false,
+   "default": true,
    "locked": false,
    "type": "bool",
    "user": null
@@ -14265,12 +14364,6 @@
    "type": "bool",
    "user": null
   },
-  "extensions.colorway-builtin-themes-cleanup": {
-   "default": null,
-   "locked": false,
-   "type": "int",
-   "user": 1
-  },
   "extensions.content_web_accessible.enabled": {
    "default": false,
    "locked": false,
@@ -14380,9 +14473,15 @@
    "user": null
   },
   "extensions.formautofill.creditCards.cvv.enabled": {
-   "default": false,
+   "default": true,
    "locked": false,
    "type": "bool",
+   "user": null
+  },
+  "extensions.formautofill.creditCards.cvv.supported": {
+   "default": "off",
+   "locked": false,
+   "type": "string",
    "user": null
   },
   "extensions.formautofill.creditCards.enabled": {
@@ -14424,6 +14523,36 @@
   "extensions.formautofill.creditCards.os-auth.locked.enabled": {
    "default": false,
    "locked": true,
+   "type": "bool",
+   "user": null
+  },
+  "extensions.formautofill.creditCards.storage.rust.active": {
+   "default": false,
+   "locked": false,
+   "type": "bool",
+   "user": null
+  },
+  "extensions.formautofill.creditCards.storage.rust.enabled": {
+   "default": false,
+   "locked": false,
+   "type": "bool",
+   "user": null
+  },
+  "extensions.formautofill.creditCards.storage.rust.migrationAttempts": {
+   "default": 0,
+   "locked": false,
+   "type": "int",
+   "user": null
+  },
+  "extensions.formautofill.creditCards.storage.rust.migrationTestVersion": {
+   "default": 0,
+   "locked": false,
+   "type": "int",
+   "user": null
+  },
+  "extensions.formautofill.creditCards.storage.rust.runMigrationTest": {
+   "default": false,
+   "locked": false,
    "type": "bool",
    "user": null
   },
@@ -14631,6 +14760,12 @@
    "type": "bool",
    "user": null
   },
+  "extensions.installedDistroAddon.uBlock0@raymondhill.net": {
+   "default": null,
+   "locked": false,
+   "type": "bool",
+   "user": true
+  },
   "extensions.langpacks.signatures.required": {
    "default": true,
    "locked": false,
@@ -14641,19 +14776,19 @@
    "default": null,
    "locked": false,
    "type": "string",
-   "user": "20261010001041"
+   "user": "20261014033355"
   },
   "extensions.lastAppVersion": {
    "default": null,
    "locked": false,
    "type": "string",
-   "user": "157.0.1"
+   "user": "158.0"
   },
   "extensions.lastPlatformVersion": {
    "default": null,
    "locked": false,
    "type": "string",
-   "user": "157.0.1"
+   "user": "158.0"
   },
   "extensions.logging.enabled": {
    "default": false,
@@ -14977,7 +15112,7 @@
    "default": null,
    "locked": false,
    "type": "string",
-   "user": "{\"formautofill@mozilla.org\":\"53db8ea9-b4a3-4eea-86c0-fb6437b9c6fa\",\"ipp-activator@mozilla.com\":\"ae78d375-7077-4774-895e-1c315cb45373\",\"pictureinpicture@mozilla.org\":\"3b0536fe-8cbc-45b2-8606-9a672e8932cc\",\"addons-search-detection@mozilla.com\":\"c5778f24-3138-4e31-8ad5-405f2df665de\",\"webcompat@mozilla.org\":\"9a310967-e580-48bf-b3e8-4eafebbc122d\",\"newtab@mozilla.org\":\"ed3a1d59-194e-44e9-a27f-3b0114a23415\",\"default-theme@mozilla.org\":\"cdc1c440-e25a-410d-adba-0ab974ad5e74\",\"uBlock0@raymondhill.net\":\"d88ca82a-7c3d-4560-9b3c-c5ffee31e3a0\"}"
+   "user": "{\"formautofill@mozilla.org\":\"182314a3-6226-4c0b-a06d-97e0bc7167e4\",\"ipp-activator@mozilla.com\":\"664d95ef-007a-4841-bcfc-46554f6a6e0b\",\"inicio@kitsune\":\"ce9af6a4-9ef9-4a99-afe8-3c5d9bfd0f43\",\"pictureinpicture@mozilla.org\":\"c6ab7dd1-9c72-4a01-a482-e153747f32cb\",\"addons-search-detection@mozilla.com\":\"4ae23168-6f0b-4332-a310-782f29f8e4b3\",\"webcompat@mozilla.org\":\"9a310967-e580-48bf-b3e8-4eafebbc122d\",\"newtab@mozilla.org\":\"4758708f-4654-45c0-9c55-bdf0b22d7048\",\"uBlock0@raymondhill.net\":\"e95eb012-1fac-4c83-b3a1-8fe87632b9d5\",\"default-theme@mozilla.org\":\"07e343e3-d52a-48af-82c5-87c5f31e6943\"}"
   },
   "extensions.webidl-api.expose_mock_interface": {
    "default": false,
@@ -18387,6 +18522,18 @@
    "type": "int",
    "user": null
   },
+  "gfx.webrender.blob.largeish-px": {
+   "default": 512,
+   "locked": false,
+   "type": "int",
+   "user": null
+  },
+  "gfx.webrender.blob.relaxed-active-threshold": {
+   "default": false,
+   "locked": false,
+   "type": "bool",
+   "user": null
+  },
   "gfx.webrender.compositor": {
    "default": true,
    "locked": false,
@@ -19150,7 +19297,7 @@
    "user": null
   },
   "identity.fxaccounts.pairing.version": {
-   "default": 1,
+   "default": 2,
    "locked": false,
    "type": "int",
    "user": null
@@ -19192,6 +19339,12 @@
    "user": null
   },
   "identity.fxaccounts.toolbar.accessed": {
+   "default": false,
+   "locked": false,
+   "type": "bool",
+   "user": null
+  },
+  "identity.fxaccounts.toolbar.appMenuSignInPromo.dismissed": {
    "default": false,
    "locked": false,
    "type": "bool",
@@ -19252,13 +19405,13 @@
    "user": null
   },
   "identity.sendtab.deviceissues.url": {
-   "default": "https://support.mozilla.org/1/firefox/%VERSION%/%OS%/%LOCALE%/send-tab#w_i-dont-see-my-device-listed",
+   "default": "http://127.0.0.1:49721/ayuda/send-tab",
    "locked": false,
    "type": "string",
    "user": null
   },
   "identity.sendtabpromo.url": {
-   "default": "https://support.mozilla.org/1/firefox/%VERSION%/%OS%/%LOCALE%/send-tab",
+   "default": "http://127.0.0.1:49721/ayuda/send-tab",
    "locked": false,
    "type": "string",
    "user": null
@@ -19408,7 +19561,7 @@
    "user": null
   },
   "image.jxl.enabled": {
-   "default": false,
+   "default": true,
    "locked": false,
    "type": "bool",
    "user": null
@@ -20217,12 +20370,6 @@
    "type": "bool",
    "user": null
   },
-  "javascript.options.experimental.temporal": {
-   "default": true,
-   "locked": false,
-   "type": "bool",
-   "user": null
-  },
   "javascript.options.experimental.weakrefs.expose_cleanupSome": {
    "default": false,
    "locked": false,
@@ -20865,6 +21012,12 @@
    "type": "bool",
    "user": true
   },
+  "kitsune.users.samplesRemoved": {
+   "default": null,
+   "locked": false,
+   "type": "bool",
+   "user": true
+  },
   "layers.acceleration.disabled": {
    "default": false,
    "locked": false,
@@ -20915,6 +21068,12 @@
   },
   "layers.gpu-process.allow-fallback-to-parent": {
    "default": true,
+   "locked": false,
+   "type": "bool",
+   "user": null
+  },
+  "layers.gpu-process.allow-headless": {
+   "default": false,
    "locked": false,
    "type": "bool",
    "user": null
@@ -21238,7 +21397,7 @@
    "user": null
   },
   "layout.css.calc-typed-arithmetic.enabled": {
-   "default": false,
+   "default": true,
    "locked": false,
    "type": "bool",
    "user": null
@@ -21370,6 +21529,12 @@
    "user": null
   },
   "layout.css.getBoxQuads.enabled": {
+   "default": false,
+   "locked": false,
+   "type": "bool",
+   "user": null
+  },
+  "layout.css.grid-intrinsic-sizing.measure-bsize": {
    "default": false,
    "locked": false,
    "type": "bool",
@@ -21561,6 +21726,18 @@
    "type": "bool",
    "user": null
   },
+  "layout.css.quirks.final-uri-check": {
+   "default": true,
+   "locked": false,
+   "type": "bool",
+   "user": null
+  },
+  "layout.css.random.enabled": {
+   "default": false,
+   "locked": false,
+   "type": "bool",
+   "user": null
+  },
   "layout.css.report_errors": {
    "default": true,
    "locked": false,
@@ -21617,12 +21794,6 @@
   },
   "layout.css.scroll-anchoring.reselect-if-suboptimal": {
    "default": true,
-   "locked": false,
-   "type": "bool",
-   "user": null
-  },
-  "layout.css.scroll-anchoring.reset-heuristic-during-animation": {
-   "default": false,
    "locked": false,
    "type": "bool",
    "user": null
@@ -21886,7 +22057,7 @@
    "user": null
   },
   "layout.disable-pixel-alignment": {
-   "default": false,
+   "default": true,
    "locked": false,
    "type": "bool",
    "user": null
@@ -23517,12 +23688,6 @@
    "type": "string",
    "user": null
   },
-  "media.peerconnection.description.legacy.enabled": {
-   "default": true,
-   "locked": false,
-   "type": "bool",
-   "user": null
-  },
   "media.peerconnection.dtls.version.max": {
    "default": 772,
    "locked": false,
@@ -24219,6 +24384,12 @@
    "type": "bool",
    "user": null
   },
+  "media.webrtc.capture.apply-rotation": {
+   "default": true,
+   "locked": false,
+   "type": "bool",
+   "user": null
+  },
   "media.webrtc.codec.video.av1.enabled": {
    "default": true,
    "locked": false,
@@ -24268,7 +24439,7 @@
    "user": null
   },
   "media.webrtc.send_mlkem_keyshare": {
-   "default": true,
+   "default": false,
    "locked": false,
    "type": "bool",
    "user": null
@@ -24301,6 +24472,12 @@
    "default": false,
    "locked": false,
    "type": "bool",
+   "user": null
+  },
+  "media.webspeech.recognition.endpoint_blank_ms": {
+   "default": 800,
+   "locked": false,
+   "type": "int",
    "user": null
   },
   "media.webspeech.recognition.idle_shutdown_grace_ms": {
@@ -25468,7 +25645,7 @@
    "user": null
   },
   "network.dns.mru_to_tail": {
-   "default": false,
+   "default": true,
    "locked": false,
    "type": "bool",
    "user": null
@@ -25583,6 +25760,18 @@
   },
   "network.dnsCacheExpirationGracePeriod": {
    "default": 600,
+   "locked": false,
+   "type": "int",
+   "user": null
+  },
+  "network.dnsNegativeCacheExpiration": {
+   "default": 60,
+   "locked": false,
+   "type": "int",
+   "user": null
+  },
+  "network.dnsNegativeCacheExpirationGracePeriod": {
+   "default": 60,
    "locked": false,
    "type": "int",
    "user": null
@@ -25984,7 +26173,7 @@
    "user": null
   },
   "network.http.dictionaries.enable": {
-   "default": false,
+   "default": true,
    "locked": false,
    "type": "bool",
    "user": null
@@ -26907,6 +27096,12 @@
    "type": "bool",
    "user": null
   },
+  "network.ipc.reparse_deserialized_uri": {
+   "default": true,
+   "locked": false,
+   "type": "bool",
+   "user": null
+  },
   "network.jar.max_available_size": {
    "default": 268435456,
    "locked": false,
@@ -27693,6 +27888,12 @@
    "type": "bool",
    "user": null
   },
+  "network.socket.shutdown_process_events_ms": {
+   "default": 3000,
+   "locked": false,
+   "type": "int",
+   "user": null
+  },
   "network.ssl_tokens_cache_capacity": {
    "default": 8192,
    "locked": false,
@@ -28285,7 +28486,7 @@
    "default": null,
    "locked": false,
    "type": "int",
-   "user": 5
+   "user": 6
   },
   "nimbus.migrations.init-started": {
    "default": null,
@@ -28297,7 +28498,7 @@
    "default": null,
    "locked": false,
    "type": "string",
-   "user": "94d0d363-13f0-464c-acf2-e03af1dcefe8"
+   "user": "650a5ef0-1a70-4c89-a8bc-c72bcbd162be"
   },
   "nimbus.profilesdatastoreservice.enabled": {
    "default": true,
@@ -28354,7 +28555,7 @@
    "user": null
   },
   "pdfjs.altTextLearnMoreUrl": {
-   "default": "https://support.mozilla.org/1/firefox/%VERSION%/%OS%/%LOCALE%/pdf-alt-text",
+   "default": "http://127.0.0.1:49721/ayuda/pdf-alt-text",
    "locked": false,
    "type": "string",
    "user": null
@@ -28378,7 +28579,7 @@
    "user": null
   },
   "pdfjs.commentLearnMoreUrl": {
-   "default": "https://support.mozilla.org/%LOCALE%/kb/view-pdf-files-firefox-or-choose-another-viewer#w_add-a-comment-to-a-pdf",
+   "default": "http://127.0.0.1:49721/ayuda/view-pdf-files-firefox-or-choose-another-viewer",
    "locked": false,
    "type": "string",
    "user": null
@@ -29109,6 +29310,12 @@
    "type": "bool",
    "user": null
   },
+  "print.experimental.skpdf": {
+   "default": true,
+   "locked": false,
+   "type": "bool",
+   "user": null
+  },
   "print.font-variations-as-paths": {
    "default": true,
    "locked": false,
@@ -29231,6 +29438,12 @@
   },
   "print.shrink-to-fit.scale-limit-percent": {
    "default": 20,
+   "locked": false,
+   "type": "int",
+   "user": null
+  },
+  "print.skpdf.image-encoding-quality": {
+   "default": 101,
    "locked": false,
    "type": "int",
    "user": null
@@ -30117,10 +30330,10 @@
    "type": "string",
    "user": null
   },
-  "privacy.trackingprotection.content.mirror.enabled": {
-   "default": false,
+  "privacy.trackingprotection.content.mirror.mode": {
+   "default": 0,
    "locked": false,
-   "type": "bool",
+   "type": "int",
    "user": null
   },
   "privacy.trackingprotection.content.protection.enabled": {
@@ -30655,6 +30868,12 @@
    "default": 2,
    "locked": false,
    "type": "int",
+   "user": null
+  },
+  "security.connection_allowlists.enabled": {
+   "default": false,
+   "locked": false,
+   "type": "bool",
    "user": null
   },
   "security.crash_tracking.js_load_1.maxCrashes": {
@@ -31623,6 +31842,12 @@
    "type": "int",
    "user": null
   },
+  "services.sync.perDeviceEngineChoices": {
+   "default": false,
+   "locked": false,
+   "type": "bool",
+   "user": null
+  },
   "services.sync.prefs.dangerously_allow_arbitrary": {
    "default": false,
    "locked": false,
@@ -32431,7 +32656,7 @@
    "default": "",
    "locked": false,
    "type": "string",
-   "user": "aichat,syncedtabs,history,bookmarks,opentabs"
+   "user": "opentabs,bookmarks,aichat,history,syncedtabs"
   },
   "sidebar.new-sidebar.has-used": {
    "default": false,
@@ -32572,7 +32797,7 @@
    "user": null
   },
   "signon.firefoxRelay.learn_more_url": {
-   "default": "https://support.mozilla.org/1/firefox/%VERSION%/%OS%/%LOCALE%/firefox-relay-integration",
+   "default": "http://127.0.0.1:49721/ayuda/firefox-relay-integration",
    "locked": false,
    "type": "string",
    "user": null
@@ -32837,7 +33062,7 @@
   },
   "startup.homepage_override_url": {
    "default": "",
-   "locked": true,
+   "locked": false,
    "type": "string",
    "user": null
   },
@@ -32962,14 +33187,14 @@
    "user": null
   },
   "termsofuse.acceptedDate": {
-   "default": "1791584421636",
-   "locked": true,
+   "default": "0",
+   "locked": false,
    "type": "string",
    "user": null
   },
   "termsofuse.acceptedVersion": {
-   "default": 999,
-   "locked": true,
+   "default": 0,
+   "locked": false,
    "type": "int",
    "user": null
   },
@@ -33083,6 +33308,12 @@
   },
   "toolkit.asyncshutdown.crash_timeout": {
    "default": 60000,
+   "locked": false,
+   "type": "int",
+   "user": null
+  },
+  "toolkit.asyncshutdown.crash_timeout_additional_wait": {
+   "default": 10000,
    "locked": false,
    "type": "int",
    "user": null
@@ -33217,7 +33448,7 @@
    "default": null,
    "locked": false,
    "type": "string",
-   "user": "a5810387"
+   "user": "a6e314f7"
   },
   "toolkit.rust-components.logging.crates": {
    "default": "",
@@ -33316,8 +33547,8 @@
    "user": null
   },
   "toolkit.telemetry.archive.enabled": {
-   "default": false,
-   "locked": true,
+   "default": true,
+   "locked": false,
    "type": "bool",
    "user": null
   },
@@ -33331,13 +33562,13 @@
    "default": null,
    "locked": false,
    "type": "string",
-   "user": "8f36e7f8-1e2d-4494-864c-c01d39c5b7c6"
+   "user": "f5d88a09-c716-4dd8-91e5-e4646f0988cb"
   },
   "toolkit.telemetry.cachedProfileGroupID": {
    "default": null,
    "locked": false,
    "type": "string",
-   "user": "5adea43f-d7db-4819-92f5-ce0ea4d84e6b"
+   "user": "ef2e9f64-1ed8-49ba-a1d6-30380a98855f"
   },
   "toolkit.telemetry.dap.helper.hpke": {
    "default": "ACkAACAAAQABACAucqWdIQRN6BxumPBRXIlg2JsxcznwWX7vyqzM3cjuQA",
@@ -33403,7 +33634,7 @@
    "default": null,
    "locked": false,
    "type": "string",
-   "user": "20261010001041"
+   "user": "20261014033355"
   },
   "toolkit.telemetry.reportingpolicy.firstRun": {
    "default": null,
@@ -33674,12 +33905,6 @@
    "locked": false,
    "type": "bool",
    "user": null
-  },
-  "ui.systemUsesDarkTheme": {
-   "default": null,
-   "locked": false,
-   "type": "int",
-   "user": 0
   },
   "ui.textHighlightBackground": {
    "default": "#ef0fff",
@@ -34834,7 +35059,7 @@
    "user": null
   },
   "widget.wayland.session-management.enabled": {
-   "default": false,
+   "default": true,
    "locked": false,
    "type": "bool",
    "user": null

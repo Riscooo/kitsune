@@ -63,6 +63,17 @@ IGNORE = [
     r"(general\.config\..*|intl\.locale\.requested|places\.semanticHistory\..*|browser\.smartwindow\..*|browser\.ipProtection\..*)",
     r"(browser\.sessionstore\.newTabOnRestore\..*|browser\.translation\.neverForLanguages|lightweightThemes\..*|spellchecker\.dictionary_path)",
     r"(browser\.dom\.window\.dump\.enabled|browser\.touchmode\.auto|browser\.macAppMenu\..*|browser\.bypassAutoTriggerActions|sidebar\.revamp\.round-content-area)",
+    # Gecko 158: enlaces de ayuda (Kitsune los lleva a su ayuda local) y la atribución de
+    # patrocinados (browser.partnerlink.*), que Gecko 158 quitó.
+    r"(browser\.lna\.warning\.infoURL|identity\.sendtab(promo)?(\.deviceissues)?\.url|browser\.partnerlink\..*)",
+    # Lo que depende del equipo donde se mide (el tema del escritorio) o es un identificador de
+    # prueba, y los enlaces «Más información» (Kitsune los lleva a su ayuda): nunca se fuerzan.
+    r"(ui\.systemUsesDarkTheme|datareporting\.dau\.cachedUsageProfileID|extensions\.colorway-builtin-themes-cleanup)",
+    r"(.*([Ll]earnMoreUrl|learn_more_url|LearnMoreURL)|browser\.contentblocking\.report\..*\.url)",
+    # Gecko 158 cambió a propósito estos (servicios, dibujado, ajuste fino de red y de WebRTC):
+    # se queda el valor de Gecko, nunca el de 154.
+    r"(browser\.newtabpage\.activity-stream\.discoverystream\.endpoint.*|browser\.newtabpage\.activity-stream\.widgets\.sportsWidget\.pollLiveMs)",
+    r"(layout\.disable-pixel-alignment|media\.webrtc\.send_mlkem_keyshare|network\.dns\.mru_to_tail)",
 ]
 
 # Sync stays available in both modes (it only does anything after signing in);
