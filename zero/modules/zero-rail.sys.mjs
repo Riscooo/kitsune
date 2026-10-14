@@ -7,6 +7,7 @@
  * aparta y vuelve al acercar el ratón al borde izquierdo (#zero-edge).
  */
 import { dockScales } from './zero-dock.mjs';
+import { userOf, paintUser } from './zero-who.sys.mjs';
 
 const HTML = 'http://www.w3.org/1999/xhtml';
 const state = new WeakMap(); // ventana → { cleanups, items, … }
@@ -96,6 +97,10 @@ function fill(win, st, tab, node) {
   // Lo que suena (y lo silenciado), con su altavoz en el icono.
   node.toggleAttribute('soundplaying', tab.hasAttribute('soundplaying'));
   node.toggleAttribute('muted', tab.hasAttribute('muted'));
+  // De qué usuario es: una raya con su color junto al icono (el base, sin raya).
+  const who = userOf(win, tab);
+  node.toggleAttribute('user', !!who);
+  paintUser(node, who);
 }
 
 const calm = { duration: 460, easing: 'cubic-bezier(.32, .72, 0, 1)' };

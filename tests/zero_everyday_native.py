@@ -13,6 +13,9 @@
    de la barra, y en Zero la tarjeta le recortaría las esquinas de arriba.
 8. La dirección de un enlace (al pasar por encima) sale como una píldora separada de la esquina de la
    tarjeta, no como la etiqueta cuadrada de Gecko pegada al borde.
+9. Se ve de qué usuario es cada pestaña (Kitsune los lleva en contenedores): en el raíl, una raya de su
+   color junto al icono; en la isla, un punto de su color antes del dominio, que con la isla abierta
+   dice su nombre. La del usuario base no lleva nada.
 
 --zero-del-repo: Zero sale de zero/ del repositorio (ver zero_harness.py).
 """
@@ -174,6 +177,28 @@ def main():
             raise AssertionError(f'enlace: {chrome(pill)}') from None
         chrome("XULBrowserWindow.setOverLink('')")
         check('La dirección de un enlace sale como una píldora separada de la esquina')
+
+        chrome("""const id = ContextualIdentityService.create('Dani', 'fingerprint', 'pink').userContextId;
+            window.__dani = gBrowser.addTab(arguments[0], { userContextId: id, triggeringPrincipal: Services.scriptSecurityManager.getSystemPrincipal() });
+            gBrowser.selectedTab = window.__dani;""", [origin + '/dani'])
+        whose = """const color = el => el && getComputedStyle(el).backgroundColor;
+            const row = n => [...document.querySelectorAll('#zero-rail .zero-tab')].find(r => r.title === gBrowser.visibleTabs[n].label);
+            const bar = r => r && getComputedStyle(r, '::before');
+            const dot = document.querySelector('#zero-host .zero-user'); const d = dot?.getBoundingClientRect();
+            const last = gBrowser.visibleTabs.length - 1;
+            return { dani: { bar: bar(row(last))?.backgroundColor, ink: row(last) && getComputedStyle(row(last)).color, w: parseFloat(bar(row(last))?.width), content: bar(row(last))?.content },
+                     base: { content: bar(row(0))?.content, w: parseFloat(bar(row(0))?.width) || 0 },
+                     dot: dot && { w: d.width, color: color(dot), shown: getComputedStyle(dot).display !== 'none' }, who: dot?.textContent };"""
+        clear = ('rgba(0, 0, 0, 0)', 'transparent', None)
+        try:
+            eventually(lambda: (w := chrome(whose)) and w['dani']['bar'] not in clear and w['dani']['bar'] != w['dani']['ink'] and w['dani']['w'] >= 1.5 and w['base']['content'] in ('none', 'normal', None)
+                       and w['dot'] and w['dot']['shown'] and w['dot']['w'] >= 4 and w['dot']['color'] not in clear and w['dot']['color'] == w['dani']['bar'] and 'Dani' in (w['who'] or ''), timeout=5)
+            chrome("gBrowser.selectedTab = gBrowser.visibleTabs[0]")
+            eventually(lambda: (w := chrome(whose))['dot'] is None or not w['dot']['shown'], timeout=5)
+        except AssertionError:
+            raise AssertionError(f'usuario: {chrome(whose)}') from None
+        chrome("gBrowser.removeTab(window.__dani); delete window.__dani;")
+        check('Se ve de qué usuario es cada pestaña, en el raíl y en la isla')
         report['status'] = 'passed'
     finally:
         if driver: driver.close()

@@ -333,6 +333,20 @@
   transition: width var(--zero-t-morph) var(--zero-calm), opacity var(--zero-t-fade) var(--zero-soft) !important;
 }
 #main-window[zero] #navigator-toolbox[zero-island="open"] #zero-host[secure] .zero-lock { width: 12px !important; opacity: .8 !important; }
+/* De qué usuario es la web (Kitsune los lleva en contenedores): un punto de su tinta; con la isla
+   abierta, una pastilla con su nombre. El usuario base no lleva nada. */
+#main-window[zero] #zero-host .zero-user {
+  display: none !important; flex: none !important; box-sizing: border-box !important;
+  min-width: 6px !important; max-width: 6px !important; height: 6px !important; padding: 0 !important; border-radius: 999px !important;
+  overflow: hidden !important; font: 600 0px/16px system-ui, sans-serif !important; color: transparent !important; text-shadow: none !important;
+  background: var(--identity-icon-color, currentColor) !important;
+  transition: max-width var(--zero-t-morph) var(--zero-calm), height var(--zero-t-morph) var(--zero-calm), padding var(--zero-t-morph) var(--zero-calm),
+              font-size var(--zero-t-fade) var(--zero-soft), color var(--zero-t-fade) var(--zero-soft) !important;
+}
+#main-window[zero] #zero-host[user] .zero-user { display: block !important; }
+#main-window[zero] #navigator-toolbox[zero-island="open"] #zero-host[user] .zero-user {
+  max-width: 120px !important; height: 16px !important; padding: 0 7px !important; font-size: 10.5px !important; color: #fff !important;
+}
 #main-window[zero] #navigator-toolbox:is([zero-island="typing"], [zero-island-alert]) #zero-host { opacity: 0 !important; filter: blur(3px) !important; }
 
 /* Los avisos: la isla se ensancha, lo dice en una línea y vuelve. */
@@ -469,6 +483,11 @@
 
 /* Lo que suena: un altavoz pequeño en la esquina del icono (un clic silencia o vuelve a dar sonido). */
 #zero-rail .zero-tab { position: relative; }
+/* De qué usuario es la pestaña: una raya fina con su tinta junto al icono (el base, sin raya). */
+#zero-rail .zero-tab[user]::before {
+  content: ''; position: absolute; left: -2px; top: 50%; width: 2px; height: 12px; margin-top: -6px;
+  border-radius: 1px; background: var(--identity-icon-color, currentColor); opacity: .9; pointer-events: none;
+}
 #zero-rail .zero-sound {
   display: none; position: absolute; left: 15px; top: 14px; z-index: 1;
   appearance: none; box-sizing: border-box; width: 14px; height: 14px; min-width: 0; margin: 0; padding: 0;

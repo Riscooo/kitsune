@@ -7,6 +7,7 @@
  * Estado en el atributo zero-island del #navigator-toolbox: "" (reposo), "open" o "typing".
  */
 import { prefName, PREFS } from './zero-config.sys.mjs';
+import { userOf, paintUser } from './zero-who.sys.mjs';
 
 const HTML = 'http://www.w3.org/1999/xhtml';
 const NO_ICON = 'chrome://global/skin/icons/defaultFavicon.svg';
@@ -50,11 +51,17 @@ export function attach(win, ctx = {}) {
   icon.addEventListener('error', () => { if (icon.getAttribute('src') !== NO_ICON) icon.setAttribute('src', NO_ICON); });
   const lock = el(doc, 'span', { class: 'zero-lock' });
   const text = el(doc, 'span', { class: 'zero-host-text' });
-  st.host.append(icon, lock, text);
+  // De qué usuario es la web: un punto de su color que, con la isla abierta, dice su nombre.
+  const user = el(doc, 'span', { class: 'zero-user' });
+  st.host.append(icon, user, lock, text);
   const update = () => {
     const { text: value, secure } = label(win);
     text.textContent = value;
     st.host.toggleAttribute('secure', secure);
+    const who = userOf(win, win.gBrowser.selectedTab);
+    st.host.toggleAttribute('user', !!who);
+    paintUser(user, who);
+    if (user.textContent !== (who?.name ?? '')) user.textContent = who?.name ?? '';
     let src = null;
     try { src = win.gBrowser.getIcon(win.gBrowser.selectedTab); } catch { /* sin icono */ }
     if (icon.getAttribute('src') !== (src || NO_ICON)) icon.setAttribute('src', src || NO_ICON);
