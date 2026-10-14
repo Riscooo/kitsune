@@ -10,6 +10,9 @@
 8. La vista rápida de Kitsune no sale en el raíl (es de paso) y flota encima de la tarjeta.
 9. Con el raíl abierto, la fila bajo el ratón enseña una × que cierra esa pestaña sin elegirla; con el
    raíl cerrado no sale.
+10. El clic derecho en una pestaña abre el menú de pestaña de Gecko para esa pestaña.
+11. Una pestaña que suena lleva un altavoz en su icono; un clic en él la silencia (y otro le devuelve el
+    sonido) sin elegirla.
 
 --zero-del-repo: Zero sale de zero/ del repositorio (ver zero_harness.py).
 """
@@ -208,6 +211,30 @@ def main():
         driver.command('POST', f"/element/{list(element('#zero-rail .zero-tab:last-child .zero-close').values())[0]}/click", {})
         until(lambda: doomed not in [t['title'] for t in rail()['tabs']] and chrome("return gBrowser.selectedTab.label") == selected, timeout=6)
         check('Con el raíl abierto, la × de la fila bajo el ratón cierra esa pestaña sin elegirla')
+
+        away()
+        target = rail()['tabs'][1]['title']
+        pointer([{'type': 'pointerMove', 'origin': element('#zero-rail .zero-tab:nth-child(2)'), 'x': 0, 'y': 0},
+                 {'type': 'pointerDown', 'button': 2}, {'type': 'pointerUp', 'button': 2}])
+        until(lambda: chrome("return document.getElementById('tabContextMenu').state") == 'open')
+        assert chrome("return TabContextMenu.contextTab?.label") == target, chrome("return TabContextMenu.contextTab?.label")
+        chrome("document.getElementById('tabContextMenu').hidePopup()")
+        until(lambda: chrome("return document.getElementById('tabContextMenu').state") == 'closed')
+        check('El clic derecho en una pestaña abre el menú de pestaña para esa pestaña')
+
+        away()
+        # Gecko marca «soundplaying» al sonar algo; aquí se marca a mano (lo que se prueba es el raíl).
+        chrome("const t = gBrowser.visibleTabs.at(-1); t.setAttribute('soundplaying', 'true'); t.dispatchEvent(new CustomEvent('TabAttrModified', { bubbles: true, detail: { changed: ['soundplaying'] } }));")
+        badge = """const row = [...document.querySelectorAll('#zero-rail .zero-tab')].at(-1); const b = row?.querySelector('.zero-sound');
+            return b ? { seen: getComputedStyle(b).display !== 'none' && b.getBoundingClientRect().width >= 8, muted: row.hasAttribute('muted') } : null;"""
+        until(lambda: (b := chrome(badge)) and b['seen'])
+        selected = chrome("return gBrowser.selectedTab.label")
+        driver.command('POST', f"/element/{list(element('#zero-rail .zero-tab:last-child .zero-sound').values())[0]}/click", {})
+        until(lambda: chrome("return gBrowser.visibleTabs.at(-1).hasAttribute('muted')") and chrome(badge)['muted'])
+        assert chrome("return gBrowser.selectedTab.label") == selected
+        driver.command('POST', f"/element/{list(element('#zero-rail .zero-tab:last-child .zero-sound').values())[0]}/click", {})
+        until(lambda: not chrome("return gBrowser.visibleTabs.at(-1).hasAttribute('muted')"))
+        check('Una pestaña que suena lleva un altavoz; un clic la silencia y otro le devuelve el sonido')
         report['status'] = 'passed'
     finally:
         if driver: driver.close()

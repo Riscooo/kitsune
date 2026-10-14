@@ -43,6 +43,7 @@ function item(doc, kind, extra = {}) {
 function tabItem(doc, host) {
   return el(doc, 'div', { class: 'zero-item zero-tab', role: 'tab', tabindex: '0' }, [
     el(doc, 'span', { class: 'zero-fav', 'aria-hidden': 'true' }),
+    el(doc, 'button', { type: 'button', class: 'zero-sound', tabindex: '-1', title: host.t('Silenciar o volver a oír', 'Mute or unmute'), 'aria-label': host.t('Silenciar o volver a oír', 'Mute or unmute') }),
     el(doc, 'span', { class: 'zero-tt' }),
     el(doc, 'button', { type: 'button', class: 'zero-close', tabindex: '-1', title: host.t('Cerrar pestaña', 'Close tab'), 'aria-label': host.t('Cerrar pestaña', 'Close tab') }),
   ]);
@@ -92,6 +93,9 @@ function fill(win, st, tab, node) {
   node.toggleAttribute('selected', tab === current(win, st));
   node.toggleAttribute('pinned', tab.pinned);
   node.toggleAttribute('busy', tab.hasAttribute('busy'));
+  // Lo que suena (y lo silenciado), con su altavoz en el icono.
+  node.toggleAttribute('soundplaying', tab.hasAttribute('soundplaying'));
+  node.toggleAttribute('muted', tab.hasAttribute('muted'));
 }
 
 const calm = { duration: 460, easing: 'cubic-bezier(.32, .72, 0, 1)' };
@@ -146,6 +150,8 @@ function render(win, st) {
       node = tabItem(doc, st.host);
       st.items.set(tab, node);
       st.tabOf.set(node, tab);
+      // El menú de pestaña de Gecko mira «.tab» en lo que se ha pulsado (la fila o lo de dentro).
+      for (const part of [node, ...node.querySelectorAll('*')]) part.tab = tab;
     }
     fill(win, st, tab, node);
     node.style.setProperty('--i', String(offset + index));
@@ -199,8 +205,9 @@ export function attach(win, ctx) {
   st.rail.addEventListener('click', event => {
     const node = event.target.closest('.zero-item');
     if (!node || node.hasAttribute('leaving')) return;
-    // La ×: cierra esa pestaña sin elegirla.
+    // La ×: cierra esa pestaña sin elegirla; el altavoz la silencia o le devuelve el sonido.
     if (event.target.closest('.zero-close')) { event.stopPropagation(); close(st.tabOf.get(node)); return; }
+    if (event.target.closest('.zero-sound')) { event.stopPropagation(); st.tabOf.get(node)?.toggleMuteAudio(); return; }
     if (node.classList.contains('zero-space')) { void Promise.resolve(host.spaces?.select(win, node.dataset.space)).catch(() => {}); return; }
     if (node === st.add) { (win.BrowserCommands?.openTab ?? win.BrowserOpenTab)?.call(win.BrowserCommands ?? win); return; }
     const tab = st.tabOf.get(node);
@@ -213,6 +220,13 @@ export function attach(win, ctx) {
     if (tab && !tab.closing) { event.preventDefault(); close(tab); }
   });
   st.rail.addEventListener('mousedown', event => { if (event.button === 1) event.preventDefault(); }); // sin autodesplazamiento
+  // Clic derecho en una pestaña: el menú de pestaña de Gecko (recargar, fijar, mover a otro espacio…).
+  st.rail.addEventListener('contextmenu', event => {
+    const node = event.target.closest('.zero-tab');
+    if (!node || !st.tabOf.get(node)) return;
+    event.preventDefault();
+    doc.getElementById('tabContextMenu')?.openPopupAtScreen(event.screenX, event.screenY, true, event);
+  });
   st.rail.addEventListener('keydown', event => {
     const node = event.target.closest?.('.zero-tab');
     if (!node) return;

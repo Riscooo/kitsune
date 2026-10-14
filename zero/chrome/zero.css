@@ -398,6 +398,27 @@
 #zero-rail:hover .zero-item:hover .zero-tt { font-weight: 600; }
 #zero-rail .zero-tab:focus-visible { outline: 2px solid rgba(58, 143, 116, .8); outline-offset: -2px; }
 
+/* Lo que suena: un altavoz pequeño en la esquina del icono (un clic silencia o vuelve a dar sonido). */
+#zero-rail .zero-tab { position: relative; }
+#zero-rail .zero-sound {
+  display: none; position: absolute; left: 15px; top: 14px; z-index: 1;
+  appearance: none; box-sizing: border-box; width: 14px; height: 14px; min-width: 0; margin: 0; padding: 0;
+  border: none; border-radius: 50%; cursor: pointer;
+  background-color: rgba(29, 35, 33, .78);
+  box-shadow: 0 0 0 1.5px rgba(255, 255, 255, .9);
+  transform: scale(var(--s));
+  transition: transform 200ms var(--zero-calm), background-color 200ms var(--zero-soft);
+}
+#zero-rail .zero-sound::before {
+  content: ""; display: block; width: 100%; height: 100%; background-color: #fff;
+  mask: url("chrome://browser/skin/tabbrowser/tab-audio-playing-small.svg") center / 9px no-repeat;
+}
+#zero-rail .zero-tab:is([soundplaying], [muted]) .zero-sound { display: block; }
+#zero-rail .zero-tab[muted] .zero-sound::before { mask-image: url("chrome://browser/skin/tabbrowser/tab-audio-muted-small.svg"); }
+#zero-rail .zero-tab[soundplaying]:not([muted]) .zero-sound { animation: zero-sound 2.4s var(--zero-soft) infinite; }
+@keyframes zero-sound { 50% { box-shadow: 0 0 0 1.5px rgba(255, 255, 255, .9), 0 0 0 4px rgba(255, 255, 255, .25); } }
+#zero-rail .zero-sound:hover { background-color: #1d2321; }
+
 /* Cerrar: una × pequeña al final de la fila bajo el ratón, solo con el raíl abierto (como Arc, Zen,
    Edge o Safari con las pestañas al lado). Con el raíl cerrado no sale: clic central o Ctrl+W. */
 #zero-rail .zero-close {
