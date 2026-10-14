@@ -1,0 +1,48 @@
+# Kitsune para Flathub: el paquete de Linux de la versión publicada en GitHub, sobre la base de
+# Firefox de Flathub (las bibliotecas que Gecko necesita). Las versiones nuevas llegan por Flathub,
+# así que dentro no se avisa ni se descarga nada (kitsune-distro.js). Para una versión nueva:
+# la url y el sha256 de su .tar.xz (en su SHA256SUMS.txt) y un <release> en el metainfo.
+# Los perfiles quedan en ~/.var/app/io.github.riscooo.Kitsune/config/mozilla/kitsune.
+id: io.github.riscooo.Kitsune
+runtime: org.freedesktop.Platform
+runtime-version: '25.08'
+sdk: org.freedesktop.Sdk
+base: org.mozilla.firefox.BaseApp
+base-version: '25.08'
+command: kitsune
+finish-args:
+  - --share=ipc
+  - --share=network
+  - --socket=wayland
+  - --socket=fallback-x11
+  - --socket=pulseaudio
+  - --socket=pcsc
+  - --device=all
+  - --filesystem=xdg-download
+  - --talk-name=org.freedesktop.FileManager1
+  - --talk-name=org.freedesktop.Notifications
+  - --talk-name=org.freedesktop.ScreenSaver
+  - --own-name=org.mozilla.kitsune.*
+  - --env=MOZ_APP_LAUNCHER=kitsune
+modules:
+  - name: kitsune
+    buildsystem: simple
+    build-commands:
+      - cp -a kitsune /app/lib/kitsune
+      - rm -f /app/lib/kitsune/instalar.sh /app/lib/kitsune/desinstalar.sh
+      - install -Dm644 kitsune-distro.js /app/lib/kitsune/defaults/pref/kitsune-distro.js
+      - install -d /app/bin && ln -s /app/lib/kitsune/kitsune /app/bin/kitsune
+      - install -Dm644 io.github.riscooo.Kitsune.desktop /app/share/applications/io.github.riscooo.Kitsune.desktop
+      - install -Dm644 io.github.riscooo.Kitsune.metainfo.xml /app/share/metainfo/io.github.riscooo.Kitsune.metainfo.xml
+      - for size in 16 32 48 64 128; do install -Dm644 kitsune/browser/chrome/icons/default/default${size}.png /app/share/icons/hicolor/${size}x${size}/apps/io.github.riscooo.Kitsune.png; done
+    sources:
+      - type: archive
+        url: https://github.com/Riscooo/kitsune/releases/download/v0.8.0-beta.1/Kitsune-0.8.0-beta.1-Linux-x86_64.tar.xz
+        sha256: e29a74cb8c2226ea7319cfa3f8f063aa14bacf1406ebffc95bdc91fe8576d274
+        strip-components: 0
+      - type: file
+        path: kitsune-distro.js
+      - type: file
+        path: io.github.riscooo.Kitsune.desktop
+      - type: file
+        path: io.github.riscooo.Kitsune.metainfo.xml

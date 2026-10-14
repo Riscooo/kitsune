@@ -1,0 +1,38 @@
+# Kitsune para Arch (AUR): el paquete de Linux de la versión publicada en GitHub, en /opt/kitsune.
+# Aquí Kitsune no se actualiza solo ni avisa de versiones: eso lo hace pacman.
+# Para una versión nueva: pkgver, pkgrel=1, el sha256 de su .tar.xz (en su SHA256SUMS.txt) y
+# makepkg --printsrcinfo > .SRCINFO.
+pkgname=kitsune-bin
+pkgver=0.8.0beta1
+_release=0.8.0-beta.1
+pkgrel=1
+pkgdesc='Navegador privado de serie, de papel y tinta: Gecko con espacios, vista dividida, paleta y modo ahorro'
+arch=('x86_64')
+url='https://kitsune-navegador.vercel.app'
+# Gecko va con la MPL 2.0; la licencia del resto de Kitsune está por decidir.
+license=('MPL-2.0' 'LicenseRef-Kitsune')
+depends=('gtk3' 'libxt' 'dbus-glib' 'alsa-lib' 'hicolor-icon-theme')
+optdepends=('libpulse: sonido con PulseAudio' 'ffmpeg: más formatos de vídeo')
+provides=('kitsune')
+conflicts=('kitsune')
+options=('!strip' '!debug')
+source=("https://github.com/Riscooo/kitsune/releases/download/v${_release}/Kitsune-${_release}-Linux-x86_64.tar.xz"
+        'kitsune.desktop'
+        'kitsune-distro.js')
+sha256sums=('e29a74cb8c2226ea7319cfa3f8f063aa14bacf1406ebffc95bdc91fe8576d274'
+            'SKIP'
+            'SKIP')
+
+package() {
+  install -d "${pkgdir}/opt" "${pkgdir}/usr/bin"
+  cp -a "${srcdir}/kitsune" "${pkgdir}/opt/kitsune"
+  # El instalador y el desinstalador del .tar.xz son para instalarlo a mano: aquí sobran.
+  rm -f "${pkgdir}/opt/kitsune/instalar.sh" "${pkgdir}/opt/kitsune/desinstalar.sh"
+  install -Dm644 "${srcdir}/kitsune-distro.js" "${pkgdir}/opt/kitsune/defaults/pref/kitsune-distro.js"
+  ln -s /opt/kitsune/kitsune "${pkgdir}/usr/bin/kitsune"
+  install -Dm644 "${srcdir}/kitsune.desktop" "${pkgdir}/usr/share/applications/kitsune.desktop"
+  for size in 16 32 48 64 128; do
+    install -Dm644 "${srcdir}/kitsune/browser/chrome/icons/default/default${size}.png" \
+      "${pkgdir}/usr/share/icons/hicolor/${size}x${size}/apps/kitsune.png"
+  done
+}

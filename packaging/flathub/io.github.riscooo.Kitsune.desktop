@@ -1,0 +1,26 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Kitsune
+GenericName=Web Browser
+GenericName[es]=Navegador web
+Comment=Browse the web with Kitsune
+Comment[es]=Navega por la web con Kitsune
+Exec=kitsune %u
+Icon=io.github.riscooo.Kitsune
+Terminal=false
+StartupNotify=true
+StartupWMClass=kitsune
+Categories=Network;WebBrowser;
+MimeType=text/html;text/xml;application/xhtml+xml;x-scheme-handler/http;x-scheme-handler/https;
+Actions=new-window;new-private-window;
+
+[Desktop Action new-window]
+Name=New Window
+Name[es]=Nueva ventana
+Exec=kitsune --new-window
+
+[Desktop Action new-private-window]
+Name=New Private Window
+Name[es]=Nueva ventana privada
+Exec=kitsune --private-window

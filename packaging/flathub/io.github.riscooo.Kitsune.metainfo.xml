@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>io.github.riscooo.Kitsune</id>
+  <name>Kitsune</name>
+  <summary>Private web browser made of paper and ink</summary>
+  <summary xml:lang="es">Navegador privado de serie, de papel y tinta</summary>
+  <developer id="io.github.riscooo">
+    <name>Manuel Risco</name>
+  </developer>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>MPL-2.0</project_license>
+  <description>
+    <p>Kitsune is a private-by-default browser built on Gecko, the engine of Firefox: no telemetry, uBlock Origin built in, and a home page that is yours.</p>
+    <ul>
+      <li>Spaces, tabs on the side, split view of up to four sites and a command palette</li>
+      <li>Saver mode: half the memory with twenty sites open</li>
+      <li>Six inks that change the colors and the shape of the whole browser</li>
+      <li>Strict and Comfortable privacy modes, and a Kitsune copy to take your things to another computer</li>
+    </ul>
+    <p xml:lang="es">Kitsune es un navegador privado de serie hecho con Gecko, el motor de Firefox: sin telemetría, con uBlock Origin incluido y un inicio que es tuyo.</p>
+  </description>
+  <launchable type="desktop-id">io.github.riscooo.Kitsune.desktop</launchable>
+  <url type="homepage">https://kitsune-navegador.vercel.app</url>
+  <url type="bugtracker">https://github.com/Riscooo/kitsune/issues</url>
+  <url type="vcs-browser">https://github.com/Riscooo/kitsune</url>
+  <screenshots>
+    <screenshot type="default">
+      <caption>Spaces, tabs on the side and a split view</caption>
+      <image>https://kitsune-navegador.vercel.app/assets/capturas/pestanas-en.webp</image>
+    </screenshot>
+    <screenshot>
+      <caption>Your home page</caption>
+      <image>https://kitsune-navegador.vercel.app/assets/capturas/inicio-claro-en.webp</image>
+    </screenshot>
+  </screenshots>
+  <content_rating type="oars-1.1"/>
+  <releases>
+    <release version="0.8.0~beta1" date="2026-10-14" type="development">
+      <description>
+        <p>Spaces, split view of up to four sites, command palette, inks with shape, saver mode you can see, Kitsune copy and Gecko 158.</p>
+      </description>
+    </release>
+  </releases>
+  <supports>
+    <control>pointing</control>
+    <control>keyboard</control>
+  </supports>
+  <categories>
+    <category>Network</category>
+    <category>WebBrowser</category>
+  </categories>
+</component>

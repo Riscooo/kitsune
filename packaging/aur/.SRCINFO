@@ -1,0 +1,27 @@
+pkgbase = kitsune-bin
+	pkgdesc = Navegador privado de serie, de papel y tinta: Gecko con espacios, vista dividida, paleta y modo ahorro
+	pkgver = 0.8.0beta1
+	pkgrel = 1
+	url = https://kitsune-navegador.vercel.app
+	arch = x86_64
+	license = MPL-2.0
+	license = LicenseRef-Kitsune
+	depends = gtk3
+	depends = libxt
+	depends = dbus-glib
+	depends = alsa-lib
+	depends = hicolor-icon-theme
+	optdepends = libpulse: sonido con PulseAudio
+	optdepends = ffmpeg: más formatos de vídeo
+	provides = kitsune
+	conflicts = kitsune
+	options = !strip
+	options = !debug
+	source = https://github.com/Riscooo/kitsune/releases/download/v0.8.0-beta.1/Kitsune-0.8.0-beta.1-Linux-x86_64.tar.xz
+	source = kitsune.desktop
+	source = kitsune-distro.js
+	sha256sums = e29a74cb8c2226ea7319cfa3f8f063aa14bacf1406ebffc95bdc91fe8576d274
+	sha256sums = SKIP
+	sha256sums = SKIP
+
+pkgname = kitsune-bin
