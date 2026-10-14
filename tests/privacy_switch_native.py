@@ -52,8 +52,11 @@ def main():
         driver = WebDriver(profile, evidence, browser=args.browser)
         driver.navigate(origin)
         eventually(lambda: js("return document.documentElement.dataset.profilesReady") == 'true', timeout=15)
+        # Desde la beta 5 el avatar abre la tarjeta de usuarios; «Gestionar usuarios», el diálogo con la privacidad.
         driver.click('#profiles-open')
-        eventually(lambda: js("return !document.querySelector('[data-privacy-switch=comodo]').disabled"), timeout=10)
+        eventually(lambda: js("return !!document.getElementById('users-manage')?.getBoundingClientRect().width"), timeout=10)
+        driver.click('#users-manage')
+        eventually(lambda: js("return document.getElementById('profiles-dialog').open && !document.querySelector('[data-privacy-switch=comodo]').disabled"), timeout=10)
         assert js("return document.querySelector('[data-privacy-switch=estricto]').getAttribute('aria-pressed')") == 'true'
         driver.click('[data-privacy-switch=comodo]')
         shown = eventually(lambda: (p := popup())['open'] and p, timeout=5)
