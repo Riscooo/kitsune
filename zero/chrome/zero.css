@@ -730,8 +730,11 @@
 
 /* Un nivel (los sonidos): una barra fina con el tirador redondo, como los de los sistemas de Apple. */
 #zero-settings .zero-slider {
-  appearance: none; flex: 0 0 132px; height: 20px; margin: 0; background: transparent; cursor: pointer;
+  appearance: none; flex: 1 1 auto; min-width: 0; height: 20px; margin: 0; background: transparent; cursor: pointer;
 }
+/* Las capas, en una línea cada una y más juntas: el nombre a la izquierda y la barra el resto. */
+#zero-settings .zero-row:has(> .zero-slider) { flex-wrap: nowrap; padding-block: 3px; border-top-color: transparent; }
+#zero-settings .zero-row:has(> .zero-slider) .zero-row-text { flex: 0 0 76px; font-weight: 500; color: rgba(29, 35, 33, .78); }
 #zero-settings .zero-slider::-moz-range-track { height: 4px; border-radius: 999px; background: rgba(29, 35, 33, .12); }
 #zero-settings .zero-slider::-moz-range-progress { height: 4px; border-radius: 999px; background: #3a8f74; }
 #zero-settings .zero-slider::-moz-range-thumb {
