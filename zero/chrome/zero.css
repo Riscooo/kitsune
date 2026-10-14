@@ -344,6 +344,12 @@
               font-size var(--zero-t-fade) var(--zero-soft), color var(--zero-t-fade) var(--zero-soft) !important;
 }
 #main-window[zero] #zero-host[user] .zero-user { display: block !important; }
+/* Ventana privada: el antifaz de Gecko delante del dominio (en Zero no está la barra de pestañas,
+   donde Gecko lo pone). */
+#main-window[zero][privatebrowsingmode="temporary"] #zero-host::before {
+  content: '' !important; flex: none !important; width: 14px !important; height: 14px !important;
+  background: url("chrome://global/skin/icons/indicator-private-browsing.svg") center / 14px no-repeat !important;
+}
 #main-window[zero] #navigator-toolbox[zero-island="open"] #zero-host[user] .zero-user {
   max-width: 120px !important; height: 16px !important; padding: 0 7px !important; font-size: 10.5px !important; color: #fff !important;
 }

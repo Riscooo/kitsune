@@ -16,6 +16,8 @@
 9. Se ve de qué usuario es cada pestaña (Kitsune los lleva en contenedores): en el raíl, una raya de su
    color junto al icono; en la isla, un punto de su color antes del dominio, que con la isla abierta
    dice su nombre. La del usuario base no lleva nada.
+10. En una ventana privada, la isla lleva el antifaz de navegación privada delante del dominio (en Zero
+    no está la barra de pestañas, donde Gecko lo pone); en una normal, no.
 
 --zero-del-repo: Zero sale de zero/ del repositorio (ver zero_harness.py).
 """
@@ -199,6 +201,20 @@ def main():
             raise AssertionError(f'usuario: {chrome(whose)}') from None
         chrome("gBrowser.removeTab(window.__dani); delete window.__dani;")
         check('Se ve de qué usuario es cada pestaña, en el raíl y en la isla')
+
+        mask = """const w = arguments[0] ? window.__privada : window; const h = w.document.getElementById('zero-host'); if (!h) return null;
+            const b = w.getComputedStyle(h, '::before'); return { image: b.backgroundImage, w: parseFloat(b.width) || 0, content: b.content };"""
+        assert chrome(mask, [False])['content'] in ('none', 'normal'), chrome(mask, [False])
+        chrome("window.__privada = OpenBrowserWindow({ private: true });")
+        eventually(lambda: chrome("const w = window.__privada; return !!w.gBrowserInit?.delayedStartupFinished && !!w.document.getElementById('kitsune-zero-key')"), timeout=15)
+        # Desde una ventana en Zero ya nace en Zero (hereda); si no, se enciende.
+        chrome("const d = window.__privada.document; if (!d.documentElement.hasAttribute('zero')) d.getElementById('kitsune-zero-key').doCommand();")
+        try:
+            eventually(lambda: (m := chrome(mask, [True])) and 'private' in m['image'] and m['w'] >= 12, timeout=5)
+        except AssertionError:
+            raise AssertionError(f'privada: {chrome(mask, [True])}') from None
+        chrome("window.__privada.close(); delete window.__privada;")
+        check('En una ventana privada, la isla lleva el antifaz delante del dominio')
         report['status'] = 'passed'
     finally:
         if driver: driver.close()
