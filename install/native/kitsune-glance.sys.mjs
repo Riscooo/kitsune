@@ -4,6 +4,10 @@
  * «Dividir» la convierten en pestaña (sola o junto a la actual). No es una pestaña, así que
  * no cuenta para el modo ahorro. En ventanas privadas se abre en una pestaña normal.
  */
+// Textos en el idioma de Kitsune (kitsune-i18n.sys.mjs); sin Gecko (pruebas de Node), en castellano.
+const t = (spanish, english) => {
+  try { return ChromeUtils.importESModule('chrome://browser/content/kitsune-i18n.sys.mjs').t(spanish, english); } catch { return spanish; }
+};
 const HTML = 'http://www.w3.org/1999/xhtml';
 let registered = false;
 
@@ -50,9 +54,9 @@ function buildPanel(win) {
   const header = el(doc, 'div', { class: 'kitsune-glance-head' }, [
     el(doc, 'span', { class: 'kitsune-glance-title' }),
     el(doc, 'span', { class: 'kitsune-glance-host' }),
-    el(doc, 'button', { type: 'button', class: 'kitsune-glance-split', title: 'Abrirla junto a la pestaña actual' }, ['Dividir']),
-    el(doc, 'button', { type: 'button', class: 'kitsune-glance-tab', title: 'Abrirla en una pestaña' }, ['Abrir en pestaña']),
-    el(doc, 'button', { type: 'button', class: 'kitsune-glance-close', title: 'Cerrar (Esc)', 'aria-label': 'Cerrar' }, ['×']),
+    el(doc, 'button', { type: 'button', class: 'kitsune-glance-split', title: t('Abrirla junto a la pestaña actual', 'Open it next to the current tab') }, [t('Dividir', 'Split')]),
+    el(doc, 'button', { type: 'button', class: 'kitsune-glance-tab', title: t('Abrirla en una pestaña', 'Open it in a tab') }, [t('Abrir en pestaña', 'Open in tab')]),
+    el(doc, 'button', { type: 'button', class: 'kitsune-glance-close', title: t('Cerrar (Esc)', 'Close (Esc)'), 'aria-label': t('Cerrar', 'Close') }, ['×']),
   ]);
   const body = doc.createXULElement('vbox');
   body.className = 'kitsune-glance-body';

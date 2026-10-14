@@ -7,6 +7,10 @@
  * los paquetes que se descargan); en el Linux de Risco el motor se compila y actualiza
  * solo, sin kitsune.release, y aquí no hace nada.
  */
+// Textos en el idioma de Kitsune (kitsune-i18n.sys.mjs); sin Gecko (pruebas de Node), en castellano.
+const t = (spanish, english) => {
+  try { return ChromeUtils.importESModule('chrome://browser/content/kitsune-i18n.sys.mjs').t(spanish, english); } catch { return spanish; }
+};
 const DOWNLOADS = 'https://kitsune-navegador.vercel.app/downloads.json';
 const PAGE = 'https://kitsune-navegador.vercel.app/#descargar';
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -50,10 +54,10 @@ export async function showUpdateNotice(win, info) {
   const box = win.gNotificationBox;
   if (!box || box.getNotificationWithValue('kitsune-update')) return;
   await box.appendNotification('kitsune-update', {
-    label: `Hay una versión nueva de Kitsune: ${releaseLabel(info.release)}.`,
+    label: t(`Hay una versión nueva de Kitsune: ${releaseLabel(info.release)}.`, `There is a new version of Kitsune: ${releaseLabel(info.release)}.`),
     priority: box.PRIORITY_INFO_MEDIUM,
   }, [{
-    label: 'Descargar',
+    label: t('Descargar', 'Download'),
     accessKey: 'D',
     callback: () => { win.openTrustedLinkIn(PAGE, 'tab'); },
   }]);

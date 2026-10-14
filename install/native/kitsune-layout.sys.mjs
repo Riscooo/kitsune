@@ -10,6 +10,10 @@
  *   quita, también desde el menú de las barras. Se recuerda al reiniciar.
  * Solo atributos y estilos de la ventana: nada toca las webs.
  */
+// Textos en el idioma de Kitsune (kitsune-i18n.sys.mjs); sin Gecko (pruebas de Node), en castellano.
+const t = (spanish, english) => {
+  try { return ChromeUtils.importESModule('chrome://browser/content/kitsune-i18n.sys.mjs').t(spanish, english); } catch { return spanish; }
+};
 export const COMPACT_PREF = 'kitsune.compact.enabled';
 const windows = new Set();
 let observing = false;
@@ -65,7 +69,7 @@ function decorateCompact(win) {
   // En el menú de las barras (clic derecho), junto a los demás ajustes de la ventana.
   const menu = doc.getElementById('toolbar-context-menu');
   if (menu) {
-    const item = xul(doc, 'menuitem', { id: 'kitsune-compact-menuitem', type: 'checkbox', label: 'Modo compacto', acceltext: 'Ctrl+Alt+C' });
+    const item = xul(doc, 'menuitem', { id: 'kitsune-compact-menuitem', type: 'checkbox', label: t('Modo compacto', 'Compact mode'), acceltext: 'Ctrl+Alt+C' });
     item.addEventListener('command', () => setCompact(!compactEnabled()));
     menu.append(item);
   }

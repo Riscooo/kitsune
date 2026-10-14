@@ -10,11 +10,15 @@
  * - Extensiones: se listan las que no tienes, con su página en la tienda.
  * Nada sale del equipo salvo, si lo pides, abrir la tienda de extensiones.
  */
+// Textos en el idioma de Kitsune (kitsune-i18n.sys.mjs); sin Gecko (pruebas de Node), en castellano.
+const t = (spanish, english) => {
+  try { return ChromeUtils.importESModule('chrome://browser/content/kitsune-i18n.sys.mjs').t(spanish, english); } catch { return spanish; }
+};
 const HTML = 'http://www.w3.org/1999/xhtml';
 const OFFERED_PREF = 'kitsune.import.offered';
 const WEB = /^(https?|ftp|file):/i;
 const BOOKMARK_URL = /^(https?|ftp|file|javascript):/i;
-const ROOTS = Object.freeze({ 'toolbar_____': 'Barra de marcadores', 'menu________': 'Menú de marcadores', 'unfiled_____': 'Otros marcadores', 'mobile______': 'Del móvil' });
+const ROOTS = Object.freeze({ 'toolbar_____': t('Barra de marcadores', 'Bookmarks toolbar'), 'menu________': t('Menú de marcadores', 'Bookmarks menu'), 'unfiled_____': t('Otros marcadores', 'Other bookmarks'), 'mobile______': t('Del móvil', 'Mobile bookmarks') });
 const HISTORY_DAYS = 365;
 const HISTORY_VISITS = 60000;
 const CHROMIUM_NAMES = Object.freeze({
@@ -115,7 +119,7 @@ export function bookmarkTrees(rows) {
     if (row.type === 1) return row.url && BOOKMARK_URL.test(row.url) ? { title: text(row.title, 4096), url: row.url } : null;
     if (row.type === 2) {
       const items = (children.get(row.id) ?? []).map(child => build(child, depth + 1)).filter(Boolean);
-      return items.some(item => item.type !== 'separator') ? { title: text(row.title, 4096) || 'Carpeta', type: 'folder', children: items } : null;
+      return items.some(item => item.type !== 'separator') ? { title: text(row.title, 4096) || t('Carpeta', 'Folder'), type: 'folder', children: items } : null;
     }
     return null;
   };
@@ -237,9 +241,9 @@ export async function importGecko(win, source, { bookmarks = true, history = tru
       // La copia lleva su -wal al lado (mismo nombre): SQLite lo integra al abrirla; el original no se toca.
       db = await lazy.Sqlite.openConnection({ path: copied['places.sqlite'] });
     }
-    const date = new Date().toLocaleDateString('es-ES');
+    const date = new Date().toLocaleDateString(t('es-ES', 'en-US'));
     if (db && bookmarks) {
-      report('Marcadores…');
+      report(t('Marcadores…', 'Bookmarks…'));
       const rows = (await db.execute(`SELECT b.id, b.parent, b.type, b.title, b.position, b.guid, p.url
         FROM moz_bookmarks b LEFT JOIN moz_places p ON p.id = b.fk`)).map(row => ({
         id: row.getResultByName('id'), parent: row.getResultByName('parent'), type: row.getResultByName('type'),
@@ -252,13 +256,13 @@ export async function importGecko(win, source, { bookmarks = true, history = tru
           : item.url ? { title: item.title, url: item.url }
           : { title: item.title, type: PlacesUtils.bookmarks.TYPE_FOLDER, children: item.children.map(toFolder) };
         await PlacesUtils.bookmarks.insertTree({ guid: PlacesUtils.bookmarks.menuGuid, children: [{
-          title: `De ${source.name} (${date})`, type: PlacesUtils.bookmarks.TYPE_FOLDER,
+          title: t(`De ${source.name} (${date})`, `From ${source.name} (${date})`), type: PlacesUtils.bookmarks.TYPE_FOLDER,
           children: trees.map(tree => ({ title: tree.title, type: PlacesUtils.bookmarks.TYPE_FOLDER, children: tree.children.map(toFolder) })),
         }] }, { fixupOrSkipInvalidEntries: true });
       }
     }
     if (db && history) {
-      report('Historial…');
+      report(t('Historial…', 'History…'));
       const since = (Date.now() - HISTORY_DAYS * 86400000) * 1000;
       const rows = (await db.execute(`SELECT p.url, p.title, v.visit_date, v.visit_type FROM moz_historyvisits v
         JOIN moz_places p ON p.id = v.place_id WHERE v.visit_date > :since ORDER BY v.visit_date DESC LIMIT ${HISTORY_VISITS}`, { since }))
@@ -270,7 +274,7 @@ export async function importGecko(win, source, { bookmarks = true, history = tru
       result.pages = pages.length;
     }
     if (tabs) {
-      report('Pestañas…');
+      report(t('Pestañas…', 'Tabs…'));
       const session = await readSession(copied);
       let zenRows = [];
       if (source.kind === 'zen' && db) {
@@ -329,15 +333,15 @@ const el = (doc, tag, attributes = {}, children = []) => {
   node.append(...children);
   return node;
 };
-const plural = (count, one, many) => `${count.toLocaleString('es-ES')} ${count === 1 ? one : many}`;
+const plural = (count, one, many) => `${count.toLocaleString(t('es-ES', 'en-US'))} ${count === 1 ? one : many}`;
 
 function summary(source, result) {
   const parts = [];
-  if (result.bookmarks) parts.push(plural(result.bookmarks, 'marcador', 'marcadores'));
-  if (result.pages) parts.push(plural(result.pages, 'página del historial', 'páginas del historial'));
-  if (result.tabs) parts.push(plural(result.tabs, 'pestaña', 'pestañas'));
-  if (result.spaces) parts.push(plural(result.spaces, 'espacio', 'espacios'));
-  return parts.length ? `Traído de ${source.name}: ${parts.join(', ')}.` : `En ${source.name} no había nada que traer.`;
+  if (result.bookmarks) parts.push(plural(result.bookmarks, t('marcador', 'bookmark'), t('marcadores', 'bookmarks')));
+  if (result.pages) parts.push(plural(result.pages, t('página del historial', 'history page'), t('páginas del historial', 'history pages')));
+  if (result.tabs) parts.push(plural(result.tabs, t('pestaña', 'tab'), t('pestañas', 'tabs')));
+  if (result.spaces) parts.push(plural(result.spaces, t('espacio', 'space'), t('espacios', 'spaces')));
+  return parts.length ? t(`Traído de ${source.name}: ${parts.join(', ')}.`, `Brought from ${source.name}: ${parts.join(', ')}.`) : t(`En ${source.name} no había nada que traer.`, `There was nothing to bring from ${source.name}.`);
 }
 
 async function fillPanel(win) {
@@ -345,19 +349,19 @@ async function fillPanel(win) {
   const panel = doc.getElementById('kitsune-import-panel');
   const list = panel.querySelector('.kitsune-import-sources');
   const status = panel.querySelector('.kitsune-import-status');
-  status.textContent = 'Buscando navegadores…';
+  status.textContent = t('Buscando navegadores…', 'Looking for browsers…');
   list.replaceChildren();
   panel.querySelector('.kitsune-import-result').replaceChildren();
   const sources = await findSources();
   panel.sources = sources;
-  if (!sources.length) { status.textContent = 'No hay otros navegadores en este equipo de los que traer nada.'; return; }
+  if (!sources.length) { status.textContent = t('No hay otros navegadores en este equipo de los que traer nada.', 'There are no other browsers on this computer to bring anything from.'); return; }
   status.textContent = '';
   sources.forEach((source, index) => {
     const id = `kitsune-import-source-${index}`;
     const input = el(doc, 'input', { type: 'radio', name: 'kitsune-import-source', id, value: source.id });
     if (!index) input.checked = true;
     list.append(el(doc, 'label', { for: id, class: 'kitsune-import-source' }, [input,
-      el(doc, 'span', {}, [el(doc, 'b', {}, [source.name]), el(doc, 'small', {}, [source.gecko ? `Perfil «${source.profile}»` : 'Con el asistente de importación'])])]));
+      el(doc, 'span', {}, [el(doc, 'b', {}, [source.name]), el(doc, 'small', {}, [source.gecko ? t(`Perfil «${source.profile}»`, `Profile «${source.profile}»`) : t('Con el asistente de importación', 'With the import assistant')])])]));
   });
   const update = () => {
     const source = sources.find(item => item.id === panel.querySelector('input[name=kitsune-import-source]:checked')?.value);
@@ -387,22 +391,22 @@ async function runImport(win) {
     Services.prefs.setBoolPref(OFFERED_PREF, true);
     status.textContent = summary(source, result);
     const extras = panel.querySelector('.kitsune-import-result');
-    const passwords = el(doc, 'p', {}, [`Contraseñas: en ${source.name}, abre Contraseñas (about:logins) → ⋯ → Exportar. Aquí, `,
-      el(doc, 'a', { href: '#', class: 'kitsune-import-logins' }, ['Contraseñas → ⋯ → Importar desde un archivo']), '.']);
+    const passwords = el(doc, 'p', {}, [t(`Contraseñas: en ${source.name}, abre Contraseñas (about:logins) → ⋯ → Exportar. Aquí, `, `Passwords: in ${source.name}, open Passwords (about:logins) → ⋯ → Export. Here, `),
+      el(doc, 'a', { href: '#', class: 'kitsune-import-logins' }, [t('Contraseñas → ⋯ → Importar desde un archivo', 'Passwords → ⋯ → Import from a file')]), '.']);
     extras.replaceChildren(passwords);
     passwords.querySelector('a').addEventListener('click', event => { event.preventDefault(); win.openTrustedLinkIn('about:logins', 'tab'); panel.hidePopup(); });
     if (result.extensions.length) {
       const names = result.extensions.slice(0, 8).map(extension => extension.name).join(', ');
-      const link = el(doc, 'a', { href: '#' }, ['Abrirlas en la tienda']);
+      const link = el(doc, 'a', { href: '#' }, [t('Abrirlas en la tienda', 'Open them in the store')]);
       link.addEventListener('click', event => {
         event.preventDefault();
-        for (const extension of result.extensions.slice(0, 10)) win.openTrustedLinkIn(`https://addons.mozilla.org/es-ES/firefox/addon/${encodeURIComponent(extension.id)}/`, 'tab', { inBackground: true });
+        for (const extension of result.extensions.slice(0, 10)) win.openTrustedLinkIn(`https://addons.mozilla.org/${t('es-ES', 'en-US')}/firefox/addon/${encodeURIComponent(extension.id)}/`, 'tab', { inBackground: true });
         panel.hidePopup();
       });
-      extras.append(el(doc, 'p', {}, [`Extensiones que tenías allí y aquí no: ${names}${result.extensions.length > 8 ? '…' : ''}. `, link, '.']));
+      extras.append(el(doc, 'p', {}, [t(`Extensiones que tenías allí y aquí no: ${names}${result.extensions.length > 8 ? '…' : ''}. `, `Extensions you had there and not here: ${names}${result.extensions.length > 8 ? '…' : ''}. `), link, '.']));
     }
   } catch (error) {
-    status.textContent = 'No se ha podido traer todo. Si ese navegador está abierto, ciérralo y vuelve a intentarlo.';
+    status.textContent = t('No se ha podido traer todo. Si ese navegador está abierto, ciérralo y vuelve a intentarlo.', 'Not everything could be brought over. If that browser is open, close it and try again.');
     Services.console.logStringMessage('Kitsune: import failed: ' + error);
   } finally {
     button.disabled = false;
@@ -415,15 +419,15 @@ function buildPanel(win) {
   for (const [name, value] of Object.entries({ id: 'kitsune-import-panel', type: 'arrow', class: 'kitsune-space-panel kitsune-import-panel', noautofocus: 'true' })) panel.setAttribute(name, value);
   const check = (name, label) => el(doc, 'label', { class: 'kitsune-import-check' }, [el(doc, 'input', { type: 'checkbox', name, checked: 'checked' }), label]);
   const form = el(doc, 'form', { class: 'kitsune-space-form kitsune-import-form' }, [
-    el(doc, 'h2', { class: 'kitsune-space-panel-title' }, ['Traer de otro navegador']),
-    el(doc, 'div', { class: 'kitsune-import-sources', role: 'radiogroup', 'aria-label': 'Navegador' }),
-    el(doc, 'div', { class: 'kitsune-import-what' }, [check('bookmarks', 'Marcadores'), check('history', 'Historial (un año)'), check('tabs', 'Pestañas abiertas')]),
-    el(doc, 'p', { class: 'kitsune-import-zen' }, ['Tus espacios de Zen pasan a espacios de Kitsune y sus Essentials, a pestañas fijadas.']),
+    el(doc, 'h2', { class: 'kitsune-space-panel-title' }, [t('Traer de otro navegador', 'Bring from another browser')]),
+    el(doc, 'div', { class: 'kitsune-import-sources', role: 'radiogroup', 'aria-label': t('Navegador', 'Browser') }),
+    el(doc, 'div', { class: 'kitsune-import-what' }, [check('bookmarks', t('Marcadores', 'Bookmarks')), check('history', t('Historial (un año)', 'History (one year)')), check('tabs', t('Pestañas abiertas', 'Open tabs'))]),
+    el(doc, 'p', { class: 'kitsune-import-zen' }, [t('Tus espacios de Zen pasan a espacios de Kitsune y sus Essentials, a pestañas fijadas.', 'Your Zen spaces become Kitsune spaces and its Essentials become pinned tabs.')]),
     el(doc, 'p', { class: 'kitsune-import-status', role: 'status' }),
     el(doc, 'div', { class: 'kitsune-import-result' }),
     el(doc, 'div', { class: 'kitsune-space-panel-actions' }, [
-      el(doc, 'button', { type: 'button', class: 'kitsune-space-panel-cancel' }, ['Cerrar']),
-      el(doc, 'button', { type: 'submit', class: 'kitsune-space-panel-save kitsune-import-go' }, ['Traer'])]),
+      el(doc, 'button', { type: 'button', class: 'kitsune-space-panel-cancel' }, [t('Cerrar', 'Close')]),
+      el(doc, 'button', { type: 'submit', class: 'kitsune-space-panel-save kitsune-import-go' }, [t('Traer', 'Bring')])]),
   ]);
   panel.append(form);
   form.addEventListener('submit', event => { event.preventDefault(); void runImport(win).catch(() => {}); });
@@ -446,7 +450,7 @@ function addMenuEntry(win) {
     const settings = doc.getElementById('appMenu-settings-button');
     if (!settings || doc.getElementById('appMenu-kitsune-import')) return;
     const button = doc.createXULElement('toolbarbutton');
-    for (const [name, value] of Object.entries({ id: 'appMenu-kitsune-import', class: 'subviewbutton', label: 'Traer de otro navegador…' })) button.setAttribute(name, value);
+    for (const [name, value] of Object.entries({ id: 'appMenu-kitsune-import', class: 'subviewbutton', label: t('Traer de otro navegador…', 'Bring from another browser…') })) button.setAttribute(name, value);
     button.addEventListener('command', () => openImport(win));
     settings.before(button);
   };
@@ -461,12 +465,12 @@ async function offer(win) {
   if (!sources.length || !win.gNotificationBox) return;
   const first = sources[0];
   await win.gNotificationBox.appendNotification('kitsune-import', {
-    label: `¿Vienes de ${first.name}? Trae tus marcadores, tu historial y tus pestañas${first.kind === 'zen' ? ' (con sus espacios)' : ''}.`,
+    label: t(`¿Vienes de ${first.name}? Trae tus marcadores, tu historial y tus pestañas${first.kind === 'zen' ? ' (con sus espacios)' : ''}.`, `Coming from ${first.name}? Bring your bookmarks, your history and your tabs${first.kind === 'zen' ? ' (with its spaces)' : ''}.`),
     priority: win.gNotificationBox.PRIORITY_INFO_LOW,
     eventCallback: event => { if (event === 'dismissed') Services.prefs.setBoolPref(OFFERED_PREF, true); },
   }, [
-    { label: 'Traer mis cosas', accessKey: 'T', callback: () => { openImport(win); return false; } },
-    { label: 'Ahora no', accessKey: 'n', callback: () => { Services.prefs.setBoolPref(OFFERED_PREF, true); } },
+    { label: t('Traer mis cosas', 'Bring my things'), accessKey: 'T', callback: () => { openImport(win); return false; } },
+    { label: t('Ahora no', 'Not now'), accessKey: 'n', callback: () => { Services.prefs.setBoolPref(OFFERED_PREF, true); } },
   ]);
 }
 

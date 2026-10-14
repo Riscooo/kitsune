@@ -12,6 +12,10 @@
  * - Nada de esto sale del equipo: no hay red, ni código de las webs, ni datos del usuario
  *   más allá de nombres y colores que pone él.
  */
+// Textos en el idioma de Kitsune (kitsune-i18n.sys.mjs); sin Gecko (pruebas de Node), en castellano.
+const t = (spanish, english) => {
+  try { return ChromeUtils.importESModule('chrome://browser/content/kitsune-i18n.sys.mjs').t(spanish, english); } catch { return spanish; }
+};
 const FILE = 'kitsune-spaces.json';
 const TAB_KEY = 'kitsuneSpace';
 const WINDOW_KEY = 'kitsuneSpace';
@@ -20,6 +24,8 @@ const SPACE_ID = /^e-[0-9a-f]{8}$/;
 const USER_ID = /^(default|p-[0-9a-f]{16})$/;
 export const COLORS = Object.freeze(['blue', 'pink', 'violet', 'teal', 'amber', 'red']);
 export const COLOR_NAMES = Object.freeze({ blue: 'Añil', pink: 'Rosa', violet: 'Violeta', teal: 'Jade', amber: 'Ámbar', red: 'Óxido' });
+const COLOR_NAMES_EN = Object.freeze({ blue: 'Indigo', pink: 'Pink', violet: 'Violet', teal: 'Jade', amber: 'Amber', red: 'Rust' });
+const colorName = color => t(COLOR_NAMES[color], COLOR_NAMES_EN[color]);
 export const MAX_SPACES = 9;
 export const MAX_NAME = 24;
 export const FIRST_ID = 'e-00000000';
@@ -262,7 +268,7 @@ function render(win) {
         el(doc, 'span', { class: 'kitsune-space-name' }, [space.name])]);
       return button;
     });
-    const add = el(doc, 'button', { type: 'button', class: 'kitsune-space-add', title: 'Nuevo espacio', 'aria-label': 'Nuevo espacio' }, ['+']);
+    const add = el(doc, 'button', { type: 'button', class: 'kitsune-space-add', title: t('Nuevo espacio', 'New space'), 'aria-label': t('Nuevo espacio', 'New space') }, ['+']);
     add.hidden = state.data.spaces.length >= MAX_SPACES;
     strip.replaceChildren(...buttons, add);
     strip.dataset.count = String(state.data.spaces.length);
@@ -274,8 +280,8 @@ function openEditor(win, anchor, id = null) {
   const panel = doc.getElementById('kitsune-space-panel');
   const space = id ? state.data.spaces.find(item => item.id === id) : null;
   panel.dataset.space = space?.id ?? '';
-  panel.querySelector('.kitsune-space-panel-title').textContent = space ? 'Editar espacio' : 'Nuevo espacio';
-  panel.querySelector('.kitsune-space-panel-save').textContent = space ? 'Guardar' : 'Crear';
+  panel.querySelector('.kitsune-space-panel-title').textContent = space ? t('Editar espacio', 'Edit space') : t('Nuevo espacio', 'New space');
+  panel.querySelector('.kitsune-space-panel-save').textContent = space ? t('Guardar', 'Save') : t('Crear', 'Create');
   const input = panel.querySelector('input');
   input.value = space?.name ?? '';
   const used = new Set(state.data.spaces.map(item => item.color));
@@ -283,7 +289,7 @@ function openEditor(win, anchor, id = null) {
   for (const swatch of panel.querySelectorAll('[data-color]')) swatch.setAttribute('aria-checked', String(swatch.dataset.color === color));
   const select = panel.querySelector('select');
   const list = users()?.list?.() ?? { users: [] };
-  select.replaceChildren(el(doc, 'option', { value: '' }, ['El de la pestaña en la que estés']),
+  select.replaceChildren(el(doc, 'option', { value: '' }, [t('El de la pestaña en la que estés', 'The one of the tab you are on')]),
     ...list.users.map(user => el(doc, 'option', { value: user.id }, [user.name])));
   select.value = space?.user && list.users.some(user => user.id === space.user) ? space.user : '';
   panel.querySelector('.kitsune-space-panel-error').textContent = '';
@@ -296,12 +302,12 @@ async function saveEditor(win) {
   const name = panel.querySelector('input').value;
   const color = panel.querySelector('[data-color][aria-checked="true"]')?.dataset.color ?? 'teal';
   const user = panel.querySelector('select').value || null;
-  if (!cleanName(name)) { panel.querySelector('.kitsune-space-panel-error').textContent = 'Ponle un nombre.'; return; }
+  if (!cleanName(name)) { panel.querySelector('.kitsune-space-panel-error').textContent = t('Ponle un nombre.', 'Give it a name.'); return; }
   const id = panel.dataset.space;
   if (id) await commit(editSpace(state.data, id, { name, color, user }));
   else {
     const added = addSpace(state.data, { name, color, user });
-    if (!added) { panel.querySelector('.kitsune-space-panel-error').textContent = `Caben ${MAX_SPACES} espacios como mucho.`; return; }
+    if (!added) { panel.querySelector('.kitsune-space-panel-error').textContent = t(`Caben ${MAX_SPACES} espacios como mucho.`, `There is room for ${MAX_SPACES} spaces at most.`); return; }
     await commit(added.data);
     await switchTo(win, added.id);
   }
@@ -311,18 +317,18 @@ async function saveEditor(win) {
 function buildPanel(win) {
   const doc = win.document;
   const panel = xul(doc, 'panel', { id: 'kitsune-space-panel', type: 'arrow', class: 'kitsune-space-panel', noautofocus: 'true' });
-  const colors = el(doc, 'div', { class: 'kitsune-space-colors', role: 'radiogroup', 'aria-label': 'Tinta' },
+  const colors = el(doc, 'div', { class: 'kitsune-space-colors', role: 'radiogroup', 'aria-label': t('Tinta', 'Ink') },
     COLORS.map(color => el(doc, 'button', { type: 'button', role: 'radio', 'data-color': color, 'data-space-color': color,
-      'aria-checked': 'false', title: COLOR_NAMES[color], 'aria-label': COLOR_NAMES[color] })));
+      'aria-checked': 'false', title: colorName(color), 'aria-label': colorName(color) })));
   const form = el(doc, 'form', { class: 'kitsune-space-form' }, [
-    el(doc, 'h2', { class: 'kitsune-space-panel-title' }, ['Nuevo espacio']),
-    el(doc, 'label', {}, ['Nombre', el(doc, 'input', { type: 'text', maxlength: String(MAX_NAME), placeholder: 'Trabajo, Clase, Ocio…', spellcheck: 'false' })]),
-    el(doc, 'span', { class: 'kitsune-space-label' }, ['Tinta']), colors,
-    el(doc, 'label', {}, ['Usuario de sus pestañas nuevas', el(doc, 'select')]),
+    el(doc, 'h2', { class: 'kitsune-space-panel-title' }, [t('Nuevo espacio', 'New space')]),
+    el(doc, 'label', {}, [t('Nombre', 'Name'), el(doc, 'input', { type: 'text', maxlength: String(MAX_NAME), placeholder: t('Trabajo, Clase, Ocio…', 'Work, School, Fun…'), spellcheck: 'false' })]),
+    el(doc, 'span', { class: 'kitsune-space-label' }, [t('Tinta', 'Ink')]), colors,
+    el(doc, 'label', {}, [t('Usuario de sus pestañas nuevas', 'User for its new tabs'), el(doc, 'select')]),
     el(doc, 'p', { class: 'kitsune-space-panel-error', role: 'alert' }),
     el(doc, 'div', { class: 'kitsune-space-panel-actions' }, [
-      el(doc, 'button', { type: 'button', class: 'kitsune-space-panel-cancel' }, ['Cancelar']),
-      el(doc, 'button', { type: 'submit', class: 'kitsune-space-panel-save' }, ['Crear'])]),
+      el(doc, 'button', { type: 'button', class: 'kitsune-space-panel-cancel' }, [t('Cancelar', 'Cancel')]),
+      el(doc, 'button', { type: 'submit', class: 'kitsune-space-panel-save' }, [t('Crear', 'Create')])]),
   ]);
   panel.append(form);
   colors.addEventListener('click', event => {
@@ -339,8 +345,8 @@ function buildMenu(win) {
   const doc = win.document;
   const menu = xul(doc, 'menupopup', { id: 'kitsune-space-menu' });
   const item = (label, action) => { const node = xul(doc, 'menuitem', { label }); node.dataset.action = action; return node; };
-  menu.append(item('Editar…', 'edit'), item('Mover a la izquierda', 'left'), item('Mover a la derecha', 'right'),
-    xul(doc, 'menuseparator'), item('Eliminar espacio', 'remove'));
+  menu.append(item(t('Editar…', 'Edit…'), 'edit'), item(t('Mover a la izquierda', 'Move left'), 'left'), item(t('Mover a la derecha', 'Move right'), 'right'),
+    xul(doc, 'menuseparator'), item(t('Eliminar espacio', 'Delete space'), 'remove'));
   menu.addEventListener('popupshowing', () => {
     const id = menu.dataset.space;
     const index = state.data.spaces.findIndex(space => space.id === id);
@@ -354,7 +360,7 @@ function buildMenu(win) {
     if (action === 'left' || action === 'right') void commit(moveSpace(state.data, id, action === 'left' ? -1 : 1)).catch(() => {});
     if (action === 'remove') {
       const space = state.data.spaces.find(item => item.id === id);
-      if (space && Services.prompt.confirm(win, 'Eliminar espacio', `¿Eliminar «${space.name}»? Sus pestañas pasan a «${state.data.spaces.find(item => item.id !== id).name}».`)) {
+      if (space && Services.prompt.confirm(win, t('Eliminar espacio', 'Delete space'), t(`¿Eliminar «${space.name}»? Sus pestañas pasan a «${state.data.spaces.find(item => item.id !== id).name}».`, `Delete «${space.name}»? Its tabs move to «${state.data.spaces.find(item => item.id !== id).name}».`))) {
         void commit(removeSpace(state.data, id)).catch(() => {});
       }
     }
@@ -364,7 +370,7 @@ function buildMenu(win) {
   // En el menú de la pestaña: llevarla a otro espacio.
   const tabMenu = doc.getElementById('tabContextMenu');
   if (tabMenu) {
-    const move = xul(doc, 'menu', { id: 'kitsune-move-to-space', label: 'Mover a otro espacio' });
+    const move = xul(doc, 'menu', { id: 'kitsune-move-to-space', label: t('Mover a otro espacio', 'Move to another space') });
     const popup = xul(doc, 'menupopup');
     move.append(popup);
     const anchor = doc.getElementById('context_moveTabOptions');
@@ -389,10 +395,10 @@ function buildStrips(win) {
   // Arriba: en la tira de pestañas, detrás del logo.
   const toolbar = doc.getElementById('TabsToolbar');
   const items = toolbar?.querySelector('.toolbar-items');
-  if (items) { const strip = el(doc, 'div', { id: 'kitsune-spaces-top', class: 'kitsune-spaces', role: 'tablist', 'aria-label': 'Espacios' }); items.before(strip); strips.push(strip); }
+  if (items) { const strip = el(doc, 'div', { id: 'kitsune-spaces-top', class: 'kitsune-spaces', role: 'tablist', 'aria-label': t('Espacios', 'Spaces') }); items.before(strip); strips.push(strip); }
   // A un lado: abajo de la barra lateral, debajo de las pestañas.
   const side = doc.querySelector('sidebar-main');
-  if (side) { const strip = el(doc, 'div', { id: 'kitsune-spaces-side', class: 'kitsune-spaces', role: 'tablist', 'aria-label': 'Espacios', slot: 'tabstrip' }); side.append(strip); strips.push(strip); }
+  if (side) { const strip = el(doc, 'div', { id: 'kitsune-spaces-side', class: 'kitsune-spaces', role: 'tablist', 'aria-label': t('Espacios', 'Spaces'), slot: 'tabstrip' }); side.append(strip); strips.push(strip); }
   for (const strip of strips) {
     strip.addEventListener('click', event => {
       const button = event.target.closest('button');

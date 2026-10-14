@@ -8,6 +8,10 @@
  * - «?» enseña todas las acciones con su atajo. Todo funciona con el teclado.
  * Ctrl+K era «buscar en la web» de Gecko: esa tecla se apaga y la búsqueda vive aquí.
  */
+// Textos en el idioma de Kitsune (kitsune-i18n.sys.mjs); sin Gecko (pruebas de Node), en castellano.
+const t = (spanish, english) => {
+  try { return ChromeUtils.importESModule('chrome://browser/content/kitsune-i18n.sys.mjs').t(spanish, english); } catch { return spanish; }
+};
 const HTML = 'http://www.w3.org/1999/xhtml';
 const decorated = new WeakSet();
 
@@ -41,45 +45,45 @@ export const looksLikeAddress = text => /^(https?:\/\/|about:)\S+$/i.test(text.t
 
 // Acciones: con su tecla de Gecko (o de Kitsune) o con lo que hacen.
 const ACTIONS = [
-  { label: 'Nueva pestaña', key: 'key_newNavigatorTab', keywords: ['abrir'] },
-  { label: 'Cerrar pestaña', key: 'key_close' },
-  { label: 'Reabrir la pestaña cerrada', key: 'key_restoreLastClosedTabOrWindowOrSession', keywords: ['deshacer', 'recuperar'] },
-  { label: 'Duplicar pestaña', key: 'key_duplicateTab' },
-  { label: 'Fijar o soltar la pestaña', run: win => { const tab = win.gBrowser.selectedTab; tab.pinned ? win.gBrowser.unpinTab(tab) : win.gBrowser.pinTab(tab); }, keywords: ['essentials'] },
-  { label: 'Silenciar o activar el sonido de la pestaña', key: 'key_toggleMute', keywords: ['mute', 'audio'] },
-  { label: 'Recargar', key: 'key_reload2' },
-  { label: 'Nueva ventana', key: 'key_newNavigator' },
-  { label: 'Nueva ventana privada', key: 'key_privatebrowsing', keywords: ['incognito', 'privado'] },
-  { label: 'Buscar en la página', key: 'key_find' },
-  { label: 'Pantalla completa', key: 'key_enterFullScreen' },
-  { label: 'Modo lectura', key: 'key_toggleReaderMode' },
-  { label: 'Imagen en imagen', key: 'key_togglePictureInPicture', keywords: ['video', 'pip'] },
-  { label: 'Captura de pantalla', key: 'key_screenshot' },
-  { label: 'Ampliar', key: 'key_fullZoomEnlarge', keywords: ['zoom'] },
-  { label: 'Reducir', key: 'key_fullZoomReduce', keywords: ['zoom'] },
-  { label: 'Tamaño normal', key: 'key_fullZoomReset', keywords: ['zoom'] },
-  { label: 'Todas las pestañas', key: 'key_showAllTabs' },
-  { label: 'Dividir la pestaña o separarla', key: 'kitsune-split-key', keywords: ['vista dividida', 'split'] },
-  { label: 'Modo compacto', key: 'kitsune-compact-key', keywords: ['ocultar barras', 'zen'] },
-  { label: 'Espacio siguiente', key: 'kitsune-space-key-next' },
-  { label: 'Espacio anterior', key: 'kitsune-space-key-previous' },
-  { label: 'Nuevo espacio', run: win => spaces()?.KitsuneSpaces.openEditor(win), keywords: ['workspace'] },
-  { label: 'Pestañas arriba', run: () => setTabs(false), keywords: ['horizontal'] },
-  { label: 'Pestañas a un lado', run: () => setTabs(true, 'always-show'), keywords: ['vertical', 'barra lateral'] },
-  { label: 'Pestañas a un lado, solo iconos', run: () => setTabs(true, 'expand-on-hover'), keywords: ['vertical', 'plegada'] },
-  { label: 'Traer de otro navegador', run: win => importer()?.open(win), keywords: ['importar', 'zen', 'chrome', 'firefox'] },
-  { label: 'Tu inicio', key: 'goHome', keywords: ['home', 'ajustes de kitsune', 'tema', 'fondo', 'modo ahorro'] },
-  { label: 'Descargas', key: 'key_openDownloads' },
-  { label: 'Historial', key: 'showAllHistoryKb' },
-  { label: 'Marcadores', key: 'manBookmarkKb', keywords: ['favoritos'] },
-  { label: 'Añadir esta página a marcadores', key: 'addBookmarkAsKb', keywords: ['favorito'] },
-  { label: 'Contraseñas', run: win => win.openTrustedLinkIn('about:logins', 'tab'), keywords: ['claves', 'logins'] },
-  { label: 'Extensiones', key: 'key_openAddons', keywords: ['complementos', 'addons'] },
-  { label: 'Ajustes del navegador', run: win => win.openPreferences(), keywords: ['preferencias', 'opciones'] },
-  { label: 'Borrar historial reciente', key: 'key_sanitize', keywords: ['limpiar'] },
-  { label: 'Administrador de procesos', key: 'key_aboutProcesses', keywords: ['memoria', 'ram', 'cpu'] },
-  { label: 'Ver código fuente', key: 'key_viewSource' },
-  { label: 'Herramientas de desarrollo', key: 'key_toggleToolbox', keywords: ['devtools', 'consola', 'inspector'] },
+  { label: t('Nueva pestaña', 'New tab'), key: 'key_newNavigatorTab', keywords: ['abrir'] },
+  { label: t('Cerrar pestaña', 'Close tab'), key: 'key_close' },
+  { label: t('Reabrir la pestaña cerrada', 'Reopen closed tab'), key: 'key_restoreLastClosedTabOrWindowOrSession', keywords: ['deshacer', 'recuperar'] },
+  { label: t('Duplicar pestaña', 'Duplicate tab'), key: 'key_duplicateTab' },
+  { label: t('Fijar o soltar la pestaña', 'Pin or unpin tab'), run: win => { const tab = win.gBrowser.selectedTab; tab.pinned ? win.gBrowser.unpinTab(tab) : win.gBrowser.pinTab(tab); }, keywords: ['essentials'] },
+  { label: t('Silenciar o activar el sonido de la pestaña', 'Mute or unmute tab'), key: 'key_toggleMute', keywords: ['mute', 'audio'] },
+  { label: t('Recargar', 'Reload'), key: 'key_reload2' },
+  { label: t('Nueva ventana', 'New window'), key: 'key_newNavigator' },
+  { label: t('Nueva ventana privada', 'New private window'), key: 'key_privatebrowsing', keywords: ['incognito', 'privado'] },
+  { label: t('Buscar en la página', 'Find in page'), key: 'key_find' },
+  { label: t('Pantalla completa', 'Full screen'), key: 'key_enterFullScreen' },
+  { label: t('Modo lectura', 'Reader view'), key: 'key_toggleReaderMode' },
+  { label: t('Imagen en imagen', 'Picture-in-picture'), key: 'key_togglePictureInPicture', keywords: ['video', 'pip'] },
+  { label: t('Captura de pantalla', 'Screenshot'), key: 'key_screenshot' },
+  { label: t('Ampliar', 'Zoom in'), key: 'key_fullZoomEnlarge', keywords: ['zoom'] },
+  { label: t('Reducir', 'Zoom out'), key: 'key_fullZoomReduce', keywords: ['zoom'] },
+  { label: t('Tamaño normal', 'Reset zoom'), key: 'key_fullZoomReset', keywords: ['zoom'] },
+  { label: t('Todas las pestañas', 'All tabs'), key: 'key_showAllTabs' },
+  { label: t('Dividir la pestaña o separarla', 'Split or unsplit tab'), key: 'kitsune-split-key', keywords: ['vista dividida', 'split'] },
+  { label: t('Modo compacto', 'Compact mode'), key: 'kitsune-compact-key', keywords: ['ocultar barras', 'zen'] },
+  { label: t('Espacio siguiente', 'Next space'), key: 'kitsune-space-key-next' },
+  { label: t('Espacio anterior', 'Previous space'), key: 'kitsune-space-key-previous' },
+  { label: t('Nuevo espacio', 'New space'), run: win => spaces()?.KitsuneSpaces.openEditor(win), keywords: ['workspace'] },
+  { label: t('Pestañas arriba', 'Tabs on top'), run: () => setTabs(false), keywords: ['horizontal'] },
+  { label: t('Pestañas a un lado', 'Tabs at the side'), run: () => setTabs(true, 'always-show'), keywords: ['vertical', 'barra lateral'] },
+  { label: t('Pestañas a un lado, solo iconos', 'Tabs at the side, icons only'), run: () => setTabs(true, 'expand-on-hover'), keywords: ['vertical', 'plegada'] },
+  { label: t('Traer de otro navegador', 'Bring from another browser'), run: win => importer()?.open(win), keywords: ['importar', 'zen', 'chrome', 'firefox'] },
+  { label: t('Tu inicio', 'Your home'), key: 'goHome', keywords: ['home', 'ajustes de kitsune', 'tema', 'fondo', 'modo ahorro'] },
+  { label: t('Descargas', 'Downloads'), key: 'key_openDownloads' },
+  { label: t('Historial', 'History'), key: 'showAllHistoryKb' },
+  { label: t('Marcadores', 'Bookmarks'), key: 'manBookmarkKb', keywords: ['favoritos'] },
+  { label: t('Añadir esta página a marcadores', 'Bookmark this page'), key: 'addBookmarkAsKb', keywords: ['favorito'] },
+  { label: t('Contraseñas', 'Passwords'), run: win => win.openTrustedLinkIn('about:logins', 'tab'), keywords: ['claves', 'logins'] },
+  { label: t('Extensiones', 'Extensions'), key: 'key_openAddons', keywords: ['complementos', 'addons'] },
+  { label: t('Ajustes del navegador', 'Browser settings'), run: win => win.openPreferences(), keywords: ['preferencias', 'opciones'] },
+  { label: t('Borrar historial reciente', 'Clear recent history'), key: 'key_sanitize', keywords: ['limpiar'] },
+  { label: t('Administrador de procesos', 'Process manager'), key: 'key_aboutProcesses', keywords: ['memoria', 'ram', 'cpu'] },
+  { label: t('Ver código fuente', 'View page source'), key: 'key_viewSource' },
+  { label: t('Herramientas de desarrollo', 'Developer tools'), key: 'key_toggleToolbox', keywords: ['devtools', 'consola', 'inspector'] },
 ];
 
 const lazy = {
@@ -120,19 +124,19 @@ export function localResults(win, query) {
   }));
   if (query.trim() === '?') return actions.filter(action => action.shortcut);
   const tabs = [...win.gBrowser.tabs].filter(tab => !tab.closing).map(tab => ({
-    type: 'pestana', label: tab.label, detail: [hostOf(tab.linkedBrowser?.currentURI), module && !tab.pinned ? nameOf(module.tabSpace(tab)) : (tab.pinned ? 'fijada' : '')].filter(Boolean).join(' · '),
+    type: 'pestana', label: tab.label, detail: [hostOf(tab.linkedBrowser?.currentURI), module && !tab.pinned ? nameOf(module.tabSpace(tab)) : (tab.pinned ? t('fijada', 'pinned') : '')].filter(Boolean).join(' · '),
     keywords: [tab.linkedBrowser?.currentURI?.spec ?? ''], run: () => { win.gBrowser.selectedTab = tab; }, weight: tab.selected ? 0.5 : 1.1,
   }));
   const spaceItems = list.map((space, index) => ({
-    type: 'espacio', label: space.name, detail: 'Espacio', shortcut: shortcutOf(doc, `kitsune-space-key-${index + 1}`),
+    type: 'espacio', label: space.name, detail: t('Espacio', 'Space'), shortcut: shortcutOf(doc, `kitsune-space-key-${index + 1}`),
     keywords: ['espacio', 'workspace'], run: () => module.switchTo(win, space.id), weight: 1.05,
   }));
   if (!query.trim()) return [...rank('', tabs.filter(tab => tab.weight > 1), 6), ...actions.slice(0, 6)];
   const results = [...rank(query, [...spaceItems, ...tabs], 6), ...rank(query, actions, 6)];
   const typed = query.trim();
   const web = looksLikeAddress(typed)
-    ? { type: 'web', label: `Ir a ${typed}`, run: () => win.openTrustedLinkIn(/^[a-z]+:/i.test(typed) ? typed : `https://${typed}`, 'current') }
-    : { type: 'web', label: `Buscar «${typed}» en la web`, run: () => void searchWeb(win, typed) };
+    ? { type: 'web', label: t(`Ir a ${typed}`, `Go to ${typed}`), run: () => win.openTrustedLinkIn(/^[a-z]+:/i.test(typed) ? typed : `https://${typed}`, 'current') }
+    : { type: 'web', label: t(`Buscar «${typed}» en la web`, `Search the web for «${typed}»`), run: () => void searchWeb(win, typed) };
   return results.length && !looksLikeAddress(typed) ? [...results, web] : [web, ...results];
 }
 
@@ -160,13 +164,13 @@ async function placesResults(win, query) {
   });
 }
 
-const KIND = { accion: 'Acción', pestana: 'Pestaña', espacio: 'Espacio', marcador: 'Marcador', historial: 'Historial', web: '' };
+const KIND = { accion: t('Acción', 'Action'), pestana: t('Pestaña', 'Tab'), espacio: t('Espacio', 'Space'), marcador: t('Marcador', 'Bookmark'), historial: t('Historial', 'History'), web: '' };
 
 function build(win) {
   const doc = win.document;
   const panel = doc.createXULElement('panel');
   for (const [name, value] of Object.entries({ id: 'kitsune-palette', class: 'kitsune-palette', noautofocus: 'true' })) panel.setAttribute(name, value);
-  const input = el(doc, 'input', { type: 'text', class: 'kitsune-palette-input', placeholder: 'Pestañas, espacios, acciones, marcadores… («?» para ver los atajos)', spellcheck: 'false', 'aria-label': 'Paleta de Kitsune', role: 'combobox', 'aria-expanded': 'true', 'aria-controls': 'kitsune-palette-list' });
+  const input = el(doc, 'input', { type: 'text', class: 'kitsune-palette-input', placeholder: t('Pestañas, espacios, acciones, marcadores… («?» para ver los atajos)', 'Tabs, spaces, actions, bookmarks… («?» shows the shortcuts)'), spellcheck: 'false', 'aria-label': t('Paleta de Kitsune', 'Kitsune palette'), role: 'combobox', 'aria-expanded': 'true', 'aria-controls': 'kitsune-palette-list' });
   const list = el(doc, 'ul', { id: 'kitsune-palette-list', class: 'kitsune-palette-list', role: 'listbox' });
   const box = el(doc, 'div', { class: 'kitsune-palette-box' }, [input, list]);
   panel.append(box);

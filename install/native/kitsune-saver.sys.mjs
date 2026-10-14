@@ -8,6 +8,10 @@
  * - Las pestañas dormidas se ven apagadas (CSS de kitsune-layout.css, [pending]).
  * El modo se pone y se quita en «Tu inicio» → Apariencia → Rendimiento (o desde la paleta).
  */
+// Textos en el idioma de Kitsune (kitsune-i18n.sys.mjs); sin Gecko (pruebas de Node), en castellano.
+const t = (spanish, english) => {
+  try { return ChromeUtils.importESModule('chrome://browser/content/kitsune-i18n.sys.mjs').t(spanish, english); } catch { return spanish; }
+};
 export const KEEP_AWAKE_PREF = 'kitsune.saver.keepAwake';
 const APPLIED_PREF = 'kitsune.performance.applied';
 const HTML = 'http://www.w3.org/1999/xhtml';
@@ -27,7 +31,7 @@ export function setKeepAwake(host, keep) {
 /** Bytes → «1,4 GB» o «830 MB». */
 export function formatBytes(bytes) {
   const mb = bytes / 1048576;
-  return mb >= 1024 ? `${(mb / 1024).toLocaleString('es-ES', { maximumFractionDigits: 1 })} GB` : `${Math.round(mb).toLocaleString('es-ES')} MB`;
+  return mb >= 1024 ? `${(mb / 1024).toLocaleString(t('es-ES', 'en-US'), { maximumFractionDigits: 1 })} GB` : `${Math.round(mb).toLocaleString(t('es-ES', 'en-US'))} MB`;
 }
 const hostOf = uri => { try { return uri?.host?.toLowerCase() ?? ''; } catch { return ''; } };
 const saverOn = () => Services.prefs.getStringPref(APPLIED_PREF, 'normal') === 'ahorro';
@@ -44,7 +48,7 @@ async function tick() {
     lastBytes = bytes;
     for (const win of windows) {
       const button = win.document.getElementById('kitsune-ram-button');
-      if (button) { button.setAttribute('label', formatBytes(bytes)); button.setAttribute('tooltiptext', `Kitsune usa ${formatBytes(bytes)} de RAM (modo ahorro)`); }
+      if (button) { button.setAttribute('label', formatBytes(bytes)); button.setAttribute('tooltiptext', t(`Kitsune usa ${formatBytes(bytes)} de RAM (modo ahorro)`, `Kitsune is using ${formatBytes(bytes)} of RAM (saver mode)`)); }
     }
   } catch { /* la próxima vuelta */ }
 }
@@ -88,24 +92,24 @@ function buildPanel(win) {
   for (const [name, value] of Object.entries({ id: 'kitsune-saver-panel', type: 'arrow', class: 'kitsune-space-panel kitsune-saver-panel', noautofocus: 'true' })) panel.setAttribute(name, value);
   const keep = el(doc, 'input', { type: 'checkbox', class: 'kitsune-saver-keep' });
   const form = el(doc, 'div', { class: 'kitsune-space-form' }, [
-    el(doc, 'h2', { class: 'kitsune-space-panel-title' }, ['Modo ahorro']),
+    el(doc, 'h2', { class: 'kitsune-space-panel-title' }, [t('Modo ahorro', 'Saver mode')]),
     el(doc, 'p', { class: 'kitsune-saver-total' }),
     el(doc, 'p', { class: 'kitsune-saver-tabs' }),
     el(doc, 'label', { class: 'kitsune-saver-keep-row' }, [keep, el(doc, 'span', { class: 'kitsune-saver-keep-label' })]),
-    el(doc, 'p', { class: 'kitsune-saver-note' }, ['Duerme las pestañas que no usas en 15 minutos y, si pasa del límite de RAM, las más antiguas. Vuelven al abrirlas. El límite se cambia en Tu inicio → Apariencia.']),
+    el(doc, 'p', { class: 'kitsune-saver-note' }, [t('Duerme las pestañas que no usas en 15 minutos y, si pasa del límite de RAM, las más antiguas. Vuelven al abrirlas. El límite se cambia en Tu inicio → Apariencia.', 'Puts tabs you have not used for 15 minutes to sleep and, above the RAM limit, the oldest ones. They come back when you open them. Change the limit in Your home → Appearance.')]),
     el(doc, 'div', { class: 'kitsune-space-panel-actions' }, [
-      el(doc, 'button', { type: 'button', class: 'kitsune-saver-processes' }, ['Ver procesos']),
-      el(doc, 'button', { type: 'button', class: 'kitsune-space-panel-save kitsune-saver-sleep' }, ['Dormir las que no uso'])]),
+      el(doc, 'button', { type: 'button', class: 'kitsune-saver-processes' }, [t('Ver procesos', 'See processes')]),
+      el(doc, 'button', { type: 'button', class: 'kitsune-space-panel-save kitsune-saver-sleep' }, [t('Dormir las que no uso', 'Sleep the ones I am not using')])]),
   ]);
   panel.append(form);
   const fill = async () => {
     const { bytes, processes } = await measure().catch(() => ({ bytes: lastBytes, processes: 0 }));
-    form.querySelector('.kitsune-saver-total').textContent = `Kitsune usa ${formatBytes(bytes)} de RAM${processes ? ` en ${processes} procesos` : ''}.`;
+    form.querySelector('.kitsune-saver-total').textContent = t(`Kitsune usa ${formatBytes(bytes)} de RAM${processes ? ` en ${processes} procesos` : ''}.`, `Kitsune is using ${formatBytes(bytes)} of RAM${processes ? ` in ${processes} processes` : ''}.`);
     const { awake, asleep } = counts(win);
-    form.querySelector('.kitsune-saver-tabs').textContent = `${awake} ${awake === 1 ? 'pestaña despierta' : 'pestañas despiertas'} · ${asleep} ${asleep === 1 ? 'dormida' : 'dormidas'}`;
+    form.querySelector('.kitsune-saver-tabs').textContent = t(`${awake} ${awake === 1 ? 'pestaña despierta' : 'pestañas despiertas'} · ${asleep} ${asleep === 1 ? 'dormida' : 'dormidas'}`, `${awake} ${awake === 1 ? 'tab awake' : 'tabs awake'} · ${asleep} asleep`);
     const host = hostOf(win.gBrowser.selectedBrowser.currentURI);
     form.querySelector('.kitsune-saver-keep-row').hidden = !host;
-    form.querySelector('.kitsune-saver-keep-label').textContent = `No dormir nunca ${host}`;
+    form.querySelector('.kitsune-saver-keep-label').textContent = t(`No dormir nunca ${host}`, `Never sleep ${host}`);
     keep.checked = keepAwakeHosts().includes(host);
     keep.dataset.host = host;
   };
@@ -128,7 +132,7 @@ export const KitsuneSaver = {
     win.addEventListener('unload', () => windows.delete(win), { once: true });
     const button = doc.createXULElement('toolbarbutton');
     for (const [name, value] of Object.entries({ id: 'kitsune-ram-button', class: 'toolbarbutton-1 chromeclass-toolbar-additional', label: '…',
-      tooltiptext: 'RAM de Kitsune (modo ahorro)', 'aria-label': 'RAM de Kitsune' })) button.setAttribute(name, value);
+      tooltiptext: t('RAM de Kitsune (modo ahorro)', 'Kitsune\'s RAM (saver mode)'), 'aria-label': t('RAM de Kitsune', 'Kitsune\'s RAM') })) button.setAttribute(name, value);
     button.addEventListener('command', () => {
       const panel = doc.getElementById('kitsune-saver-panel') ?? buildPanel(win);
       panel.openPopup(button, 'bottomright topright', 0, 4);
