@@ -3,7 +3,8 @@
 1. Con el cristal del sistema, la raíz y el marco son transparentes (Gecko hace la ventana transparente).
 2. La web es una tarjeta a 50/46/12/12 px de los bordes, con radio de 18 px.
 3. Con la vista dividida de 2, son dos tarjetas separadas por 10 px.
-4. Ampliar la deja a 0 px y radio 0; dejar de ampliar la devuelve.
+4. Ampliar la deja a 0 px y radio 0; dejar de ampliar la devuelve. Mientras se anima, la web cambia
+   de tamaño una sola vez (la animación es de transformación, no de márgenes).
 5. Los botones de ventana van en fila arriba a la izquierda; el marco se arrastra y la web no.
 6. Con el fondo de la web, detrás hay una foto de la web y la raíz ya no es transparente.
 7. El velo del marco (alrededor de la tarjeta) toma el color de la web (rojo con una página roja).
@@ -124,7 +125,14 @@ def main():
         eventually(lambda: len(frame()['cards']) == 1, timeout=10)
 
         assert 'full' in frame()['grow'], frame()
-        chrome("document.querySelector('#zero-grow button[data-action=full]').click()")
+        # Se graba el tamaño de la web en cada fotograma mientras se amplía.
+        driver.context('chrome')
+        sizes = driver.script("""const done = arguments[arguments.length - 1]; const sizes = new Set(); const t0 = performance.now();
+            const step = () => { const b = gBrowser.selectedBrowser; sizes.add(b.clientWidth + '×' + b.clientHeight);
+              if (performance.now() - t0 < 900) requestAnimationFrame(step); else done([...sizes]); };
+            requestAnimationFrame(step);
+            document.querySelector('#zero-grow button[data-action=full]').click();""", [], asynchronous=True)
+        assert len(sizes) <= 2, sizes
         eventually(lambda: frame()['full'] and card_at(frame(), 0, 0, 0, 0, 0.5) and frame()['radius'] == '0px', timeout=5)
         chrome("document.querySelector('#zero-grow button[data-action=full]').click()")
         eventually(lambda: not frame()['full'] and card_at(frame(), 50, 46, 12, 12, 0.5) and frame()['radius'] == '18px', timeout=5)

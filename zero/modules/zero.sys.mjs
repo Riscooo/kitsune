@@ -54,8 +54,8 @@ function toggle(win, on = !active(win)) {
     island: { alert: (text, detail, ms) => island.alert(win, text, detail, ms) },
   };
   if (on) {
-    win.document.documentElement.setAttribute('zero', '');
-    sheet(win, true);
+    // La web pasa a tarjeta viajando desde donde estaba (flip), no de golpe.
+    frame.flip(win, () => { win.document.documentElement.setAttribute('zero', ''); sheet(win, true); });
     for (const p of pieces) { try { p.attach(win, ctx); } catch (error) { console.error('Kitsune Zero:', error); } }
   } else {
     for (const p of [...pieces].reverse()) { try { p.detach(win); } catch (error) { console.error('Kitsune Zero:', error); } }

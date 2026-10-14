@@ -128,9 +128,33 @@ function placeGrow(win, st) {
   }
 }
 
+/** Cambia el sitio de la tarjeta (ampliar, entrar en Zero) sin redimensionar la web en cada
+ *  fotograma: la web toma su tamaño nuevo una sola vez y la tarjeta viaja desde donde estaba con una
+ *  transformación, que la hace la tarjeta gráfica (FLIP). Avisa con «zero-move» (el cristal en vivo
+ *  lo sigue). */
+export function flip(win, change) {
+  const panels = win.document.getElementById('tabbrowser-tabpanels');
+  if (!panels) { change(); return null; }
+  const first = panels.getBoundingClientRect();
+  for (const animation of panels.getAnimations()) animation.cancel(); // uno a medias: se sale de donde está ahora
+  change();
+  const last = panels.getBoundingClientRect();
+  const ms = parseFloat(win.getComputedStyle(win.document.documentElement).getPropertyValue('--zero-t-move')) || 0;
+  if (!first.width || !last.width || ms < 2 || win.matchMedia('(prefers-reduced-motion: reduce)').matches) return null;
+  const dx = first.left - last.left, dy = first.top - last.top, sx = first.width / last.width, sy = first.height / last.height;
+  if (Math.abs(dx) + Math.abs(dy) < 0.5 && Math.abs(sx - 1) < 0.001 && Math.abs(sy - 1) < 0.001) return null;
+  const animation = panels.animate([
+    { transformOrigin: '0 0', transform: `translate(${dx}px, ${dy}px) scale(${sx}, ${sy})` },
+    { transformOrigin: '0 0', transform: 'none' },
+  ], { duration: ms, easing: 'cubic-bezier(.32, .72, 0, 1)' });
+  win.dispatchEvent(new win.CustomEvent('zero-move', { detail: { ms } }));
+  return animation;
+}
+
 function setFull(win, st, on) {
   const root = win.document.documentElement;
-  root.toggleAttribute('zero-full', on);
+  const animation = flip(win, () => root.toggleAttribute('zero-full', on));
+  animation?.finished.then(() => placeGrow(win, st), () => {});
   const button = st.grow.querySelector('[data-action=full]');
   button.textContent = on ? '⤡' : '⤢';
   button.title = on ? st.host.t('Dejar de ampliar', 'Restore') : st.host.t('Ampliar', 'Fill the window');

@@ -70,9 +70,10 @@
 :root[zero] #zero-settings { -moz-window-dragging: no-drag; }
 
 /* La web, una tarjeta dentro de la ventana; ampliada, toda la ventana. */
+/* Sin transición de márgenes: la web cambiaría de tamaño en cada fotograma. Al ampliar (y al entrar
+   en Zero) la tarjeta viaja con una transformación (flip() en zero-frame). */
 :root[zero] #tabbrowser-tabpanels {
   margin: 46px 12px 12px 50px !important;
-  transition: margin var(--zero-t-move) var(--zero-calm);
 }
 :root[zero][zero-full] #tabbrowser-tabpanels { margin: 0 !important; }
 :root[zero] #tabbrowser-tabpanels > .browserSidebarContainer {

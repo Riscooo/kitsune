@@ -9,6 +9,9 @@ tinta sobre lo claro y a blanco sobre lo oscuro.
 3. Sin moverse nada durante 1 s, no se repinta.
 4. Con la web en tarjeta, la isla está sobre el marco y no lleva cristal en vivo.
 5. Al cerrar una ventana en Zero, su cristal se suelta (no se queda nada de ella).
+6. Con el raíl abriéndose encima de la web, su cristal va pegado a él en cada fotograma.
+7. Mover el ratón sin cristal encima de la web no hace ninguna foto.
+8. Cada foto es solo del trozo que hay debajo de las piezas (menos de un cuarto de la vista).
 
 --zero-del-repo: Zero sale de zero/ del repositorio (ver zero_harness.py).
 """
@@ -98,6 +101,12 @@ def main():
         c, i = g['canvas'], g['island']
         return c and c['shown'] and all(abs(c['box'][k] - i[k]) <= 1 for k in 'xywh')
 
+    def pointer(actions):
+        driver.context('chrome')
+        driver.command('POST', '/actions', {'actions': [{'type': 'pointer', 'id': 'raton', 'parameters': {'pointerType': 'mouse'}, 'actions': actions}]})
+
+    glass_api = "ChromeUtils.importESModule('chrome://browser/content/zero/zero-glass.sys.mjs').GlassPane"
+
     try:
         driver = WebDriver(profile, evidence, browser=args.browser)
         zero_harness.prepare(chrome, args.zero_del_repo)
@@ -138,6 +147,45 @@ def main():
         except AssertionError:
             raise AssertionError(f'quedan {chrome(panes)} piezas; antes {alone}') from None
         check('Al cerrar una ventana en Zero, su cristal se suelta')
+
+        # 6. El raíl se abre (con la web en tarjeta, queda encima de ella): se graba cada fotograma.
+        pointer([{'type': 'pointerMove', 'origin': 'viewport', 'x': 760, 'y': 500}])
+        time.sleep(2)
+        driver.context('chrome')
+        rail = driver.command('POST', '/element', {'using': 'css selector', 'value': '#zero-rail'})
+        record = """const done = arguments[arguments.length - 1]; const frames = []; const t0 = performance.now();
+            const step = () => {
+              const r = document.getElementById('zero-rail').getBoundingClientRect(); const c = document.getElementById('zero-glass-zero-rail');
+              const g = c && !c.hidden ? c.getBoundingClientRect() : null;
+              frames.push({ w: r.width, x: r.left, y: r.top, h: r.height, g: g && { w: g.width, x: g.left, y: g.top, h: g.height } });
+              if (performance.now() - t0 < 900) requestAnimationFrame(step); else done(frames); };
+            requestAnimationFrame(step);"""
+        # Marionette atiende una orden cada vez: primero el ratón y, enseguida, la grabación (el raíl tarda
+        # 620 ms en abrirse, así que se graba casi toda la apertura).
+        pointer([{'type': 'pointerMove', 'origin': rail, 'x': 0, 'y': 0}])
+        frames = driver.script(record, [], asynchronous=True)
+        over = [f for f in frames if f['x'] + f['w'] > 52]       # ya encima de la web
+        shown = [f for f in over if f['g']]
+        off = [f for f in shown if any(abs(f['g'][k] - f[k]) > 1 for k in ('w', 'x', 'y', 'h'))]
+        assert len(over) >= 10 and len(shown) >= len(over) - 2 and not off, (len(frames), len(over), len(shown), off[:3])
+        check('Con el raíl abriéndose encima de la web, su cristal va pegado a él en cada fotograma')
+        pointer([{'type': 'pointerMove', 'origin': 'viewport', 'x': 760, 'y': 500}])
+        time.sleep(2)
+
+        before = chrome(f"return {glass_api}.snapshots(window)")
+        pointer([{'type': 'pointerMove', 'origin': 'viewport', 'x': 300 + i * 25, 'y': 450, 'duration': 30} for i in range(30)])
+        time.sleep(0.5)
+        assert chrome(f"return {glass_api}.snapshots(window)") == before, before
+        check('Mover el ratón sin cristal encima de la web no hace ninguna foto')
+
+        chrome("document.querySelector('#zero-grow button[data-action=full]').click()")
+        until(lambda: glass()['full'] and placed(glass()))
+        wheel(300)
+        time.sleep(1)
+        shot = chrome(f"return {glass_api}.lastShot(window)")
+        view = chrome("const b = gBrowser.selectedBrowser; return b.clientWidth * b.clientHeight")
+        assert shot and shot['w'] * shot['h'] < view / 4, (shot, view)
+        check('Cada foto es solo del trozo que hay debajo de las piezas')
         report['status'] = 'passed'
     finally:
         if driver: driver.close()

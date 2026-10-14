@@ -7,6 +7,7 @@ arranque de la ventana (kitsune-bootstrap.js). Así se prueba antes de compilar 
 mismas URL que en producción.
 """
 from pathlib import Path
+import shutil
 import tempfile
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -37,13 +38,22 @@ Components.manager.QueryInterface(Ci.nsIComponentRegistrar).autoRegister(file);
 """
 
 
-def manifest_from_repo(folder: Path) -> Path:
-    """Un chrome.manifest con un «override» por archivo de Zero y otro para el anfitrión."""
+def manifest_from_repo(folder: Path, profile: Path | None = None) -> Path:
+    """Un chrome.manifest con un «override» por archivo de Zero y otro para el anfitrión.
+
+    Los módulos que corren dentro de la web (*-child.sys.mjs) se copian a la carpeta chrome del
+    perfil: el proceso de la web está aislado y no puede leer el repositorio, pero esa carpeta sí."""
     lines = []
     for part in ("modules", "chrome", "assets"):
         for path in sorted((ZERO / part).iterdir()):
-            if path.is_file():
-                lines.append(f"override chrome://browser/content/zero/{path.name} {path.as_uri()}")
+            if not path.is_file():
+                continue
+            if profile is not None and path.name.endswith("-child.sys.mjs"):
+                inside = profile / "chrome" / "zero-del-repo"
+                inside.mkdir(parents=True, exist_ok=True)
+                shutil.copy(path, inside / path.name)
+                path = inside / path.name
+            lines.append(f"override chrome://browser/content/zero/{path.name} {path.as_uri()}")
     lines.append(f"override {HOST} {(ROOT / 'install/native/kitsune-zero-host.sys.mjs').as_uri()}")
     manifest = folder / "chrome.manifest"
     manifest.write_text("\n".join(lines) + "\n")
@@ -53,7 +63,8 @@ def manifest_from_repo(folder: Path) -> Path:
 def prepare(chrome, from_repo: bool):
     """Deja Zero listo en todas las ventanas. `chrome(script, args)` ejecuta en contexto chrome."""
     if from_repo:
-        manifest = manifest_from_repo(Path(tempfile.mkdtemp(prefix="kitsune-zero-manifest-")))
+        profile = Path(chrome("return Services.dirsvc.get('ProfD', Ci.nsIFile).path"))
+        manifest = manifest_from_repo(Path(tempfile.mkdtemp(prefix="kitsune-zero-manifest-")), profile)
         chrome(REGISTER, [str(manifest)])
         chrome(BOOT, [HOST])
         chrome(WATCH_NEW, [HOST])
