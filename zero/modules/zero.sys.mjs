@@ -27,6 +27,7 @@ let host = null;
 const pieces = [frame, island, rail, mark, pomodoro, silence, sounds, downloads, glass];
 const decorated = new WeakSet();
 const starting = new WeakSet(); // ventanas que ya esperan a terminar de arrancar
+const early = new WeakSet();    // ventanas que ya se pintan en Zero y esperan a sus piezas
 const listeners = new WeakMap(); // ventana → Set de funciones (active) => …
 
 const active = win => win.document.documentElement.hasAttribute('zero');
@@ -61,7 +62,8 @@ function sheet(win, on) {
 }
 
 function toggle(win, on = !active(win)) {
-  if (on === active(win)) return;
+  const waiting = early.delete(win);
+  if (on === active(win) && !waiting) return;
   const ctx = {
     host,
     onChange: fn => onChange(win, fn),
@@ -74,12 +76,14 @@ function toggle(win, on = !active(win)) {
     },
   };
   if (on) {
-    // La web pasa a tarjeta viajando desde donde estaba (flip), no de golpe.
-    frame.flip(win, () => { win.document.documentElement.setAttribute('zero', ''); sheet(win, true); });
+    // La web pasa a tarjeta viajando desde donde estaba (flip), no de golpe; si la ventana ya nació
+    // con el aspecto de Zero, no hay viaje: solo llegan las piezas.
+    if (!waiting) frame.flip(win, () => { win.document.documentElement.setAttribute('zero', ''); sheet(win, true); });
     for (const p of pieces) { try { p.attach(win, ctx); } catch (error) { console.error('Kitsune Zero:', error); } }
   } else {
     for (const p of [...pieces].reverse()) { try { p.detach(win); } catch (error) { console.error('Kitsune Zero:', error); } }
-    win.document.documentElement.removeAttribute('zero');
+    // (Una ventana que se pintó en Zero sin llegar a tener piezas también lleva su fondo.)
+    for (const name of ['zero', 'zero-backdrop']) win.document.documentElement.removeAttribute(name);
     sheet(win, false);
   }
   remember(win, on);
@@ -98,6 +102,17 @@ async function decorate(win) {
   // De dónde viene, antes de esperar: luego la nueva ya tiene el foco.
   const from = sessionRestored ? openedFrom(win) : null;
   win.SessionStore?.promiseAllWindowsRestored?.then(() => { sessionRestored = true; }, () => {});
+  // Si ya se sabe que nace en Zero, su aspecto se pone ahora, antes de que se pinte por primera vez:
+  // así no enseña un momento Kitsune normal para luego transformarse. Las piezas llegan al arrancar.
+  const first = readPrefs(host.prefs, host.prefix);
+  if (win.toolbar?.visible !== false && (first.always || (first.inherit && from && active(from)))) {
+    const root = win.document.documentElement;
+    root.setAttribute('zero', '');
+    const backdrop = frame.knownBackdrop(first.backdrop);
+    if (backdrop) root.setAttribute('zero-backdrop', backdrop);
+    sheet(win, true);
+    early.add(win);
+  }
   // Si la sesión restaura esta ventana (al arrancar o al reabrir una cerrada), vuelve como estaba, en
   // Zero o no, y no hereda nada. Puede pasar antes de que termine de arrancar: se escucha desde ya.
   let restored = false;
@@ -108,15 +123,19 @@ async function decorate(win) {
   // El arranque de Kitsune llama mientras se lee browser.xhtml, cuando aún no hay gBrowser: se espera
   // a que la ventana termine de arrancar antes de mirar nada.
   if (!win.gBrowser || !win.gBrowserInit?.delayedStartupFinished) await win.delayedStartupPromise;
-  if (decorated.has(win) || !win.gBrowser || !win.toolbar?.visible) return;
+  if (decorated.has(win) || !win.gBrowser || !win.toolbar?.visible) {
+    if (early.delete(win)) { for (const name of ['zero', 'zero-backdrop']) win.document.documentElement.removeAttribute(name); sheet(win, false); }
+    return;
+  }
   decorated.add(win);
   host.keys?.add(win, 'kitsune-zero-key', '0', 'accel,alt', () => toggle(win));
   const { always, inherit } = readPrefs(host.prefs, host.prefix);
-  if (always || remembered(win) || (inherit && !restored && from && active(from))) toggle(win, true);
+  const wanted = always || remembered(win) || (inherit && !restored && from && active(from));
+  if (wanted || early.has(win)) toggle(win, wanted);
 }
 
 export const Zero = {
-  start(h) { host ??= h; },
+  start(h) { host ??= h; frame.warm(); },
   decorate: win => decorate(win),
   toggle: (win, on) => toggle(win, on),
   active: win => active(win),

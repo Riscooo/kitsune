@@ -4,7 +4,8 @@
 2. Otra ventana ya abierta no cambia.
 3. Una ventana nueva nace como la ventana desde la que se abre (Ctrl+N en una en Zero, en Zero; en una
    normal, normal); con «Ventanas nuevas: normales» (kitsune.zero.inherit = false), siempre normal; y
-   con kitsune.zero.always, siempre en Zero. Una ventana cerrada que se reabre vuelve como era.
+   con kitsune.zero.always, siempre en Zero. Una ventana cerrada que se reabre vuelve como era. La que nace
+   en Zero ya se pinta en Zero la primera vez (sin enseñar antes Kitsune normal).
 4. La ventana recuerda Zero para la próxima sesión (SessionStore) y lo olvida al apagarlo.
 5. Al apagarlo no queda nada de Zero: ni nodos «zero-…», ni atributos «zero…» en ningún nodo, ni
    variables «--zero-…» en la raíz.
@@ -112,13 +113,20 @@ def main():
         def focus(which):
             chrome(f"const w = {which}; w.focus(); window.__foco = w;")
             eventually(lambda: chrome("return Services.focus.activeWindow === window.__foco"), timeout=5)
+        # Lo que enseña la ventana nueva en su primer pintado (si ya es Zero, no hay salto de Kitsune normal a Zero).
+        chrome("""window.__pintado = null;
+            window.__mira = { observe(win) { win.addEventListener('DOMContentLoaded', () => win.addEventListener('MozAfterPaint', () => {
+              if (window.__pintado === null) window.__pintado = win.document.documentElement.hasAttribute('zero'); }, { once: true }), { once: true }); } };
+            Services.obs.addObserver(window.__mira, 'domwindowopened');""")
         def open_from(which):
             focus(which)
-            chrome("window.__nueva = window.__foco.OpenBrowserWindow();")
+            chrome("window.__pintado = null; window.__nueva = window.__foco.OpenBrowserWindow();")
             eventually(lambda: chrome("const w = window.__nueva; return !!w.document?.getElementById('kitsune-zero-key') && w.gBrowserInit?.delayedStartupFinished"), timeout=15)
             born = chrome("return window.__nueva.document.documentElement.hasAttribute('zero')")
+            painted = chrome("return window.__pintado")
             chrome("window.__nueva.close(); delete window.__nueva;")
             eventually(lambda: len(chrome(WINDOWS)) == 2, timeout=10)
+            assert painted == born, f'el primer pintado era {"Zero" if painted else "Kitsune normal"} y la ventana nace {"en Zero" if born else "normal"}'
             return born
         press_zero()
         eventually(lambda: state()['zero'], timeout=5)
@@ -142,7 +150,8 @@ def main():
         focus('window')
         press_zero()
         eventually(lambda: not state()['zero'], timeout=5)
-        check('Una ventana nueva nace como la ventana desde la que se abre (y con «normales», normal)')
+        chrome("Services.obs.removeObserver(window.__mira, 'domwindowopened'); delete window.__mira;")
+        check('Una ventana nueva nace como la ventana desde la que se abre (y con «normales», normal), ya en su primer pintado')
 
         chrome("Services.prefs.setBoolPref('kitsune.zero.always', true); OpenBrowserWindow()")
         eventually(lambda: len(chrome(STATE, ['all'])) == 3, timeout=15)
