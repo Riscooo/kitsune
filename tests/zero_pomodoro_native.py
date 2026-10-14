@@ -153,7 +153,7 @@ def main():
 
         chrome("window.__otra = OpenBrowserWindow();")
         until(lambda: chrome("return !!window.__otra.gBrowserInit?.delayedStartupFinished && !!window.__otra.document.getElementById('kitsune-zero-key')"), timeout=15)
-        chrome("window.__otra.document.getElementById('kitsune-zero-key').doCommand()")
+        chrome("const d = window.__otra.document; if (!d.documentElement.hasAttribute('zero')) d.getElementById('kitsune-zero-key').doCommand();")  # desde Zero ya nace en Zero
         until(lambda: chrome("const p = window.__otra.document.getElementById('zero-pomo'); return !!p && p.getAttribute('phase') === 'work' && p.hasAttribute('running')"), timeout=8)
         chrome("window.__otra.close(); delete window.__otra;")
         check('Es uno para todas las ventanas: otra ventana en Zero lo enseña igual')

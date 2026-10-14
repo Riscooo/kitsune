@@ -142,7 +142,7 @@ def main():
         alone = chrome(panes)
         chrome("window.__otra = OpenBrowserWindow();")
         eventually(lambda: chrome("return !!window.__otra.document.getElementById('kitsune-zero-key') && window.__otra.gBrowserInit?.delayedStartupFinished"), timeout=15)
-        chrome("window.__otra.document.getElementById('kitsune-zero-key').doCommand()")
+        chrome("const d = window.__otra.document; if (!d.documentElement.hasAttribute('zero')) d.getElementById('kitsune-zero-key').doCommand();")  # desde Zero ya nace en Zero
         eventually(lambda: chrome(panes) > alone, timeout=5)
         chrome("window.__otra.close(); delete window.__otra;")
         try:
