@@ -45,6 +45,11 @@
     const { KitsuneMedia } = ChromeUtils.importESModule('chrome://browser/content/kitsune-media.sys.mjs');
     void KitsuneMedia.decorate(window).catch(() => {});
   } catch { /* sin tarjeta, la música sigue igual */ }
+  // Retoques de aspecto y de manejo, de un clic (como los Mods de Zen).
+  try {
+    const { KitsuneRetoques } = ChromeUtils.importESModule('chrome://browser/content/kitsune-retoques.sys.mjs');
+    void KitsuneRetoques.decorate(window).catch(() => {});
+  } catch { /* sin retoques */ }
   // Atajos de teclado a tu gusto (después de los módulos que ponen los suyos).
   try {
     const { KitsuneKeys } = ChromeUtils.importESModule('chrome://browser/content/kitsune-keys.sys.mjs');

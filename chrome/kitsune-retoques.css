@@ -1,0 +1,38 @@
+/* Retoques de estilo (kitsune-retoques.sys.mjs): cada uno se enciende con su pref,
+ * kitsune.retoques.<id>, y se aplica al momento en todas las ventanas. */
+@-moz-document url("chrome://browser/content/browser.xhtml") {
+  /* Web flotante: la web en una tarjeta con margen y esquinas, sobre el papel de la ventana. */
+  @media -moz-pref("kitsune.retoques.flotante") {
+    :root:not([inDOMFullscreen], [sizemode="fullscreen"]) #tabbrowser-tabbox {
+      margin: 0 8px 8px !important;
+      border: 1px solid var(--kitsune-rule) !important;
+      border-radius: calc(10px * var(--kb-round, 1)) !important;
+      overflow: clip !important;
+      box-shadow: 0 2px 10px var(--kb-shadow) !important;
+      outline: none !important;
+    }
+    /* Junto a la barra lateral, el margen lo pone ella. */
+    :root:not([inDOMFullscreen], [sizemode="fullscreen"]) #sidebar-main:not([hidden]) ~ #tabbrowser-tabbox,
+    :root:not([inDOMFullscreen], [sizemode="fullscreen"]) #sidebar-main:not([hidden]) ~ * #tabbrowser-tabbox { margin-inline-start: 0 !important; }
+    :root:not([inDOMFullscreen], [sizemode="fullscreen"]) #browser { background: var(--kitsune-sheet, var(--kb-surface)) !important; }
+  }
+  /* Dirección centrada mientras no escribes. */
+  @media -moz-pref("kitsune.retoques.centrada") {
+    #urlbar:not([focused]) #urlbar-input { text-align: center !important; }
+  }
+  /* Sin botón de extensiones (siguen en el menú). */
+  @media -moz-pref("kitsune.retoques.sinextensiones") {
+    #unified-extensions-button { display: none !important; }
+  }
+
+  /* Retoques: una casilla por retoque, con su explicación. */
+  #kitsune-retoques-panel .kitsune-retoques-form { width: 360px; }
+  #kitsune-retoques-panel .kitsune-retoques-help { margin: 0; color: var(--kitsune-quiet); font-size: 12px; line-height: 1.45; }
+  #kitsune-retoques-panel .kitsune-retoques-list { display: flex; flex-direction: column; gap: 2px; margin-inline: -6px; }
+  #kitsune-retoques-panel label.kitsune-retoques-row { flex-direction: row; align-items: flex-start; gap: 10px; padding: 6px; border-radius: calc(7px * var(--kb-round, 1)); color: var(--kitsune-text); }
+  #kitsune-retoques-panel label.kitsune-retoques-row:hover { background: var(--kb-hover); }
+  #kitsune-retoques-panel .kitsune-retoques-row > span { display: flex; flex-direction: column; gap: 1px; }
+  #kitsune-retoques-panel .kitsune-retoques-row b { font-size: 13px; font-weight: 600; }
+  #kitsune-retoques-panel .kitsune-retoques-row small { color: var(--kitsune-quiet); font-size: 11px; line-height: 1.4; }
+  #kitsune-retoques-panel .kitsune-retoques-row input { flex: none; width: 14px; height: 14px; margin: 2px 0 0; accent-color: var(--kb-primary); }
+}
