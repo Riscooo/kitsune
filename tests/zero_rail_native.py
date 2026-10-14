@@ -10,7 +10,8 @@
 8. La vista rápida de Kitsune no sale en el raíl (es de paso) y flota encima de la tarjeta.
 9. Con el raíl abierto, la fila bajo el ratón enseña una × que cierra esa pestaña sin elegirla; con el
    raíl cerrado no sale.
-10. El clic derecho en una pestaña abre el menú de pestaña de Gecko para esa pestaña, con sus textos.
+10. El clic derecho en una pestaña abre el menú de pestaña de Gecko para esa pestaña, con sus textos y
+    el aspecto del menú ≡ de Zero.
 11. Una pestaña que suena lleva un altavoz en su icono; un clic en él la silencia (y otro le devuelve el
     sonido) sin elegirla.
 12. Un grupo de pestañas de Gecko lleva una fila propia (un círculo de su color; abierto el raíl, su
@@ -228,6 +229,11 @@ def main():
             until(lambda: all(chrome(labels)))
         except AssertionError:
             raise AssertionError(f'menú de pestaña sin textos: {chrome(labels)}') from None
+        # Y con el aspecto del menú ≡ de Zero: hoja clara y opaca de esquinas redondas, filas redondeadas.
+        look = chrome("""const m = document.getElementById('tabContextMenu'); const c = getComputedStyle(m.shadowRoot?.querySelector('[part~=content]') ?? m);
+            const row = getComputedStyle(document.getElementById('context_reloadTab')); const bg = c.backgroundColor.match(/[\\d.]+/g).map(Number);
+            return { radius: parseFloat(c.borderTopLeftRadius), bg, row: parseFloat(row.borderTopLeftRadius) };""")
+        assert look['radius'] >= 12 and look['row'] >= 6 and sum(look['bg'][:3]) / 3 > 225 and (len(look['bg']) == 3 or look['bg'][3] == 1), look
         chrome("document.getElementById('tabContextMenu').hidePopup()")
         until(lambda: chrome("return document.getElementById('tabContextMenu').state") == 'closed')
         check('El clic derecho en una pestaña abre el menú de pestaña para esa pestaña')
