@@ -62,8 +62,18 @@ async function compositorEnv() {
   let niri = false, rule = false;
   try { niri = !!Services.env.get('NIRI_SOCKET'); } catch { /* sin entorno */ }
   try { rule = niri && await IOUtils.exists(PathUtils.join(Services.dirsvc.get('Home', Ci.nsIFile).path, ...NIRI_RULE.split('/'))); } catch { /* sin archivo */ }
-  return { niri, rule };
+  return (knownEnv = { niri, rule });
 }
+
+// Lo último que se supo del compositor: así, al entrar en Zero, el fondo es desde el principio el que
+// toca (si se esperase a mirarlo, pasaría un fotograma o dos por la foto de la web: un parpadeo).
+let knownEnv = null;
+
+/** Mira el compositor ya (al cargar Zero), para que la primera ventana no tenga que esperar. */
+export function warm() { if (!knownEnv) compositorEnv().catch(() => {}); }
+
+/** El fondo que toca con lo que ya se sabe del compositor, o null si aún no se sabe. */
+export function knownBackdrop(pref) { return knownEnv ? backdropMode(pref, knownEnv) : null; }
 
 /** Una foto pequeña de lo que se ve en la web: { bytes, canvas } (o null si no se puede). Sin
  *  rectángulo, drawSnapshot fotografía la vista (con su scroll); con uno, mediría desde el principio
@@ -188,7 +198,7 @@ function setFull(win, st, on) {
 
 export function attach(win, ctx) {
   const doc = win.document, root = doc.documentElement, { host } = ctx;
-  const st = { host, env: { niri: false, rule: false }, cleanups: [] };
+  const st = { host, env: knownEnv ?? { niri: false, rule: false }, cleanups: [] };
   state.set(win, st);
   const listen = (target, type, fn, options) => { target.addEventListener(type, fn, options); st.cleanups.push(() => target.removeEventListener(type, fn, options)); };
 
@@ -258,7 +268,11 @@ export function attach(win, ctx) {
   st.cleanups.push(() => host.prefs.removeObserver(`${host.prefix}backdrop`, observer));
 
   applyBackdrop(win, st);
-  compositorEnv().then(env => { if (state.get(win) === st) { st.env = env; applyBackdrop(win, st); } });
+  // Se vuelve a mirar (la regla de niri se puede haber instalado o quitado), y solo se repinta si cambia.
+  compositorEnv().then(env => {
+    if (state.get(win) !== st || (env.niri === st.env.niri && env.rule === st.env.rule)) return;
+    st.env = env; applyBackdrop(win, st);
+  }).catch(() => {});
 }
 
 export function detach(win) {

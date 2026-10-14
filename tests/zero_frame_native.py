@@ -17,6 +17,8 @@
     vuelven a guardar.
 11. Con el fondo de la web, si el marco queda claro, lo que va encima (el dominio de la isla) pasa a
     tinta; si queda oscuro, vuelve a blanco.
+12. Con el fondo «auto», al entrar en Zero el fondo es desde el principio el que toca (con niri y su
+    regla, el cristal del sistema): no pasa un momento por la foto de la web (un parpadeo oscuro).
 
 --zero-del-repo: Zero sale de zero/ del repositorio (ver zero_harness.py).
 """
@@ -26,6 +28,7 @@ import json
 from pathlib import Path
 import tempfile
 import threading
+import time
 
 from browser_smoke import WebDriver, prepare_profile, eventually
 import zero_harness
@@ -225,6 +228,22 @@ def main():
         driver.navigate(origin + '/rojo')
         eventually(lambda: not chrome(ink)['attr'] and chrome(ink)['light'] > 200, timeout=10)
         check('Con el fondo de la web y el marco claro, lo de encima pasa a tinta; con el oscuro, a blanco')
+
+        chrome("Services.prefs.setStringPref('kitsune.zero.backdrop', 'auto')")
+        chrome("document.getElementById('kitsune-zero-key').doCommand()")
+        eventually(lambda: chrome("return !document.documentElement.hasAttribute('zero')"), timeout=5)
+        # Lo que toca en este ordenador: el cristal del sistema con niri y la regla de Zero; si no, la web.
+        expected = chrome("""const niri = !!Services.env.get('NIRI_SOCKET');
+            const rule = Services.dirsvc.get('Home', Ci.nsIFile); rule.append('.config'); rule.append('niri'); rule.append('kitsune-zero.kdl');
+            return niri && rule.exists() ? 'system' : 'web';""")
+        chrome("""window.__fondos = []; window.__vigia = new MutationObserver(() => { const v = document.documentElement.getAttribute('zero-backdrop'); if (v) window.__fondos.push(v); });
+            window.__vigia.observe(document.documentElement, { attributes: true, attributeFilter: ['zero-backdrop'] });
+            document.getElementById('kitsune-zero-key').doCommand();""")
+        eventually(lambda: chrome("return document.documentElement.getAttribute('zero-backdrop')") == expected, timeout=5)
+        time.sleep(0.5)
+        seen = chrome("window.__vigia.disconnect(); return window.__fondos")
+        assert seen and all(v == expected for v in seen), (expected, seen)
+        check('Con el fondo «auto», al entrar en Zero el fondo es desde el principio el que toca')
         report['status'] = 'passed'
     finally:
         if driver: driver.close()
