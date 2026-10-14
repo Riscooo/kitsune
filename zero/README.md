@@ -24,6 +24,7 @@ la ventana a Zero y la devuelve, con las mismas pestañas. Diseño completo en
     créditos, en `SONIDOS.md`);
   - `zero-glass`: el cristal en vivo sobre la web y el texto que se adapta (`zero-light.mjs`). Su
     actor (`zero-glass-child.sys.mjs`) solo cuenta el scroll de la página.
+  Y uno pequeño que usan el raíl y la isla: `zero-who`, de qué usuario (contenedor) es una pestaña.
   `zero-dock.mjs`, `zero-light.mjs`, `zero-pomodoro.mjs`, `zero-silence.mjs`, `zero-sounds.mjs` y
   `zero-config.sys.mjs` son puros y se prueban con Node. El pomodoro, el silencio y los sonidos son
   opcionales y vienen apagados.
