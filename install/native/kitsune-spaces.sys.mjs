@@ -42,9 +42,19 @@ export function cleanName(name) {
   return [...clean].slice(0, MAX_NAME).join('');
 }
 
+/** El icono de un espacio: un solo emoji o carácter (como los de Zen), o '' si no vale. */
+export function cleanIcon(icon) {
+  if (typeof icon !== 'string') return '';
+  const clean = icon.trim();
+  if (!clean || clean.length > 16 || hasControl(clean) || /\s/.test(clean)) return '';
+  const graphemes = [...new Intl.Segmenter(undefined, { granularity: 'grapheme' }).segment(clean)];
+  return graphemes.length === 1 ? clean : '';
+}
+
+// Sin icono, un espacio tiene 4 campos; con icono, 5 (así un Kitsune anterior sigue leyendo los de sin icono).
 const validSpace = space => space && typeof space === 'object' && !Array.isArray(space) &&
-  Object.keys(space).length === 4 && SPACE_ID.test(space.id) && cleanName(space.name) === space.name &&
-  COLORS.includes(space.color) && (space.user === null || USER_ID.test(space.user));
+  Object.keys(space).length === ('icon' in space ? 5 : 4) && SPACE_ID.test(space.id) && cleanName(space.name) === space.name &&
+  COLORS.includes(space.color) && (space.user === null || USER_ID.test(space.user)) && (!('icon' in space) || (space.icon && cleanIcon(space.icon) === space.icon));
 
 /** kitsune-spaces.json → la lista. Si no se entiende, la de siempre (un espacio «General»). */
 export function parseSpaces(text) {
@@ -59,17 +69,19 @@ const copy = data => ({ version: 1, spaces: data.spaces.map(space => ({ ...space
 const randomId = () => 'e-' + [...crypto.getRandomValues(new Uint8Array(4))].map(byte => byte.toString(16).padStart(2, '0')).join('');
 
 /** Un espacio nuevo al final. Devuelve { data, id } o null si no cabe o el nombre no vale. */
-export function addSpace(data, { name, color, user = null }, makeId = randomId) {
+export function addSpace(data, { name, color, user = null, icon = '' }, makeId = randomId) {
   const clean = cleanName(name);
   if (!clean || data.spaces.length >= MAX_SPACES || !COLORS.includes(color) || (user !== null && !USER_ID.test(user))) return null;
   let id = makeId();
   while (data.spaces.some(space => space.id === id)) id = makeId();
   const next = copy(data);
-  next.spaces.push({ id, name: clean, color, user });
+  const space = { id, name: clean, color, user };
+  if (cleanIcon(icon)) space.icon = cleanIcon(icon);
+  next.spaces.push(space);
   return { data: next, id };
 }
 
-/** Cambia nombre, tinta o usuario de un espacio. null si no existe o algo no vale. */
+/** Cambia nombre, tinta, usuario o icono ('' lo quita) de un espacio. null si no existe o algo no vale. */
 export function editSpace(data, id, patch) {
   const index = data.spaces.findIndex(space => space.id === id);
   if (index < 0) return null;
@@ -78,6 +90,11 @@ export function editSpace(data, id, patch) {
   if ('name' in patch) { const clean = cleanName(patch.name); if (!clean) return null; space.name = clean; }
   if ('color' in patch) { if (!COLORS.includes(patch.color)) return null; space.color = patch.color; }
   if ('user' in patch) { if (patch.user !== null && !USER_ID.test(patch.user)) return null; space.user = patch.user; }
+  if ('icon' in patch) {
+    const icon = cleanIcon(patch.icon);
+    if (patch.icon && !icon) return null;
+    if (icon) space.icon = icon; else delete space.icon;
+  }
   return next;
 }
 
@@ -231,6 +248,7 @@ export async function switchTo(win, id, { fresh = false } = {}) {
     state.switching.delete(win);
   }
   render(win);
+  syncGroups(win);
   if (previous) slide(win, previous, id);
 }
 
@@ -279,7 +297,8 @@ function render(win) {
       const selected = space.id === current;
       const button = el(doc, 'button', { type: 'button', class: 'kitsune-space', role: 'tab', 'data-space': space.id,
         'data-space-color': space.color, 'aria-selected': String(selected), tabindex: selected ? '0' : '-1',
-        title: `${space.name} · ${shortcutLabel(win, index)}` }, [el(doc, 'span', { class: 'kitsune-space-dot', 'aria-hidden': 'true' }),
+        title: `${space.name} · ${shortcutLabel(win, index)}` }, [space.icon ? el(doc, 'span', { class: 'kitsune-space-icon', 'aria-hidden': 'true' }, [space.icon])
+          : el(doc, 'span', { class: 'kitsune-space-dot', 'aria-hidden': 'true' }),
         el(doc, 'span', { class: 'kitsune-space-name' }, [space.name])]);
       return button;
     });
@@ -299,6 +318,9 @@ function openEditor(win, anchor, id = null) {
   panel.querySelector('.kitsune-space-panel-save').textContent = space ? t('Guardar', 'Save') : t('Crear', 'Create');
   const input = panel.querySelector('input');
   input.value = space?.name ?? '';
+  const icon = panel.querySelector('.kitsune-space-icon-input');
+  icon.value = space?.icon ?? '';
+  markIcon(panel);
   const used = new Set(state.data.spaces.map(item => item.color));
   const color = space?.color ?? COLORS.find(item => !used.has(item)) ?? COLORS[state.data.spaces.length % COLORS.length];
   for (const swatch of panel.querySelectorAll('[data-color]')) swatch.setAttribute('aria-checked', String(swatch.dataset.color === color));
@@ -315,13 +337,15 @@ function openEditor(win, anchor, id = null) {
 async function saveEditor(win) {
   const panel = win.document.getElementById('kitsune-space-panel');
   const name = panel.querySelector('input').value;
+  const icon = panel.querySelector('.kitsune-space-icon-input').value.trim();
+  if (icon && !cleanIcon(icon)) { panel.querySelector('.kitsune-space-panel-error').textContent = t('El icono es un solo emoji.', 'The icon is a single emoji.'); return; }
   const color = panel.querySelector('[data-color][aria-checked="true"]')?.dataset.color ?? 'teal';
   const user = panel.querySelector('select').value || null;
   if (!cleanName(name)) { panel.querySelector('.kitsune-space-panel-error').textContent = t('Ponle un nombre.', 'Give it a name.'); return; }
   const id = panel.dataset.space;
-  if (id) await commit(editSpace(state.data, id, { name, color, user }));
+  if (id) await commit(editSpace(state.data, id, { name, color, user, icon }));
   else {
-    const added = addSpace(state.data, { name, color, user });
+    const added = addSpace(state.data, { name, color, user, icon });
     if (!added) { panel.querySelector('.kitsune-space-panel-error').textContent = t(`Caben ${MAX_SPACES} espacios como mucho.`, `There is room for ${MAX_SPACES} spaces at most.`); return; }
     await commit(added.data);
     await switchTo(win, added.id);
@@ -329,9 +353,19 @@ async function saveEditor(win) {
   panel.hidePopup();
 }
 
+// Iconos a mano para el editor (se puede escribir o pegar cualquier otro emoji).
+export const ICONS = Object.freeze(['🦊', '💼', '🎓', '🏠', '🎮', '🎵', '💬', '📚', '🛒', '✈️', '🔬', '⭐']);
+const markIcon = panel => {
+  const value = panel.querySelector('.kitsune-space-icon-input').value.trim();
+  for (const button of panel.querySelectorAll('[data-icon]')) button.setAttribute('aria-checked', String(button.dataset.icon === value));
+};
+
 function buildPanel(win) {
   const doc = win.document;
   const panel = xul(doc, 'panel', { id: 'kitsune-space-panel', type: 'arrow', class: 'kitsune-space-panel', noautofocus: 'true' });
+  const icons = el(doc, 'div', { class: 'kitsune-space-icons', role: 'radiogroup', 'aria-label': t('Icono', 'Icon') }, [
+    el(doc, 'input', { type: 'text', class: 'kitsune-space-icon-input', maxlength: '16', placeholder: '·', spellcheck: 'false', 'aria-label': t('Icono (un emoji)', 'Icon (one emoji)') }),
+    ...ICONS.map(icon => el(doc, 'button', { type: 'button', role: 'radio', 'data-icon': icon, 'aria-checked': 'false', 'aria-label': icon }, [icon]))]);
   const colors = el(doc, 'div', { class: 'kitsune-space-colors', role: 'radiogroup', 'aria-label': t('Tinta', 'Ink') },
     COLORS.map(color => el(doc, 'button', { type: 'button', role: 'radio', 'data-color': color, 'data-space-color': color,
       'aria-checked': 'false', title: colorName(color), 'aria-label': colorName(color) })));
@@ -339,6 +373,7 @@ function buildPanel(win) {
     el(doc, 'h2', { class: 'kitsune-space-panel-title' }, [t('Nuevo espacio', 'New space')]),
     el(doc, 'label', {}, [t('Nombre', 'Name'), el(doc, 'input', { type: 'text', maxlength: String(MAX_NAME), placeholder: t('Trabajo, Clase, Ocio…', 'Work, School, Fun…'), spellcheck: 'false' })]),
     el(doc, 'span', { class: 'kitsune-space-label' }, [t('Tinta', 'Ink')]), colors,
+    el(doc, 'span', { class: 'kitsune-space-label' }, [t('Icono (si quieres)', 'Icon (optional)')]), icons,
     el(doc, 'label', {}, [t('Usuario de sus pestañas nuevas', 'User for its new tabs'), el(doc, 'select')]),
     el(doc, 'p', { class: 'kitsune-space-panel-error', role: 'alert' }),
     el(doc, 'div', { class: 'kitsune-space-panel-actions' }, [
@@ -351,6 +386,15 @@ function buildPanel(win) {
     if (!swatch) return;
     for (const item of colors.children) item.setAttribute('aria-checked', String(item === swatch));
   });
+  icons.addEventListener('click', event => {
+    const button = event.target.closest('[data-icon]');
+    if (!button) return;
+    const input = icons.querySelector('input');
+    // Otro clic en el mismo, lo quita.
+    input.value = input.value.trim() === button.dataset.icon ? '' : button.dataset.icon;
+    markIcon(panel);
+  });
+  icons.querySelector('input').addEventListener('input', () => markIcon(panel));
   form.addEventListener('submit', event => { event.preventDefault(); void saveEditor(win).catch(() => {}); });
   form.querySelector('.kitsune-space-panel-cancel').addEventListener('click', () => panel.hidePopup());
   doc.getElementById('mainPopupSet').append(panel);
@@ -361,7 +405,7 @@ function buildMenu(win) {
   const menu = xul(doc, 'menupopup', { id: 'kitsune-space-menu' });
   const item = (label, action) => { const node = xul(doc, 'menuitem', { label }); node.dataset.action = action; return node; };
   menu.append(item(t('Editar…', 'Edit…'), 'edit'), item(t('Mover a la izquierda', 'Move left'), 'left'), item(t('Mover a la derecha', 'Move right'), 'right'),
-    xul(doc, 'menuseparator'), item(t('Eliminar espacio', 'Delete space'), 'remove'));
+    item(t('Dormir sus pestañas', 'Put its tabs to sleep'), 'sleep'), xul(doc, 'menuseparator'), item(t('Eliminar espacio', 'Delete space'), 'remove'));
   menu.addEventListener('popupshowing', () => {
     const id = menu.dataset.space;
     const index = state.data.spaces.findIndex(space => space.id === id);
@@ -373,6 +417,7 @@ function buildMenu(win) {
     const id = menu.dataset.space, action = event.target.dataset.action;
     if (action === 'edit') openEditor(win, menu.triggerNode ?? doc.querySelector('.kitsune-spaces'), id);
     if (action === 'left' || action === 'right') void commit(moveSpace(state.data, id, action === 'left' ? -1 : 1)).catch(() => {});
+    if (action === 'sleep') sleepSpace(win, id);
     if (action === 'remove') {
       const space = state.data.spaces.find(item => item.id === id);
       if (space && Services.prompt.confirm(win, t('Eliminar espacio', 'Delete space'), t(`¿Eliminar «${space.name}»? Sus pestañas pasan a «${state.data.spaces.find(item => item.id !== id).name}».`, `Delete «${space.name}»? Its tabs move to «${state.data.spaces.find(item => item.id !== id).name}».`))) {
@@ -396,7 +441,7 @@ function buildMenu(win) {
       const here = tab ? tabSpace(tab) : null;
       move.hidden = !tab || tab.pinned || state.data.spaces.length < 2;
       popup.replaceChildren(...state.data.spaces.filter(space => space.id !== here).map(space => {
-        const node = xul(doc, 'menuitem', { label: space.name, class: 'kitsune-space-menuitem', 'data-space-color': space.color });
+        const node = xul(doc, 'menuitem', { label: space.icon ? `${space.icon} ${space.name}` : space.name, class: 'kitsune-space-menuitem', 'data-space-color': space.color });
         node.addEventListener('command', () => void moveTab(win, tab, space.id).catch(() => {}));
         return node;
       }));
@@ -479,8 +524,37 @@ function buildKeys(win) {
   doc.documentElement.append(keyset);
 }
 
+/** Duerme las pestañas de un espacio (no la que ves, ni las fijadas, las que suenan o las de
+ * «No dormir nunca»). Vuelven al abrirlas. Devuelve cuántas. */
+export function sleepSpace(win, id) {
+  let keep = new Set();
+  try { keep = new Set(ChromeUtils.importESModule('chrome://browser/content/kitsune-saver.sys.mjs').keepAwakeHosts()); } catch { /* sin modo ahorro */ }
+  const hostOf = tab => { try { return tab.linkedBrowser.currentURI.host.toLowerCase(); } catch { return ''; } };
+  let slept = 0;
+  for (const tab of [...win.gBrowser.tabs]) {
+    // Gecko solo duerme las de un proceso de web (no la pestaña en blanco del arranque, por ejemplo).
+    if (tabSpace(tab) !== id || tab.selected || tab.pinned || tab.soundPlaying || tab.hasAttribute('pending') || !tab.linkedPanel ||
+        !tab.linkedBrowser?.isRemoteBrowser || keep.has(hostOf(tab))) continue;
+    win.gBrowser.discardBrowser(tab);
+    slept++;
+  }
+  return slept;
+}
+
+/** Un grupo de pestañas de Gecko cuyas pestañas están todas en otro espacio no se ve (si no, se
+ * quedaría su etiqueta sola, como un grupo vacío). */
+function syncGroups(win) {
+  for (const group of win.gBrowser?.tabGroups ?? []) {
+    const away = group.tabs.length > 0 && group.tabs.every(tab => tab.hidden);
+    if (group.hasAttribute('kitsune-space-hidden') !== away) group.toggleAttribute('kitsune-space-hidden', away);
+  }
+}
+
 function listen(win) {
   const container = win.gBrowser.tabContainer;
+  for (const type of ['TabShow', 'TabHide', 'TabGrouped', 'TabUngrouped', 'TabGroupCreate']) {
+    container.addEventListener(type, () => syncGroups(win));
+  }
   // Una pestaña nueva es del espacio en el que estás (las restauradas traen el suyo de la sesión).
   container.addEventListener('TabOpen', event => {
     const tab = event.target;
@@ -535,6 +609,7 @@ export const KitsuneSpaces = {
   list: () => copy(state.data),
   active: win => activeSpace(win),
   switchTo: (win, id) => switchTo(win, id),
+  sleep: (win, id) => sleepSpace(win, id),
   async create(spec) { await load(); const added = addSpace(state.data, spec); if (!added) return null; await commit(added.data); return added.id; },
   async edit(id, patch) { await load(); return commit(editSpace(state.data, id, patch)); },
   async remove(id) { await load(); return commit(removeSpace(state.data, id)); },

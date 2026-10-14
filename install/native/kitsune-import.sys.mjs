@@ -94,10 +94,13 @@ export function spacesFromZen(session, rows = []) {
     .sort((a, b) => a.position - b.position);
 }
 
-/** El nombre de un espacio de Zen en Kitsune: con su emoji delante, si lo tiene. */
-export function spaceName(space) {
-  const icon = space.icon && [...space.icon].length <= 4 && !/^(chrome|moz|https?|data):/i.test(space.icon) ? space.icon.trim() : '';
-  return `${icon ? icon + ' ' : ''}${space.name}`.replace(/\s+/g, ' ').trim();
+/** El nombre de un espacio de Zen en Kitsune. */
+export const spaceName = space => String(space.name ?? '').replace(/\s+/g, ' ').trim();
+/** Su icono, si es un emoji (los de Zen también pueden ser dibujos chrome://, que no se traen). */
+export function spaceIcon(space) {
+  const icon = typeof space.icon === 'string' ? space.icon.trim() : '';
+  if (!icon || /^(chrome|moz|https?|data|file):/i.test(icon) || icon.length > 16) return '';
+  return [...new Intl.Segmenter(undefined, { granularity: 'grapheme' }).segment(icon)].length === 1 ? icon : '';
 }
 
 /**
@@ -307,7 +310,7 @@ async function openTabs(win, source, tabs, zenSpaces) {
     const existing = KitsuneSpaces.list().spaces.find(item => item.name === [...name].slice(0, 24).join(''));
     let id = existing?.id ?? null;
     if (!id && KitsuneSpaces.list().spaces.length < MAX_SPACES) {
-      id = await KitsuneSpaces.create({ name, color: COLORS[(KitsuneSpaces.list().spaces.length) % COLORS.length], user: null });
+      id = await KitsuneSpaces.create({ name, color: COLORS[(KitsuneSpaces.list().spaces.length) % COLORS.length], user: null, icon: spaceIcon(space) });
       if (id) created++;
     }
     // Si ya no caben más espacios, sus pestañas van al último.

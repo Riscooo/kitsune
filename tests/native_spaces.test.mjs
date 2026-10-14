@@ -105,3 +105,20 @@ test('a touchpad swipe moves one space per gesture, and only when it is mostly h
   // Ir y volver en el mismo gesto se compensa.
   assert.deepEqual([feed(80), feed(-70), feed(60)], [0, 0, 0])
 })
+
+test('a space can carry one emoji as its icon; without one it keeps the four fields older Kitsune reads', () => {
+  for (const icon of ['🦊', '👩‍💻', '✈️', 'K']) assert.equal(spaces.cleanIcon(icon), icon)
+  for (const icon of ['', '  ', '🦊🦊', 'ab', 'chrome://x.svg', 'a\u0007', null, 7, '🦊 ']) assert.equal(spaces.cleanIcon(icon), icon === '🦊 ' ? '🦊' : '', String(icon))
+  const added = spaces.addSpace(spaces.defaultSpaces(), { name: 'Juegos', color: 'pink', icon: '🎮' }, ids('e-0000000b'))
+  assert.deepEqual(added.data.spaces[1], { id: 'e-0000000b', name: 'Juegos', color: 'pink', user: null, icon: '🎮' })
+  assert.deepEqual(spaces.parseSpaces(JSON.stringify(added.data)), added.data)
+  const plain = spaces.addSpace(spaces.defaultSpaces(), { name: 'Sin', color: 'blue', icon: 'no vale' }, ids('e-0000000c'))
+  assert.equal(Object.keys(plain.data.spaces[1]).length, 4)
+  const edited = spaces.editSpace(added.data, 'e-0000000b', { icon: '' })
+  assert.equal('icon' in edited.spaces[1], false)
+  assert.equal(spaces.editSpace(added.data, 'e-0000000b', { icon: 'xx' }), null)
+  assert.equal(spaces.editSpace(added.data, 'e-0000000b', { icon: '🎵' }).spaces[1].icon, '🎵')
+  const bad = { version: 1, spaces: [{ id: 'e-0000000a', name: 'X', color: 'blue', user: null, icon: 'ab' }] }
+  assert.deepEqual(spaces.parseSpaces(JSON.stringify(bad)), spaces.defaultSpaces())
+  assert.ok(spaces.ICONS.length >= 8 && spaces.ICONS.every(icon => spaces.cleanIcon(icon) === icon))
+})

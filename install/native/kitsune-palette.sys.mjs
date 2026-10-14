@@ -142,7 +142,7 @@ export function localResults(win, query) {
     keywords: [tab.linkedBrowser?.currentURI?.spec ?? ''], run: () => { win.gBrowser.selectedTab = tab; }, weight: tab.selected ? 0.5 : 1.1,
   }));
   const spaceItems = list.map((space, index) => ({
-    type: 'espacio', label: space.name, detail: t('Espacio', 'Space'), shortcut: shortcutOf(doc, `kitsune-space-key-${index + 1}`),
+    type: 'espacio', label: space.icon ? `${space.icon} ${space.name}` : space.name, detail: t('Espacio', 'Space'), shortcut: shortcutOf(doc, `kitsune-space-key-${index + 1}`),
     keywords: ['espacio', 'workspace'], run: () => module.switchTo(win, space.id), weight: 1.05,
   }));
   if (!query.trim()) return [...rank('', tabs.filter(tab => tab.weight > 1), 6), ...actions.slice(0, 6)];

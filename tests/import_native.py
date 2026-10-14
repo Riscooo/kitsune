@@ -117,13 +117,13 @@ def main():
 
         spaces = chrome("""const S = ChromeUtils.importESModule('chrome://browser/content/kitsune-spaces.sys.mjs');
           const list = S.KitsuneSpaces.list().spaces;
-          return {names: list.map(s => s.name),
+          return {names: list.map(s => s.name), icons: list.map(s => s.icon ?? ''),
                   tabs: [...gBrowser.tabs].map(t => [t.label, t.pinned, list.find(s => s.id === S.tabSpace(t))?.name])}""")
-        assert spaces['names'] == ['General', '💼 Trabajo', 'Ocio'], spaces
+        assert spaces['names'] == ['General', 'Trabajo', 'Ocio'] and spaces['icons'] == ['', '💼', ''], spaces
         tabs = {label: (pinned, space) for label, pinned, space in spaces['tabs']}
-        assert tabs['Correo'] == (False, '💼 Trabajo') and tabs['Informe'] == (False, '💼 Trabajo'), tabs
+        assert tabs['Correo'] == (False, 'Trabajo') and tabs['Informe'] == (False, 'Trabajo'), tabs
         assert tabs['Vídeo'] == (False, 'Ocio') and tabs['Música'][0] is True, tabs
-        check('Los espacios de Zen pasan a espacios de Kitsune con sus pestañas, y la Essential queda fijada')
+        check('Los espacios de Zen pasan a espacios de Kitsune con sus pestañas y su emoji, y la Essential queda fijada')
 
         chrome(f"{MODULE}.open(window)")
         eventually(lambda: chrome("return document.getElementById('kitsune-import-panel').state") == 'open', timeout=5)

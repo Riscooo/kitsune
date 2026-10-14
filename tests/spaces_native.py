@@ -9,6 +9,8 @@
 6. Con las pestañas a un lado, el selector va abajo en la barra lateral.
 7. Al cerrar y volver a abrir Kitsune, cada pestaña sigue en su espacio y la ventana en el suyo.
 8. Quitar un espacio deja sus pestañas en el primero, sin perder ninguna.
+9. Un grupo de Gecko de otro espacio no se queda a la vista; un espacio puede llevar un emoji;
+   «Dormir sus pestañas» duerme las de un espacio.
 """
 import argparse
 import json
@@ -121,6 +123,55 @@ def main():
         assert closed['active'] == 'Trabajo' and closed['selected'] not in KNOWN and 'Correo' not in closed['visible'], closed
         check('Al cerrar la última pestaña de un espacio, el espacio se queda con tu inicio')
 
+        # Un grupo de pestañas de Gecko entero en otro espacio no se queda a la vista (solo su etiqueta).
+        driver.context('chrome')
+        groups = driver.script(f"""const done = arguments[0]; (async () => {{
+            const S = {MODULE}; const P = Services.scriptSecurityManager.getSystemPrincipal();
+            const here = S.active(window);
+            const a = gBrowser.addTab('data:text/html,<title>GA</title>', {{triggeringPrincipal: P}});
+            const b = gBrowser.addTab('data:text/html,<title>GB</title>', {{triggeringPrincipal: P}});
+            const group = gBrowser.addTabGroup([a, b], {{label: 'Grupo', color: 'blue'}});
+            const other = S.list().spaces.find(space => space.id !== here).id;
+            await S.switchTo(window, other); await new Promise(r => setTimeout(r, 300));
+            // <tab-group> es display: contents: lo que se ve es su etiqueta.
+            const label = () => (group.labelElement ?? group.querySelector('.tab-group-label')).getBoundingClientRect().width;
+            const away = label() === 0;
+            await S.switchTo(window, here); await new Promise(r => setTimeout(r, 300));
+            const back = label() > 0;
+            gBrowser.removeTabGroup(group);
+            return {{away, back}};
+          }})().then(done, e => done(String(e)));""", [], True)
+        assert groups == {'away': True, 'back': True}, groups
+        check('Un grupo de pestañas que está en otro espacio no deja su etiqueta a la vista')
+
+        # Un icono para el espacio: se elige en su editor (doble clic) y sale en lugar del punto.
+        chrome(f"""const id = {MODULE}.active(window);
+          document.querySelector(`#kitsune-spaces-top .kitsune-space[data-space="${{id}}"]`).dispatchEvent(new MouseEvent('dblclick', {{bubbles: true}}));""")
+        eventually(lambda: chrome("return document.getElementById('kitsune-space-panel').state") == 'open', timeout=5)
+        chrome("""const p = document.getElementById('kitsune-space-panel');
+          p.querySelector('[data-icon="💼"]').click(); p.querySelector('form').requestSubmit();""")
+        eventually(lambda: chrome("return document.querySelector('#kitsune-spaces-top .kitsune-space[aria-selected=true] .kitsune-space-icon')?.textContent") == '💼', timeout=5)
+        assert chrome(f"return {MODULE}.list().spaces.find(s => s.name === 'Trabajo').icon") == '💼'
+        assert not chrome("return !!document.querySelector('#kitsune-spaces-top .kitsune-space[aria-selected=true] .kitsune-space-dot')")
+        check('Un espacio puede llevar un emoji, que sale en lugar de su punto')
+
+        # «Dormir sus pestañas» (menú del espacio) duerme las de General desde Trabajo.
+        asleep = """const M = ChromeUtils.importESModule('chrome://browser/content/kitsune-spaces.sys.mjs');
+          const general = M.KitsuneSpaces.list().spaces[0].id;
+          return [...gBrowser.tabs].filter(t => !t.pinned && M.tabSpace(t) === general && t.linkedBrowser.currentURI.spec.startsWith('data:')).map(t => [t.label, t.hasAttribute('pending')]);"""
+        assert not any(pending for _, pending in chrome(asleep)), chrome(asleep)
+        chrome(f"""const menu = document.getElementById('kitsune-space-menu');
+          menu.dataset.space = {MODULE}.list().spaces[0].id;
+          menu.querySelector('[data-action=sleep]').doCommand();""")
+        try:
+            eventually(lambda: all(pending for _, pending in chrome(asleep)), timeout=10)
+        except AssertionError:
+            raise AssertionError(f'Siguen despiertas: {chrome(asleep)}; ' + str(chrome("return [...gBrowser.tabs].map(t => [t.label, t.linkedBrowser.isRemoteBrowser, t.linkedBrowser.currentURI.spec.slice(0, 40), t.hidden])")))
+        select('Notas')
+        eventually(lambda: dict(chrome(asleep)).get('Notas') is False, timeout=10)
+        check(f'«Dormir sus pestañas» duerme las {len(chrome(asleep))} de otro espacio, y vuelven al abrirlas')
+        chrome("document.getElementById('kitsune-space-key-2').doCommand()")
+        eventually(lambda: state()['active'] == 'Trabajo', timeout=10)
         chrome("Services.prefs.setBoolPref('sidebar.verticalTabs', true)")
         eventually(lambda: state()['side'] > 20, timeout=10)
         time.sleep(1)

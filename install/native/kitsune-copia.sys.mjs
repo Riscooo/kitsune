@@ -71,7 +71,7 @@ const checkItems = (items, depth = 0, count = { n: 0 }) => (Array.isArray(items)
 export function checkCopy(value) {
   if (!value || typeof value !== 'object' || value.version !== 1) throw new Error('format');
   const spaces = (Array.isArray(value.spaces) ? value.spaces : []).filter(space => text(space?.name, 24)).slice(0, LIMITS.spaces)
-    .map(space => ({ name: text(space.name, 24), color: typeof space.color === 'string' ? space.color : null }));
+    .map(space => ({ name: text(space.name, 24), color: typeof space.color === 'string' ? space.color : null, icon: typeof space.icon === 'string' ? space.icon.slice(0, 16) : '' }));
   const tabs = (Array.isArray(value.tabs) ? value.tabs : []).filter(tab => typeof tab?.url === 'string' && WEB.test(tab.url)).slice(0, LIMITS.tabs)
     .map(tab => ({ url: tab.url, title: text(tab.title), pinned: tab.pinned === true, space: text(tab.space, 24) || null }));
   const pages = (Array.isArray(value.history) ? value.history : []).filter(page => typeof page?.url === 'string' && WEB.test(page.url)).slice(0, LIMITS.pages)
@@ -130,7 +130,7 @@ async function collect(win, { bookmarks = true, tabs = true, history = false, lo
     const { KitsuneSpaces, tabSpace } = lazy.spaces;
     const list = KitsuneSpaces.list().spaces;
     const nameOf = id => list.find(space => space.id === id)?.name ?? null;
-    copy.spaces = list.map(space => ({ name: space.name, color: space.color }));
+    copy.spaces = list.map(space => ({ name: space.name, color: space.color, ...(space.icon ? { icon: space.icon } : {}) }));
     for (const window of Services.wm.getEnumerator('navigator:browser')) {
       if (window.PrivateBrowsingUtils?.isWindowPrivate(window) || !window.gBrowser) continue;
       for (const tab of window.gBrowser.tabs) {
@@ -184,7 +184,7 @@ async function restore(win, copy, { bookmarks = true, tabs = true, history = tru
       if (!copy.tabs.some(tab => tab.space === space.name)) continue;
       let id = KitsuneSpaces.list().spaces.find(item => item.name === space.name)?.id ?? null;
       if (!id && KitsuneSpaces.list().spaces.length < MAX_SPACES) {
-        id = await KitsuneSpaces.create({ name: space.name, color: COLORS.includes(space.color) ? space.color : COLORS[KitsuneSpaces.list().spaces.length % COLORS.length], user: null });
+        id = await KitsuneSpaces.create({ name: space.name, color: COLORS.includes(space.color) ? space.color : COLORS[KitsuneSpaces.list().spaces.length % COLORS.length], user: null, icon: space.icon });
         if (id) result.spaces++;
       }
       ids.set(space.name, id ?? KitsuneSpaces.list().spaces.at(-1).id);

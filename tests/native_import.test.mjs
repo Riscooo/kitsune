@@ -32,8 +32,11 @@ test('Zen sessions: tabs keep their space, Essentials become pinned and a space\
     { url: 'https://wiki.example/', title: 'Wiki', pinned: false, space: '{b}' },
   ])
   assert.deepEqual(importer.spacesFromZen(zen).map(space => space.name), ['Ocio', 'Trabajo'])
-  assert.equal(importer.spaceName(zen.spaces[0]), '💼 Trabajo')
-  assert.equal(importer.spaceName({ name: 'X', icon: 'chrome://browser/skin/zen-icons/selectable/airplane.svg' }), 'X')
+  assert.equal(importer.spaceName(zen.spaces[0]), 'Trabajo')
+  assert.equal(importer.spaceIcon(zen.spaces[0]), '💼')
+  assert.equal(importer.spaceIcon({ name: 'X', icon: 'chrome://browser/skin/zen-icons/selectable/airplane.svg' }), '')
+  assert.equal(importer.spaceIcon({ name: 'X', icon: '👩‍💻' }), '👩‍💻')
+  assert.equal(importer.spaceIcon({ name: 'X', icon: 'ab' }), '')
 })
 
 test('Firefox sessions: tabs of every window, pinned stays pinned, and older Zen spaces come from Places', () => {
@@ -47,7 +50,7 @@ test('Firefox sessions: tabs of every window, pinned stays pinned, and older Zen
   ])
   assert.deepEqual(importer.tabsFromSession(null), [])
   const rows = [{ uuid: '{z}', name: 'Clase', icon: '📚', position: 0 }]
-  assert.deepEqual(importer.spacesFromZen({ windows: [{ tabs: [] }] }, rows).map(importer.spaceName), ['📚 Clase'])
+  assert.deepEqual(importer.spacesFromZen({ windows: [{ tabs: [] }] }, rows).map(space => [importer.spaceIcon(space), importer.spaceName(space)]), [['📚', 'Clase']])
 })
 
 test('bookmarks keep their folders and separators, only from roots with something in them', () => {

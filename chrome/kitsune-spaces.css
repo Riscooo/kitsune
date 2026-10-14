@@ -78,6 +78,9 @@
     background: var(--kitsune-space-ink);
   }
   #main-window .kitsune-space:not([aria-selected="true"]) .kitsune-space-dot { opacity: .72; }
+  /* Con icono (un emoji), en lugar del punto. */
+  #main-window .kitsune-space-icon { flex: none; font: 14px/1 "Noto Color Emoji", "Apple Color Emoji", "Segoe UI Emoji", sans-serif; }
+  #main-window .kitsune-space:not([aria-selected="true"]) .kitsune-space-icon { filter: saturate(.6); opacity: .8; }
   #main-window .kitsune-space-add { font-size: 16px; line-height: 1; }
   /* Con un solo espacio, arriba solo queda el «+» para crear otro. */
   #main-window #kitsune-spaces-top[data-count="1"] .kitsune-space { display: none; }
@@ -111,6 +114,22 @@
   }
   .kitsune-space-panel :is(input:not([type="radio"], [type="checkbox"]), select):focus-visible { outline: 2px solid var(--kitsune-focus); outline-offset: 0; }
   .kitsune-space-panel .kitsune-space-colors { display: flex; gap: 8px; }
+  .kitsune-space-panel .kitsune-space-icons { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; }
+  .kitsune-space-panel .kitsune-space-icons > input.kitsune-space-icon-input { width: 40px; height: 28px; padding: 0; text-align: center; font-size: 16px; }
+  .kitsune-space-panel .kitsune-space-icons > button {
+    appearance: none;
+    width: 28px;
+    height: 28px;
+    margin: 0;
+    padding: 0;
+    border: 1px solid transparent;
+    border-radius: calc(7px * var(--kb-round, 1));
+    background: transparent;
+    font: 16px/1 "Noto Color Emoji", "Apple Color Emoji", "Segoe UI Emoji", sans-serif;
+  }
+  .kitsune-space-panel .kitsune-space-icons > button:hover { background: var(--kb-hover); }
+  .kitsune-space-panel .kitsune-space-icons > button[aria-checked="true"] { border-color: var(--kb-primary); background: var(--kitsune-sheet); }
+  .kitsune-space-panel .kitsune-space-icons > button:focus-visible { outline: 2px solid var(--kitsune-focus); outline-offset: 1px; }
   .kitsune-space-panel .kitsune-space-colors > button {
     appearance: none;
     width: 24px;
