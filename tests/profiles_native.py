@@ -207,8 +207,8 @@ def main():
             info["search"] = driver.script(scripts["inspectGoogleScript"], asynchronous=True)
             assert info["profile"] == str(resolved[index]["profile"]), info
             assert info["signatures"] and info["strictFileOrigins"] and info["sanitize"] and info["httpsOnly"], info
-            # Firefox Sync is available in Kitsune's own engine (nothing syncs without signing in).
-            assert info["syncEnabled"] and info["cookieBehavior"] == 5, info
+            # Sin rastro de Mozilla: ni cuentas ni Sync de Mozilla (kitsune.cfg, desde 017d762).
+            assert not info["syncEnabled"] and info["cookieBehavior"] == 5, info
             assert info["search"]["normal"]["name"] == info["search"]["private"]["name"] == "Google", info
             assert "Kitsune" in info["title"] and "LibreWolf" not in info["title"], info
             native_info.append(info)
@@ -218,8 +218,11 @@ def main():
         for index, driver in enumerate(drivers):
             driver.navigate(resolved[index]["home"])
             eventually(lambda driver=driver: driver.script("return document.documentElement.dataset.ready==='true';"))
-            state_value = driver.script("""const done=arguments[arguments.length-1];fetch('/api/profiles').then(r=>r.json()).then(v=>done({currentId:v.currentId,emails:v.profiles.map(p=>p.email)}));""", asynchronous=True)
-            assert state_value["currentId"] == identifiers[index], state_value
+            state_value = driver.script("""const done=arguments[arguments.length-1];fetch('/api/profiles').then(r=>r.json()).then(v=>done({port:Number(location.port),currentId:v.currentId,emails:v.profiles.map(p=>p.email)}));""", asynchronous=True)
+            # Desde la beta 5, currentId es el usuario de la pestaña (su contenedor), no el proceso:
+            # lo que sigue importando es que cada perfil abra el inicio de su propio servidor.
+            assert state_value["port"] == resolved[index]["port"], state_value
+            assert len(state_value["emails"]) == 3, state_value
             driver.screenshot("profile-" + str(index + 1) + "-home.png", chrome=True)
         check("homepage_http_context_matches_each_native_profile", identifiers)
 

@@ -14,8 +14,10 @@ import threading
 
 from browser_smoke import ROOT, WebDriver, prepare_profile, eventually
 
-DOWNLOADS = {"version": "0.7 beta", "windows": {"url": "https://github.com/Riscooo/kitsune/releases/download/v0.7.0-beta.9/K.exe",
-                                                "release": "0.7.0-beta.9"}}
+# Linux también avisa desde d526290: la prueba corre en Linux, así que mira la entrada «linux».
+DOWNLOADS = {"version": "0.7 beta",
+             "windows": {"url": "https://github.com/Riscooo/kitsune/releases/download/v0.7.0-beta.9/K.exe", "release": "0.7.0-beta.9"},
+             "linux": {"url": "https://github.com/Riscooo/kitsune/releases/download/v0.7.0-beta.9/K.tar.xz", "release": "0.7.0-beta.9"}}
 
 
 def main():
