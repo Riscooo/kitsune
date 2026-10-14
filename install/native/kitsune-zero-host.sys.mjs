@@ -2,7 +2,8 @@
  *
  * Zero no conoce a Kitsune: este módulo le da lo que necesita, que es lo único que cambiaría si
  * Zero saliera como navegador aparte. Le pasa los textos en el idioma de Kitsune, los ajustes
- * (con el prefijo kitsune.zero.) y los atajos (en su propio <keyset>, como los de kitsune-layout).
+ * (con el prefijo kitsune.zero.), los atajos (en su propio <keyset>, como los de kitsune-layout) y
+ * los espacios (para el raíl).
  */
 // Textos en el idioma de Kitsune (kitsune-i18n.sys.mjs); sin Gecko, en castellano.
 const t = (spanish, english) => {
@@ -26,7 +27,26 @@ function addKey(win, id, key, modifiers, run) {
   doc.documentElement.append(keyset);
 }
 
-const host = () => ({ t, prefs: Services.prefs, prefix: 'kitsune.zero.', keys: { add: addKey } });
+// Los espacios de Kitsune, para el raíl de Zero: la lista, el de la ventana, cambiar y enterarse de
+// los cambios. Los espacios no avisan; al cambiar repintan sus tiras (.kitsune-spaces) y marcan la
+// raíz, y eso es lo que se vigila.
+const spacesModule = () => {
+  try { return ChromeUtils.importESModule('chrome://browser/content/kitsune-spaces.sys.mjs').KitsuneSpaces; } catch { return null; }
+};
+const spaces = {
+  list: () => (spacesModule()?.list().spaces ?? []).map(({ id, name, icon, color }) => ({ id, name, icon, color })),
+  current: win => spacesModule()?.active(win) ?? null,
+  select: (win, id) => spacesModule()?.switchTo(win, id),
+  watch(win, fn) {
+    const doc = win.document;
+    const observer = new win.MutationObserver(() => fn());
+    observer.observe(doc.documentElement, { attributes: true, attributeFilter: ['kitsune-space-color', 'kitsune-spaces-many'] });
+    for (const strip of doc.querySelectorAll('.kitsune-spaces')) observer.observe(strip, { childList: true });
+    return () => observer.disconnect();
+  },
+};
+
+const host = () => ({ t, prefs: Services.prefs, prefix: 'kitsune.zero.', keys: { add: addKey }, spaces });
 
 export const KitsuneZeroHost = {
   decorate(win) {

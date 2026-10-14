@@ -11,12 +11,13 @@
 import { readPrefs } from './zero-config.sys.mjs';
 import * as frame from './zero-frame.sys.mjs';
 import * as island from './zero-island.sys.mjs';
+import * as rail from './zero-rail.sys.mjs';
 
 const SHEET = 'chrome://browser/content/zero/zero.css';
 const REMEMBER = 'kitsune-zero';
 let host = null;
 // Las piezas de Zero, en orden: al encender se ponen así y al apagar se quitan al revés.
-const pieces = [frame, island];
+const pieces = [frame, island, rail];
 const decorated = new WeakSet();
 const listeners = new WeakMap(); // ventana → Set de funciones (active) => …
 
