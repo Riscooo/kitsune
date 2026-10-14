@@ -1,0 +1,488 @@
+{
+  "date": "2026-10-14",
+  "machine": {
+    "cpu": "x86_64",
+    "kernel": "7.2.2-arch1-1",
+    "ramGB": 31
+  },
+  "method": {
+    "settleSeconds": 240,
+    "headless": true,
+    "saverLimitMB": 1024,
+    "metric": "PSS (smaps_rollup), todos los procesos",
+    "sites": [
+      "https://es.wikipedia.org/wiki/Kitsune",
+      "https://en.wikipedia.org/wiki/Fox",
+      "https://developer.mozilla.org/es/docs/Web/JavaScript",
+      "https://github.com/mozilla-firefox/firefox",
+      "https://www.youtube.com/",
+      "https://www.reddit.com/r/firefox/",
+      "https://news.ycombinator.com/",
+      "https://www.bbc.com/news",
+      "https://elpais.com/",
+      "https://www.rtve.es/",
+      "https://stackoverflow.com/questions",
+      "https://docs.python.org/3/",
+      "https://www.openstreetmap.org/",
+      "https://www.twitch.tv/",
+      "https://www.amazon.es/",
+      "https://www.imdb.com/",
+      "https://archive.org/",
+      "https://www.gutenberg.org/",
+      "https://www.nasa.gov/",
+      "https://www.theverge.com/"
+    ]
+  },
+  "results": [
+    {
+      "browser": "Kitsune",
+      "version": "Kitsune 0.8.0 · Gecko 157.0.1",
+      "saver": false,
+      "tabs": 20,
+      "pssMB": 2575,
+      "processes": 31,
+      "samples": [
+        {
+          "t": 15,
+          "pssMB": 1765,
+          "processes": 31
+        },
+        {
+          "t": 30,
+          "pssMB": 1755,
+          "processes": 31
+        },
+        {
+          "t": 45,
+          "pssMB": 3054,
+          "processes": 31
+        },
+        {
+          "t": 60,
+          "pssMB": 2777,
+          "processes": 31
+        },
+        {
+          "t": 75,
+          "pssMB": 2634,
+          "processes": 32
+        },
+        {
+          "t": 91,
+          "pssMB": 2551,
+          "processes": 32
+        },
+        {
+          "t": 106,
+          "pssMB": 2818,
+          "processes": 31
+        },
+        {
+          "t": 121,
+          "pssMB": 2750,
+          "processes": 31
+        },
+        {
+          "t": 136,
+          "pssMB": 2718,
+          "processes": 31
+        },
+        {
+          "t": 151,
+          "pssMB": 2555,
+          "processes": 31
+        },
+        {
+          "t": 166,
+          "pssMB": 2563,
+          "processes": 31
+        },
+        {
+          "t": 181,
+          "pssMB": 2562,
+          "processes": 31
+        },
+        {
+          "t": 196,
+          "pssMB": 2567,
+          "processes": 31
+        },
+        {
+          "t": 211,
+          "pssMB": 2575,
+          "processes": 31
+        },
+        {
+          "t": 227,
+          "pssMB": 2577,
+          "processes": 31
+        },
+        {
+          "t": 242,
+          "pssMB": 2575,
+          "processes": 31
+        }
+      ]
+    },
+    {
+      "browser": "Kitsune",
+      "version": "Kitsune 0.8.0 · Gecko 157.0.1",
+      "saver": true,
+      "tabs": 20,
+      "pssMB": 1271,
+      "processes": 16,
+      "samples": [
+        {
+          "t": 15,
+          "pssMB": 3078,
+          "processes": 31
+        },
+        {
+          "t": 30,
+          "pssMB": 2609,
+          "processes": 31
+        },
+        {
+          "t": 45,
+          "pssMB": 2639,
+          "processes": 31
+        },
+        {
+          "t": 61,
+          "pssMB": 2637,
+          "processes": 31
+        },
+        {
+          "t": 76,
+          "pssMB": 2414,
+          "processes": 27
+        },
+        {
+          "t": 91,
+          "pssMB": 2157,
+          "processes": 27
+        },
+        {
+          "t": 106,
+          "pssMB": 2000,
+          "processes": 25
+        },
+        {
+          "t": 121,
+          "pssMB": 1995,
+          "processes": 25
+        },
+        {
+          "t": 136,
+          "pssMB": 1807,
+          "processes": 22
+        },
+        {
+          "t": 151,
+          "pssMB": 1804,
+          "processes": 22
+        },
+        {
+          "t": 166,
+          "pssMB": 1637,
+          "processes": 20
+        },
+        {
+          "t": 181,
+          "pssMB": 1646,
+          "processes": 20
+        },
+        {
+          "t": 196,
+          "pssMB": 1555,
+          "processes": 18
+        },
+        {
+          "t": 211,
+          "pssMB": 1551,
+          "processes": 18
+        },
+        {
+          "t": 226,
+          "pssMB": 1269,
+          "processes": 16
+        },
+        {
+          "t": 242,
+          "pssMB": 1271,
+          "processes": 16
+        }
+      ]
+    },
+    {
+      "browser": "Zen",
+      "version": "Mozilla Zen 1.23.2b",
+      "saver": false,
+      "tabs": 20,
+      "pssMB": 2638,
+      "processes": 38,
+      "samples": [
+        {
+          "t": 15,
+          "pssMB": 2915,
+          "processes": 39
+        },
+        {
+          "t": 30,
+          "pssMB": 2747,
+          "processes": 39
+        },
+        {
+          "t": 45,
+          "pssMB": 2683,
+          "processes": 36
+        },
+        {
+          "t": 60,
+          "pssMB": 2631,
+          "processes": 35
+        },
+        {
+          "t": 75,
+          "pssMB": 2639,
+          "processes": 38
+        },
+        {
+          "t": 91,
+          "pssMB": 2611,
+          "processes": 38
+        },
+        {
+          "t": 106,
+          "pssMB": 2625,
+          "processes": 38
+        },
+        {
+          "t": 121,
+          "pssMB": 2633,
+          "processes": 38
+        },
+        {
+          "t": 136,
+          "pssMB": 2659,
+          "processes": 38
+        },
+        {
+          "t": 151,
+          "pssMB": 2617,
+          "processes": 38
+        },
+        {
+          "t": 166,
+          "pssMB": 2636,
+          "processes": 38
+        },
+        {
+          "t": 181,
+          "pssMB": 2669,
+          "processes": 38
+        },
+        {
+          "t": 196,
+          "pssMB": 2682,
+          "processes": 38
+        },
+        {
+          "t": 212,
+          "pssMB": 2627,
+          "processes": 38
+        },
+        {
+          "t": 227,
+          "pssMB": 2660,
+          "processes": 38
+        },
+        {
+          "t": 242,
+          "pssMB": 2638,
+          "processes": 38
+        }
+      ]
+    },
+    {
+      "browser": "Firefox",
+      "version": "Mozilla Firefox 158.0",
+      "saver": false,
+      "tabs": 20,
+      "pssMB": 2567,
+      "processes": 37,
+      "samples": [
+        {
+          "t": 15,
+          "pssMB": 2881,
+          "processes": 38
+        },
+        {
+          "t": 30,
+          "pssMB": 2787,
+          "processes": 38
+        },
+        {
+          "t": 45,
+          "pssMB": 2631,
+          "processes": 35
+        },
+        {
+          "t": 60,
+          "pssMB": 2624,
+          "processes": 34
+        },
+        {
+          "t": 75,
+          "pssMB": 2637,
+          "processes": 37
+        },
+        {
+          "t": 91,
+          "pssMB": 2588,
+          "processes": 37
+        },
+        {
+          "t": 106,
+          "pssMB": 2563,
+          "processes": 37
+        },
+        {
+          "t": 121,
+          "pssMB": 2602,
+          "processes": 37
+        },
+        {
+          "t": 136,
+          "pssMB": 2595,
+          "processes": 37
+        },
+        {
+          "t": 151,
+          "pssMB": 2587,
+          "processes": 36
+        },
+        {
+          "t": 166,
+          "pssMB": 2581,
+          "processes": 37
+        },
+        {
+          "t": 181,
+          "pssMB": 2614,
+          "processes": 37
+        },
+        {
+          "t": 196,
+          "pssMB": 2627,
+          "processes": 37
+        },
+        {
+          "t": 212,
+          "pssMB": 2564,
+          "processes": 37
+        },
+        {
+          "t": 227,
+          "pssMB": 2567,
+          "processes": 37
+        },
+        {
+          "t": 242,
+          "pssMB": 2567,
+          "processes": 37
+        }
+      ]
+    },
+    {
+      "browser": "Chrome",
+      "version": "Google Chrome for Testing 155.0.8059.79",
+      "saver": false,
+      "tabs": 20,
+      "pssMB": 1475,
+      "processes": 38,
+      "samples": [
+        {
+          "t": 15,
+          "pssMB": 2074,
+          "processes": 44
+        },
+        {
+          "t": 30,
+          "pssMB": 1907,
+          "processes": 38
+        },
+        {
+          "t": 45,
+          "pssMB": 1671,
+          "processes": 38
+        },
+        {
+          "t": 60,
+          "pssMB": 1623,
+          "processes": 38
+        },
+        {
+          "t": 75,
+          "pssMB": 1585,
+          "processes": 38
+        },
+        {
+          "t": 91,
+          "pssMB": 1566,
+          "processes": 38
+        },
+        {
+          "t": 106,
+          "pssMB": 1533,
+          "processes": 38
+        },
+        {
+          "t": 121,
+          "pssMB": 1542,
+          "processes": 38
+        },
+        {
+          "t": 136,
+          "pssMB": 1506,
+          "processes": 38
+        },
+        {
+          "t": 151,
+          "pssMB": 1505,
+          "processes": 38
+        },
+        {
+          "t": 166,
+          "pssMB": 1512,
+          "processes": 38
+        },
+        {
+          "t": 181,
+          "pssMB": 1510,
+          "processes": 38
+        },
+        {
+          "t": 196,
+          "pssMB": 1505,
+          "processes": 38
+        },
+        {
+          "t": 211,
+          "pssMB": 1477,
+          "processes": 38
+        },
+        {
+          "t": 227,
+          "pssMB": 1482,
+          "processes": 38
+        },
+        {
+          "t": 242,
+          "pssMB": 1475,
+          "processes": 38
+        }
+      ]
+    }
+  ]
+}

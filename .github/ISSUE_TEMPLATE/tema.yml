@@ -1,18 +1,18 @@
-name: Un tema (tinta)
-description: Propón un tema de colores para Kitsune.
+name: Una tinta
+description: Propón una tinta (los colores de todo Kitsune, en Claro y en Oscuro).
 labels: ["tema"]
 body:
   - type: input
     id: nombre
     attributes:
-      label: Nombre del tema
+      label: Nombre de la tinta
     validations:
       required: true
   - type: textarea
     id: colores
     attributes:
       label: Colores
-      description: Los diez tokens de chrome/palette.css (fondo, superficie, texto, acento…), en hexadecimal, en claro y, si quieres, en oscuro.
+      description: Los diez tokens (bg, surface, surfaceHigh, text, muted, outline, primary, primaryContainer, secondary, tertiary) en hexadecimal, para Claro y para Oscuro. Están explicados en CONTRIBUTING.md, en «Tintas».
     validations:
       required: true
   - type: textarea

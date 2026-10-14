@@ -157,6 +157,34 @@ p { margin: 0; text-wrap: pretty; }
 .platform-note { margin: 2px 0 0; color: var(--tertiary); font-size: 12px; text-align: center; }
 .downloads-note { margin-top: 22px; color: var(--tertiary); font-size: 14px; }
 
+/* Teclas: Ctrl, Alt, K… como en el teclado. */
+kbd { display: inline-block; min-width: 1.6em; padding: 0 5px; border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 6px; background: var(--surface); color: var(--text); font: 500 .82em/1.5 var(--sans); text-align: center; white-space: nowrap; }
+.keys { white-space: nowrap; }
+.grid-section > .eyebrow { margin-bottom: 14px; }
+
+/* Tintas: un inicio en miniatura por tinta, mitad Claro y mitad Oscuro. */
+.tintas { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px 14px; margin: 0; padding: 0; list-style: none; }
+.tinta svg { width: 100%; height: auto; stroke: none; margin-bottom: 8px; border: 1px solid var(--line); border-radius: 12px; box-shadow: var(--shadow); }
+.tinta b { font: 400 18px/1.3 var(--serif); }
+.tinta small { display: block; color: var(--tertiary); font-size: 12px; }
+
+/* La comparativa de memoria: una barra por navegador, de menos a más. */
+.compare { width: min(860px, calc(100% - 32px)); margin: 0 auto; padding: clamp(56px, 9vh, 96px) 0 0; }
+.compare h2 { font-size: clamp(28px, 3vw, 38px); }
+.compare-lead { max-width: 40em; margin-top: 12px; color: var(--muted); }
+.ram { display: grid; gap: 12px; margin: 28px 0 0; padding: 0; list-style: none; }
+.ram li { display: grid; grid-template-columns: minmax(0, 15em) minmax(0, 1fr) 6.5em; align-items: center; gap: 16px; }
+.ram-name { color: var(--muted); font-size: 15px; }
+.ram-name small { display: block; color: var(--tertiary); font-size: 12px; }
+.ram-kitsune .ram-name { color: var(--text); }
+.ram-bar { width: 100%; height: 12px; border-radius: 999px; stroke: none; }
+.ram-bar rect { fill: var(--surface-high); }
+.ram-bar .ram-fill { fill: var(--tertiary); }
+.ram-kitsune .ram-bar .ram-fill { fill: var(--accent); }
+.ram b { font-weight: 500; font-variant-numeric: tabular-nums; text-align: right; }
+.compare-note { margin-top: 22px; color: var(--tertiary); font-size: 13px; }
+.compare-note code { padding: 1px 6px; border-radius: 6px; background: var(--surface-high); color: var(--text); font-size: 12px; }
+
 /* Preguntas */
 .faq { width: min(760px, calc(100% - 32px)); margin: 0 auto; padding: clamp(72px, 12vh, 136px) 0 0; }
 .faq h2 { margin-bottom: 18px; font-size: clamp(30px, 3.2vw, 42px); }
@@ -208,7 +236,7 @@ p { margin: 0; text-wrap: pretty; }
   .hero-shot { animation: ink-settle 900ms 200ms ease backwards; }
   .hero-fox { animation: peek 900ms 700ms cubic-bezier(.2, .8, .3, 1.2) backwards; }
   @supports (animation-timeline: view()) {
-    .feature, .grid-section, .downloads, .faq { animation: rise linear both; animation-timeline: view(); animation-range: entry 0% entry 40%; }
+    .feature, .grid-section, .compare, .downloads, .faq { animation: rise linear both; animation-timeline: view(); animation-range: entry 0% entry 40%; }
   }
 }
 @keyframes enso-in { from { rotate: -120deg; opacity: 0; } to { rotate: 0deg; opacity: 1; } }
@@ -244,6 +272,9 @@ p { margin: 0; text-wrap: pretty; }
   .strip li:nth-child(3) { border-left: 0; }
   .strip li:nth-child(n+3) { border-top: 1px solid var(--line); }
   .modes, .saver, .grid { grid-template-columns: minmax(0, 1fr); }
+  .tintas { grid-template-columns: 1fr 1fr; }
+  .ram li { grid-template-columns: minmax(0, 1fr) auto; gap: 4px 12px; }
+  .ram-bar { grid-column: 1 / -1; grid-row: 2; }
   .download-main { width: 100%; }
   .legal-table thead { display: none; }
   .legal-table tr { display: grid; padding: 10px 0; border-bottom: 1px solid var(--line); }

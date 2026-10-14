@@ -23,7 +23,7 @@ agradece cualquier ayuda: fallos, ideas, temas, traducciones y código.
 | `chrome/` | La estética Tinta de la ventana y de las páginas internas. Solo tokens de color de papel (`palette.css`). |
 | `start/` | «Tu inicio»: la página de inicio, sus ajustes y la ayuda. |
 | `install/home-server.py`, `install/home-extension/` | El inicio en Linux (servidor local) y en Windows/macOS (extensión interna). Hacen lo mismo y hay pruebas que lo comparan. |
-| `web/` | La web de descarga (se publica sola desde `main` si cambia). |
+| `web/` | La web de descarga. Se publica a mano con cada versión, no al subir a `main`. |
 | `tests/` | Pruebas: `*.test.mjs` (Node), `*_test.py` (Python) y `*_native.py` (con el motor real). |
 
 ## Compilar sin congelar el ordenador
@@ -55,6 +55,31 @@ python3 tests/spaces_native.py                        # y las *_native.py de lo 
 
 Las pruebas `*_native.py` abren el motor real con un perfil temporal (sin tocar el tuyo) y
 casi todas sin ventana. Pasa las de lo que hayas cambiado y di en el PR cuáles.
+
+## Tintas
+
+Una tinta pone los colores de todo Kitsune (la ventana, el inicio y las páginas internas),
+en Claro y en Oscuro. Son los diez tokens de papel, en hexadecimal y en minúsculas:
+
+| Token | Para qué |
+|---|---|
+| `bg`, `surface`, `surfaceHigh` | El fondo, las tarjetas y lo que va encima de ellas. |
+| `text`, `muted`, `tertiary` | El texto, el secundario y el más suave. |
+| `outline` | Bordes y líneas. |
+| `primary`, `primaryContainer` | El acento (botones, enlaces, el ensō) y su fondo suave. |
+| `secondary` | El segundo color, para lo que no es el acento. |
+
+Para proponer una:
+
+1. Añádela al final de `start/tintas.json`, con un `id` corto (`[a-z][a-z0-9-]`), su
+   `name`, tu nombre en `author` y las dos paletas, `claro` y `oscuro`.
+2. `python3 tools/tintas.py`: comprueba que se lea al menos tan bien como Papel (los
+   contrastes mínimos de `install/tintas.py`) y la copia al inicio de Windows y macOS y a
+   la web. Si algún color se queda corto, te dice cuál y cuánto le falta.
+3. `python3 tests/tintas_native.py` si tienes el motor compilado, y una captura en Claro
+   y en Oscuro en el PR.
+
+Si no quieres tocar código, abre una issue con la plantilla «Una tinta» y los colores.
 
 ## Estilo
 

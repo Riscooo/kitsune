@@ -14,8 +14,9 @@ escribe «Tu inicio»). Ejemplos:
         --browser Zen=/opt/zen/zen --browser Firefox=/usr/lib/firefox/firefox \\
         --browser Chrome=/opt/google/chrome/chrome --out web/ram.json
 
-El resultado es una tabla en Markdown (por la salida) y, con --out, el JSON con el método.
-Los números dependen del equipo y de la red: se publican con la fecha, el equipo y el método.
+El resultado es una tabla en Markdown (por la salida) y, con --out, el JSON con el método y
+la versión de cada navegador. Los números dependen del equipo y de la red: se publican con la
+fecha, el equipo y el método. tools/web_ram.py pasa web/ram.json a la web.
 """
 from __future__ import annotations
 
@@ -155,7 +156,19 @@ def measure(name: str, binary: Path, tabs: int, settle: int, headless: bool, sav
                 with contextlib.suppress(ProcessLookupError):
                     os.killpg(process.pid, signal.SIGKILL)
     final = samples[-1] if samples else {'pssMB': 0, 'processes': 0}
-    return {'browser': name, 'saver': saver, 'tabs': tabs, 'pssMB': final['pssMB'], 'processes': final['processes'], 'samples': samples}
+    return {'browser': name, 'version': version(binary), 'saver': saver, 'tabs': tabs, 'pssMB': final['pssMB'], 'processes': final['processes'],
+            'samples': samples}
+
+
+def version(binary: Path) -> str:
+    """Lo que dice el propio navegador con --version («Mozilla Firefox 158.0»), para publicarlo con la medida."""
+    try:
+        said = subprocess.run([str(binary), '--version'], capture_output=True, text=True, timeout=30).stdout.strip().splitlines()[-1]
+    except (OSError, IndexError, subprocess.TimeoutExpired):
+        return ''
+    if said.startswith('Mozilla Kitsune '):  # el motor dice su Gecko; Kitsune es la de este repositorio
+        return f"Kitsune {json.loads((ROOT / 'install/version.json').read_text())['version']} · Gecko {said.removeprefix('Mozilla Kitsune ')}"
+    return said
 
 
 def table(results: list[dict]) -> str:
