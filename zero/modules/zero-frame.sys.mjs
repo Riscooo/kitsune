@@ -129,6 +129,8 @@ function placeGrow(win, st) {
     st.grow.style.setProperty('--zero-grow-x', `${Math.round(growX)}px`);
     st.grow.style.setProperty('--zero-grow-y', `${CORNER.top}px`);
     st.lights.style.setProperty('--zero-lights-x', `${Math.round(growX - CORNER.gap - lights.width)}px`);
+    // Lo que se quiera poner en la esquina (el pomodoro) va a la izquierda de los de ventana.
+    root.style.setProperty('--zero-corner-left', `${Math.round(growX - CORNER.gap - lights.width)}px`);
     st.lights.style.setProperty('--zero-lights-y', `${Math.round(CORNER.top + (grow.height - lights.height) / 2)}px`);
   } else {
     const lights = doc.getElementById('zero-lights')?.getBoundingClientRect();
@@ -227,6 +229,7 @@ export function attach(win, ctx) {
       st.grow.classList.toggle('near', near);
       lights.classList.toggle('near', full && near);
       st.notch.classList.toggle('away', near);
+      root.toggleAttribute('zero-corner-open', full && near);
     });
   });
   listen(win, 'resize', () => placeGrow(win, st));
@@ -257,6 +260,6 @@ export function detach(win) {
   win.clearTimeout(st.timer);
   for (const undo of st.cleanups.reverse()) { try { undo(); } catch { /* ya no estaba */ } }
   const root = win.document.documentElement;
-  for (const name of ['zero-full', 'zero-backdrop']) root.removeAttribute(name);
-  for (const name of ['--zero-tint', '--zero-backdrop-image']) root.style.removeProperty(name);
+  for (const name of ['zero-full', 'zero-backdrop', 'zero-corner-open']) root.removeAttribute(name);
+  for (const name of ['--zero-tint', '--zero-backdrop-image', '--zero-corner-left']) root.style.removeProperty(name);
 }

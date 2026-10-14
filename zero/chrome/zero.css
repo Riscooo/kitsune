@@ -558,3 +558,125 @@
 #main-window[zero] #appMenu-popup toolbarseparator { border-color: rgba(29, 35, 33, .08) !important; margin-inline: 10px !important; }
 #main-window[zero] #appMenu-popup :is(.subviewbutton[shortcut]::after, .menu-accel, .subviewbutton-iconic > .toolbarbutton-text + *) { color: rgba(29, 35, 33, .45) !important; }
 #main-window[zero] #appMenu-popup :is(#appMenu-zoom-controls, .panel-header) toolbarbutton:not(.subviewbutton) { border-radius: 50% !important; }
+
+/* ---------------------------------------------------------------- el pomodoro (zero-pomodoro) */
+
+/* El anillo: arriba a la derecha, en el marco. Se vacía mientras corre; al pasar el ratón se abre con
+   el tiempo, reiniciar y saltar. */
+#zero-pomo {
+  --zero-pomo-color: rgba(255, 226, 206, .98);
+  position: fixed; top: 7px; right: 10px; z-index: 6;
+  box-sizing: border-box; height: 32px; width: 32px; padding: 0; border-radius: 999px;
+  display: flex; align-items: center; justify-content: flex-end; gap: 0; overflow: hidden;
+  color: #fff; font: 600 12.5px system-ui, sans-serif; text-shadow: 0 1px 8px rgba(0, 0, 0, .3);
+  -moz-window-dragging: no-drag;
+  background: rgba(255, 255, 255, .025);
+  backdrop-filter: blur(10px) saturate(1.7) brightness(1.06);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .85), inset 0 -1px 0 rgba(255, 255, 255, .28),
+              inset 1px 0 0 rgba(255, 255, 255, .38), inset -1px 0 0 rgba(255, 255, 255, .26),
+              inset 0 0 14px rgba(255, 255, 255, .14), 0 10px 30px rgba(0, 0, 0, .14);
+  transition: width var(--zero-t-morph) var(--zero-calm) var(--zero-wait), opacity var(--zero-t-fade) var(--zero-soft), transform var(--zero-t-morph) var(--zero-calm), color var(--zero-t-ink) var(--zero-soft);
+}
+#zero-pomo:hover { width: 222px; transition-delay: 0ms; }
+#zero-pomo:is([phase="short"], [phase="long"]) { --zero-pomo-color: rgba(176, 236, 212, .98); }
+#zero-pomo[zero-ink] { color: #1d2321; text-shadow: none; }
+#zero-pomo .zero-pomo-label {
+  flex: 1; min-width: 0; padding-inline: 12px 4px; white-space: nowrap; overflow: hidden; text-align: right;
+  opacity: 0; filter: blur(3px); transform: translateX(6px);
+  transition: opacity var(--zero-t-fade) var(--zero-soft), filter var(--zero-t-fade) var(--zero-soft), transform var(--zero-t-morph) var(--zero-calm);
+}
+#zero-pomo:hover .zero-pomo-label { opacity: 1; filter: none; transform: none; transition-delay: var(--zero-enter); }
+#zero-pomo .zero-pomo-action {
+  appearance: none; flex: none; box-sizing: border-box; width: 0; height: 24px; min-width: 0; margin: 0; padding: 0;
+  border: none; border-radius: 50%; background: transparent; color: inherit; cursor: pointer; overflow: hidden;
+  opacity: 0;
+  transition: width var(--zero-t-morph) var(--zero-calm), opacity var(--zero-t-fade) var(--zero-soft), background-color 200ms var(--zero-soft);
+}
+#zero-pomo .zero-pomo-action::before {
+  content: ""; display: block; width: 24px; height: 24px; background-color: currentColor;
+  mask: var(--zero-icon) center / 13px no-repeat;
+}
+#zero-pomo .zero-pomo-action[data-action="reset"] { --zero-icon: url("chrome://global/skin/icons/undo.svg"); }
+#zero-pomo .zero-pomo-action[data-action="skip"] { --zero-icon: url("chrome://global/skin/icons/arrow-right.svg"); }
+#zero-pomo:hover .zero-pomo-action { width: 24px; opacity: .78; transition-delay: 0ms, var(--zero-enter), 0ms; }
+#zero-pomo .zero-pomo-action:hover { opacity: 1 !important; background-color: rgba(255, 255, 255, .16); }
+#zero-pomo .zero-pomo-ring {
+  appearance: none; flex: none; box-sizing: border-box; width: 32px; height: 32px; min-width: 0; margin: 0; padding: 0;
+  border: none; border-radius: 50%; background: transparent; cursor: pointer;
+  display: grid; place-items: center;
+}
+#zero-pomo .zero-pomo-ring::before {
+  content: ""; width: 20px; height: 20px; border-radius: 50%;
+  background: conic-gradient(var(--zero-pomo-color) 0 calc(var(--zero-pomo-p, 1) * 100%), rgba(255, 255, 255, .22) 0);
+  mask: radial-gradient(circle, transparent 54%, #000 58%);
+  transition: opacity var(--zero-t-fade) var(--zero-soft);
+}
+#zero-pomo[zero-ink] .zero-pomo-ring::before { background: conic-gradient(rgba(200, 85, 61, .9) 0 calc(var(--zero-pomo-p, 1) * 100%), rgba(29, 35, 33, .14) 0); }
+#zero-pomo[paused] .zero-pomo-ring::before { opacity: .55; }
+#zero-pomo[phase="idle"] .zero-pomo-ring::before { opacity: .7; }
+/* El último minuto, respira; esperando a que lo pulses, late despacio. */
+#zero-pomo[ending] .zero-pomo-ring::before { animation: zero-pomo-breathe 2.4s var(--zero-soft) infinite; }
+#zero-pomo[phase="waiting"] .zero-pomo-ring::before { animation: zero-pomo-wait 3.2s var(--zero-soft) infinite; }
+@keyframes zero-pomo-breathe { 50% { filter: drop-shadow(0 0 6px var(--zero-pomo-color)); transform: scale(1.08); } }
+@keyframes zero-pomo-wait { 50% { opacity: .45; } }
+
+/* Con la web ampliada se guarda en la esquina, a la izquierda de los botones de ventana, y sale con
+   ellos; abierto, crece hacia la izquierda para no taparlos. */
+:root[zero-full] #zero-pomo {
+  top: 6px; right: calc(100% - var(--zero-corner-left, 100%) + 6px);
+  opacity: 0; transform: translateY(-3px) scale(.96); pointer-events: none;
+}
+:root[zero-full][zero-corner-open] #zero-pomo { opacity: 1; transform: none; pointer-events: auto; transition-delay: 0ms, 40ms, 40ms, 0ms; }
+
+/* El tirador, como barra de progreso mientras corre. */
+#zero-notch::after {
+  content: ""; position: absolute; inset: 0 auto 0 0; width: calc(var(--zero-pomo-progress, 0) * 100%);
+  border-radius: inherit; background: rgba(232, 116, 59, .95); opacity: 0;
+  transition: width 1000ms linear, opacity var(--zero-t-fade) var(--zero-soft);
+}
+:root[zero-pomo-running] #zero-notch::after { opacity: 1; }
+:root:is([zero-pomo-phase="short"], [zero-pomo-phase="long"]) #zero-notch::after { background: rgba(58, 143, 116, .95); }
+
+/* El descanso estricto: un cristal tapa las webs (la tarjeta), no las piezas de Zero. */
+#zero-break {
+  position: fixed; inset: 46px 12px 12px 50px; z-index: 3; border-radius: 18px;
+  display: grid; place-items: center; color: #fff; -moz-window-dragging: no-drag;
+  background: rgba(16, 20, 24, .38);
+  backdrop-filter: blur(14px) saturate(1.4);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .14);
+  animation: zero-break-in var(--zero-t-move) var(--zero-calm) both;
+}
+:root[zero-full] #zero-break { inset: 0; border-radius: 0; }
+@keyframes zero-break-in { from { opacity: 0; transform: scale(.985); filter: blur(6px); } }
+#zero-break .zero-break-panel {
+  box-sizing: border-box; width: min(440px, 80%); padding: 34px 28px 26px; border-radius: 34px; text-align: center;
+  background: rgba(255, 255, 255, .06);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .6), inset 0 0 0 1px rgba(255, 255, 255, .16), 0 30px 80px rgba(0, 0, 0, .25);
+  font-family: system-ui, sans-serif;
+}
+#zero-break .zero-break-time { font: 600 12.5px system-ui, sans-serif; letter-spacing: .08em; opacity: .75; }
+/* Respirar: 4 s creciendo (inspira) y 6 s menguando (suelta). */
+#zero-break .zero-breath {
+  width: 120px; height: 120px; margin: 18px auto 16px; border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, rgba(255, 255, 255, .9), rgba(255, 255, 255, .25) 60%, transparent 70%);
+  box-shadow: 0 0 60px rgba(255, 255, 255, .35);
+  animation: zero-breath 10s cubic-bezier(.45, 0, .55, 1) infinite;
+}
+@keyframes zero-breath { 0%, 100% { transform: scale(.62); } 40% { transform: scale(1); } }
+#zero-break[data-guide="stretch"] .zero-breath { animation: zero-breath-slow 6s cubic-bezier(.45, 0, .55, 1) infinite; transform: scale(.7); }
+@keyframes zero-breath-slow { 50% { transform: scale(.78); } }
+#zero-break .zero-break-cue { font: 300 30px system-ui, sans-serif; letter-spacing: -.01em; min-height: 1.3em; }
+#zero-break .zero-break-hint { margin-top: 4px; font-size: 13px; opacity: .7; }
+#zero-break .zero-hold {
+  appearance: none; position: relative; overflow: hidden; margin-top: 24px; padding: 10px 22px; min-width: 0;
+  border: none; border-radius: 999px; color: #fff; cursor: pointer; font: 600 12.5px system-ui, sans-serif;
+  background: rgba(255, 255, 255, .12);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .55), inset 0 0 0 1px rgba(255, 255, 255, .18);
+}
+#zero-break .zero-hold:focus-visible { outline: 2px solid rgba(255, 255, 255, .7); outline-offset: 3px; }
+#zero-break .zero-hold-fill { position: absolute; inset: 0 auto 0 0; width: 0; background: rgba(255, 255, 255, .24); transition: width 220ms var(--zero-soft); }
+#zero-break .zero-hold.holding .zero-hold-fill { width: 100%; transition: width 1500ms linear; }
+#zero-break .zero-hold-text { position: relative; }
+@media (prefers-reduced-motion: reduce) {
+  #zero-break, #zero-break *, #zero-pomo, #zero-pomo *, #zero-pomo *::before, #zero-notch::after { animation: none !important; transition-duration: 1ms !important; transition-delay: 0ms !important; }
+}

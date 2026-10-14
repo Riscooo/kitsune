@@ -12,6 +12,8 @@ test('Zero reads its settings from the host prefs, and falls back to its default
   assert.deepEqual(readPrefs(prefs, 'kitsune.zero.'), { ...DEFAULTS, always: true })
   const broken = { getBoolPref() { throw new Error('sin ajustes') }, getStringPref() { throw new Error('sin ajustes') } }
   assert.deepEqual(readPrefs(broken, 'kitsune.zero.'), DEFAULTS)
-  assert.deepEqual(DEFAULTS, { always: false, backdrop: 'auto', islandIcons: false })
+  assert.deepEqual(DEFAULTS, { always: false, backdrop: 'auto', islandIcons: false,
+    pomodoro: false, pomodoroPreset: '25', pomodoroBreak: 'soft', pomodoroGuide: 'breathe', pomodoroState: '' })
+  assert.equal(prefName('kitsune.zero.', PREFS.pomodoroBreak), 'kitsune.zero.pomodoro.break')
   assert.equal(prefName('kitsune.zero.', PREFS.islandIcons), 'kitsune.zero.islandIcons')
 })

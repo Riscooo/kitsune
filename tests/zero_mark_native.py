@@ -138,7 +138,9 @@ def main():
         check('«Abrir siempre en Zero» y «Fondo» cambian sus ajustes y el aspecto al momento')
 
         rows = mark()['rows']
-        assert len(rows) == 3 and not any(word in ' '.join(rows) for word in ('Pomodoro', 'Silencio', 'Sonidos', 'vetadas', 'scroll')), rows
+        # Las de Zero (abrir siempre, fondo, isla) y el interruptor del pomodoro (fase 2, apagado: sin sus
+        # tiempos). Nada de las fases que faltan.
+        assert len(rows) == 4 and rows[3].startswith('Pomodoro') and not any(word in ' '.join(rows) for word in ('Silencio', 'Sonidos', 'vetadas', 'scroll', 'Tiempos')), rows
         click('#zero-settings [data-pref="islandIcons"] [data-value="icons"]')
         until(lambda: chrome("return Services.prefs.getBoolPref('kitsune.zero.islandIcons', false)") is True)
         click('#zero-settings [data-pref="islandIcons"] [data-value="text"]')

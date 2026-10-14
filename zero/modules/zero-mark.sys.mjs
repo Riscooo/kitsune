@@ -8,8 +8,9 @@
  * fases siguientes (pomodoro, silencio, sonidos) añaden la suya con ctx.settings.add(section), así
  * que lo que no está hecho no sale.
  *
- * Una sección: { id, rows: [fila…] }. Una fila: { kind: 'switch' | 'segment', id, label, detail?,
- * options? ([{ value, label }], para segment), get() → valor, set(valor), watch?(fn) → dejar }.
+ * Una sección: { id, rows: [fila…], watch?(fn) → dejar } (con watch, las filas se vuelven a pintar
+ * cuando cambia lo que vigila). Una fila: { kind: 'switch' | 'segment', id, label, detail?, options?
+ * ([{ value, label }], para segment), get() → valor, set(valor), watch?(fn) → dejar, when?() → si sale }.
  */
 import { prefName, PREFS } from './zero-config.sys.mjs';
 
@@ -93,14 +94,22 @@ function rowNode(doc, row, st) {
   }
   sync();
   const unwatch = row.watch?.(sync);
-  if (unwatch) st.cleanups.push(unwatch);
+  if (unwatch) (st.rowCleanups ?? st.cleanups).push(unwatch);
   return el(doc, 'div', { class: 'zero-row' }, [text, control]);
 }
 
 function renderRows(win, st) {
   const doc = win.document;
+  for (const undo of st.rowCleanups ?? []) { try { undo(); } catch { /* ya no estaba */ } }
+  st.rowCleanups = [];
   const all = [zeroSection(win, st.host), ...(sections.get(win) ?? [])];
-  st.rows.replaceChildren(...all.flatMap(section => section.rows.map(row => rowNode(doc, row, st))));
+  const shown = row => { try { return row.when ? !!row.when() : true; } catch { return true; } };
+  st.rows.replaceChildren(...all.flatMap(section => section.rows.filter(shown).map(row => rowNode(doc, row, st))));
+  // Las secciones que cambian de filas (el pomodoro enseña sus tiempos solo encendido).
+  for (const section of all) {
+    const undo = section.watch?.(() => win.setTimeout(() => { if (state.get(win) === st) renderRows(win, st); }, 0));
+    if (undo) st.rowCleanups.push(undo);
+  }
 }
 
 function setOpen(win, st, open) {
@@ -142,7 +151,7 @@ export function detach(win) {
   const st = state.get(win);
   if (!st) return;
   state.delete(win);
-  for (const undo of st.cleanups.reverse()) { try { undo(); } catch { /* ya no estaba */ } }
+  for (const undo of [...st.cleanups.reverse(), ...(st.rowCleanups ?? [])]) { try { undo(); } catch { /* ya no estaba */ } }
 }
 
 /** Para las fases 2 a 4: añaden su sección de ajustes (en las ventanas en Zero, al momento). */
