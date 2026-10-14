@@ -14,4 +14,6 @@ CPUWeight=idle
 # swap. Si lo intentara, el sistema mata solo la compilación en vez de congelar el PC.
 MemoryMax=65%
 MemorySwapMax=0
+# Y si aun así falta memoria en el PC, el núcleo mata antes la compilación que tus aplicaciones.
+OOMScoreAdjust=900
 TimeoutStartSec=6h

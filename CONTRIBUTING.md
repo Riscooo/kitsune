@@ -34,7 +34,7 @@ como proceso suelto:
 
 ```sh
 systemd-run --user --unit kitsune-engine --collect \
-  -p MemoryMax=65% -p MemorySwapMax=0 -p Nice=19 -p IOSchedulingClass=idle -p CPUWeight=idle \
+  -p MemoryMax=65% -p MemorySwapMax=0 -p OOMScoreAdjust=900 -p Nice=19 -p IOSchedulingClass=idle -p CPUWeight=idle \
   python3 install/kitsune-engine.py build --version 157.0.1
 ```
 

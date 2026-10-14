@@ -45,7 +45,9 @@ REPO = 'Riscooo/kitsune'
 TESTS = ('contrast_native', 'theme_native', 'newtab_native', 'vertical_tabs_native', 'spaces_native', 'layout_native',
          'glance_native', 'palette_native', 'saver_native', 'privacy_line_native', 'tintas_native', 'home_integrated_native',
          'privacy_modes_native')
-LIMITS = ['-p', 'MemoryMax=65%', '-p', 'MemorySwapMax=0', '-p', 'Nice=19', '-p', 'IOSchedulingClass=idle', '-p', 'CPUWeight=idle']
+# Si aun así falta memoria, el núcleo mata antes la compilación que las aplicaciones de quien usa el PC.
+LIMITS = ['-p', 'MemoryMax=65%', '-p', 'MemorySwapMax=0', '-p', 'Nice=19', '-p', 'IOSchedulingClass=idle', '-p', 'CPUWeight=idle',
+          '-p', 'OOMScoreAdjust=900']
 ASSETS = {'linux': 'Linux-x86_64.tar.xz', 'windows': 'Windows-x64.exe', 'macos': 'macOS-AppleSilicon.dmg'}
 
 
