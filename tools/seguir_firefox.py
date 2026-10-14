@@ -48,10 +48,11 @@ STATE = Path(os.environ.get('XDG_STATE_HOME', Path.home() / '.local/state')) / '
 CURRENT = Path.home() / '.local/share/kitsune-browser/engine/current/kitsune'
 CACHE = Path.home() / '.cache/kitsune-build'
 REPO = 'Riscooo/kitsune'
-# Las pruebas con el motor real que deciden si un Gecko nuevo vale (sin ventana; unos 15 min).
-TESTS = ('contrast_native', 'theme_native', 'newtab_native', 'vertical_tabs_native', 'spaces_native', 'layout_native',
-         'glance_native', 'palette_native', 'saver_native', 'privacy_line_native', 'tintas_native', 'home_integrated_native',
-         'privacy_modes_native')
+# Las pruebas con el motor real que deciden si un Gecko nuevo vale (casi todas sin ventana; unos 25 min).
+TESTS = ('contrast_native', 'theme_native', 'appearance_native', 'newtab_native', 'vertical_tabs_native', 'spaces_native',
+         'layout_native', 'glance_native', 'palette_native', 'saver_native', 'window_saver_native', 'privacy_line_native',
+         'tintas_native', 'home_integrated_native', 'users_native', 'import_native', 'english_native', 'locale_native',
+         'updates_native', 'updater_native', 'privacy_modes_native')
 # Si aun así falta memoria, el núcleo mata antes la compilación que las aplicaciones de quien usa el PC.
 LIMITS = ['-p', 'MemoryMax=65%', '-p', 'MemorySwapMax=0', '-p', 'Nice=19', '-p', 'IOSchedulingClass=idle', '-p', 'CPUWeight=idle',
           '-p', 'OOMScoreAdjust=900']
