@@ -125,9 +125,30 @@ def main():
         eventually(lambda: state()['side'] > 20, timeout=10)
         time.sleep(1)
         driver.screenshot('a-un-lado.png', chrome=True)
+        # La barra lateral lleva de fondo la tinta del espacio.
+        wash = chrome("return getComputedStyle(document.querySelector('sidebar-main')).backgroundImage")
+        assert 'linear-gradient' in wash, wash
+        # Dos dedos en horizontal sobre la barra lateral (panel táctil): un espacio por gesto.
+        swipe = """const side = document.querySelector('sidebar-main');
+          for (const dx of arguments[0]) side.dispatchEvent(new WheelEvent('wheel', { deltaX: dx, deltaY: 2, deltaMode: 0, bubbles: true, cancelable: true }));"""
+        before = state()['active']
+        chrome(swipe, [[60, 60, 60, 60, 60]])
+        eventually(lambda: state()['active'] != before, timeout=5)
+        after = state()['active']
+        time.sleep(0.5)
+        assert state()['active'] == after, 'un gesto solo cambia una vez'
+        time.sleep(0.5)
+        chrome(swipe, [[-80, -80]])
+        eventually(lambda: state()['active'] == before, timeout=5)
+        # La rueda del ratón (líneas) o un gesto casi vertical no cambian de espacio.
+        chrome("""const side = document.querySelector('sidebar-main');
+          side.dispatchEvent(new WheelEvent('wheel', { deltaX: 3, deltaMode: 1, bubbles: true }));
+          side.dispatchEvent(new WheelEvent('wheel', { deltaX: 150, deltaY: 400, deltaMode: 0, bubbles: true }));""")
+        time.sleep(0.8)
+        assert state()['active'] == before, state()
         chrome("Services.prefs.setBoolPref('sidebar.verticalTabs', false); Services.prefs.clearUserPref('sidebar.revamp')")
         eventually(lambda: state()['side'] == 0, timeout=10)
-        check('Con las pestañas a un lado, el selector de espacios va abajo en la barra lateral')
+        check('Con las pestañas a un lado, el selector va abajo, la barra lleva la tinta del espacio y deslizar dos dedos cambia de espacio')
 
         before = state()
         time.sleep(2)  # que la sesión se escriba (browser.sessionstore.interval = 1 s)

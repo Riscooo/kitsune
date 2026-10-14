@@ -9,6 +9,8 @@
  *   selecciona la última que usaste en ese. Las fijadas se ven en todos.
  * - Selector arriba (en la tira de pestañas) y abajo en la barra lateral si van a un lado.
  *   Ctrl+Alt+1…9 va a cada espacio y Ctrl+Alt+AvPág/RePág al siguiente y al anterior.
+ *   Con las pestañas a un lado, deslizar dos dedos en horizontal sobre la barra lateral
+ *   (panel táctil) también pasa al siguiente o al anterior, uno por gesto.
  * - Nada de esto sale del equipo: no hay red, ni código de las webs, ni datos del usuario
  *   más allá de nombres y colores que pone él.
  */
@@ -104,6 +106,19 @@ export const resolveSpace = (data, value) => data.spaces.some(space => space.id 
 export function stepSpace(data, id, delta) {
   const index = Math.max(0, data.spaces.findIndex(space => space.id === id));
   return data.spaces[(index + delta + data.spaces.length) % data.spaces.length].id;
+}
+
+/**
+ * Deslizar en el panel táctil: suma el desplazamiento horizontal de un gesto y, al pasar
+ * `threshold` píxeles, dice a qué lado ir (+1 siguiente, -1 anterior). Un gesto solo cambia
+ * una vez: después, `spent` lo bloquea hasta que el gesto acabe (lo dice quien llama, cuando
+ * deja de llegar movimiento). Lo que va más en vertical que en horizontal no cuenta.
+ */
+export function swipeStep(gesture, deltaX, deltaY, threshold = 120) {
+  if (gesture.spent || Math.abs(deltaX) <= Math.abs(deltaY)) return { gesture, step: 0 };
+  const total = gesture.total + deltaX;
+  if (Math.abs(total) < threshold) return { gesture: { total, spent: false }, step: 0 };
+  return { gesture: { total: 0, spent: true }, step: Math.sign(total) };
 }
 
 /**
@@ -430,6 +445,25 @@ function buildStrips(win) {
   }
 }
 
+/** Dos dedos en horizontal sobre la barra lateral: siguiente o anterior espacio (como en Zen). */
+function listenSwipe(win) {
+  const side = win.document.querySelector('sidebar-main');
+  if (!side) return;
+  const { setTimeout, clearTimeout } = ChromeUtils.importESModule('resource://gre/modules/Timer.sys.mjs');
+  let gesture = { total: 0, spent: false }, idle = null;
+  side.addEventListener('wheel', event => {
+    // Solo el panel táctil (píxeles) y solo con varios espacios; la rueda del ratón sigue igual.
+    if (event.deltaMode !== event.DOM_DELTA_PIXEL || state.data.spaces.length < 2 || Math.abs(event.deltaX) <= Math.abs(event.deltaY)) return;
+    event.preventDefault();
+    clearTimeout(idle);
+    // El gesto acaba cuando deja de llegar movimiento (también la inercia).
+    idle = setTimeout(() => { gesture = { total: 0, spent: false }; }, 300);
+    const result = swipeStep(gesture, event.deltaX, event.deltaY);
+    gesture = result.gesture;
+    if (result.step) void switchTo(win, stepSpace(state.data, activeSpace(win), result.step)).catch(() => {});
+  }, { passive: false });
+}
+
 function buildKeys(win) {
   const doc = win.document;
   const keyset = xul(doc, 'keyset', { id: 'kitsune-spaces-keys' });
@@ -494,6 +528,7 @@ export const KitsuneSpaces = {
     buildPanel(win);
     buildKeys(win);
     listen(win);
+    listenSwipe(win);
     await switchTo(win, activeSpace(win));
   },
   /** Para las pruebas y el inicio: la lista, el espacio de la ventana y cambiar de espacio. */

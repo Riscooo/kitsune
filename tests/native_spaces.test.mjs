@@ -89,3 +89,19 @@ test('switching shows the space\'s tabs, hides the rest, keeps pinned ones and p
   const pinned = tabs.map((tab, index) => ({ ...tab, selected: index === 0 }))
   assert.equal(spaces.planSwitch(pinned, 'e-0000000c').select, 0)
 })
+
+test('a touchpad swipe moves one space per gesture, and only when it is mostly horizontal', () => {
+  let gesture = { total: 0, spent: false }
+  const feed = (dx, dy = 0) => { const result = spaces.swipeStep(gesture, dx, dy); gesture = result.gesture; return result.step }
+  assert.deepEqual([feed(40), feed(40), feed(50)], [0, 0, 1])
+  // El resto del mismo gesto (y su inercia) no cambia otra vez.
+  assert.deepEqual([feed(200), feed(300)], [0, 0])
+  gesture = { total: 0, spent: false }
+  assert.equal(feed(-130), -1)
+  gesture = { total: 0, spent: false }
+  // Casi vertical: es desplazar la lista de pestañas, no cambiar de espacio.
+  assert.deepEqual([feed(100, 150), feed(90, 120)], [0, 0])
+  assert.equal(gesture.total, 0)
+  // Ir y volver en el mismo gesto se compensa.
+  assert.deepEqual([feed(80), feed(-70), feed(60)], [0, 0, 0])
+})

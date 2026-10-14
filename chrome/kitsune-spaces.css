@@ -182,5 +182,11 @@
     border-inline-end: 2px solid color-mix(in srgb, var(--kitsune-space-current) 70%, transparent) !important;
     transition: border-color 260ms ease;
   }
+  /* Y su fondo: la barra lateral se tiñe un poco de la tinta del espacio, más arriba que
+     abajo, como un papel mojado (se cambia con el espacio, sin parpadeo). */
+  :root[kitsune-spaces-many]#main-window sidebar-main {
+    background-image: linear-gradient(to bottom, color-mix(in srgb, var(--kitsune-space-current) 14%, transparent),
+                                      color-mix(in srgb, var(--kitsune-space-current) 4%, transparent) 70%) !important;
+  }
 }
 
