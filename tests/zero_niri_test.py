@@ -50,6 +50,12 @@ class NiriRuleTests(unittest.TestCase):
         for app_id in ("kitty", "kitsune-browser-otro", "org.kitsune.algo", "firefox"):
             self.assertFalse(matches(app_id), app_id)
 
+    def test_the_focus_ring_does_not_fill_the_glass(self):
+        # niri pinta el anillo de foco (y el borde) como un rectángulo lleno detrás de la ventana: en una
+        # ventana de cristal se veía todo el marco del color del anillo al seleccionarla.
+        rule = (ROOT / "zero/linux/kitsune-zero.kdl").read_text()
+        self.assertIn("draw-border-with-background false", rule)
+
     def test_running_it_again_changes_nothing(self):
         niri, _ = self.run_script()
         before = (niri / "config.kdl").read_text()

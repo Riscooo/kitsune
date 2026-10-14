@@ -6,4 +6,6 @@ window-rule {
     background-effect {
         blur true
     }
+    // El anillo de foco, solo de borde: lleno se vería a través de todo el cristal.
+    draw-border-with-background false
 }
