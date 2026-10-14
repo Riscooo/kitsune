@@ -37,7 +37,7 @@ Tipografías: Noto Sans en la interfaz y Noto Serif en títulos, saludo y «kits
 
 ## Qué cambia en 0.8 · lo de Zen, y lo que Zen no tiene
 
-Zen y Kitsune usan el mismo motor (Gecko 157): la diferencia está en la forma de
+Zen y Kitsune usan el mismo motor, Gecko (Kitsune ya va con el 158): la diferencia está en la forma de
 navegar. 0.8 trae lo que hace que la gente use Zen y lo que Zen no tiene.
 
 - **Pestañas a un lado.** «Tu inicio» → Ajustes → Pestañas: Arriba, Al lado (las
