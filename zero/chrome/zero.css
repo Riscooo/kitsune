@@ -9,9 +9,20 @@
   --zero-t-fade: 280ms;
   --zero-t-move: 720ms;
   --zero-t-color: 1400ms;
+  --zero-t-ink: 420ms;   /* el texto que pasa de blanco a tinta y vuelve */
+  --zero-wait: 90ms;     /* al cerrar, lo que espera la forma a que se vaya el contenido */
+  --zero-enter: 140ms;   /* al abrir, lo que espera el contenido a que empiece la forma */
 }
 @media (prefers-reduced-motion: reduce) {
-  :root[zero] { --zero-t-morph: 1ms; --zero-t-fade: 1ms; --zero-t-move: 1ms; --zero-t-color: 1ms; }
+  :root[zero] { --zero-t-morph: 1ms; --zero-t-fade: 1ms; --zero-t-move: 1ms; --zero-t-color: 1ms; --zero-t-ink: 1ms; --zero-wait: 0ms; --zero-enter: 0ms; }
+  /* Lo que lleva tiempos propios (los colores, la marca, los interruptores…), también. */
+  :root[zero] :is(#navigator-toolbox, #navigator-toolbox *, #tabbrowser-tabbox, #tabbrowser-tabpanels, #tabbrowser-tabpanels > .browserSidebarContainer,
+                  #zero-lights, #zero-lights *, #zero-grow, #zero-grow *, #zero-rail, #zero-rail *, #zero-mark, #zero-mark *,
+                  #zero-settings, #zero-settings *, #zero-settings *::after),
+  :root[zero] :is(#navigator-toolbox, #zero-rail, #zero-grow, #zero-settings) *::after {
+    transition-duration: 1ms !important; transition-delay: 0ms !important;
+    animation: none !important;
+  }
 }
 
 /* ---------------------------------------------------------------- el marco (zero-frame) */
@@ -137,8 +148,9 @@
   border: none !important; box-shadow: none !important;
   background: transparent !important;
   -moz-window-dragging: no-drag !important;
-  transition: width var(--zero-t-morph) var(--zero-calm) !important;
+  transition: width var(--zero-t-morph) var(--zero-calm) var(--zero-wait) !important; /* al cerrar, el contenido se va antes que la forma */
 }
+#main-window[zero] #navigator-toolbox:is([zero-island], [zero-island-alert]) { transition-delay: 0ms !important; }
 #main-window[zero] #navigator-toolbox[zero-island="open"] { --zero-island-w: 400px !important; }
 #main-window[zero] #navigator-toolbox[zero-island-alert] { --zero-island-w: 470px !important; }
 #main-window[zero] #navigator-toolbox[zero-island="typing"] { --zero-island-w: 560px !important; }
@@ -175,11 +187,11 @@
 #main-window[zero] #nav-bar :is(#back-button, #forward-button, #stop-reload-button, #PanelUI-button) {
   max-width: 0 !important; min-width: 0 !important; overflow: clip !important;
   opacity: 0 !important; filter: blur(3px) !important;
-  transition: max-width var(--zero-t-morph) var(--zero-calm), opacity var(--zero-t-fade) var(--zero-soft), filter var(--zero-t-fade) var(--zero-soft) !important;
+  transition: max-width var(--zero-t-morph) var(--zero-calm) var(--zero-wait), opacity var(--zero-t-fade) var(--zero-soft), filter var(--zero-t-fade) var(--zero-soft) !important;
 }
 #main-window[zero] #navigator-toolbox[zero-island="open"] #nav-bar :is(#back-button, #forward-button, #stop-reload-button, #PanelUI-button) {
   max-width: 30px !important; opacity: .92 !important; filter: none !important;
-  transition-delay: 0ms, 140ms, 140ms !important;
+  transition-delay: 0ms, var(--zero-enter), var(--zero-enter) !important;
 }
 /* Sin historial, atrás y adelante se quedan atenuados (están, pero no hacen nada). */
 #main-window[zero] #navigator-toolbox[zero-island="open"] #nav-bar :is(#back-button, #forward-button)[disabled] { opacity: .4 !important; }
@@ -224,7 +236,8 @@
   position: absolute !important; inset: 0 !important; display: flex !important; align-items: center !important; justify-content: center !important; gap: 6px !important;
   padding: 0 14px !important; pointer-events: none !important;
   font: 600 12.5px system-ui, sans-serif !important; color: #fff !important; white-space: nowrap !important; overflow: hidden !important; text-overflow: ellipsis !important;
-  transition: opacity var(--zero-t-fade) var(--zero-soft), filter var(--zero-t-fade) var(--zero-soft), padding var(--zero-t-morph) var(--zero-calm) !important;
+  transition: opacity var(--zero-t-fade) var(--zero-soft), filter var(--zero-t-fade) var(--zero-soft), padding var(--zero-t-morph) var(--zero-calm),
+              color var(--zero-t-ink) var(--zero-soft), text-shadow var(--zero-t-ink) var(--zero-soft) !important;
 }
 #main-window[zero] #navigator-toolbox[zero-island="open"] #zero-host { padding-inline: 100px !important; }
 #main-window[zero] #zero-host .zero-lock {
@@ -238,7 +251,7 @@
 /* Los avisos: la isla se ensancha, lo dice en una línea y vuelve. */
 #main-window[zero] #zero-island-msg { opacity: 0 !important; filter: blur(4px) !important; }
 #main-window[zero] #zero-island-msg small { font-weight: 500 !important; opacity: .72 !important; }
-#main-window[zero] #navigator-toolbox[zero-island-alert] #zero-island-msg { opacity: 1 !important; filter: none !important; transition-delay: 160ms !important; }
+#main-window[zero] #navigator-toolbox[zero-island-alert] #zero-island-msg { opacity: 1 !important; filter: none !important; transition-delay: var(--zero-enter) !important; }
 #main-window[zero] #navigator-toolbox[zero-island-alert] #urlbar > .urlbar-input-container,
 #main-window[zero] #navigator-toolbox[zero-island-alert] #nav-bar :is(#back-button, #forward-button, #stop-reload-button, #PanelUI-button) { opacity: 0 !important; filter: blur(4px) !important; }
 
@@ -296,10 +309,11 @@
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, .85), inset 0 -1px 0 rgba(255, 255, 255, .28),
               inset 1px 0 0 rgba(255, 255, 255, .38), inset -1px 0 0 rgba(255, 255, 255, .26),
               inset 0 0 14px rgba(255, 255, 255, .14), 0 10px 30px rgba(0, 0, 0, .14);
-  transition: width var(--zero-t-morph) var(--zero-calm), transform var(--zero-t-move) var(--zero-calm), opacity 420ms var(--zero-soft),
-              background-color 520ms var(--zero-soft), box-shadow 520ms var(--zero-soft), color 420ms var(--zero-soft);
+  transition: width var(--zero-t-morph) var(--zero-calm) var(--zero-wait), transform var(--zero-t-move) var(--zero-calm), opacity var(--zero-t-ink) var(--zero-soft),
+              background-color 520ms var(--zero-soft), box-shadow 520ms var(--zero-soft), color var(--zero-t-ink) var(--zero-soft);
 }
 #zero-rail:hover {
+  transition-delay: 0ms;
   width: 186px;
   color: #1d2321;
   background-color: rgba(246, 245, 241, .66);
@@ -307,7 +321,7 @@
 }
 #zero-rail :is(.zero-spaces, .zero-tabs) { display: flex; flex-direction: column; gap: 2px; }
 #zero-rail [hidden] { display: none !important; }
-#zero-rail .zero-sep { flex: none; height: 1px; margin: 3px 6px; background: rgba(255, 255, 255, .3); transition: background-color 420ms var(--zero-soft); }
+#zero-rail .zero-sep { flex: none; height: 1px; margin: 3px 6px; background: rgba(255, 255, 255, .3); transition: background-color var(--zero-t-ink) var(--zero-soft); }
 #zero-rail:hover .zero-sep { background: rgba(29, 35, 33, .18); }
 
 /* Cada icono: una esfera de 24 px. --s lo pone el efecto Dock (crece y aparta a los vecinos). */
@@ -328,7 +342,7 @@
   background: rgba(255, 255, 255, .92);
   transform: scale(var(--s)); transform-origin: center;
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, .35), inset 0 -2px 4px rgba(0, 0, 0, .12), 0 1px 3px rgba(0, 0, 0, .18);
-  transition: box-shadow 320ms var(--zero-calm), transform 200ms var(--zero-calm), background-color 420ms var(--zero-soft);
+  transition: box-shadow 320ms var(--zero-calm), transform 200ms var(--zero-calm), background-color var(--zero-t-ink) var(--zero-soft);
 }
 #zero-rail .zero-fav > img { width: 14px; height: 14px; }
 #zero-rail .zero-fav[letter] { background: hsl(var(--zero-fav-hue, 20) 42% 46%); }
@@ -347,7 +361,7 @@
   opacity: 0; transform: translateX(-4px); filter: blur(2px);
   transition: opacity var(--zero-t-fade) var(--zero-soft), transform var(--zero-t-morph) var(--zero-calm), filter var(--zero-t-fade) var(--zero-soft);
 }
-#zero-rail:hover .zero-tt { opacity: .95; transform: none; filter: none; transition-delay: calc(110ms + var(--i, 0) * 28ms); }
+#zero-rail:hover .zero-tt { opacity: .95; transform: none; filter: none; transition-delay: calc(var(--zero-enter) - 30ms + var(--i, 0) * 28ms); }
 #zero-rail:hover .zero-item:hover .zero-tt { font-weight: 600; }
 
 /* Con la web ampliada el raíl se aparta; vuelve al acercar el ratón al borde izquierdo. */
@@ -364,9 +378,9 @@
 .zero-glass[hidden] { display: none !important; }
 
 /* Texto que se adapta a lo que tiene detrás: tinta sobre lo claro (con un fundido de 420 ms). */
-#main-window[zero] #nav-bar,
-#main-window[zero] :is(#zero-host, #zero-island-msg),
-#main-window[zero] #urlbar-input { transition-property: color, opacity, filter, padding, text-shadow !important; transition-duration: 420ms, var(--zero-t-fade), var(--zero-t-fade), var(--zero-t-morph), 420ms !important; }
+#main-window[zero] #nav-bar { transition: color var(--zero-t-ink) var(--zero-soft), text-shadow var(--zero-t-ink) var(--zero-soft) !important; }
+#main-window[zero] #nav-bar .toolbarbutton-icon { transition: fill var(--zero-t-ink) var(--zero-soft), background-color 200ms var(--zero-soft) !important; }
+#main-window[zero] #urlbar-input { transition: color var(--zero-t-ink) var(--zero-soft) !important; }
 #main-window[zero] #nav-bar[zero-ink] {
   color: #1d2321 !important;
   text-shadow: none !important;

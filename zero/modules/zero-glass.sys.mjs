@@ -6,7 +6,7 @@
  * 0,5) que tiene detrás, desenfocada y saturada; el fondo, los filos de luz y el desenfoque de la pieza quedan encima,
  * como siempre. De esa foto sale la luz: el texto pasa a tinta sobre lo claro (atributo zero-ink).
  *
- * Solo se repinta mientras algo se mueve (rueda, teclas, ratón, una transición de Zero, otra página,
+ * Solo se repinta mientras algo se mueve (rueda, teclas, ratón, una pieza que se mueve, otra página,
  * un vídeo sonando), a 60 fps, y 1,5 s después se para. Con el modo ahorro, a 15 fps.
  */
 import { lightOf, inkFor } from './zero-light.mjs';
@@ -17,6 +17,9 @@ const BLUR = 10;       // px de desenfoque, como el backdrop-filter del cristal
 const PAD = 20;        // margen de la foto para que el desenfoque no oscurezca los bordes
 const TAIL = 1500;     // ms que sigue repintando tras lo último que se movió
 const SAVER_FRAME = 66; // ~15 fps en modo ahorro
+
+// Las propiedades que, al transicionar, mueven una pieza o la tarjeta (o la hacen aparecer).
+const MOVES = /^(width|height|max-(width|height)|left|top|right|bottom|inset|transform|translate|scale|opacity|margin|padding|border-.*radius)/;
 
 const panes = new Map();         // elemento → { win, canvas, ink }
 const engines = new WeakMap();   // ventana → { until, frame, timer, busy, count, cleanups, host }
@@ -152,7 +155,15 @@ function engine(win, host) {
   const nudge = () => kick(win);
   // La rueda, las teclas y el ratón sobre la web pasan antes por la ventana de Gecko.
   for (const type of ['wheel', 'keydown', 'mousemove', 'resize']) listen(win, type, nudge, { capture: true, passive: true });
-  for (const type of ['transitionrun', 'transitionend']) listen(win.document, type, nudge, true);
+  // Las transiciones, solo las que mueven o cambian de tamaño u opacidad una pieza o la tarjeta: un
+  // color (el velo, la tinta) no cambia lo que hay debajo del cristal.
+  const moves = event => {
+    if (!MOVES.test(event.propertyName ?? '')) return;
+    const target = event.target;
+    if (win.document.getElementById('tabbrowser-tabpanels')?.contains(target)
+        || [...panes].some(([element, pane]) => pane.win === win && (topOf(element).contains(target) || target.contains?.(element)))) kick(win);
+  };
+  for (const type of ['transitionrun', 'transitionend']) listen(win.document, type, moves, true);
   listen(win.gBrowser.tabContainer, 'TabSelect', nudge);
   listen(win.gBrowser.tabContainer, 'TabAttrModified', event => { if (event.detail?.changed?.includes('soundplaying')) nudge(); });
   const progress = { onLocationChange: nudge, onStateChange: nudge };
