@@ -1,7 +1,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { compareReleases, newerRelease, platformFor, releaseLabel } from '../install/native/kitsune-updates.sys.mjs'
-import { expectedSha256, hex, linuxPackage } from '../install/native/kitsune-updater.sys.mjs'
+import { expectedSha256, hex, linuxPackage, platformOf, releasePackage } from '../install/native/kitsune-updater.sys.mjs'
 
 test('releases order betas before the final version and compare numbers, not text', () => {
   assert.equal(compareReleases('0.7.0-beta.3', '0.7.0-beta.2'), 1)
@@ -60,4 +60,14 @@ test('the expected SHA-256 is the one listed for exactly that file name', () => 
   assert.equal(expectedSha256('XYZ  Kitsune-0.8.0-Linux-x86_64.tar.xz', 'Kitsune-0.8.0-Linux-x86_64.tar.xz'), null)
   assert.equal(expectedSha256(null, 'x'), null)
   assert.equal(hex('\x00\xff\x10'), '00ff10')
+})
+
+test('each system updates from its own package of that release, and nothing else', () => {
+  const base = 'https://github.com/Riscooo/kitsune/releases/download/v0.8.0/Kitsune-0.8.0'
+  assert.equal(releasePackage('windows', { url: `${base}-Windows-x64.exe`, release: '0.8.0' }, '0.8.0').name, 'Kitsune-0.8.0-Windows-x64.exe')
+  assert.equal(releasePackage('macos', { url: `${base}-macOS-AppleSilicon.dmg`, release: '0.8.0' }, '0.8.0').name, 'Kitsune-0.8.0-macOS-AppleSilicon.dmg')
+  // El .exe no vale para macOS, ni un sistema que no existe.
+  assert.equal(releasePackage('macos', { url: `${base}-Windows-x64.exe`, release: '0.8.0' }, '0.8.0'), null)
+  assert.equal(releasePackage('android', { url: `${base}.apk`, release: '0.8.0' }, '0.8.0'), null)
+  assert.deepEqual(['WINNT', 'Darwin', 'Linux', 'Android'].map(platformOf), ['windows', 'macos', 'linux', null])
 })

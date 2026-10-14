@@ -2,9 +2,9 @@
  *
  * Una vez al día se mira la lista de descargas de la web de Kitsune (sin cookies ni
  * identificadores) y, si hay una versión más nueva para este sistema, se dice en una barra.
- * En el paquete de Linux, kitsune-updater.sys.mjs la descarga, la comprueba y la deja lista
- * para instalarse al cerrar («Reiniciar ahora»); en Windows y macOS, o si eso falla, la barra
- * lleva a la descarga. Se apaga con kitsune.update.check = false. Solo actúa si el motor trae
+ * kitsune-updater.sys.mjs la descarga, la comprueba y la deja lista para instalarse al cerrar
+ * («Reiniciar ahora»): en Linux de serie y en Windows y macOS con kitsune.update.auto (hasta
+ * probarlo allí). Si no, o si falla, la barra lleva a la descarga. Se apaga con kitsune.update.check = false. Solo actúa si el motor trae
  * kitsune.release (lo ponen los paquetes que se descargan); en el Linux de Risco el motor se
  * compila y actualiza solo, sin kitsune.release, y aquí no hace nada.
  */
@@ -126,9 +126,9 @@ export const KitsuneUpdates = {
       downloads = await response.json();
     } finally { clearTimeout(timer); }
     pending = newerRelease(downloads, platform, installed);
-    if (pending && platform === 'linux' && await updater()?.available()) {
+    if (pending && await updater()?.available()) {
       try {
-        await updater().stage({ release: pending.release, entry: downloads.linux, ...(testing ? { origin: new URL(override).origin } : {}) });
+        await updater().stage({ release: pending.release, entry: downloads[platform], ...(testing ? { origin: new URL(override).origin } : {}) });
         pending = { ...pending, ready: true };
       } catch (error) {
         console.warn('Kitsune: no se ha podido preparar la versión nueva', error);
