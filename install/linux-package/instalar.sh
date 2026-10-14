@@ -29,8 +29,10 @@ cat > "${data}/applications/kitsune.desktop" <<DESKTOP
 Version=1.0
 Type=Application
 Name=Kitsune
-GenericName=Navegador web
-Comment=Navega por la web con Kitsune
+GenericName=Web Browser
+GenericName[es]=Navegador web
+Comment=Browse the web with Kitsune
+Comment[es]=Navega por la web con Kitsune
 Exec="${destino}/kitsune" %u
 Icon=kitsune
 Terminal=false
@@ -41,11 +43,13 @@ MimeType=text/html;text/xml;application/xhtml+xml;x-scheme-handler/http;x-scheme
 Actions=nueva-ventana;ventana-privada;
 
 [Desktop Action nueva-ventana]
-Name=Nueva ventana
+Name=New Window
+Name[es]=Nueva ventana
 Exec="${destino}/kitsune" --new-window
 
 [Desktop Action ventana-privada]
-Name=Nueva ventana privada
+Name=New Private Window
+Name[es]=Nueva ventana privada
 Exec="${destino}/kitsune" --private-window
 DESKTOP
 update-desktop-database "${data}/applications" >/dev/null 2>&1 || :
