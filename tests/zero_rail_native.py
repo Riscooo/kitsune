@@ -10,7 +10,7 @@
 8. La vista rápida de Kitsune no sale en el raíl (es de paso) y flota encima de la tarjeta.
 9. Con el raíl abierto, la fila bajo el ratón enseña una × que cierra esa pestaña sin elegirla; con el
    raíl cerrado no sale.
-10. El clic derecho en una pestaña abre el menú de pestaña de Gecko para esa pestaña.
+10. El clic derecho en una pestaña abre el menú de pestaña de Gecko para esa pestaña, con sus textos.
 11. Una pestaña que suena lleva un altavoz en su icono; un clic en él la silencia (y otro le devuelve el
     sonido) sin elegirla.
 12. Un grupo de pestañas de Gecko lleva una fila propia (un círculo de su color; abierto el raíl, su
@@ -222,6 +222,12 @@ def main():
                  {'type': 'pointerDown', 'button': 2}, {'type': 'pointerUp', 'button': 2}])
         until(lambda: chrome("return document.getElementById('tabContextMenu').state") == 'open')
         assert chrome("return TabContextMenu.contextTab?.label") == target, chrome("return TabContextMenu.contextTab?.label")
+        # Con sus textos: Gecko los carga al abrirlo desde su barra de pestañas; desde el raíl también.
+        labels = "return ['context_reloadTab', 'context_pinTab', 'context_duplicateTab', 'context_closeTab'].map(id => document.getElementById(id)?.label ?? '')"
+        try:
+            until(lambda: all(chrome(labels)))
+        except AssertionError:
+            raise AssertionError(f'menú de pestaña sin textos: {chrome(labels)}') from None
         chrome("document.getElementById('tabContextMenu').hidePopup()")
         until(lambda: chrome("return document.getElementById('tabContextMenu').state") == 'closed')
         check('El clic derecho en una pestaña abre el menú de pestaña para esa pestaña')

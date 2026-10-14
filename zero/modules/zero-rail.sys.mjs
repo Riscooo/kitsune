@@ -349,6 +349,9 @@ export function attach(win, ctx) {
     const node = event.target.closest('.zero-tab');
     if (!node || !st.tabOf.get(node)) return;
     event.preventDefault();
+    // Gecko carga los textos de este menú al abrirlo desde su barra de pestañas: desde el raíl también
+    // (si no, salen filas vacías hasta que se abra allí una vez).
+    win.gBrowser.translateTabContextMenu?.();
     doc.getElementById('tabContextMenu')?.openPopupAtScreen(event.screenX, event.screenY, true, event);
   });
   st.rail.addEventListener('keydown', event => {
