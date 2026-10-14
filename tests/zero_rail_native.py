@@ -272,6 +272,10 @@ def main():
             chrome("document.querySelector('#zero-rail .zero-group').focus()")
             driver.command('POST', '/actions', {'actions': [{'type': 'key', 'id': 'teclado', 'actions': [{'type': 'keyDown', 'value': '\ue007'}, {'type': 'keyUp', 'value': '\ue007'}]}]})
             until(lambda: grouped_rows(False))
+            # Si se renombra (o cambia de color), la fila también.
+            chrome("window.__grupo.label = 'Kitsunes'; window.__grupo.color = 'purple';")
+            until(lambda: any(r.get('group') == 'Kitsunes' and r['fav'] == 'K' for r in chrome(groups))
+                  and chrome("return document.querySelector('#zero-rail .zero-group').style.getPropertyValue('--zero-group').includes('purple')"))
         except AssertionError:
             raise AssertionError(f'grupos: {chrome(groups)}') from None
         check('Un grupo lleva su fila y sus pestañas su raya; un clic lo pliega y otro lo despliega, y si lo pliega Gecko también')
