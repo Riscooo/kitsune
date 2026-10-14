@@ -4,7 +4,10 @@
 2. Otra ventana abierta no cambia.
 3. Con kitsune.zero.always, una ventana nueva nace en Zero.
 4. La ventana recuerda Zero para la próxima sesión (SessionStore) y lo olvida al apagarlo.
-5. Al apagarlo no queda nada de Zero: ni nodos «zero-…» ni atributos «zero…» en la raíz.
+5. Al apagarlo no queda nada de Zero: ni nodos «zero-…», ni atributos «zero…» en ningún nodo, ni
+   variables «--zero-…» en la raíz.
+6. Tampoco si se apaga en pleno uso: con la web ampliada, escribiendo en la isla, con un aviso y con
+   los ajustes abiertos.
 
 --zero-del-repo: Zero sale de zero/ y de install/native del repositorio (ver zero_harness.py).
 """
@@ -22,8 +25,9 @@ STATE = """
 const win = arguments[0] === 'all' ? null : window;
 const one = w => ({ zero: w.document.documentElement.hasAttribute('zero'),
   sheet: w.getComputedStyle(w.document.documentElement).getPropertyValue('--zero-on').trim(),
-  leftovers: [...w.document.querySelectorAll('[id^="zero-"]')].map(n => n.id),
-  attrs: [...w.document.documentElement.attributes].map(a => a.name).filter(n => n.startsWith('zero')),
+  leftovers: [...w.document.querySelectorAll('[id^="zero-"], .zero-glass')].map(n => n.id || n.className),
+  attrs: [...w.document.querySelectorAll('*')].flatMap(n => [...n.attributes].map(a => a.name).filter(name => name.startsWith('zero')).map(name => `${n.id || n.localName}[${name}]`)),
+  vars: [...w.document.documentElement.style].filter(name => name.startsWith('--zero')),
   remembered: (() => { try { return SessionStore.getCustomWindowValue(w, 'kitsune-zero'); } catch (e) { return 'error: ' + e; } })() });
 if (win) return one(win);
 return [...Services.wm.getEnumerator('navigator:browser')].map(one);
@@ -74,8 +78,27 @@ def main():
         press_zero()
         eventually(lambda: not state()['zero'] and state()['sheet'] == '', timeout=5)
         s = state()
-        assert s['leftovers'] == [] and s['attrs'] == [] and s['remembered'] == '', s
+        assert s['leftovers'] == [] and s['attrs'] == [] and s['vars'] == [] and s['remembered'] == '', s
         check('Al apagarlo no queda nada de Zero, y la ventana ya no lo recuerda')
+
+        # En pleno uso: web ampliada, escribiendo en la isla, un aviso y los ajustes abiertos.
+        press_zero()
+        eventually(lambda: state()['zero'] and chrome("return !!document.getElementById('zero-mark')"), timeout=5)
+        # Hay otra ventana abierta: Gecko no da el foco (ni su evento) a una ventana de fondo.
+        chrome("window.focus()")
+        eventually(lambda: chrome("return Services.focus.activeWindow === window"), timeout=5)
+        chrome("""document.querySelector('#zero-grow button[data-action=full]').click();
+                  document.getElementById('zero-mark').click();
+                  ChromeUtils.importESModule('chrome://browser/content/zero/zero-island.sys.mjs').alert(window, 'Aviso', 'de prueba', 5000);
+                  gURLBar.focus(); gURLBar.search('kioto');""")
+        eventually(lambda: chrome("""const t = document.getElementById('navigator-toolbox');
+            return document.documentElement.hasAttribute('zero-full') && t.getAttribute('zero-island') === 'typing'
+              && t.hasAttribute('zero-island-alert') && document.getElementById('zero-settings').hasAttribute('open')"""), timeout=5)
+        press_zero()
+        eventually(lambda: not state()['zero'] and state()['sheet'] == '', timeout=5)
+        s = state()
+        assert s['leftovers'] == [] and s['attrs'] == [] and s['vars'] == [], s
+        check('Tampoco queda nada si se apaga en pleno uso')
 
         chrome("Services.prefs.setBoolPref('kitsune.zero.always', true); OpenBrowserWindow()")
         eventually(lambda: len(chrome(STATE, ['all'])) == 3, timeout=15)
