@@ -16,7 +16,7 @@ const TEXT = ENGLISH ? {
 }
 // Las notas de downloads.json van en castellano.
 const NOTES_EN = [['aún sin firmar', 'not signed yet'], ['se instala sin sudo', 'installs without sudo']]
-const note = text => ENGLISH ? NOTES_EN.reduce((out, [es, en]) => out.replace(es, en), text) : text
+const noteText = text => ENGLISH ? NOTES_EN.reduce((out, [es, en]) => out.replace(es, en), text) : text
 
 function label() {
   toggle.setAttribute('aria-label', root.dataset.theme === 'oscuro' ? TEXT.toLight : TEXT.toDark)
@@ -58,7 +58,7 @@ function render({ version, files }) {
     if (file.note) {
       const note = document.createElement('p')
       note.className = 'platform-note'
-      note.textContent = note(file.note)
+      note.textContent = noteText(file.note)
       button.after(note)
     }
   }
@@ -77,7 +77,7 @@ function render({ version, files }) {
   const file = mine && files[mine]
   if (file) {
     main.disabled = false
-    mainNote.textContent = [file.size, file.note && note(file.note)].filter(Boolean).join(' · ') || `${TEXT.version} ${version ?? ''}`.trim()
+    mainNote.textContent = [file.size, file.note && noteText(file.note)].filter(Boolean).join(' · ') || `${TEXT.version} ${version ?? ''}`.trim()
     main.addEventListener('click', () => { location.href = file.url })
     document.querySelector('#hero-note').hidden = true
   }

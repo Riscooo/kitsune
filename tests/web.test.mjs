@@ -56,3 +56,10 @@ test('the English page mirrors the Spanish one: same sections, assets and downlo
   const visible = en.replace(/<head>[\s\S]*?<\/head>/, '').replace(/<[^>]+>/g, ' ').replace('Español', '')
   assert.doesNotMatch(visible, /[¿¡ñáéíóú]|Descargar|Próximamente/)
 })
+
+test('the download cards use the note translator, not a variable with the same name', async () => {
+  // Un <p> llamado «note» tapó la función note() y los botones se quedaban sin enlace.
+  const source = await readFile(new URL('../web/app.js', import.meta.url), 'utf8')
+  assert.match(source, /const noteText = text =>/)
+  assert.doesNotMatch(source, /\bnote\(file\.note\)/)
+})
