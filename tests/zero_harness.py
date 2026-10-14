@@ -19,12 +19,14 @@ const { KitsuneZeroHost } = ChromeUtils.importESModule(arguments[0]);
 for (const win of Services.wm.getEnumerator('navigator:browser')) KitsuneZeroHost.decorate(win);
 """
 
-# Las ventanas nuevas también (en el motor lo hace el arranque de cada ventana).
+# Las ventanas nuevas también. En el motor lo hace kitsune-bootstrap.js, un <script> de browser.xhtml
+# que corre mientras se lee la página, antes de que la ventana tenga gBrowser: aquí, igual de pronto
+# (en DOMContentLoaded, antes que el propio arranque de Gecko), para que las pruebas lo vean.
 WATCH_NEW = """
 const { KitsuneZeroHost } = ChromeUtils.importESModule(arguments[0]);
 if (!globalThis.__zeroWatching) {
   globalThis.__zeroWatching = true;
-  Services.obs.addObserver(win => win.addEventListener('load', () => KitsuneZeroHost.decorate(win), { once: true }), 'domwindowopened');
+  Services.obs.addObserver(win => win.addEventListener('DOMContentLoaded', () => KitsuneZeroHost.decorate(win), { once: true, capture: true }), 'domwindowopened');
 }
 """
 

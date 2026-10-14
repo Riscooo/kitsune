@@ -73,9 +73,11 @@ function onChange(win, fn) {
 }
 
 async function decorate(win) {
-  if (!host || decorated.has(win) || !win.gBrowser) return;
-  if (!win.gBrowserInit?.delayedStartupFinished) await win.delayedStartupPromise;
-  if (decorated.has(win) || !win.toolbar?.visible) return;
+  if (!host || decorated.has(win)) return;
+  // El arranque de Kitsune llama mientras se lee browser.xhtml, cuando aún no hay gBrowser: se espera
+  // a que la ventana termine de arrancar antes de mirar nada.
+  if (!win.gBrowser || !win.gBrowserInit?.delayedStartupFinished) await win.delayedStartupPromise;
+  if (decorated.has(win) || !win.gBrowser || !win.toolbar?.visible) return;
   decorated.add(win);
   host.keys?.add(win, 'kitsune-zero-key', '0', 'accel,alt', () => toggle(win));
   const { always } = readPrefs(host.prefs, host.prefix);
