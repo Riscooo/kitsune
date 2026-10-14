@@ -366,6 +366,17 @@ function summarizeProtections(rows, now = Date.now()) {
   }
   return result;
 }
+// El idioma de la interfaz para «Tu inicio» (con la protección anti-huella, una web cree que es en-US).
+let lastLocale = '';
+async function writeLocale() {
+  const locale = Services.locale.appLocaleAsBCP47;
+  if (locale === lastLocale) return;
+  const directory = PathUtils.join(profileDirectory(), 'chrome');
+  await IOUtils.makeDirectory(directory, { ignoreExisting: true, permissions: 0o700 });
+  await IOUtils.writeJSON(PathUtils.join(directory, 'kitsune-idioma.json'), { version: 1, locale },
+    { tmpPath: PathUtils.join(directory, '.kitsune-idioma.tmp'), permissions: 0o600 });
+  lastLocale = locale;
+}
 let lastPrivacy = 0;
 async function writePrivacyStats(force = false) {
   if (!force && Date.now() - lastPrivacy < 10 * 60000) return;
@@ -416,6 +427,7 @@ async function update() {
     reportedError = false;
     void watchMemory().catch(() => {});
     void writePrivacyStats().catch(() => {});
+    void writeLocale().catch(() => {});
   } catch (error) {
     // No payload, profile path or private state enters the browser log.
     if (error.name !== 'NotFoundError' && !reportedError) {

@@ -106,6 +106,15 @@ class AppearanceManager:
         self.ack = self.profile / 'chrome/kitsune-appearance-ack.json'
         self.lock = threading.Lock()
 
+    def language(self):
+        """El idioma de la interfaz que apunta el módulo nativo («es-ES», «en-US»…); castellano si no lo hay."""
+        try:
+            value = read_json(self.profile / 'chrome/kitsune-idioma.json', 1024)
+        except (OSError, ValueError):
+            return {'locale': 'es-ES'}
+        locale = value.get('locale') if isinstance(value, dict) and value.get('version') == 1 else None
+        return {'locale': locale if isinstance(locale, str) and re.fullmatch(r'[a-z]{2,3}(-[A-Za-z0-9]{2,8})*', locale) else 'es-ES'}
+
     def privacy(self):
         """El resumen de lo bloqueado que escribe el módulo nativo (chrome/kitsune-privacy.json)."""
         try:

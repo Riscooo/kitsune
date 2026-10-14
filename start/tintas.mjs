@@ -1,4 +1,5 @@
 // Tintas: el selector de «Tu inicio» → Apariencia. El catálogo llega de /api/tintas.
+import { tr } from './idioma.mjs'
 export async function initializeTintas({ $, save, getSettings }) {
   const grid = $('#tinta-grid')
   let catalog = []
@@ -16,7 +17,7 @@ export async function initializeTintas({ $, save, getSettings }) {
       button.setAttribute('aria-checked', String(tinta.id === settings.tinta))
       button.dataset.tinta = tinta.id
       button.disabled = !ready
-      button.title = tinta.author && tinta.author !== 'Kitsune' ? `${tinta.name} · de ${tinta.author}` : tinta.name
+      button.title = tinta.author && tinta.author !== 'Kitsune' ? tr(`${tinta.name} · de ${tinta.author}`, `${tinta.name} · by ${tinta.author}`) : tinta.name
       const swatch = document.createElement('span')
       swatch.className = 'tinta-swatch'
       swatch.setAttribute('aria-hidden', 'true')

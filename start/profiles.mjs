@@ -2,6 +2,7 @@
  * sesiones y cookies en su contenedor; el base (baseId) es el del perfil y el dueño de la
  * privacidad de todo Kitsune. Cada cambio lo confirma el servicio local antes de verse aquí. */
 import { paintAvatar, prepareAvatar } from './avatar.mjs'
+import { tr } from './idioma.mjs'
 export const PROFILE_COLORS = Object.freeze(['blue', 'pink', 'violet', 'teal', 'amber', 'red'])
 const BAD_TEXT = /[\p{Cc}\p{Cs}]/u
 
@@ -34,6 +35,7 @@ export function parseProfilesSnapshot(value) {
 }
 
 export const PRIVACY_MODES = Object.freeze({ estricto: 'Estricto', comodo: 'Cómodo' })
+const modeName = mode => tr(PRIVACY_MODES[mode], { estricto: 'Strict', comodo: 'Comfortable' }[mode])
 
 // Lo que supone pasar a cada modo, en una frase (ventana de confirmación).
 export const PRIVACY_EFFECTS = Object.freeze({
@@ -48,11 +50,11 @@ export function privacyMode(profile) {
 // The mode applies when the engine starts; the native acknowledgement reports the active one.
 export function privacyModeStatus(profile, isCurrent, appearance) {
   const mode = privacyMode(profile)
-  const label = `Privacidad: ${PRIVACY_MODES[mode]}`
-  if (!isCurrent) return `${label} · se aplica al abrir este perfil`
+  const label = tr(`Privacidad: ${modeName(mode)}`, `Privacy: ${modeName(mode)}`)
+  if (!isCurrent) return tr(`${label} · se aplica al abrir este perfil`, `${label} · applies when this profile opens`)
   const active = appearance?.native?.status === 'applied' ? appearance.native.privacyMode : undefined
   if (!Object.hasOwn(PRIVACY_MODES, active ?? '')) return label
-  return active === mode ? `${label} · activo` : `${label} · se aplicará al reiniciar Kitsune`
+  return active === mode ? tr(`${label} · activo`, `${label} · active`) : tr(`${label} · se aplicará al reiniciar Kitsune`, `${label} · applies when Kitsune restarts`)
 }
 
 export function googleRetentionStatus(appearance, desired) {
@@ -105,7 +107,7 @@ export async function initializeProfiles({ announce = () => {}, onSnapshot = () 
   function confirmPrivacy(to) {
     const popup = $('#privacy-dialog')
     if (!popup) return Promise.resolve(true)
-    $('#privacy-dialog-title').textContent = `¿Pasar a ${PRIVACY_MODES[to]}?`
+    $('#privacy-dialog-title').textContent = tr(`¿Pasar a ${modeName(to)}?`, `Switch to ${modeName(to)}?`)
     $('#privacy-dialog-effect').textContent = PRIVACY_EFFECTS[to]
     popup.querySelectorAll('.privacy-card').forEach(card => { card.dataset.target = String(card.dataset.mode === to) })
     popup.returnValue = ''
@@ -269,9 +271,9 @@ export async function initializeProfiles({ announce = () => {}, onSnapshot = () 
     if (current) {
       avatar($('#current-profile-avatar'), current)
       $('#current-profile-name').textContent = current.name
-      $('#welcome-line').textContent = `Bienvenido, ${current.name}`
-      trigger.setAttribute('aria-label', `Usuarios. Esta pestaña es de ${current.name}`)
-      trigger.title = `Esta pestaña es de ${current.name}`
+      $('#welcome-line').textContent = tr(`Bienvenido, ${current.name}`, `Welcome, ${current.name}`)
+      trigger.setAttribute('aria-label', tr(`Usuarios. Esta pestaña es de ${current.name}`, `Users. This tab belongs to ${current.name}`))
+      trigger.title = tr(`Esta pestaña es de ${current.name}`, `This tab belongs to ${current.name}`)
     }
     renderList()
     const profile = selectedProfile()
@@ -448,11 +450,11 @@ export async function initializeProfiles({ announce = () => {}, onSnapshot = () 
     const to = button.dataset.privacySwitch
     if (!profile || busy || !ready || to === privacyMode(profile) || !(await confirmPrivacy(to))) return
     const result = await mutate(`/api/profiles/${encodeURIComponent(profile.id)}`, 'PATCH',
-      { name: profile.name, email: profile.email || '', color: profile.color, privacyMode: to }, `Pasando a ${PRIVACY_MODES[to]}…`)
+      { name: profile.name, email: profile.email || '', color: profile.color, privacyMode: to }, tr(`Pasando a ${modeName(to)}…`, `Switching to ${modeName(to)}…`))
     if (!result) return
     $('#profiles-operation').textContent = profile.id === snapshot.currentId
-      ? `${profile.name}: modo ${PRIVACY_MODES[to]}. Se aplica al volver a abrir Kitsune.`
-      : `${profile.name}: modo ${PRIVACY_MODES[to]}. Se aplica al abrir este perfil.`
+      ? tr(`${profile.name}: modo ${modeName(to)}. Se aplica al volver a abrir Kitsune.`, `${profile.name}: ${modeName(to)} mode. It applies when Kitsune opens again.`)
+      : tr(`${profile.name}: modo ${modeName(to)}. Se aplica al abrir este perfil.`, `${profile.name}: ${modeName(to)} mode. It applies when this profile opens.`)
     dialog.querySelector(`[data-privacy-switch="${to}"]`)?.focus({ preventScroll: true })
   }))
   $('#profile-photo')?.addEventListener('change', async event => {
@@ -523,7 +525,7 @@ export async function initializeProfiles({ announce = () => {}, onSnapshot = () 
   $('#profile-open').addEventListener('click', async () => {
     const profile = selectedProfile()
     if (!profile || busy || !ready || profile.id === snapshot.currentId) return
-    setBusy(true, `Cambiando a ${profile.name}…`)
+    setBusy(true, tr(`Cambiando a ${profile.name}…`, `Switching to ${profile.name}…`))
     const sent = await switchTo(profile.id).catch(() => false)
     // Si la pestaña sigue aquí, el cambio no ha llegado (habría pasado a ser del otro usuario).
     setTimeout(() => { if (busy) { setBusy(false); notice('No se ha podido cambiar de usuario. Vuelve a intentarlo.') } }, sent ? 6000 : 0)

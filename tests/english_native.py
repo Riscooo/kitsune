@@ -4,11 +4,20 @@ Lo nuevo de Kitsune (paleta, espacios, modo compacto, vista rápida, traer de ot
 sale en inglés cuando la interfaz está en inglés; en castellano, como siempre (las demás pruebas).
 """
 import argparse
+import importlib.util
 import json
 from pathlib import Path
 import tempfile
+import threading
 
-from browser_smoke import WebDriver, prepare_profile, eventually
+from browser_smoke import ROOT, WebDriver, prepare_profile, eventually
+
+spec = importlib.util.spec_from_file_location('appearance', ROOT / 'install/appearance.py')
+appearance = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(appearance)
+home_spec = importlib.util.spec_from_file_location('native_test_home', ROOT / 'install/home-server.py')
+home = importlib.util.module_from_spec(home_spec)
+home_spec.loader.exec_module(home)
 
 
 def main():
@@ -20,8 +29,19 @@ def main():
     profile, _ = prepare_profile(root)
     with (profile / 'user.js').open('a') as prefs:
         prefs.write('user_pref("intl.locale.requested", "en-US");\n')
+    state = root / 'state'; state.mkdir()
+    (root / 'native').mkdir(); (root / 'native/kitsune-appearance.sys.mjs').write_text('// disponible')
+    profiles = home.profiles_module.ProfileManager(root, state)
+    profiles.snapshot()
+    manager = appearance.AppearanceManager(root, state)
+    server = home.create_server(profile / 'start', state / 'home.json', port=0, profiles=profiles, appearance=manager)
+    worker = threading.Thread(target=server.serve_forever, daemon=True); worker.start()
+    origin = f'http://127.0.0.1:{server.server_port}'
     report = {'root': str(root), 'checks': []}
     driver = None
+
+    def content(script):
+        driver.context('content'); return driver.script(script)
 
     def check(name):
         report['checks'].append(name); print('PASS ' + name, flush=True)
@@ -63,9 +83,30 @@ def main():
         assert heading == 'Bring from another browser', heading
         chrome("document.getElementById('kitsune-import-panel').hidePopup()")
         check('Vista rápida y «Bring from another browser» en inglés')
+
+        # «Tu inicio» y su ayuda: el idioma lo dice Kitsune (/api/idioma), no la página.
+        eventually(lambda: manager.language()['locale'].startswith('en'), timeout=15)
+        driver.navigate(origin + '/')
+        eventually(lambda: content("return document.documentElement.lang") == 'en', timeout=15)
+        eventually(lambda: content("return document.getElementById('welcome-line').textContent").startswith('Welcome'), timeout=15)
+        placeholder = content("return document.getElementById('query').placeholder")
+        assert placeholder == 'Search Google or type a URL', placeholder
+        driver.click('#settings-open')
+        heading = eventually(lambda: (h := content("return document.getElementById('settings-title').textContent")) == 'Your home' and h, timeout=10)
+        tabs = content("return [...document.querySelectorAll('[data-tabs]')].map(b => b.textContent).join(' / ')")
+        assert tabs == 'Top / Side / Icons', tabs
+        spanish = content("""const out = []; const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+          for (let n = walker.nextNode(); n; n = walker.nextNode()) { const e = n.parentElement; if (!e || e.closest('[hidden], script, style, dialog:not([open])')) continue;
+            if (/[áéíóúñ¿]/i.test(n.nodeValue) && e.getClientRects().length) out.push(n.nodeValue.trim()) } return out""")
+        assert not spanish, spanish
+        driver.navigate(origin + '/ayuda/')
+        eventually(lambda: content("return document.querySelector('main[lang=en]') && !document.querySelector('main[lang=en]').hidden"), timeout=10)
+        assert content("return document.querySelector('main[lang=en] h1').textContent") == 'Kitsune help'
+        check(f'«Tu inicio» y su ayuda en inglés, sin nada en castellano a la vista («{heading}», «{tabs}»)')
         report['status'] = 'passed'
     finally:
         if driver: driver.close()
+        server.shutdown(); server.server_close(); worker.join(timeout=3)
         (evidence / 'report.json').write_text(json.dumps(report, indent=2, ensure_ascii=False))
         print(str(evidence), flush=True)
 

@@ -1,5 +1,6 @@
 import { safeLink } from './navigation.mjs'
 import { $, icon } from './dialogs.mjs'
+import { tr } from './idioma.mjs'
 
 export function editLinks(current, { item, id = item?.id, expected, remove = false }) {
   const existing = current.links.find(link => link.id === id)
@@ -48,7 +49,7 @@ export function initializeShortcuts({ store, announce }) {
       if (editing) {
         const button = document.createElement('button')
         button.className = 'link-edit'; button.type = 'button'
-        button.setAttribute('aria-label', `Editar ${item.name}`)
+        button.setAttribute('aria-label', tr(`Editar ${item.name}`, `Edit ${item.name}`))
         button.append(icon('edit')); button.disabled = busy || !store.ready
         button.addEventListener('click', () => open(item)); wrapper.append(button)
       }

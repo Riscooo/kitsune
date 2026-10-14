@@ -12,9 +12,18 @@ const TOPICS = [
 ]
 // /ayuda/<tema> en el servidor de Linux; ayuda.html?tema=<tema> en el inicio integrado.
 const topic = (new URLSearchParams(location.search).get('tema') ?? decodeURIComponent(location.pathname.split('/').filter(Boolean).slice(1).join('/'))).toLowerCase()
+// En el idioma de Kitsune (lo apunta «Tu inicio», del mismo origen): inglés si no es castellano.
+let english = false
+try { english = !/^es\b/i.test(localStorage.getItem('kitsune-idioma') ?? 'es') } catch { /* sin almacenamiento: castellano */ }
+if (english) {
+  document.documentElement.lang = 'en'
+  document.title = 'Kitsune · Help'
+  document.querySelector('main[lang=es]').hidden = true
+  document.querySelector('main[lang=en]').hidden = false
+}
 const match = topic && !location.hash ? TOPICS.find(([pattern]) => pattern.test(topic)) : null
 if (match) {
-  const section = document.getElementById(match[1])
+  const section = document.getElementById((english ? 'en-' : '') + match[1])
   section?.classList.add('help-highlight')
   section?.scrollIntoView({ block: 'start' })
 }

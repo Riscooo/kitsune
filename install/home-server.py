@@ -569,6 +569,10 @@ class HomeHandler(BaseHTTPRequestHandler):
         if path == "/api/rendimiento":
             self.json_response(200, self.server.memory(), head=head)
             return
+        if path == "/api/idioma":
+            appearance = self.server.appearance
+            self.json_response(200, appearance.language() if appearance is not None else {"locale": "es-ES"}, head=head)
+            return
         if path == "/api/tintas":
             self.json_response(200, {"tintas": list(tintas_module.load().values())}, head=head)
             return

@@ -1,5 +1,7 @@
 // Primero el puente: en el inicio integrado responde a /api/ antes de que nadie pregunte.
 import { integrated } from './bridge.mjs'
+// Después, el idioma: lo demás ya se pinta en el idioma de Kitsune.
+import { initializeLanguage, tr } from './idioma.mjs'
 import { resolveNavigation } from './navigation.mjs'
 import { initializeProfiles } from './profiles.mjs'
 import { initializeSwitcher } from './switcher.mjs'
@@ -23,6 +25,7 @@ const announce = message => {
   $('#status').textContent = message; $('#status').hidden = !message
   toastTimer = setTimeout(() => { $('#status').hidden = true }, 4000)
 }
+void initializeLanguage()
 const toggles = { 'motion-toggle': 'motion', 'newtab-toggle': 'newTab', 'brand-toggle': 'brand', 'minimize-toggle': 'minimize' }
 const store = createSettingsStore({
   onChange(settings, state) {
@@ -67,7 +70,7 @@ async function updateMemory() {
     const response = await fetch('/api/rendimiento', { credentials: 'omit', cache: 'no-store' })
     const value = await response.json()
     $('#memory-status').textContent = Number.isFinite(value?.memoryMB)
-      ? `Ahora Kitsune usa ${value.memoryMB >= 1024 ? `${(value.memoryMB / 1024).toLocaleString('es-ES', { maximumFractionDigits: 1 })} GB` : `${value.memoryMB} MB`} de RAM en este perfil (${value.processes} procesos).`
+      ? (size => tr(`Ahora Kitsune usa ${size} de RAM en este perfil (${value.processes} procesos).`, `Kitsune is using ${size} of RAM in this profile (${value.processes} processes).`))(value.memoryMB >= 1024 ? `${(value.memoryMB / 1024).toLocaleString(tr('es-ES', 'en-US'), { maximumFractionDigits: 1 })} GB` : `${value.memoryMB} MB`)
       : ''
   } catch { $('#memory-status').textContent = '' }
 }
@@ -158,8 +161,8 @@ document.querySelectorAll('[data-mode]').forEach(button => button.addEventListen
 }))
 function updateClock() {
   const now = new Date()
-  $('#clock-time').dateTime = now.toISOString(); $('#clock-time').textContent = new Intl.DateTimeFormat('es-ES', { hour: '2-digit', minute: '2-digit' }).format(now)
-  $('#date').dateTime = now.toISOString(); $('#date').textContent = new Intl.DateTimeFormat('es-ES', { weekday: 'long', day: 'numeric', month: 'long' }).format(now)
+  $('#clock-time').dateTime = now.toISOString(); $('#clock-time').textContent = new Intl.DateTimeFormat(tr('es-ES', 'en-US'), { hour: '2-digit', minute: '2-digit' }).format(now)
+  $('#date').dateTime = now.toISOString(); $('#date').textContent = new Intl.DateTimeFormat(tr('es-ES', 'en-US'), { weekday: 'long', day: 'numeric', month: 'long' }).format(now)
 }
 updateClock()
 const clockTimer = setInterval(() => { if (!document.hidden) updateClock() }, 1000)

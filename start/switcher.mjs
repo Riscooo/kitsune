@@ -3,6 +3,7 @@
  * las demás pestañas no se tocan. */
 import { paintAvatar } from './avatar.mjs'
 import { profileInitials } from './profiles.mjs'
+import { tr } from './idioma.mjs'
 
 const USER_ID = /^(default|p-[0-9a-f]{16})$/u
 
@@ -47,7 +48,7 @@ export function initializeSwitcher({ integrated, onManage = () => {}, onAdd = ()
   async function change(profile) {
     if (switching || !snapshot) return false
     switching = true
-    status(`Cambiando a ${profile.name}…`)
+    status(tr(`Cambiando a ${profile.name}…`, `Switching to ${profile.name}…`))
     card.querySelectorAll('[data-user-id]').forEach(button => { button.disabled = true })
     let sent = false
     try { sent = await switchTo(profile.id, { integrated, token: snapshot.token }) } catch { sent = false }
@@ -66,7 +67,7 @@ export function initializeSwitcher({ integrated, onManage = () => {}, onAdd = ()
     const me = snapshot?.profiles.find(profile => profile.id === snapshot.currentId)
     if (!me) return
     paintAvatar($('#users-card-avatar'), me, profileInitials(me.name))
-    $('#users-card-hello').textContent = `Hola, ${me.name}`
+    $('#users-card-hello').textContent = tr(`Hola, ${me.name}`, `Hi, ${me.name}`)
     $('#users-card-email').textContent = me.email
     $('#users-card-email').hidden = !me.email
     const list = $('#users-card-list')
@@ -89,7 +90,7 @@ export function initializeSwitcher({ integrated, onManage = () => {}, onAdd = ()
       detail.textContent = profile.email || 'Cambiar en esta pestaña'
       copy.append(name, detail)
       button.append(glyph, copy)
-      button.setAttribute('aria-label', `Cambiar esta pestaña a ${profile.name}`)
+      button.setAttribute('aria-label', tr(`Cambiar esta pestaña a ${profile.name}`, `Switch this tab to ${profile.name}`))
       button.addEventListener('click', () => void change(profile))
       list.append(button)
     }
