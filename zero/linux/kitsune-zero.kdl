@@ -1,7 +1,8 @@
 // Kitsune Zero: desenfoque detrás de su ventana de cristal (niri 26.04 o posterior).
 // Fuera de Zero la ventana de Kitsune es opaca, así que esta regla no se nota.
 window-rule {
-    match app-id="^kitsune-browser$"
+    // Todos los perfiles: «kitsune-browser» el de siempre, «kitsune-p-<id>» los demás y «kitsune» el motor.
+    match app-id="^kitsune(-browser|-p-[0-9a-f]+)?$"
     background-effect {
         blur true
     }

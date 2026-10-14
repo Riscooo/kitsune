@@ -29,7 +29,6 @@ class NiriRuleTests(unittest.TestCase):
     def test_adds_the_rule_file_and_one_include_with_a_backup(self):
         niri, result = self.run_script()
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertIn('app-id="^kitsune-browser$"', (niri / "kitsune-zero.kdl").read_text())
         self.assertIn("blur true", (niri / "kitsune-zero.kdl").read_text())
         config = (niri / "config.kdl").read_text()
         self.assertTrue(config.startswith("// mi configuración\n"))
@@ -37,6 +36,19 @@ class NiriRuleTests(unittest.TestCase):
         backups = list(niri.glob("config.kdl.pre-kitsune-zero-*"))
         self.assertEqual(len(backups), 1)
         self.assertEqual(backups[0].read_text(), "// mi configuración\n")
+
+    def test_the_rule_covers_every_kitsune_profile_and_nothing_else(self):
+        # Cada perfil de Kitsune es una ventana con su app-id (install/profiles.py): «kitsune-browser»
+        # el de siempre, «kitsune-p-<16 hex>» los demás, y «kitsune» el motor a secas.
+        import re
+        rule = (ROOT / "zero/linux/kitsune-zero.kdl").read_text()
+        patterns = re.findall(r'match app-id="([^"]+)"', rule)
+        self.assertTrue(patterns)
+        matches = lambda app_id: any(re.search(pattern, app_id) for pattern in patterns)
+        for app_id in ("kitsune-browser", "kitsune-p-0123456789abcdef", "kitsune"):
+            self.assertTrue(matches(app_id), app_id)
+        for app_id in ("kitty", "kitsune-browser-otro", "org.kitsune.algo", "firefox"):
+            self.assertFalse(matches(app_id), app_id)
 
     def test_running_it_again_changes_nothing(self):
         niri, _ = self.run_script()
