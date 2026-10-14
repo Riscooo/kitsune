@@ -393,3 +393,13 @@ body[data-motion=off] *, body[data-motion=off] *::before, body[data-motion=off] 
 .privacy-line .privacy-report { appearance: none; padding: 0; border: 0; background: none; color: var(--secondary, var(--text)); font: inherit; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
 .privacy-line .privacy-report:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 3px; }
 :root[data-background=on] .privacy-line { text-shadow: 0 0 3px var(--bg), 0 0 14px var(--bg); }
+
+/* Tintas: una muestra por tema de color (fondo, acento, secundario y tinta). */
+.tinta-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 8px; margin: 4px 0 6px; }
+.tinta { appearance: none; display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 8px 6px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); color: var(--text); font: inherit; font-size: 12px; cursor: pointer; }
+.tinta:hover { background: var(--hover); }
+.tinta[aria-checked=true] { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+.tinta:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.tinta:disabled { cursor: default; opacity: .6; }
+.tinta-swatch { display: block; width: 100%; height: 30px; border-radius: 8px; border: 1px solid color-mix(in srgb, var(--swatch-text) 14%, transparent);
+  background: linear-gradient(90deg, var(--swatch-bg) 0 46%, var(--swatch-primary) 46% 70%, var(--swatch-secondary) 70% 88%, var(--swatch-text) 88%); }

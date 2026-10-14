@@ -53,6 +53,7 @@ export const DEFAULT_DATA = Object.freeze({
   minimize: true,
   windowButtons: 'auto',
   tabs: 'arriba',
+  tinta: 'papel',
 })
 // Botones de la ventana: los de Kitsune, los del sistema o según el sistema (auto: los de Apple en macOS).
 export const WINDOW_BUTTONS = Object.freeze(['auto', 'kitsune', 'sistema'])
@@ -98,6 +99,7 @@ export function validateSettings(value, base = null) {
   if (typeof data.minimize !== 'boolean') throw invalid('Las opciones de la ventana no son válidas.')
   if (!WINDOW_BUTTONS.includes(data.windowButtons)) throw invalid('Las opciones de la ventana no son válidas.')
   if (!TABS.includes(data.tabs)) throw invalid('La posición de las pestañas no es válida.')
+  if (!TINTAS.some(tinta => tinta.id === data.tinta)) throw invalid('Esa tinta no está en el catálogo.')
   if (!['normal', 'ahorro'].includes(data.performance) || ![1024, 2048, 4096].includes(data.ramLimit)) throw invalid('El modo de rendimiento no es válido.')
   if (data.background !== null && (typeof data.background !== 'string' || !HASH.test(data.background))) throw invalid('El fondo no es válido.')
   const modules = data.modules
@@ -160,7 +162,7 @@ export const PALETTES = Object.freeze({
 export function appearanceControl(settings, { remember = false, backgroundExists = true } = {}) {
   const background = settings.background && backgroundExists ? settings.background : null
   return {
-    version: 8, palette: { ...PALETTES[settings.theme] }, motion: settings.motion, googleRemember: remember === true,
+    version: 8, palette: { ...(TINTAS.find(tinta => tinta.id === settings.tinta) ?? TINTAS[0])[settings.theme] }, motion: settings.motion, googleRemember: remember === true,
     theme: settings.theme, background, windowControls: settings.windowControls, brand: settings.brand,
     performance: settings.performance, ramLimit: settings.ramLimit, minimize: settings.minimize,
     windowButtons: settings.windowButtons, tabs: settings.tabs,
@@ -372,3 +374,183 @@ export function validPrivacy(value, now = Date.now()) {
   }
   return out
 }
+
+// @@KITSUNE_TINTAS_BEGIN@@
+// Generado por tools/tintas.py desde start/tintas.json. No editar.
+export const TINTAS = Object.freeze([
+  {
+    "id": "papel",
+    "name": "Papel",
+    "author": "Kitsune",
+    "claro": {
+      "bg": "#f6f5f1",
+      "surface": "#fbfaf7",
+      "surfaceHigh": "#e8ece4",
+      "text": "#252d2b",
+      "muted": "#59625c",
+      "outline": "#c7cdc4",
+      "primary": "#963d32",
+      "primaryContainer": "#eadfda",
+      "secondary": "#496b60",
+      "tertiary": "#73786f"
+    },
+    "oscuro": {
+      "bg": "#161a19",
+      "surface": "#1e2321",
+      "surfaceHigh": "#2a302d",
+      "text": "#ebe8e0",
+      "muted": "#a9b0a8",
+      "outline": "#3f4743",
+      "primary": "#e0806b",
+      "primaryContainer": "#4b2a23",
+      "secondary": "#8fb8aa",
+      "tertiary": "#8d9389"
+    }
+  },
+  {
+    "id": "sakura",
+    "name": "Sakura",
+    "author": "Kitsune",
+    "claro": {
+      "bg": "#f8f2f2",
+      "surface": "#fdf9f9",
+      "surfaceHigh": "#f0e3e5",
+      "text": "#2e2326",
+      "muted": "#6a565b",
+      "outline": "#dcc7cb",
+      "primary": "#a8365a",
+      "primaryContainer": "#f6dce4",
+      "secondary": "#7a4f66",
+      "tertiary": "#8a7479"
+    },
+    "oscuro": {
+      "bg": "#1c1517",
+      "surface": "#241b1e",
+      "surfaceHigh": "#2f2427",
+      "text": "#f2e7e9",
+      "muted": "#bba5aa",
+      "outline": "#4a3a3f",
+      "primary": "#f08caa",
+      "primaryContainer": "#5a2433",
+      "secondary": "#dba8c1",
+      "tertiary": "#a58f95"
+    }
+  },
+  {
+    "id": "bambu",
+    "name": "Bambú",
+    "author": "Kitsune",
+    "claro": {
+      "bg": "#f2f5ef",
+      "surface": "#f9fbf7",
+      "surfaceHigh": "#e3eadc",
+      "text": "#22301f",
+      "muted": "#53634c",
+      "outline": "#c3cfba",
+      "primary": "#356b31",
+      "primaryContainer": "#dbeed6",
+      "secondary": "#556532",
+      "tertiary": "#6f7a69"
+    },
+    "oscuro": {
+      "bg": "#141a13",
+      "surface": "#1b2219",
+      "surfaceHigh": "#253023",
+      "text": "#e5ede1",
+      "muted": "#a3b39b",
+      "outline": "#3a4836",
+      "primary": "#8fd081",
+      "primaryContainer": "#26421f",
+      "secondary": "#c3d48e",
+      "tertiary": "#8a9783"
+    }
+  },
+  {
+    "id": "indigo",
+    "name": "Índigo",
+    "author": "Kitsune",
+    "claro": {
+      "bg": "#f1f3f7",
+      "surface": "#f9fafc",
+      "surfaceHigh": "#e1e6ef",
+      "text": "#1f2533",
+      "muted": "#525c70",
+      "outline": "#c4ccda",
+      "primary": "#2f4f8f",
+      "primaryContainer": "#dbe4f6",
+      "secondary": "#3f5f80",
+      "tertiary": "#6c7484"
+    },
+    "oscuro": {
+      "bg": "#12151c",
+      "surface": "#191d26",
+      "surfaceHigh": "#232937",
+      "text": "#e4e8f1",
+      "muted": "#a0aac0",
+      "outline": "#374055",
+      "primary": "#93b3f2",
+      "primaryContainer": "#22325a",
+      "secondary": "#9cc0e0",
+      "tertiary": "#8790a3"
+    }
+  },
+  {
+    "id": "noche",
+    "name": "Noche y oro",
+    "author": "Kitsune",
+    "claro": {
+      "bg": "#f5f3ee",
+      "surface": "#fbfaf6",
+      "surfaceHigh": "#e9e5da",
+      "text": "#242220",
+      "muted": "#5c574d",
+      "outline": "#cfc8b8",
+      "primary": "#7a5c14",
+      "primaryContainer": "#f0e5c8",
+      "secondary": "#5b5446",
+      "tertiary": "#777064"
+    },
+    "oscuro": {
+      "bg": "#0f0f10",
+      "surface": "#17171a",
+      "surfaceHigh": "#212125",
+      "text": "#ecebe6",
+      "muted": "#a7a59c",
+      "outline": "#36363b",
+      "primary": "#e0b860",
+      "primaryContainer": "#4a3a14",
+      "secondary": "#c9b98f",
+      "tertiary": "#8f8d86"
+    }
+  },
+  {
+    "id": "arena",
+    "name": "Arena",
+    "author": "Kitsune",
+    "claro": {
+      "bg": "#f7f2ea",
+      "surface": "#fcf9f3",
+      "surfaceHigh": "#ece3d4",
+      "text": "#2f2820",
+      "muted": "#665a4a",
+      "outline": "#d8cbb6",
+      "primary": "#a2481f",
+      "primaryContainer": "#f3dccd",
+      "secondary": "#6f5a2e",
+      "tertiary": "#817461"
+    },
+    "oscuro": {
+      "bg": "#1a1612",
+      "surface": "#221d18",
+      "surfaceHigh": "#2e2721",
+      "text": "#efe7dc",
+      "muted": "#b5a893",
+      "outline": "#473e33",
+      "primary": "#ee9a6c",
+      "primaryContainer": "#55301c",
+      "secondary": "#d8c08c",
+      "tertiary": "#9a8f7e"
+    }
+  }
+])
+// @@KITSUNE_TINTAS_END@@

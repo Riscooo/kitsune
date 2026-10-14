@@ -40,7 +40,7 @@ Tipografías: Noto Sans en la interfaz y Noto Serif en títulos, saludo y «kits
 Zen y Kitsune usan el mismo motor (Gecko 157): la diferencia está en la forma de
 navegar. 0.8 trae lo que hace que la gente use Zen y lo que Zen no tiene.
 
-- **Pestañas a un lado.** «Tu inicio» → Ajustes → Pestañas: Arriba, A un lado (las
+- **Pestañas a un lado.** «Tu inicio» → Ajustes → Pestañas: Arriba, Al lado (las
   verticales de Gecko, de papel y con un trazo de óxido en la activa) o Iconos (la barra
   estrecha que se abre al pasar el ratón). Viaja en el control de apariencia v8; el
   módulo solo cambia algo cuando cambia la elección y respeta unas verticales puestas a
@@ -69,6 +69,13 @@ navegar. 0.8 trae lo que hace que la gente use Zen y lo que Zen no tiene.
   Essentials), Firefox, LibreWolf, Floorp y Waterfox: marcadores, un año de historial y
   pestañas, leyendo una copia de sus archivos. Chrome, Edge, Brave…: el asistente de
   Gecko. La primera vez lo ofrece una barra; siempre está en el menú.
+- **Tintas** (`start/tintas.json`, `install/tintas.py`). Temas de color: una paleta de los
+  diez tokens `--kb-*` para Claro y otra para Oscuro, que pintan toda la ventana y el
+  inicio sin tocar el CSS de Gecko (así no se rompen con un Gecko nuevo). Seis de serie
+  (Papel, Sakura, Bambú, Índigo, Noche y oro, Arena); cada una tiene que leerse al menos tan
+  bien como Papel (contrastes comprobados al cargar el catálogo y en las pruebas). Se eligen
+  en «Tu inicio» → Apariencia; una tinta nueva de la comunidad es un PR a `tintas.json`
+  (`tools/tintas.py` la valida y la copia al inicio integrado).
 - **Modo ahorro a la vista** (`kitsune-saver.sys.mjs`). La RAM de Kitsune en la barra
   mientras el modo está puesto, su panel (dormir las que no usas, «No dormir nunca» esta
   web) y las pestañas dormidas, apagadas. `tools/ram_benchmark.py` compara la RAM (PSS de

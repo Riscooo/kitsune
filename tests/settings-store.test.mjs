@@ -18,7 +18,7 @@ test('theme and background accept only their enumerated values and a content has
 
 test('legacy preferences keep their values and receive safe module/wallpaper defaults', () => {
   const state = normalizeSettings({ art: false, motion: false, newTab: true, accent: 'pink', focus: true, links: [] })
-  assert.deepEqual(state, { art: false, motion: false, newTab: true, accent: 'pink', focus: true, links: [], wallpaper: 'night', themeSync: false, modules: { clock: true, shortcuts: true }, theme: 'claro', background: null, windowControls: 'izquierda', brand: true, performance: 'normal', ramLimit: 2048, minimize: true, windowButtons: 'auto', tabs: 'arriba' })
+  assert.deepEqual(state, { art: false, motion: false, newTab: true, accent: 'pink', focus: true, links: [], wallpaper: 'night', themeSync: false, modules: { clock: true, shortcuts: true }, theme: 'claro', background: null, windowControls: 'izquierda', brand: true, performance: 'normal', ramLimit: 2048, minimize: true, windowButtons: 'auto', tabs: 'arriba', tinta: 'papel' })
   assert.equal(normalizeSettings({ wallpaper: 'javascript:bad', accent: 'bad', themeSync: 'true' }).wallpaper, 'night')
   assert.equal(normalizeSettings({ themeSync: 'true' }).themeSync, false)
 })
@@ -175,4 +175,19 @@ test('tabs go on top, at one side or as icons at one side, and anything else is 
   assert.equal(normalizeSettings({ tabs: 'lado' }).tabs, 'lado')
   assert.equal(normalizeSettings({ tabs: 'iconos' }).tabs, 'iconos')
   assert.equal(normalizeSettings({ tabs: 'izquierda' }).tabs, 'arriba')
+})
+
+test('the tinta is an id from the catalogue (the server checks it), and anything odd is Papel', () => {
+  assert.equal(normalizeSettings({}).tinta, 'papel')
+  assert.equal(normalizeSettings({ tinta: 'sakura' }).tinta, 'sakura')
+  for (const tinta of ['Sakura', '../x', '', 7, 'a'.repeat(30)]) assert.equal(normalizeSettings({ tinta }).tinta, 'papel')
+})
+
+test('the home accepts the appearance control of every version the browser writes, v8 included', async () => {
+  const { parseAppearance } = await import('../start/appearance.mjs')
+  const palette = { bg: '#f8f2f2', surface: '#fdf9f9', surfaceHigh: '#f0e3e5', text: '#2e2326', muted: '#6a565b', outline: '#dcc7cb', primary: '#a8365a', primaryContainer: '#f6dce4', secondary: '#7a4f66', tertiary: '#8a7479' }
+  for (const version of [6, 7, 8]) {
+    assert.equal(parseAppearance({ version, fingerprint: 'a'.repeat(64), motion: true, palette, theme: 'claro', background: null }).version, version)
+  }
+  assert.throws(() => parseAppearance({ version: 99, fingerprint: 'a'.repeat(64), motion: true, palette, theme: 'claro', background: null }))
 })

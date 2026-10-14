@@ -30,6 +30,9 @@ const SETTINGS_CASES = [
   { ...base, tabs: 'lado' },
   { ...base, tabs: 'iconos' },
   { ...base, tabs: 'vertical' },
+  { ...base, tinta: 'sakura' },
+  { ...base, tinta: 'arena', theme: 'oscuro' },
+  { ...base, tinta: 'inventada' },
   { ...base, theme: 'sepia' },
   { ...base, ramLimit: 3000 },
   { ...base, background: 'xyz' },
@@ -210,4 +213,23 @@ print(json.dumps([appearance.valid_privacy(value) for value in json.load(sys.std
   assert.deepEqual(cases.map(value => core.validPrivacy(value)), expected)
   assert.equal(expected[0].available, true)
   assert.ok(expected.slice(1).every(value => value.available === false))
+})
+
+test('a tinta paints the same palette whether the integrated home or appearance.py writes the control', () => {
+  for (const tinta of core.TINTAS) {
+    for (const theme of ['claro', 'oscuro']) {
+      const settings = { ...base, theme, tinta: tinta.id }
+      const expected = python(`
+import importlib.util, json, sys, tempfile
+from pathlib import Path
+spec = importlib.util.spec_from_file_location('appearance', 'install/appearance.py')
+appearance = importlib.util.module_from_spec(spec); spec.loader.exec_module(appearance)
+root = Path(tempfile.mkdtemp())
+manager = appearance.AppearanceManager(root, root / 'state')
+print(json.dumps(manager.refresh(json.load(sys.stdin))['palette']))`, settings)
+      assert.deepEqual(core.appearanceControl(settings).palette, expected, `${tinta.id} ${theme}`)
+      assert.deepEqual(expected, tinta[theme])
+    }
+  }
+  assert.deepEqual(core.appearanceControl({ ...base, tinta: 'papel' }).palette, core.PALETTES.claro)
 })

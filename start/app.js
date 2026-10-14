@@ -10,12 +10,14 @@ import { $, initializeDialogs } from './dialogs.mjs'
 import { initializeNativeActions } from './native-actions.mjs'
 import { initializePresets } from './presets.mjs'
 import { initializePrivacyLine } from './privacy-line.mjs'
+import { initializeTintas } from './tintas.mjs'
 
 let toastTimer
 let mode = 'all'
 let shortcuts
 let appearance
 let presets
+let tintas
 const announce = message => {
   clearTimeout(toastTimer)
   $('#status').textContent = message; $('#status').hidden = !message
@@ -40,6 +42,7 @@ const store = createSettingsStore({
     $('#ram-row').hidden = settings.performance !== 'ahorro'
     $('#background-remove').hidden = !settings.background; $('#background-remove').disabled = !state.ready
     presets?.sync(settings, state.ready)
+    tintas?.render(settings, state.ready)
     $('#focus-toggle').setAttribute('aria-pressed', String(settings.focus)); $('#focus-toggle').disabled = !state.ready
     $('#focus-toggle').textContent = settings.focus ? 'Salir de enfoque' : 'Enfoque'
     $('#save-state').textContent = state.pending ? 'Guardando…' : state.ready ? 'Guardado en este perfil' : 'Sin conexión'
@@ -74,6 +77,7 @@ appearance = createAppearance({ getSettings: () => store.data, refreshSettings: 
 shortcuts = initializeShortcuts({ store, announce })
 initializeDialogs(); initializeNativeActions({ announce })
 void initializePrivacyLine($)
+void initializeTintas({ $, save, getSettings: () => store.data }).then(value => { tintas = value })
 presets = initializePresets({
   async choose(preset) {
     const result = preset ? await store.setBackground({ preset }) : { ok: await store.save({ background: null }) }

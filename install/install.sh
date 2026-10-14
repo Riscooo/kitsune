@@ -35,7 +35,7 @@ printf 'Copia previa a Kitsune 0.6 (%s). El perfil se copia aparte, cerrado, en 
     "$(date -Iseconds)" > "${backup}/LEEME.txt"
 
 # Programa, módulos y receta del motor.
-for file in appearance.py home-server.py media.py profiles.py wallpapers.py kitsune-engine.py engine_probe.py version.json; do
+for file in appearance.py home-server.py media.py profiles.py tintas.py wallpapers.py kitsune-engine.py engine_probe.py version.json; do
     install -m 600 "${repo}/install/${file}" "${root}/${file}"
 done
 chmod 700 "${root}/kitsune-engine.py"

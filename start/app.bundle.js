@@ -1060,7 +1060,8 @@
 			].includes(value?.ramLimit) ? value.ramLimit : 2048,
 			minimize: value?.minimize !== false,
 			windowButtons: ["kitsune", "sistema"].includes(value?.windowButtons) ? value.windowButtons : "auto",
-			tabs: TABS.includes(value?.tabs) ? value.tabs : "arriba"
+			tabs: TABS.includes(value?.tabs) ? value.tabs : "arriba",
+			tinta: typeof value?.tinta === "string" && /^[a-z][a-z0-9-]{1,23}$/u.test(value.tinta) ? value.tinta : "papel"
 		};
 	}
 	function mergeSettings(current, patch) {
@@ -1304,10 +1305,34 @@
 			3,
 			4,
 			5,
-			6
+			6,
+			7,
+			8
 		].includes(value?.version) || typeof value.fingerprint !== "string" || !/^[a-f\d]{64}$/iu.test(value.fingerprint) || typeof value.motion !== "boolean" || !value.palette || PALETTE_KEYS.some((key) => typeof value.palette[key] !== "string" || !/^#[a-f\d]{6}$/iu.test(value.palette[key]))) throw new Error("Paleta no válida.");
 		if (value.version >= 3 && (!Object.hasOwn(THEME_COLORS, value.theme) || value.background !== null && (typeof value.background !== "string" || !/^[a-f\d]{64}$/u.test(value.background)))) throw new Error("Tema no válido.");
 		return value;
+	}
+	const CSS_NAMES = Object.freeze({
+		bg: "bg",
+		surface: "surface",
+		surfaceHigh: "surface-high",
+		text: "text",
+		muted: "muted",
+		outline: "outline",
+		primary: "primary",
+		primaryContainer: "primary-container",
+		secondary: "secondary",
+		tertiary: "tertiary"
+	});
+	/** La paleta de la tinta en las variables del inicio (y guardada para pintarla antes la próxima vez). */
+	function paintPalette(root, theme, palette) {
+		for (const [key, name] of Object.entries(CSS_NAMES)) root.style.setProperty(`--kb-${name}`, palette[key]);
+		try {
+			localStorage.setItem("kitsune-paleta", JSON.stringify({
+				theme,
+				palette
+			}));
+		} catch {}
 	}
 	function appearanceStatus(value) {
 		if (value?.native?.available && value.native.status === "applied") return "Tema aplicado al navegador.";
@@ -1364,7 +1389,8 @@
 			const relevant = (settings) => JSON.stringify([
 				settings.motion,
 				settings.theme,
-				settings.background
+				settings.background,
+				settings.tinta
 			]);
 			const startedWith = relevant(getSettings());
 			const timeout = setTimeout(() => requestController.abort(), 4e3);
@@ -1379,6 +1405,7 @@
 				if (!alive || run !== generation) return false;
 				const settings = getSettings();
 				if (startedWith !== relevant(settings) || result.motion !== settings.motion) return false;
+				if (result.theme === settings.theme) paintPalette(document.documentElement, result.theme, result.palette);
 				onStatus(appearanceStatus(result));
 				return true;
 			} catch (error) {
@@ -1803,12 +1830,55 @@
 		}
 	}
 	//#endregion
+	//#region start/tintas.mjs
+	async function initializeTintas({ $, save, getSettings }) {
+		const grid = $("#tinta-grid");
+		let catalog = [];
+		try {
+			const response = await fetch("/api/tintas", {
+				credentials: "omit",
+				cache: "no-store",
+				signal: AbortSignal.timeout(5e3)
+			});
+			if (response.ok) catalog = (await response.json()).tintas ?? [];
+		} catch {}
+		const render = (settings = getSettings(), ready = true) => {
+			grid.replaceChildren(...catalog.map((tinta) => {
+				const palette = tinta[settings.theme] ?? tinta.claro;
+				const button = document.createElement("button");
+				button.type = "button";
+				button.className = "tinta";
+				button.setAttribute("role", "radio");
+				button.setAttribute("aria-checked", String(tinta.id === settings.tinta));
+				button.dataset.tinta = tinta.id;
+				button.disabled = !ready;
+				button.title = tinta.author && tinta.author !== "Kitsune" ? `${tinta.name} · de ${tinta.author}` : tinta.name;
+				const swatch = document.createElement("span");
+				swatch.className = "tinta-swatch";
+				swatch.setAttribute("aria-hidden", "true");
+				swatch.style.setProperty("--swatch-bg", palette.bg);
+				swatch.style.setProperty("--swatch-primary", palette.primary);
+				swatch.style.setProperty("--swatch-secondary", palette.secondary);
+				swatch.style.setProperty("--swatch-text", palette.text);
+				const name = document.createElement("span");
+				name.className = "tinta-name";
+				name.textContent = tinta.name;
+				button.append(swatch, name);
+				button.addEventListener("click", () => void save({ tinta: tinta.id }));
+				return button;
+			}));
+		};
+		render();
+		return { render };
+	}
+	//#endregion
 	//#region start/app.js
 	let toastTimer;
 	let mode = "all";
 	let shortcuts;
 	let appearance;
 	let presets;
+	let tintas;
 	const announce = (message) => {
 		clearTimeout(toastTimer);
 		$("#status").textContent = message;
@@ -1866,6 +1936,7 @@
 			$("#background-remove").hidden = !settings.background;
 			$("#background-remove").disabled = !state.ready;
 			presets?.sync(settings, state.ready);
+			tintas?.render(settings, state.ready);
 			$("#focus-toggle").setAttribute("aria-pressed", String(settings.focus));
 			$("#focus-toggle").disabled = !state.ready;
 			$("#focus-toggle").textContent = settings.focus ? "Salir de enfoque" : "Enfoque";
@@ -1912,6 +1983,13 @@
 	initializeDialogs();
 	initializeNativeActions({ announce });
 	initializePrivacyLine($);
+	initializeTintas({
+		$,
+		save,
+		getSettings: () => store.data
+	}).then((value) => {
+		tintas = value;
+	});
 	presets = initializePresets({ async choose(preset) {
 		const result = preset ? await store.setBackground({ preset }) : { ok: await store.save({ background: null }) };
 		$("#background-status").textContent = result.ok ? BACKGROUND_HINT : result.error ?? "No se ha podido cambiar el fondo.";

@@ -5,9 +5,17 @@ const THEME_COLORS = Object.freeze({ claro: '#f6f5f1', oscuro: '#161a19' })
 // Papel (Claro) o sumi (Oscuro). El inicio pinta su paleta con CSS según
 // data-theme; la respuesta del servidor solo confirma lo que recibe el navegador.
 export function parseAppearance(value) {
-  if (![2, 3, 4, 5, 6].includes(value?.version) || typeof value.fingerprint !== 'string' || !/^[a-f\d]{64}$/iu.test(value.fingerprint) || typeof value.motion !== 'boolean' || !value.palette || PALETTE_KEYS.some(key => typeof value.palette[key] !== 'string' || !/^#[a-f\d]{6}$/iu.test(value.palette[key]))) throw new Error('Paleta no válida.')
+  if (![2, 3, 4, 5, 6, 7, 8].includes(value?.version) || typeof value.fingerprint !== 'string' || !/^[a-f\d]{64}$/iu.test(value.fingerprint) || typeof value.motion !== 'boolean' || !value.palette || PALETTE_KEYS.some(key => typeof value.palette[key] !== 'string' || !/^#[a-f\d]{6}$/iu.test(value.palette[key]))) throw new Error('Paleta no válida.')
   if (value.version >= 3 && (!Object.hasOwn(THEME_COLORS, value.theme) || (value.background !== null && (typeof value.background !== 'string' || !/^[a-f\d]{64}$/u.test(value.background))))) throw new Error('Tema no válido.')
   return value
+}
+
+const CSS_NAMES = Object.freeze({ bg: 'bg', surface: 'surface', surfaceHigh: 'surface-high', text: 'text', muted: 'muted', outline: 'outline',
+  primary: 'primary', primaryContainer: 'primary-container', secondary: 'secondary', tertiary: 'tertiary' })
+/** La paleta de la tinta en las variables del inicio (y guardada para pintarla antes la próxima vez). */
+export function paintPalette(root, theme, palette) {
+  for (const [key, name] of Object.entries(CSS_NAMES)) root.style.setProperty(`--kb-${name}`, palette[key])
+  try { localStorage.setItem('kitsune-paleta', JSON.stringify({ theme, palette })) } catch { /* sin almacenamiento */ }
 }
 
 export function appearanceStatus(value) {
@@ -59,7 +67,7 @@ export function createAppearance({ getSettings, refreshSettings = async () => {}
     controller?.abort()
     const requestController = new AbortController()
     controller = requestController
-    const relevant = settings => JSON.stringify([settings.motion, settings.theme, settings.background])
+    const relevant = settings => JSON.stringify([settings.motion, settings.theme, settings.background, settings.tinta])
     const startedWith = relevant(getSettings())
     const timeout = setTimeout(() => requestController.abort(), 4000)
     try {
@@ -70,6 +78,7 @@ export function createAppearance({ getSettings, refreshSettings = async () => {}
       const settings = getSettings()
       // Ignore a response computed before the most recent preference change.
       if (startedWith !== relevant(settings) || result.motion !== settings.motion) return false
+      if (result.theme === settings.theme) paintPalette(document.documentElement, result.theme, result.palette)
       onStatus(appearanceStatus(result))
       return true
     } catch (error) {

@@ -65,6 +65,11 @@ class AppearanceTests(unittest.TestCase):
         self.assertEqual(self.refresh(tabs="iconos")["tabs"], "iconos")
         with self.assertRaises(ValueError):
             self.refresh(tabs="vertical")
+        sakura = appearance.tintas.load()["sakura"]
+        self.assertEqual(self.refresh(tinta="sakura")["palette"], sakura["claro"])
+        self.assertEqual(self.refresh(tinta="sakura", theme="oscuro")["palette"], sakura["oscuro"])
+        with self.assertRaises(ValueError):
+            self.refresh(tinta="inventada")
         self.assertEqual(control["windowButtons"], "auto")
         self.assertEqual(self.refresh(windowButtons="sistema")["windowButtons"], "sistema")
         with self.assertRaises(ValueError):

@@ -29,6 +29,9 @@ from urllib.parse import urlsplit
 _profile_spec = importlib.util.spec_from_file_location("kitsune_local_profiles", Path(__file__).with_name("profiles.py"))
 profiles_module = importlib.util.module_from_spec(_profile_spec)
 _profile_spec.loader.exec_module(profiles_module)
+_tintas_spec = importlib.util.spec_from_file_location("kitsune_tintas", Path(__file__).with_name("tintas.py"))
+tintas_module = importlib.util.module_from_spec(_tintas_spec)
+_tintas_spec.loader.exec_module(tintas_module)
 
 
 MAX_BODY = 32 * 1024
@@ -94,6 +97,8 @@ DEFAULT_DATA = {
     "windowButtons": "auto",
     # Pestañas arriba, en una barra a un lado o a un lado solo con iconos.
     "tabs": "arriba",
+    # La tinta (tema de color) del catálogo start/tintas.json.
+    "tinta": "papel",
 }
 # Cabecera con el usuario de la pestaña (usuarios en la misma ventana).
 USER_HEADER = "X-Kitsune-Usuario"
@@ -133,6 +138,8 @@ def validate_data(value, base=None):
         raise InvalidSettings("Las opciones de la ventana no son válidas.")
     if value["tabs"] not in ("arriba", "lado", "iconos"):
         raise InvalidSettings("La posición de las pestañas no es válida.")
+    if value["tinta"] not in tintas_module.load():
+        raise InvalidSettings("Esa tinta no está en el catálogo.")
     if value["performance"] not in ("normal", "ahorro") or type(value["ramLimit"]) is not int or value["ramLimit"] not in (1024, 2048, 4096):
         raise InvalidSettings("El modo de rendimiento no es válido.")
     background = value["background"]
@@ -561,6 +568,9 @@ class HomeHandler(BaseHTTPRequestHandler):
             return
         if path == "/api/rendimiento":
             self.json_response(200, self.server.memory(), head=head)
+            return
+        if path == "/api/tintas":
+            self.json_response(200, {"tintas": list(tintas_module.load().values())}, head=head)
             return
         if path == "/api/privacidad":
             appearance = self.server.appearance

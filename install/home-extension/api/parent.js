@@ -536,6 +536,7 @@ this.kitsuneHome = class extends ExtensionAPI {
         return bytes(await readFile(wallpaperPath(wallpaper[1], true), 1024 * 1024), 'image/jpeg')
       }
       if (method === 'GET' && path === '/api/rendimiento') return json(200, await memory())
+      if (method === 'GET' && path === '/api/tintas') return json(200, { tintas: core.TINTAS })
       if (method === 'GET' && path === '/api/privacidad') {
         let value = null
         try { value = JSON.parse(await readText(PathUtils.join(chromeDir(), 'kitsune-privacy.json'), 4096)) } catch { /* aún no */ }

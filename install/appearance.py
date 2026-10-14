@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import contextlib
 import hashlib
+import importlib.util
 import json
 import os
 from pathlib import Path
@@ -15,6 +16,10 @@ import stat
 import tempfile
 import threading
 import time
+
+_tintas_spec = importlib.util.spec_from_file_location('kitsune_tintas', Path(__file__).with_name('tintas.py'))
+tintas = importlib.util.module_from_spec(_tintas_spec)
+_tintas_spec.loader.exec_module(tintas)
 
 KEYS = ('bg', 'surface', 'surfaceHigh', 'text', 'muted', 'outline', 'primary', 'primaryContainer', 'secondary', 'tertiary')
 # Kitsune «Tinta»: papel de InkShadow (src/theme/InkTheme.qml) en Claro y su
@@ -141,9 +146,13 @@ class AppearanceManager:
             tabs = settings.get('tabs', 'arriba')
             if tabs not in ('arriba', 'lado', 'iconos'):
                 raise ValueError('Invalid tabs option')
+            tinta = settings.get('tinta', tintas.DEFAULT)
+            catalog = tintas.load()
+            if tinta not in catalog:
+                raise ValueError('Invalid tinta')
             if background is not None and not background_path(self.profile, background).is_file():
                 background = None
-            palette = PALETTES[theme].copy()
+            palette = dict(catalog[tinta][theme])
             remember = False
             try:
                 registry = read_json(self.state_root / 'profiles.json', 1048576)

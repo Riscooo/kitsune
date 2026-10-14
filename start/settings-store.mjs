@@ -23,6 +23,7 @@ export function normalizeSettings(value = {}) {
     minimize: value?.minimize !== false,
     windowButtons: ['kitsune', 'sistema'].includes(value?.windowButtons) ? value.windowButtons : 'auto',
     tabs: TABS.includes(value?.tabs) ? value.tabs : 'arriba',
+    tinta: typeof value?.tinta === 'string' && /^[a-z][a-z0-9-]{1,23}$/u.test(value.tinta) ? value.tinta : 'papel',
   }
 }
 
