@@ -203,18 +203,18 @@
 }
 #main-window[zero] #nav-bar-customization-target { height: 32px !important; padding: 0 !important; gap: 0 !important; align-items: center !important; }
 
-/* Solo atrás, adelante, recargar, la dirección y el menú; lo demás, fuera de Zero. */
-#main-window[zero] #nav-bar > :not(#nav-bar-customization-target, #PanelUI-button, #zero-host, #zero-island-msg, #zero-island-progress, toolbartabstop),
-#main-window[zero] #nav-bar-customization-target > :not(#back-button, #forward-button, #stop-reload-button, #urlbar-container) { display: none !important; }
+/* Solo atrás, adelante, recargar, la dirección, las extensiones (si Gecko las enseña) y el menú; lo demás, fuera de Zero. */
+#main-window[zero] #nav-bar > :not(#nav-bar-customization-target, #PanelUI-button, #unified-extensions-button, #zero-host, #zero-island-msg, #zero-island-progress, toolbartabstop),
+#main-window[zero] #nav-bar-customization-target > :not(#back-button, #forward-button, #stop-reload-button, #urlbar-container, #unified-extensions-button) { display: none !important; }
 
 /* Los botones: fuera en reposo; al abrirse la isla entran cuando ya ha empezado a crecer (forma
    primero, contenido después). Escribiendo se van otra vez y queda el campo. */
-#main-window[zero] #nav-bar :is(#back-button, #forward-button, #stop-reload-button, #PanelUI-button) {
+#main-window[zero] #nav-bar :is(#back-button, #forward-button, #stop-reload-button, #unified-extensions-button, #PanelUI-button) {
   max-width: 0 !important; min-width: 0 !important; overflow: clip !important;
   opacity: 0 !important; filter: blur(3px) !important;
   transition: max-width var(--zero-t-morph) var(--zero-calm) var(--zero-wait), opacity var(--zero-t-fade) var(--zero-soft), filter var(--zero-t-fade) var(--zero-soft) !important;
 }
-#main-window[zero] #navigator-toolbox[zero-island="open"] #nav-bar :is(#back-button, #forward-button, #stop-reload-button, #PanelUI-button) {
+#main-window[zero] #navigator-toolbox[zero-island="open"] #nav-bar :is(#back-button, #forward-button, #stop-reload-button, #unified-extensions-button, #PanelUI-button) {
   max-width: 30px !important; opacity: .92 !important; filter: none !important;
   transition-delay: 0ms, var(--zero-enter), var(--zero-enter) !important;
 }
@@ -286,7 +286,7 @@
 }
 #main-window[zero] #navigator-toolbox[zero-island-alert] #zero-island-msg { opacity: 1 !important; filter: none !important; transition-delay: var(--zero-enter) !important; }
 #main-window[zero] #navigator-toolbox[zero-island-alert] #urlbar > .urlbar-input-container,
-#main-window[zero] #navigator-toolbox[zero-island-alert] #nav-bar :is(#back-button, #forward-button, #stop-reload-button, #PanelUI-button) { opacity: 0 !important; filter: blur(4px) !important; }
+#main-window[zero] #navigator-toolbox[zero-island-alert] #nav-bar :is(#back-button, #forward-button, #stop-reload-button, #unified-extensions-button, #PanelUI-button) { opacity: 0 !important; filter: blur(4px) !important; }
 
 /* Las sugerencias: bajo la isla entera (no bajo el campo), de su mismo ancho y un poco separadas,
    como una hoja de cristal aparte. Gecko las ancla al campo con anclaje de CSS, y la isla no sirve
@@ -531,12 +531,13 @@
 /* En reposo, una pastilla con el icono de la web; abierta, los botones sin el dominio. Escribiendo y
    con un aviso, como siempre (ahí sí hace falta texto). */
 #main-window[zero] #navigator-toolbox[zero-icons]:not([zero-island], [zero-island-alert]) { --zero-island-w: 56px !important; }
-#main-window[zero] #navigator-toolbox[zero-icons][zero-island="open"]:not([zero-island-alert]) { --zero-island-w: 184px !important; }
+#main-window[zero] #navigator-toolbox[zero-icons][zero-island="open"]:not([zero-island-alert]) { --zero-island-w: 214px !important; }
 #main-window[zero] #zero-host .zero-host-icon { display: none; flex: none; width: 16px; height: 16px; border-radius: 4px; }
 #main-window[zero] #navigator-toolbox[zero-icons] #zero-host :is(.zero-host-text, .zero-lock) { display: none !important; }
 #main-window[zero] #navigator-toolbox[zero-icons] #zero-host .zero-host-icon { display: block !important; }
-/* Abierta, el icono va en el hueco entre ↻ y ≡ (3 + 3 × 30 px a la izquierda, 3 + 30 a la derecha). */
-#main-window[zero] #navigator-toolbox[zero-icons][zero-island="open"] #zero-host { padding-inline: 93px 33px !important; }
+/* Abierta, el icono va en el hueco entre ↻ y los de la derecha (3 + 3 × 30 px a la izquierda; 3 + 2 × 30, las
+   extensiones y ≡, a la derecha). */
+#main-window[zero] #navigator-toolbox[zero-icons][zero-island="open"] #zero-host { padding-inline: 93px 63px !important; }
 
 /* ---------------------------------------------------------------- el menú de Kitsune (≡) en Zero */
 
@@ -769,3 +770,17 @@
 }
 #main-window[zero] #navigator-toolbox[zero-island-alert] #zero-island-progress[on] { opacity: .85 !important; }
 #main-window[zero] #nav-bar:is([zero-ink], :where(:root[zero-frame-ink]:not([zero-full])) *) #zero-island-progress { background: rgba(29, 35, 33, .14) !important; }
+
+/* ---------------------------------------------------------------- pantalla completa */
+
+/* Un vídeo (o lo que sea) a pantalla completa: toda la pantalla y nada de Zero encima. */
+:root[zero]:is([inDOMFullscreen], [inFullscreen]) #tabbrowser-tabpanels { margin: 0 !important; }
+:root[zero]:is([inDOMFullscreen], [inFullscreen]) #tabbrowser-tabpanels > .browserSidebarContainer { border-radius: 0 !important; box-shadow: none !important; }
+:root[zero]:is([inDOMFullscreen], [inFullscreen]) :is(#zero-rail, #zero-edge, #zero-mark, #zero-lights, #zero-grow, #zero-notch, #zero-pomo, #zero-settings, #zero-break, #zero-blocked, .zero-glass) { display: none !important; }
+/* Con F11 la isla se esconde arriba y baja al llevar el ratón al filo (como las barras de Gecko). */
+#main-window[zero][inFullscreen]:not([inDOMFullscreen]) #navigator-toolbox:not(:hover, [zero-island="typing"]) {
+  transform: translateY(-37px) !important; opacity: 0 !important;
+}
+#main-window[zero][inFullscreen]:not([inDOMFullscreen]) #navigator-toolbox {
+  transition: width var(--zero-t-morph) var(--zero-calm), transform var(--zero-t-morph) var(--zero-calm), opacity var(--zero-t-fade) var(--zero-soft) !important;
+}
