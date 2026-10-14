@@ -79,11 +79,27 @@ navegar. 0.8 trae lo que hace que la gente use Zen y lo que Zen no tiene.
 - **Modo ahorro a la vista** (`kitsune-saver.sys.mjs`). La RAM de Kitsune en la barra
   mientras el modo está puesto, su panel (dormir las que no usas, «No dormir nunca» esta
   web) y las pestañas dormidas, apagadas. `tools/ram_benchmark.py` compara la RAM (PSS de
-  todos los procesos) con los mismos sitios reales en Kitsune y en otros navegadores.
+  todos los procesos) con los mismos sitios reales en Kitsune y en otros navegadores. Con 20
+  webs y 4 minutos (14-10-2026): Kitsune con ahorro 1271 MB, Chrome 155 1475, Firefox 158
+  2567, Kitsune 2575 y Zen 1.23.2b 2638 (`web/ram.json`, en la web con `tools/web_ram.py`).
+- **Privacidad que se ve.** El inicio dice cuántos rastreadores ha parado Kitsune esta
+  semana (de la base de datos de protecciones de Gecko, en el equipo).
+- **En inglés de verdad.** Lo nuevo del navegador (`kitsune-i18n.sys.mjs`), «Tu inicio» y su
+  ayuda (`start/idioma.mjs` y `start/en.mjs`; el idioma lo da Kitsune por `/api/idioma`,
+  porque con la protección anti-huella la página siempre creería que es en-US). Un perfil
+  nuevo sale en el idioma del sistema; los de antes de 0.8 se quedan en castellano.
+- **Kitsune para Linux se actualiza solo** (`kitsune-updater.sys.mjs`): descarga el paquete
+  de la versión nueva, comprueba su SHA-256 con el `SHA256SUMS.txt` de la versión y lo
+  instala al cerrar Kitsune con su `instalar.sh`. Se apaga con `kitsune.update.auto`.
+- **Seguir a Firefox sin tocar nada** (`tools/seguir_firefox.py`). Con cada Gecko nuevo:
+  motor, 21 pruebas con el motor real, ajustes de fábrica, paquetes de los tres sistemas y
+  un borrador de versión en GitHub. Lo lanza cada día `kitsune-engine-update.timer`.
 
 Pruebas con el motor real: `vertical_tabs_native.py`, `spaces_native.py`,
-`layout_native.py`, `glance_native.py`, `palette_native.py`, `import_native.py` y
-`saver_native.py`, además de las unitarias de cada módulo (`native_*.test.mjs`).
+`layout_native.py`, `glance_native.py`, `palette_native.py`, `import_native.py`,
+`saver_native.py`, `english_native.py`, `locale_native.py` y `updater_native.py`, además de
+las unitarias de cada módulo (`native_*.test.mjs`). Todas a la vez:
+`python3 tools/pruebas_nativas.py`.
 
 ## Qué cambia en 0.7
 
