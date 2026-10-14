@@ -340,6 +340,21 @@ class RecipeTests(unittest.TestCase):
         with self.assertRaises(engine.EngineError):
             engine.tune_build(root)
 
+    def test_zero_is_built_in_as_its_own_folder_and_counts_for_the_fingerprint(self):
+        root = self.source_tree()
+        engine.integrate_native(root)
+        engine.integrate_native(root)
+        jar = (root / "browser/base/jar.mn").read_text()
+        self.assertEqual(jar.count(engine.ZERO_JAR_ENTRY), 1)
+        zero = root / "browser/base/content/zero"
+        for source in sorted((ROOT / "zero").rglob("*")):
+            relative = source.relative_to(ROOT / "zero")
+            if source.is_file() and relative.parts[0] in ("modules", "chrome", "assets"):
+                self.assertEqual((zero / relative.name).read_bytes(), source.read_bytes(), relative)
+        files = engine.input_files()
+        self.assertIn("zero/modules/zero-config.sys.mjs", files)
+        self.assertIn("zero/assets/zero-logo.svg", files)
+
     def test_native_integration_can_be_reapplied(self):
         root = self.source_tree()
         engine.integrate_native(root)

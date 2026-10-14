@@ -1,0 +1,7 @@
+{
+  "name": "Kitsune Zero",
+  "prefsPrefix": "kitsune.zero.",
+  "appId": "kitsune-browser",
+  "shortcut": { "key": "0", "modifiers": "accel,alt" },
+  "chromeBase": "chrome://browser/content/zero/"
+}

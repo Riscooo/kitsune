@@ -1,0 +1,15 @@
+/* Kitsune Zero · el aspecto. Lo carga zero.sys.mjs solo en las ventanas con Zero (por eso no lleva
+   @-moz-document): todo cuelga de :root[zero], y al apagar se quita la hoja entera. */
+:root[zero] {
+  --zero-on: 1;
+  /* Curvas y tiempos de Zero: todo frena despacio, nada rebota ni salta. */
+  --zero-calm: cubic-bezier(.32, .72, 0, 1);
+  --zero-soft: cubic-bezier(.4, 0, .2, 1);
+  --zero-t-morph: 620ms;
+  --zero-t-fade: 280ms;
+  --zero-t-move: 720ms;
+  --zero-t-color: 1400ms;
+}
+@media (prefers-reduced-motion: reduce) {
+  :root[zero] { --zero-t-morph: 1ms; --zero-t-fade: 1ms; --zero-t-move: 1ms; --zero-t-color: 1ms; }
+}

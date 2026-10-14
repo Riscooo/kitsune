@@ -58,7 +58,7 @@ NATIVE_FILES = ("kitsune-bootstrap.js", "kitsune-appearance.sys.mjs", "kitsune-u
                 "kitsune-spaces.sys.mjs", "kitsune-layout.sys.mjs", "kitsune-import.sys.mjs",
                 "kitsune-glance.sys.mjs", "kitsune-glance-child.sys.mjs", "kitsune-palette.sys.mjs", "kitsune-saver.sys.mjs", "kitsune-i18n.sys.mjs",
                 "kitsune-copia.sys.mjs", "kitsune-media.sys.mjs", "kitsune-keys.sys.mjs",
-                "kitsune-retoques.sys.mjs")
+                "kitsune-retoques.sys.mjs", "kitsune-zero-host.sys.mjs")
 # Inicio integrado (Windows y macOS, sin servidor local): la extensión inicio@kitsune
 # con la API del inicio (install/home-extension) y las páginas de start/, dentro del
 # motor en resource://builtin-addons/kitsune-home/. En el PC de Risco start/ está junto
@@ -76,6 +76,11 @@ HOME_JAR = "browser.jar:\n    builtin-addons/kitsune-home/ (extension/**)\n"
 # su copia de chrome/; en Windows y macOS viene del motor (chrome://browser/content/kitsune-chrome/).
 CHROME_STYLE = HERE / "templates/chrome" if (HERE / "templates/chrome").is_dir() else HERE.parent / "chrome"
 CHROME_JAR_ENTRY = "content/browser/kitsune-chrome/ (content/kitsune-chrome/**)"
+# Kitsune Zero (zero/ en la raíz del repositorio, o junto a kitsune-engine.py instalado): sus módulos,
+# su CSS y sus recursos van juntos en chrome://browser/content/zero/, separados de Kitsune.
+ZERO = HERE / "zero" if (HERE / "zero").is_dir() else HERE.parent / "zero"
+ZERO_PARTS = ("modules", "chrome", "assets")
+ZERO_JAR_ENTRY = "content/browser/zero/ (content/zero/**)"
 ICON_SIZES = (16, 22, 24, 32, 48, 64, 128, 256)
 BRAND_CONTENT = {
     "about-logo.png": "icon-192.png", "about-logo@2x.png": "icon-384.png",
@@ -479,6 +484,7 @@ def input_files():
         files[f"start/{name}"] = START / name
     for name in chrome_style_files():
         files[f"chrome/{name}"] = CHROME_STYLE / name
+    files.update(zero_files())
     return files
 
 
@@ -673,6 +679,20 @@ def integrate_home(source: Path, build_fp: str):
                                            "La lista de extensiones de Gecko"))
 
 
+def zero_files():
+    """Los archivos de Zero que van al motor: {«zero/<parte>/<nombre>»: ruta}, todos en una misma carpeta."""
+    files = {}
+    for part in ZERO_PARTS:
+        folder = ZERO / part
+        for path in sorted(folder.iterdir()) if folder.is_dir() else ():
+            if path.is_file():
+                files[f"zero/{part}/{path.name}"] = path
+    names = [Path(key).name for key in files]
+    if len(names) != len(set(names)):
+        raise EngineError("Kitsune Zero tiene dos archivos con el mismo nombre en partes distintas")
+    return files
+
+
 def chrome_style_files():
     return sorted(path.relative_to(CHROME_STYLE).as_posix() for path in CHROME_STYLE.rglob("*") if path.is_file())
 
@@ -682,6 +702,12 @@ def integrate_native(source: Path):
     content = source / "browser/base/content"
     for name in NATIVE_FILES:
         shutil.copyfile(NATIVE / name, content / name)
+    zero = content / "zero"
+    if zero.exists():
+        shutil.rmtree(zero)
+    zero.mkdir()
+    for path in zero_files().values():
+        shutil.copyfile(path, zero / path.name)
     style = content / "kitsune-chrome"
     if style.exists():
         shutil.rmtree(style)
@@ -706,6 +732,11 @@ def integrate_native(source: Path):
         line = next(line for line in text.splitlines(True) if line.strip() == anchor.strip())
         indent = line[:len(line) - len(line.lstrip())]
         jar.write_text(text.replace(line, line + f"{indent}{CHROME_JAR_ENTRY}\n", 1))
+    text = jar.read_text()
+    if ZERO_JAR_ENTRY not in text:
+        line = next(line for line in text.splitlines(True) if line.strip() == CHROME_JAR_ENTRY)
+        indent = line[:len(line) - len(line.lstrip())]
+        jar.write_text(text.replace(line, line + f"{indent}{ZERO_JAR_ENTRY}\n", 1))
     window = source / "browser/base/content/browser.xhtml"
     text = window.read_text()
     if KITSUNE_BOOTSTRAP not in text:

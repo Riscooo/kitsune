@@ -1,0 +1,81 @@
+/* Kitsune Zero · entrada.
+ *
+ * Zero es un modo de ventana: Ctrl+Alt+0 la pasa a Zero y la devuelve, con las mismas pestañas.
+ * Este módulo no importa nada de Kitsune: lo que necesita del navegador que lo lleva (textos,
+ * ajustes, atajos) se lo da un «anfitrión» en start(host). Así Zero se puede sacar algún día como
+ * navegador aparte sin tocar su código (ver zero/README.md).
+ *
+ * Cada pieza de Zero (marco, isla, raíl…) se registra con piece({ attach, detach }): al encender
+ * se le llama attach(win, ctx) y al apagar detach(win). El CSS, zero.css, solo se carga en las
+ * ventanas con Zero.
+ */
+import { readPrefs } from './zero-config.sys.mjs';
+
+const SHEET = 'chrome://browser/content/zero/zero.css';
+const REMEMBER = 'kitsune-zero';
+let host = null;
+const pieces = [];
+const decorated = new WeakSet();
+const listeners = new WeakMap(); // ventana → Set de funciones (active) => …
+
+const active = win => win.document.documentElement.hasAttribute('zero');
+
+function remembered(win) {
+  try { return win.SessionStore.getCustomWindowValue(win, REMEMBER) === '1'; } catch { return false; }
+}
+
+function remember(win, on) {
+  try { win.SessionStore.setCustomWindowValue(win, REMEMBER, on ? '1' : ''); } catch { /* sin sesión */ }
+}
+
+function sheet(win, on) {
+  const utils = win.windowUtils;
+  try {
+    if (on) utils.loadSheetUsingURIString(SHEET, utils.AUTHOR_SHEET);
+    else utils.removeSheetUsingURIString(SHEET, utils.AUTHOR_SHEET);
+  } catch { /* ya estaba (o ya no estaba) */ }
+}
+
+function toggle(win, on = !active(win)) {
+  if (on === active(win)) return;
+  const ctx = { host, onChange: fn => onChange(win, fn) };
+  if (on) {
+    win.document.documentElement.setAttribute('zero', '');
+    sheet(win, true);
+    for (const p of pieces) { try { p.attach(win, ctx); } catch (error) { console.error('Kitsune Zero:', error); } }
+  } else {
+    for (const p of [...pieces].reverse()) { try { p.detach(win); } catch (error) { console.error('Kitsune Zero:', error); } }
+    win.document.documentElement.removeAttribute('zero');
+    sheet(win, false);
+  }
+  remember(win, on);
+  for (const fn of listeners.get(win) ?? []) { try { fn(on); } catch { /* una escucha rota no para a las demás */ } }
+}
+
+function onChange(win, fn) {
+  if (!listeners.has(win)) listeners.set(win, new Set());
+  listeners.get(win).add(fn);
+  return () => listeners.get(win)?.delete(fn);
+}
+
+async function decorate(win) {
+  if (!host || decorated.has(win) || !win.gBrowser) return;
+  if (!win.gBrowserInit?.delayedStartupFinished) await win.delayedStartupPromise;
+  if (decorated.has(win) || !win.toolbar?.visible) return;
+  decorated.add(win);
+  host.keys?.add(win, 'kitsune-zero-key', '0', 'accel,alt', () => toggle(win));
+  const { always } = readPrefs(host.prefs, host.prefix);
+  if (always || remembered(win)) toggle(win, true);
+  // La sesión se restaura después de abrir la ventana: si esta estaba en Zero, vuelve en Zero.
+  win.addEventListener('SSWindowRestored', () => { if (remembered(win)) toggle(win, true); });
+}
+
+export const Zero = {
+  start(h) { host ??= h; },
+  decorate: win => decorate(win),
+  toggle: (win, on) => toggle(win, on),
+  active: win => active(win),
+  onChange: (win, fn) => onChange(win, fn),
+  /** Para las piezas de Zero (zero-frame, zero-island…): attach(win, ctx) y detach(win). */
+  piece(p) { if (!pieces.includes(p)) pieces.push(p); },
+};

@@ -3,7 +3,7 @@
 > **Para agentes:** SUB-SKILL OBLIGATORIA: superpowers:executing-plans (Risco pidió ponerse
 > directamente: lo ejecuta esta sesión). Los pasos usan casillas (`- [ ]`).
 
-**Objetivo:** Ctrl+Alt+Z convierte una ventana de Kitsune en Zero y la devuelve: ventana de cristal
+**Objetivo:** Ctrl+Alt+0 convierte una ventana de Kitsune en Zero y la devuelve: ventana de cristal
 (desenfoque del compositor o fondo del color de la web), web en tarjeta con ampliar, isla, raíl con
 efecto Dock, botones de ventana, cristal en vivo con texto adaptable, marca de agua y ajustes.
 
@@ -22,7 +22,7 @@ cristal en vivo, pruebas de Node (`node --test`) y pruebas con el motor real (We
 ## Restricciones globales
 
 - Ajustes con el prefijo `kitsune.zero.`, definidos solo en `zero/modules/zero-config.sys.mjs`.
-- Atajo `Ctrl+Alt+Z` (id `kitsune-zero-key`), por ventana.
+- Atajo `Ctrl+Alt+0` (id `kitsune-zero-key`), por ventana.
 - Medidas: tarjeta a 50/46/12/12 px (izquierda/arriba/derecha/abajo), radio 18 px, 10 px entre
   tarjetas; isla 176 → 400 → 560 px de ancho y siempre 32 px de alto, a 7 px del borde; raíl de
   36 px que se abre a 186 px; Dock `--s = 1 + 0,22·exp(−(d/26)²)`.
@@ -37,7 +37,7 @@ cristal en vivo, pruebas de Node (`node --test`) y pruebas con el motor real (We
 1. **Apagar Zero con la web ampliada, el raíl abierto o la isla escribiendo:** todo tiene que volver
    a la ventana normal, sin estados a medias. Lo prueba la tarea 1, que enciende y apaga en cada
    estado.
-2. **Una segunda ventana:** Ctrl+Alt+Z en una no puede tocar la otra. Tarea 1.
+2. **Una segunda ventana:** Ctrl+Alt+0 en una no puede tocar la otra. Tarea 1.
 3. **Pestañas fijadas, vista dividida (2 a 4) y vista rápida dentro de Zero:** las tarjetas
    separadas y la vista rápida flotando encima. Tarea 2 (tarjetas) y tarea 4 (fijadas en el raíl).
 4. **Una web muy oscura o muy clara bajo la isla con la web ampliada:** el texto tiene que seguir
@@ -89,7 +89,7 @@ test('Zero keeps every setting name in one place, under the host prefix', () => 
   `ZERO_JAR_ENTRY = "content/browser/zero/ (content/zero/**)"`, copia en `integrate_native` y huella en `input_files`. En `install.sh`,
   añadir `zero` a la lista de carpetas que se copian. La prueba pasa.
 - [ ] **Paso 7: prueba con el motor real (falla):** `tests/zero_native.py`:
-  1. Ctrl+Alt+Z pone `zero` en `documentElement` y otra vez lo quita.
+  1. Ctrl+Alt+0 pone `zero` en `documentElement` y otra vez lo quita.
   2. Una segunda ventana abierta no cambia.
   3. Con `kitsune.zero.always = true`, una ventana nueva nace en Zero.
   4. Con Zero, `chrome://browser/content/zero/zero.css` está cargado en esa ventana (`windowUtils`); sin Zero, no.
@@ -113,7 +113,7 @@ test('Zero keeps every setting name in one place, under the host prefix', () => 
   - El bootstrap lo llama con `try`, después de `KitsuneLayout` y antes de `KitsuneKeys`.
   - `CATALOG` y `ACTIONS` llevan `kitsune-zero-key` («Kitsune Zero» / «Kitsune Zero»).
 - [ ] **Paso 10:** la prueba pasa (`--zero-del-repo`); `npm test` y las pruebas de Python, en verde.
-- [ ] **Paso 11:** commit «Kitsune Zero: esqueleto separable y Ctrl+Alt+Z por ventana».
+- [ ] **Paso 11:** commit «Kitsune Zero: esqueleto separable y Ctrl+Alt+0 por ventana».
 
 ### Tarea 2: Ventana de cristal, tarjeta, ampliar y botones de ventana
 

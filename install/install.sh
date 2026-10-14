@@ -19,7 +19,7 @@ if [ ! -x "${root}/engine/current/kitsune" ]; then
 fi
 
 backup="$(mktemp -d "${data}/kitsune-0.6-backup.XXXXXX")"
-for item in start templates native branding mascot appearance.py home-server.py media.py profiles.py wallpapers.py prepare-runtime.py version.json; do
+for item in start templates native zero branding mascot appearance.py home-server.py media.py profiles.py wallpapers.py prepare-runtime.py version.json; do
     [ -e "${root}/${item}" ] && cp -a "${root}/${item}" "${backup}/"
 done
 mkdir -p "${backup}/profile" "${backup}/state" "${backup}/systemd"
@@ -47,6 +47,12 @@ for directory in native branding recipe mascot home-extension; do
     mv "${root}/${directory}.new" "${root}/${directory}"
 done
 find "${root}/branding" -name README.md -delete
+
+# Kitsune Zero: va aparte, en zero/ (la receta lo mete en el motor en chrome://browser/content/zero/).
+rm -rf "${root:?}/zero.new"
+cp -r "${repo}/zero" "${root}/zero.new"
+rm -rf "${root:?}/zero"
+mv "${root}/zero.new" "${root}/zero"
 
 # Inicio y plantillas limpias.
 rm -rf "${root:?}/start.new"

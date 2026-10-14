@@ -22,6 +22,7 @@ export const CATALOG = Object.freeze([
   ['kitsune-split-key', 'Dividir la pestaña o añadir otra web', 'Split tab or add another site'],
   ['kitsune-unsplit-key', 'Separar la vista dividida', 'Unsplit tabs'],
   ['kitsune-compact-key', 'Modo compacto', 'Compact mode'],
+  ['kitsune-zero-key', 'Kitsune Zero', 'Kitsune Zero'],
   ['kitsune-space-key-next', 'Espacio siguiente', 'Next space'],
   ['kitsune-space-key-previous', 'Espacio anterior', 'Previous space'],
   ['key_newNavigatorTab', 'Nueva pestaña', 'New tab'],

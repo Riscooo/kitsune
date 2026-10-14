@@ -9,12 +9,12 @@ Maquetas validadas por Risco: `.superpowers/brainstorm/*/content/zero-v9.html` (
 Un modo de Kitsune con su propia cara y sus propias herramientas para estar tranquilo y
 concentrado. Todo es elegible: se puede usar solo por cómo se ve, sin nada de productividad.
 
-Hecho cuando: con Ctrl+Alt+Z una ventana de Kitsune pasa a Zero y vuelve, con las mismas
+Hecho cuando: con Ctrl+Alt+0 una ventana de Kitsune pasa a Zero y vuelve, con las mismas
 pestañas, y cada pieza de abajo se puede encender y apagar por separado en sus ajustes.
 
 ## Decisiones de Risco
 
-- **Modo que se enciende**, por ventana (Ctrl+Alt+Z). Si Zero acaba siendo un navegador aparte
+- **Modo que se enciende**, por ventana (Ctrl+Alt+0). Si Zero acaba siendo un navegador aparte
   no está decidido: el código tiene que poder sacarse sin lío (ver «Separable»).
 - **Aspecto: cristal de verdad, casi transparente.** Toda la ventana es cristal y detrás se ve
   el escritorio desenfocado. Las piezas de cristal que flotan sobre la web la desenfocan en vivo.

@@ -70,6 +70,7 @@ const ACTIONS = [
   { label: t('Dividir la pestaña (o añadir otra web, hasta cuatro)', 'Split tab (or add another site, up to four)'), key: 'kitsune-split-key', keywords: ['vista dividida', 'split', 'cuadricula', 'grid'] },
   { label: t('Separar la vista dividida', 'Unsplit tabs'), key: 'kitsune-unsplit-key', keywords: ['vista dividida', 'split', 'unsplit'] },
   { label: t('Modo compacto', 'Compact mode'), key: 'kitsune-compact-key', keywords: ['ocultar barras', 'zen'] },
+  { label: 'Kitsune Zero', key: 'kitsune-zero-key', keywords: ['zero', 'cristal', 'calma', 'concentrarse', 'focus', 'glass'] },
   { label: t('Espacio siguiente', 'Next space'), key: 'kitsune-space-key-next' },
   { label: t('Espacio anterior', 'Previous space'), key: 'kitsune-space-key-previous' },
   { label: t('Nuevo espacio', 'New space'), run: win => spaces()?.KitsuneSpaces.openEditor(win), keywords: ['workspace'] },
