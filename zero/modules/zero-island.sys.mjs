@@ -109,12 +109,23 @@ export function detach(win) {
   toolbox?.removeAttribute('zero-icons');
 }
 
-/** Un aviso en la isla (lo usan el pomodoro y el silencio): se ensancha, lo dice y vuelve. */
-export function alert(win, text, detail = '', ms = 3200) {
+// Los iconos de los avisos (de Gecko): pequeños y del color del texto.
+const ICONS = {
+  break: 'chrome://browser/content/browser/profiles/assets/16_leaf.svg',
+  resume: 'chrome://browser/content/browser/profiles/assets/16_heart-rate.svg',
+  blocked: 'chrome://global/skin/icons/blocked.svg',
+  scroll: 'chrome://global/skin/icons/autoscroll-vertical.svg',
+  quiet: 'chrome://browser/skin/notification-icons/desktop-notification-blocked.svg',
+};
+
+/** Un aviso en la isla (lo usan el pomodoro y el silencio): se ensancha, lo dice y vuelve. Con
+ *  `icon` (break, resume, blocked, scroll, quiet), un icono pequeño delante. */
+export function alert(win, text, detail = '', ms = 3200, icon = null) {
   const st = state.get(win);
   if (!st) return;
   const doc = win.document;
-  st.msg.replaceChildren(el(doc, 'b', {}, [text]), ...(detail ? [el(doc, 'small', {}, [` · ${detail}`])] : []));
+  const mark = ICONS[icon] ? [el(doc, 'span', { class: 'zero-alert-icon', 'aria-hidden': 'true', style: `--zero-icon: url("${ICONS[icon]}")` })] : [];
+  st.msg.replaceChildren(...mark, el(doc, 'b', {}, [text]), ...(detail ? [el(doc, 'small', {}, [` · ${detail}`])] : []));
   const toolbox = doc.getElementById('navigator-toolbox');
   toolbox.setAttribute('zero-island-alert', '');
   win.clearTimeout(st.alertTimer);

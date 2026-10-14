@@ -280,6 +280,10 @@
 /* Los avisos: la isla se ensancha, lo dice en una línea y vuelve. */
 #main-window[zero] #zero-island-msg { opacity: 0 !important; filter: blur(4px) !important; }
 #main-window[zero] #zero-island-msg small { font-weight: 500 !important; opacity: .72 !important; }
+#main-window[zero] #zero-island-msg .zero-alert-icon {
+  flex: none !important; width: 14px !important; height: 14px !important; margin-inline-end: 2px !important;
+  background-color: currentColor !important; mask: var(--zero-icon) center / 14px no-repeat !important; opacity: .9 !important;
+}
 #main-window[zero] #navigator-toolbox[zero-island-alert] #zero-island-msg { opacity: 1 !important; filter: none !important; transition-delay: var(--zero-enter) !important; }
 #main-window[zero] #navigator-toolbox[zero-island-alert] #urlbar > .urlbar-input-container,
 #main-window[zero] #navigator-toolbox[zero-island-alert] #nav-bar :is(#back-button, #forward-button, #stop-reload-button, #PanelUI-button) { opacity: 0 !important; filter: blur(4px) !important; }
@@ -580,7 +584,7 @@
               inset 0 0 14px rgba(255, 255, 255, .14), 0 10px 30px rgba(0, 0, 0, .14);
   transition: width var(--zero-t-morph) var(--zero-calm) var(--zero-wait), opacity var(--zero-t-fade) var(--zero-soft), transform var(--zero-t-morph) var(--zero-calm), color var(--zero-t-ink) var(--zero-soft);
 }
-#zero-pomo:hover { width: 222px; transition-delay: 0ms; }
+#zero-pomo:is(:hover, :focus-within) { width: 222px; transition-delay: 0ms; }
 #zero-pomo:is([phase="short"], [phase="long"]) { --zero-pomo-color: rgba(176, 236, 212, .98); }
 #zero-pomo[zero-ink] { color: #1d2321; text-shadow: none; }
 #zero-pomo .zero-pomo-label {
@@ -588,7 +592,7 @@
   opacity: 0; filter: blur(3px); transform: translateX(6px);
   transition: opacity var(--zero-t-fade) var(--zero-soft), filter var(--zero-t-fade) var(--zero-soft), transform var(--zero-t-morph) var(--zero-calm);
 }
-#zero-pomo:hover .zero-pomo-label { opacity: 1; filter: none; transform: none; transition-delay: var(--zero-enter); }
+#zero-pomo:is(:hover, :focus-within) .zero-pomo-label { opacity: 1; filter: none; transform: none; transition-delay: var(--zero-enter); }
 #zero-pomo .zero-pomo-action {
   appearance: none; flex: none; box-sizing: border-box; width: 0; height: 24px; min-width: 0; margin: 0; padding: 0;
   border: none; border-radius: 50%; background: transparent; color: inherit; cursor: pointer; overflow: hidden;
@@ -601,8 +605,9 @@
 }
 #zero-pomo .zero-pomo-action[data-action="reset"] { --zero-icon: url("chrome://global/skin/icons/undo.svg"); }
 #zero-pomo .zero-pomo-action[data-action="skip"] { --zero-icon: url("chrome://global/skin/icons/arrow-right.svg"); }
-#zero-pomo:hover .zero-pomo-action { width: 24px; opacity: .78; transition-delay: 0ms, var(--zero-enter), 0ms; }
+#zero-pomo:is(:hover, :focus-within) .zero-pomo-action { width: 24px; opacity: .78; transition-delay: 0ms, var(--zero-enter), 0ms; }
 #zero-pomo .zero-pomo-action:hover { opacity: 1 !important; background-color: rgba(255, 255, 255, .16); }
+#zero-pomo :is(.zero-pomo-ring, .zero-pomo-action):focus-visible { outline: 2px solid rgba(255, 255, 255, .7); outline-offset: -2px; }
 #zero-pomo .zero-pomo-ring {
   appearance: none; flex: none; box-sizing: border-box; width: 32px; height: 32px; min-width: 0; margin: 0; padding: 0;
   border: none; border-radius: 50%; background: transparent; cursor: pointer;

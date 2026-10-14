@@ -15,6 +15,8 @@ El tiempo se adelanta con el reloj del módulo (clock.now), para no esperar 25 m
    «Mantén para saltar» antes de tiempo no salta y mantenerlo 1,5 s sí.
 9. Con la web ampliada el anillo se guarda: el tirador hace de barra de progreso.
 10. Apagarlo quita todo.
+11. Un clic en el texto del tiempo no pausa (solo el anillo empieza o pausa), y con el teclado el
+    anillo se abre igual que con el ratón.
 
 --zero-del-repo: Zero sale de zero/ del repositorio (ver zero_harness.py).
 """
@@ -199,6 +201,18 @@ def main():
         chrome("document.querySelector('#zero-grow button[data-action=full]').click()")
         until(lambda: not state()['full'] and state()['pomo']['seen'])
         check('Con la web ampliada el anillo se guarda y el tirador hace de barra de progreso')
+
+        pointer([{'type': 'pointerMove', 'origin': element('#zero-pomo'), 'x': 0, 'y': 0}])
+        until(lambda: state()['pomo']['labelSeen'])
+        click('#zero-pomo .zero-pomo-label')
+        time.sleep(0.4)
+        assert state()['pomo']['running'], state()
+        away()
+        until(lambda: not state()['pomo']['labelSeen'])
+        chrome("document.querySelector('#zero-pomo .zero-pomo-ring').focus()")
+        until(lambda: state()['pomo']['labelSeen'] and chrome("return document.querySelector('#zero-pomo [data-action=skip]').getBoundingClientRect().width") > 10)
+        chrome("document.querySelector('#zero-pomo .zero-pomo-ring').blur()")
+        check('Un clic en el texto no pausa, y con el teclado el anillo se abre igual')
 
         chrome("Services.prefs.setBoolPref('kitsune.zero.pomodoro', false)")
         until(lambda: state()['pomo'] is None and state()['brk'] is None)

@@ -7,7 +7,7 @@
    silencio queda como estaba.
 4. Webs vetadas: durante el trabajo una web de la lista sale tapada por un cristal con su dominio, y
    la isla lo dice; mantener 1,5 s deja entrar.
-5. En el descanso no se tapa; con «Solo currar», sí.
+5. En el descanso no se tapa; con «Solo currar», sí (y con el descanso estricto, solo sale su cristal).
 6. Tras 10 min bajando en la misma página, la isla avisa.
 
 --zero-del-repo: Zero sale de zero/ del repositorio (ver zero_harness.py).
@@ -155,6 +155,11 @@ def main():
         pref('Bool', 'kitsune.zero.silence.onlyWork', True)
         forward(25 * MIN + 2000)
         until(lambda: state()['phase'] == 'short' and state()['blocked'] and state()['blocked']['seen'])
+        # Con el descanso estricto, su cristal ya tapa la web: no salen los dos.
+        pref('String', 'kitsune.zero.pomodoro.break', 'strict')
+        until(lambda: chrome("return !!document.getElementById('zero-break')") and state()['blocked'] is None)
+        pref('String', 'kitsune.zero.pomodoro.break', 'soft')
+        until(lambda: state()['blocked'] and state()['blocked']['seen'])
         pref('Bool', 'kitsune.zero.silence.onlyWork', False)
         until(lambda: not (state()['blocked'] and state()['blocked']['seen']))
         check('Con «Solo currar», vetadas también en el descanso')

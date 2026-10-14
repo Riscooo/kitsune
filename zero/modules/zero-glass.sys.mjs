@@ -147,13 +147,16 @@ async function shoot(win, eng, pane, browser, rect, reach, at) {
   }
 }
 
+/** ¿Cabe en la foto lo que hay debajo de la pieza ahora? */
+function covers(shot, need) {
+  return need.x >= shot.doc.x - 0.5 && need.y >= shot.doc.y - 0.5
+    && need.x + need.w <= shot.doc.x + shot.doc.w + 0.5 && need.y + need.h <= shot.doc.y + shot.doc.h + 0.5;
+}
+
 /** ¿Hace falta otra foto? Si no hay, si la web ha cambiado desde la última o si lo que se ve ya no
  *  cabe en ella (el scroll ha salido del margen, o la pieza ha crecido). */
 function stale(eng, shot, need) {
-  if (!shot) return true;
-  if (shot.version < eng.version) return true;
-  return need.x < shot.doc.x - 0.5 || need.y < shot.doc.y - 0.5
-    || need.x + need.w > shot.doc.x + shot.doc.w + 0.5 || need.y + need.h > shot.doc.y + shot.doc.h + 0.5;
+  return !shot || shot.version < eng.version || !covers(shot, need);
 }
 
 // ---------------------------------------------------------------- cada fotograma
@@ -185,12 +188,13 @@ function frame(win, eng, element, pane, browsers) {
   style.opacity = String(opacity);
   style.zIndex = win.getComputedStyle(top).zIndex;
   const width = Math.max(1, Math.ceil(r.width * SCALE)), height = Math.max(1, Math.ceil(r.height * SCALE));
+  const resized = canvas.width !== width || canvas.height !== height;
   if (canvas.width !== width) canvas.width = width;
   if (canvas.height !== height) canvas.height = height;
 
   const ctx = canvas.getContext('2d');
-  ctx.clearRect(0, 0, width, height);
-  let drawn = false;
+  const draws = [];
+  let waiting = false;
   const now = Date.now();
   for (const { browser, rect, part } of hits) {
     const at = scrollOf(browser);
@@ -207,13 +211,16 @@ function frame(win, eng, element, pane, browsers) {
         .catch(() => {}).finally(() => { pane.shooting = false; kick(win, 200); });
     }
     if (!shot) continue;
+    if (!covers(shot, need)) waiting = true; // un salto más allá del margen: llega otra foto enseguida
     // La foto, desplazada con el scroll: se recorta justo lo que hay debajo ahora.
-    const sx = (need.x - shot.doc.x) * shot.k, sy = (need.y - shot.doc.y) * shot.k;
-    ctx.drawImage(shot.canvas, sx, sy, need.w * shot.k, need.h * shot.k,
-      (part.left - r.left) * SCALE, (part.top - r.top) * SCALE, part.width * SCALE, part.height * SCALE);
-    drawn = true;
+    draws.push([shot.canvas, (need.x - shot.doc.x) * shot.k, (need.y - shot.doc.y) * shot.k, need.w * shot.k, need.h * shot.k,
+      (part.left - r.left) * SCALE, (part.top - r.top) * SCALE, part.width * SCALE, part.height * SCALE]);
   }
-  if (!drawn) return hide(element, pane), false;
+  // Mientras llega la foto de un salto, se queda lo que había (borrarlo dejaría un instante sin cristal).
+  if (waiting && !resized && !canvas.hidden) return true;
+  if (!draws.length) return hide(element, pane), false;
+  ctx.clearRect(0, 0, width, height);
+  for (const args of draws) ctx.drawImage(...args);
   canvas.hidden = false;
   // La luz, de vez en cuando (no cambia de un fotograma a otro).
   if (eng.ticks % 6 === 0 || pane.ink === undefined) {

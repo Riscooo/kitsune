@@ -12,6 +12,7 @@ tinta sobre lo claro y a blanco sobre lo oscuro.
 6. Con el raíl abriéndose encima de la web, su cristal va pegado a él en cada fotograma.
 7. Mover el ratón sin cristal encima de la web no hace ninguna foto.
 8. Cada foto es solo del trozo que hay debajo de las piezas (menos de un cuarto de la vista).
+9. Un salto de scroll más allá del margen de la foto no deja el cristal vacío ni un fotograma.
 
 --zero-del-repo: Zero sale de zero/ del repositorio (ver zero_harness.py).
 """
@@ -115,11 +116,11 @@ def main():
         chrome("document.getElementById('kitsune-zero-key').doCommand()")
         until(lambda: glass()['canvas'] is not None)
         chrome("document.querySelector('#zero-grow button[data-action=full]').click()")
-        until(lambda: glass()['full'] and placed(glass()) and glass()['light'] is not None and glass()['light'] < 0.25 and not glass()['ink'])
+        until(lambda: (g := glass())['full'] and placed(g) and g['light'] is not None and g['light'] < 0.25 and not g['ink'])
         check('Con la web ampliada y la página negra arriba, el cristal de la isla está en su sitio y es oscuro')
 
         wheel(2400)
-        until(lambda: glass()['light'] is not None and glass()['light'] > 0.75 and glass()['ink'], timeout=8)
+        until(lambda: (g := glass())['light'] is not None and g['light'] > 0.75 and g['ink'], timeout=8)
         check('Tras bajar con la rueda hasta lo blanco, el cristal es claro y la isla pasa a tinta')
 
         # El paso a tinta lanza transiciones (420 ms) que también cuentan como movimiento; luego, la
@@ -186,6 +187,25 @@ def main():
         view = chrome("const b = gBrowser.selectedBrowser; return b.clientWidth * b.clientHeight")
         assert shot and shot['w'] * shot['h'] < view / 4, (shot, view)
         check('Cada foto es solo del trozo que hay debajo de las piezas')
+
+        # Un salto (como Inicio o Avpág): la página se mueve de golpe 2400 px. Se mira cada fotograma.
+        driver.context('content')
+        driver.script("scrollTo(0, 0)")
+        time.sleep(1.5)
+        driver.context('chrome')
+        driver.script("""window.__empty = 0; window.__frames = 0; const t0 = performance.now();
+            const step = () => { const c = document.getElementById('zero-glass-nav-bar');
+              const px = c && !c.hidden ? c.getContext('2d').getImageData(0, 0, c.width, c.height).data : null;
+              let alpha = 0; if (px) for (let i = 3; i < px.length; i += 16) alpha += px[i];
+              window.__frames++; if (!alpha) window.__empty++;
+              if (performance.now() - t0 < 700) requestAnimationFrame(step); };
+            requestAnimationFrame(step);""")
+        driver.context('content')
+        driver.script("scrollTo(0, 2400)")
+        time.sleep(1)
+        frames, empty = chrome("return [window.__frames, window.__empty]")
+        assert frames > 20 and empty == 0, (frames, empty)
+        check('Un salto de scroll no deja el cristal vacío ni un fotograma')
         report['status'] = 'passed'
     finally:
         if driver: driver.close()

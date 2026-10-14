@@ -122,6 +122,9 @@ function buildRing(win, st) {
     el(doc, 'button', { type: 'button', class: 'zero-pomo-ring', title: t('Empezar o pausar', 'Start or pause'), 'aria-label': t('Empezar o pausar', 'Start or pause') }),
   ]);
   st.ring.addEventListener('click', event => {
+    // Solo el anillo empieza o pausa, y los botones hacen lo suyo: un clic en el tiempo (al leerlo)
+    // no cambia nada.
+    if (!event.target.closest('[data-action], .zero-pomo-ring')) return;
     const action = event.target.closest('[data-action]')?.dataset.action;
     const p = st.p, now = clock.now(), saved = p.saved();
     const next = action === 'skip' ? skip(saved, p.preset(), now) : action === 'reset' ? reset() : toggle(saved, p.preset(), now);
@@ -193,6 +196,8 @@ function buildBreak(win, st, v) {
   hold.addEventListener('keyup', event => { if (event.key === 'Enter' || event.key === ' ') cancel(); });
   st.dropBreakTimer = cancel;
   GlassPane.attach(st.brk, win, st.host);
+  // Para las piezas que tapan la web (el silencio): ahora tapa el descanso.
+  win.dispatchEvent(new win.CustomEvent('zero-break-change'));
   // La respiración, a compás con el reloj desde que empezó el descanso.
   const elapsed = v.total - v.left;
   st.brk.querySelector('.zero-breath').style.animationDelay = `-${elapsed % (BREATH.in + BREATH.out)}ms`;
@@ -221,8 +226,10 @@ function dropBreak(st) {
   if (!st.brk) return;
   st.dropBreakTimer?.();
   GlassPane.detach(st.brk);
+  const win = st.brk.ownerGlobal;
   st.brk.remove();
   st.brk = null;
+  try { win?.dispatchEvent(new win.CustomEvent('zero-break-change')); } catch { /* ventana cerrándose */ }
 }
 
 // ---------------------------------------------------------------- cada segundo
@@ -246,9 +253,9 @@ function update(win, st) {
     const t = st.host.t;
     if (st.lastPhase === 'work' && (v.phase === 'short' || v.phase === 'long')) {
       st.island?.alert(`${v.phase === 'long' ? t('Descanso largo', 'Long break') : t('Descanso', 'Break')} · ${clockText(v.left)}`,
-        t('levántate, mira lejos, bebe agua', 'stand up, look far away, drink some water'), 6000);
+        t('levántate, mira lejos, bebe agua', 'stand up, look far away, drink some water'), 6000, 'break');
     } else if ((st.lastPhase === 'short' || st.lastPhase === 'long') && v.phase === 'waiting') {
-      st.island?.alert(t('¿Seguimos?', 'Shall we go on?'), t('pulsa el anillo cuando quieras', 'click the ring whenever you like'), 6000);
+      st.island?.alert(t('¿Seguimos?', 'Shall we go on?'), t('pulsa el anillo cuando quieras', 'click the ring whenever you like'), 6000, 'resume');
     }
   }
   st.lastPhase = v.phase;

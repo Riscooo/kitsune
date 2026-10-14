@@ -191,6 +191,8 @@ function update(win, st) {
   const isWork = working(pomo);
   wantQuiet(win, p.notify() && isWork);
 
+  // En el descanso estricto, su cristal ya tapa la web: aquí no se pone otro encima.
+  if (win.document.getElementById('zero-break')) { dropBlocked(st); return; }
   const browser = win.gBrowser.selectedBrowser;
   let host = '';
   try { host = browser.currentURI.host; } catch { /* sin dominio (about:, data:) */ }
@@ -206,7 +208,7 @@ function update(win, st) {
   const key = `${domain} ${browser.currentURI?.spec ?? ''}`;
   if (st.alertedFor !== key) {
     st.alertedFor = key;
-    st.island?.alert(t(`${domain} está vetada`, `${domain} is blocked`), hint, 4000);
+    st.island?.alert(t(`${domain} está vetada`, `${domain} is blocked`), hint, 4000, 'blocked');
   }
 }
 
@@ -224,6 +226,7 @@ export function attach(win, ctx) {
     st.cleanups.push(() => host.prefs.removeObserver(st.p.name(key), observer));
   }
   listen(win.gBrowser.tabContainer, 'TabSelect', refresh);
+  listen(win, 'zero-break-change', refresh); // el descanso estricto pone o quita su cristal
   const progress = { onLocationChange: (browser, webProgress) => { if (webProgress?.isTopLevel && browser === win.gBrowser.selectedBrowser) { st.alertedFor = null; refresh(); } } };
   win.gBrowser.addTabsProgressListener(progress);
   st.cleanups.push(() => win.gBrowser.removeTabsProgressListener(progress));
@@ -236,7 +239,7 @@ export function attach(win, ctx) {
     if (st.watch.scrolled(page, clock.now())) {
       const t = host.t;
       st.island?.alert(t(`Llevas ${SCROLL_LIMIT / 60_000} min bajando aquí`, `${SCROLL_LIMIT / 60_000} minutes scrolling here`),
-        t('¿seguro que buscabas esto?', 'is this what you were looking for?'), 6000);
+        t('¿seguro que buscabas esto?', 'is this what you were looking for?'), 6000, 'scroll');
     }
   });
   st.timer = win.setInterval(refresh, 1000);

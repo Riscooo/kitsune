@@ -5,7 +5,7 @@
 3. Escribiendo (foco en la barra de direcciones) mide 560 × 32, y las sugerencias se abren y se leen.
 4. Nunca baja: su borde inferior queda al menos 4 px por encima de la tarjeta en todos los estados.
 5. Las pestañas de arriba y la barra de marcadores de Gecko no se ven.
-6. Un aviso la ensancha a 470 × 32 un momento y vuelve a reposo.
+6. Un aviso la ensancha a 470 × 32 un momento (con su icono, si lo lleva) y vuelve a reposo.
 7. Con un menú suyo abierto (el de Kitsune) sigue abierta aunque el ratón se vaya, y se cierra con él.
 8. Las sugerencias salen debajo de la isla, centradas con ella y de su mismo ancho.
 9. El botón del menú (≡) es redondo, como los demás de la isla.
@@ -198,8 +198,11 @@ def main():
         until(lambda: sized(176) and chrome(icons)['text'], timeout=5)
         check('Con «solo iconos», la isla es una pastilla pequeña con el icono de la web, sin texto')
 
-        chrome("ChromeUtils.importESModule('chrome://browser/content/zero/zero-island.sys.mjs').alert(window, 'Tres avisos esperando', 'te los enseño en el descanso', 1500)")
+        chrome("ChromeUtils.importESModule('chrome://browser/content/zero/zero-island.sys.mjs').alert(window, 'Tres avisos esperando', 'te los enseño en el descanso', 1500, 'quiet')")
         until(lambda: sized(470) and clear_of_card(), timeout=5)
+        # Con icono: pequeño, delante del texto y a la vista.
+        until(lambda: chrome("""const i = document.querySelector('#zero-island-msg .zero-alert-icon'); const t = document.querySelector('#zero-island-msg b');
+            if (!i || !t) return false; const r = i.getBoundingClientRect(); return r.width >= 12 && r.width <= 16 && r.right <= t.getBoundingClientRect().left + 1;"""), timeout=5)
         until(lambda: sized(176), timeout=8)
         check('Un aviso la ensancha a 470 × 32 un momento y vuelve a reposo')
         check('Nunca baja: siempre queda por encima de la tarjeta')

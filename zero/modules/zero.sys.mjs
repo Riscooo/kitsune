@@ -54,7 +54,7 @@ function toggle(win, on = !active(win)) {
     onChange: fn => onChange(win, fn),
     // Para las fases siguientes: sus filas en los ajustes y sus avisos en la isla.
     settings: { add: section => mark.addSection(win, section) },
-    island: { alert: (text, detail, ms) => island.alert(win, text, detail, ms) },
+    island: { alert: (text, detail, ms, icon) => island.alert(win, text, detail, ms, icon) },
   };
   if (on) {
     // La web pasa a tarjeta viajando desde donde estaba (flip), no de golpe.
