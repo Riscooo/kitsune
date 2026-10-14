@@ -13,6 +13,8 @@ Escenas:
 - pestanas: pestañas a un lado, dos espacios («Trabajo» y «Casa») y una vista dividida con
   dos webs de verdad (hace falta red).
 - inicio: «Tu inicio» en Claro y en Oscuro (el inicio de serie, sin fondo propio).
+- ajustes: el panel «Tu inicio» (tema, fondo y galería), en Oscuro.
+- privacidad: la ventana «¿Pasar a Cómodo?» con los dos modos, en Oscuro.
 """
 from __future__ import annotations
 
@@ -97,6 +99,17 @@ class Session:
         image.resize((SIZE[0] // 2, SIZE[1] // 2), Image.LANCZOS).save(OUT / f'{name}-720.webp', quality=82, method=6)
         print(f'  {name}.webp y {name}-720.webp', flush=True)
 
+    def crop(self, name, box, size):
+        """Un trozo de la página (en píxeles CSS), con su tamaño de la web y la mitad."""
+        image = Image.open(self.driver.screenshot(f'{name}.png')).convert('RGB')
+        left, top, right, bottom = (round(value) for value in box)
+        left, top = max(0, left), max(0, top)
+        part = image.crop((left, top, left + (right - left), top + (bottom - top))).resize(size, Image.LANCZOS)
+        OUT.mkdir(parents=True, exist_ok=True)
+        part.save(OUT / f'{name}.webp', quality=82, method=6)
+        part.resize((size[0] // 2, size[1] // 2), Image.LANCZOS).save(OUT / f'{name}-720.webp', quality=82, method=6)
+        print(f'  {name}.webp y {name}-720.webp', flush=True)
+
     def close(self):
         self.driver.close()
         self.server.shutdown()
@@ -135,7 +148,44 @@ def home_scene(session, language, suffix):
         session.shot(f'inicio-{theme}{suffix}')
 
 
-SCENES = {'pestanas': tabs_scene, 'inicio': home_scene}
+def open_home(session, theme):
+    session.settings(theme=theme)
+    session.chrome("const [url] = arguments; gBrowser.selectedBrowser.loadURI(Services.io.newURI(url), "
+                   "{ triggeringPrincipal: Services.scriptSecurityManager.getSystemPrincipal() });", session.origin + '/')
+    session.driver.context('content')
+    eventually(lambda: session.driver.script("return document.documentElement.dataset.ready === 'true'"), timeout=20)
+    time.sleep(1)
+
+
+def settings_scene(session, language, suffix):
+    """El panel «Tu inicio» abierto, con un trozo del inicio detrás (920 × 802, como en la web)."""
+    open_home(session, 'oscuro')
+    session.driver.script("document.getElementById('settings-open').click()")
+    eventually(lambda: session.driver.script("return document.getElementById('settings-dialog').open"), timeout=10)
+    session.driver.script("document.activeElement?.blur()")
+    time.sleep(1.5)
+    box = session.driver.script("const r = document.getElementById('settings-dialog').getBoundingClientRect(); return [r.left, r.top, r.right, r.bottom]")
+    right, top = box[2] + 20, box[1] - 20
+    session.crop(f'ajustes{suffix}', (right - 920, top, right, top + 802), (920, 802))
+
+
+def privacy_scene(session, language, suffix):
+    """La ventana «¿Pasar a Cómodo?» sobre la gestión de usuarios (780 × 640, como en la web)."""
+    open_home(session, 'oscuro')
+    session.driver.script("document.getElementById('profiles-open').click()")
+    eventually(lambda: session.driver.script("return !!document.getElementById('users-manage')?.checkVisibility()"), timeout=10)
+    session.driver.script("document.getElementById('users-manage').click()")
+    eventually(lambda: session.driver.script("const b = document.querySelector('[data-privacy-switch=comodo]'); return !!b && !b.disabled && b.checkVisibility()"), timeout=15)
+    session.driver.script("document.querySelector('[data-privacy-switch=comodo]').click()")
+    eventually(lambda: session.driver.script("return document.getElementById('privacy-dialog').open"), timeout=10)
+    session.driver.script("document.activeElement?.blur()")
+    time.sleep(1.5)
+    box = session.driver.script("const r = document.getElementById('privacy-dialog').getBoundingClientRect(); return [r.left, r.top, r.right, r.bottom]")
+    middle_x, middle_y = (box[0] + box[2]) / 2, (box[1] + box[3]) / 2
+    session.crop(f'privacidad{suffix}', (middle_x - 390, middle_y - 320, middle_x + 390, middle_y + 320), (780, 640))
+
+
+SCENES = {'pestanas': tabs_scene, 'inicio': home_scene, 'ajustes': settings_scene, 'privacidad': privacy_scene}
 
 
 def main():
@@ -146,7 +196,7 @@ def main():
     args = parser.parse_args()
     for language in args.idioma or ['es', 'en']:
         for name in args.escena or sorted(SCENES):
-            if name == 'inicio' and language == 'es':
+            if name in ('inicio', 'ajustes', 'privacidad') and language == 'es':
                 continue  # las de castellano ya están en la web (con su fondo de aurora)
             print(f'{name} ({language})', flush=True)
             session = Session(args.browser, language)
