@@ -46,7 +46,13 @@ function sheet(win, on) {
 
 function toggle(win, on = !active(win)) {
   if (on === active(win)) return;
-  const ctx = { host, onChange: fn => onChange(win, fn), settings: { add: section => mark.addSection(win, section) } };
+  const ctx = {
+    host,
+    onChange: fn => onChange(win, fn),
+    // Para las fases siguientes: sus filas en los ajustes y sus avisos en la isla.
+    settings: { add: section => mark.addSection(win, section) },
+    island: { alert: (text, detail, ms) => island.alert(win, text, detail, ms) },
+  };
   if (on) {
     win.document.documentElement.setAttribute('zero', '');
     sheet(win, true);

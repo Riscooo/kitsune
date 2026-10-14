@@ -152,6 +152,8 @@ function engine(win, host) {
   const eng = { until: 0, frame: 0, timer: 0, busy: false, count: 0, cleanups: [], host };
   engines.set(win, eng);
   const listen = (target, type, fn, options) => { target.addEventListener(type, fn, options); eng.cleanups.push(() => target.removeEventListener(type, fn, options)); };
+  // Una ventana que se cierra en Zero no pasa por detach: se suelta aquí (si no, se quedaría en «panes»).
+  listen(win, 'unload', () => detach(win), { once: true });
   const nudge = () => kick(win);
   // La rueda, las teclas y el ratón sobre la web pasan antes por la ventana de Gecko.
   for (const type of ['wheel', 'keydown', 'mousemove', 'resize']) listen(win, type, nudge, { capture: true, passive: true });
@@ -196,6 +198,8 @@ export const GlassPane = {
   },
   /** Que repinte un rato (para las piezas que se mueven sin evento propio). */
   kick: (win, ms) => kick(win, ms),
+  /** Cuántas piezas tienen cristal, en todas las ventanas (para las pruebas). */
+  count: () => panes.size,
   /** Cuántas veces ha repintado esta ventana (para las pruebas). */
   repaints: win => engines.get(win)?.count ?? 0,
 };

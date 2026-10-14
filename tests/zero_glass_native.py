@@ -8,6 +8,7 @@ tinta sobre lo claro y a blanco sobre lo oscuro.
 2. Tras bajar con la rueda hasta lo blanco, el cristal es claro y la isla pasa a tinta (zero-ink).
 3. Sin moverse nada durante 1 s, no se repinta.
 4. Con la web en tarjeta, la isla está sobre el marco y no lleva cristal en vivo.
+5. Al cerrar una ventana en Zero, su cristal se suelta (no se queda nada de ella).
 
 --zero-del-repo: Zero sale de zero/ del repositorio (ver zero_harness.py).
 """
@@ -124,6 +125,19 @@ def main():
         chrome("document.querySelector('#zero-grow button[data-action=full]').click()")
         until(lambda: not glass()['full'] and (glass()['canvas'] is None or not glass()['canvas']['shown']) and not glass()['ink'])
         check('Con la web en tarjeta, la isla está sobre el marco y no lleva cristal en vivo')
+
+        panes = "return ChromeUtils.importESModule('chrome://browser/content/zero/zero-glass.sys.mjs').GlassPane.count()"
+        alone = chrome(panes)
+        chrome("window.__otra = OpenBrowserWindow();")
+        eventually(lambda: chrome("return !!window.__otra.document.getElementById('kitsune-zero-key') && window.__otra.gBrowserInit?.delayedStartupFinished"), timeout=15)
+        chrome("window.__otra.document.getElementById('kitsune-zero-key').doCommand()")
+        eventually(lambda: chrome(panes) > alone, timeout=5)
+        chrome("window.__otra.close(); delete window.__otra;")
+        try:
+            eventually(lambda: chrome(panes) == alone, timeout=5)
+        except AssertionError:
+            raise AssertionError(f'quedan {chrome(panes)} piezas; antes {alone}') from None
+        check('Al cerrar una ventana en Zero, su cristal se suelta')
         report['status'] = 'passed'
     finally:
         if driver: driver.close()
