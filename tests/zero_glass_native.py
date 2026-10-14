@@ -13,6 +13,8 @@ tinta sobre lo claro y a blanco sobre lo oscuro.
 7. Mover el ratón sin cristal encima de la web no hace ninguna foto.
 8. Cada foto es solo del trozo que hay debajo de las piezas (menos de un cuarto de la vista).
 9. Un salto de scroll más allá del margen de la foto no deja el cristal vacío ni un fotograma.
+10. Las sugerencias al escribir llevan su cristal debajo (sin él se leía la web a través), pegado a ellas
+    también cuando crecen.
 
 --zero-del-repo: Zero sale de zero/ del repositorio (ver zero_harness.py).
 """
@@ -206,6 +208,23 @@ def main():
         frames, empty = chrome("return [window.__frames, window.__empty]")
         assert frames > 20 and empty == 0, (frames, empty)
         check('Un salto de scroll no deja el cristal vacío ni un fotograma')
+
+        chrome("gURLBar.focus(); gURLBar.select(); gURLBar.inputField.value = 'zorro'; gURLBar.startQuery({ searchString: 'zorro' });")
+        under = """const v = gURLBar.view.panel; const c = document.getElementById('zero-glass-urlbar-view'); const r = v.getBoundingClientRect();
+            const g = c && !c.hidden ? c.getBoundingClientRect() : null;
+            return { open: gURLBar.view.isOpen, view: [r.left, r.top, r.width, r.height], glass: g && [g.left, g.top, g.width, g.height], radius: c?.style.borderRadius };"""
+        def stuck():
+            u = chrome(under)
+            return u['open'] and u['view'][3] > 20 and u['glass'] and all(abs(a - b) <= 1 for a, b in zip(u['view'], u['glass']))
+        try:
+            until(stuck)
+            chrome("gURLBar.view.panel.style.minHeight = '320px'")
+            until(lambda: stuck() and chrome(under)['glass'][3] >= 319)
+        except AssertionError:
+            raise AssertionError(f'sugerencias: {chrome(under)}') from None
+        chrome("gURLBar.view.panel.style.minHeight = ''; gURLBar.view.close(); gURLBar.handleRevert(); gBrowser.selectedBrowser.focus();")
+        until(lambda: (u := chrome(under))['glass'] is None)
+        check('Las sugerencias al escribir llevan su cristal debajo, pegado a ellas también cuando crecen')
         report['status'] = 'passed'
     finally:
         if driver: driver.close()

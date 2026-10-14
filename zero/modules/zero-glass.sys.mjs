@@ -326,15 +326,19 @@ export const GlassPane = {
   /** Pone el cristal en vivo detrás de `element` (se ve solo cuando está encima de la web).
    *  `reach(caja)` dice hasta dónde puede llegar la pieza (la foto cubre eso, para que al crecer no
    *  tenga que esperar a otra); por omisión, su caja de ahora. */
-  attach(element, win, host = null, { reach = here => here } = {}) {
+  attach(element, win, host = null, { reach = here => here, name = element.id } = {}) {
     if (panes.has(element)) return;
     const doc = win.document;
     const canvas = doc.createElementNS(HTML, 'canvas');
     canvas.className = 'zero-glass';
-    if (element.id) canvas.id = `zero-glass-${element.id}`;
+    if (name) canvas.id = `zero-glass-${name}`;
     canvas.hidden = true;
     topOf(element).before(canvas);
-    panes.set(element, { element, win, canvas, ink: 'white', reach, shots: new Map(), shooting: false, shotAt: 0 });
+    // Si la pieza cambia de tamaño sin transición (una lista que crece, algo que aparece), el lienzo
+    // también tiene que enterarse.
+    const resized = new win.ResizeObserver(() => kick(win));
+    resized.observe(element);
+    panes.set(element, { element, win, canvas, resized, ink: 'white', reach, shots: new Map(), shooting: false, shotAt: 0 });
     engine(win, host);
     kick(win);
   },
@@ -342,6 +346,7 @@ export const GlassPane = {
     const pane = panes.get(element);
     if (!pane) return;
     panes.delete(element);
+    pane.resized.disconnect();
     pane.canvas.remove();
     element.removeAttribute('zero-ink');
     if (![...panes.values()].some(other => other.win === pane.win)) stop(pane.win);
@@ -359,8 +364,8 @@ export const GlassPane = {
 // ---------------------------------------------------------------- la pieza
 
 // Hasta dónde llega cada pieza (las medidas de zero.css): la isla, 560 px centrados al escribir; el
-// raíl, 186 px abierto; el resto, su caja.
-const ISLAND_MAX = 560, RAIL_OPEN = 186;
+// raíl, 186 px abierto; las sugerencias, hacia abajo según llegan; el resto, su caja.
+const ISLAND_MAX = 560, RAIL_OPEN = 186, SUGGESTIONS_MAX = 520;
 const PIECES = [
   { id: 'nav-bar', reach: here => { const middle = (here.left + here.right) / 2; return box(middle - ISLAND_MAX / 2, here.top, middle + ISLAND_MAX / 2, here.bottom); } },
   { id: 'zero-rail', reach: here => box(here.left, here.top, here.left + RAIL_OPEN, here.bottom) },
@@ -373,6 +378,13 @@ export function attach(win, ctx) {
   for (const { id, reach } of PIECES) {
     const element = win.document.getElementById(id);
     if (element) GlassPane.attach(element, win, ctx.host, reach ? { reach } : {});
+  }
+  // Las sugerencias al escribir (un popover de Gecko, sin id): bajo ellas se leía la web.
+  const suggestions = win.gURLBar?.view?.panel;
+  if (suggestions) {
+    GlassPane.attach(suggestions, win, ctx.host, {
+      name: 'urlbar-view', reach: here => box(here.left, here.top, here.right, Math.max(here.bottom, here.top + SUGGESTIONS_MAX)),
+    });
   }
 }
 
