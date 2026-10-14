@@ -54,7 +54,9 @@ navegar. 0.8 trae lo que hace que la gente use Zen y lo que Zen no tiene.
   pestaña y ventana en la sesión de Gecko, así que sobrevive a cerrar.
 - **Vista dividida y modo compacto** (`kitsune-layout.sys.mjs`).
   <kbd>Ctrl</kbd><kbd>Alt</kbd><kbd>D</kbd> divide la pestaña (la vista dividida de Gecko,
-  con su página para elegir la otra pestaña ya en papel) o la separa;
+  con su página para elegir la otra pestaña ya en papel) y, si ya está dividida, añade otra
+  web: hasta cuatro, tres en columnas y cuatro en 2×2 (Gecko solo coloca dos); con varias
+  pestañas seleccionadas, las junta. <kbd>Ctrl</kbd><kbd>Alt</kbd><kbd>Mayús</kbd><kbd>D</kbd> la separa;
   <kbd>Ctrl</kbd><kbd>Alt</kbd><kbd>C</kbd> esconde las barras (y la barra lateral), que
   salen con el ratón, al enfocar la barra de direcciones o con un menú abierto.
 - **Vista rápida** (`kitsune-glance*.sys.mjs`). <kbd>Alt</kbd>+clic en un enlace lo abre
@@ -71,7 +73,9 @@ navegar. 0.8 trae lo que hace que la gente use Zen y lo que Zen no tiene.
   Gecko. La primera vez lo ofrece una barra; siempre está en el menú.
 - **Tintas** (`start/tintas.json`, `install/tintas.py`). Temas de color: una paleta de los
   diez tokens `--kb-*` para Claro y otra para Oscuro, que pintan toda la ventana y el
-  inicio sin tocar el CSS de Gecko (así no se rompen con un Gecko nuevo). Seis de serie
+  inicio sin tocar el CSS de Gecko (así no se rompen con un Gecko nuevo), y su forma: esquinas
+  rectas, suaves o redondas (todos los radios escalan con `--kb-round`) y letra de palo o con
+  serifa (control de apariencia v9, con la densidad compacta de Apariencia). Seis de serie
   (Papel, Sakura, Bambú, Índigo, Noche y oro, Arena); cada una tiene que leerse al menos tan
   bien como Papel (contrastes comprobados al cargar el catálogo y en las pruebas). Se eligen
   en «Tu inicio» → Apariencia; una tinta nueva de la comunidad es un PR a `tintas.json`

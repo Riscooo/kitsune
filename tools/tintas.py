@@ -40,15 +40,17 @@ def english_names():
 
 
 def swatch(ink, light, dark, label):
-    """Un inicio en miniatura: la mitad izquierda en Claro y la derecha en Oscuro.
+    """Un inicio en miniatura: la mitad izquierda en Claro y la derecha en Oscuro, con las esquinas de
+    la tinta (rectas, suaves o redondas). Solo atributos de SVG (la web no permite estilos en línea)."""
+    scale = {'rectas': 0.25, 'suaves': 1, 'redondas': 1.75}[ink.get('forma', {}).get('esquinas', 'suaves')]
+    search, tile = min(7, round(4 * scale, 1)), min(9, round(5 * scale, 1))
 
-    Solo atributos de SVG (la web no permite estilos en línea)."""
     def half(x, c):
         return (f'<rect x="{x}" width="100" height="120" fill="{c["bg"]}"/>'
                 f'<circle cx="{x + 50}" cy="34" r="13" fill="none" stroke="{c["primary"]}" stroke-width="3.5" stroke-dasharray="70 12"/>'
-                f'<rect x="{x + 14}" y="58" width="72" height="14" rx="7" fill="{c["surface"]}" stroke="{c["outline"]}"/>'
+                f'<rect x="{x + 14}" y="58" width="72" height="14" rx="{search}" fill="{c["surface"]}" stroke="{c["outline"]}"/>'
                 f'<rect x="{x + 22}" y="63" width="30" height="4" rx="2" fill="{c["muted"]}"/>'
-                + ''.join(f'<rect x="{x + 18 + i * 23}" y="84" width="18" height="18" rx="5" fill="{c["surfaceHigh"] if i != 1 else c["primaryContainer"]}"/>' for i in range(3)))
+                + ''.join(f'<rect x="{x + 18 + i * 23}" y="84" width="18" height="18" rx="{tile}" fill="{c["surfaceHigh"] if i != 1 else c["primaryContainer"]}"/>' for i in range(3)))
     return (f'<svg viewBox="0 0 200 120" role="img" aria-label="{escape(label)}">{half(0, light)}{half(100, dark)}</svg>')
 
 

@@ -73,7 +73,9 @@ en Claro y en Oscuro. Son los diez tokens de papel, en hexadecimal y en minúscu
 Para proponer una:
 
 1. Añádela al final de `start/tintas.json`, con un `id` corto (`[a-z][a-z0-9-]`), su
-   `name`, tu nombre en `author` y las dos paletas, `claro` y `oscuro`.
+   `name`, tu nombre en `author` y las dos paletas, `claro` y `oscuro`. Si quieres, también
+   su `forma`: `{"esquinas": "rectas" | "suaves" | "redondas", "letra": "sans" | "serif"}`
+   (lo que no digas, como Papel: suaves y sans).
 2. `python3 tools/tintas.py`: comprueba que se lea al menos tan bien como Papel (los
    contrastes mínimos de `install/tintas.py`) y la copia al inicio de Windows y macOS y a
    la web. Si algún color se queda corto, te dice cuál y cuánto le falta.
