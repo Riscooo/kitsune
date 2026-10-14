@@ -6,6 +6,7 @@ test('the list of blocked sites is cleaned up', () => {
   assert.deepEqual(parseHosts(' YouTube.com, https://www.x.com/home ,reddit.com\nreddit.com;  , m.twitch.tv '),
     ['youtube.com', 'x.com', 'reddit.com', 'm.twitch.tv'])
   assert.deepEqual(parseHosts(''), [])
+  assert.deepEqual(parseHosts('localhost, nada, a..b'), ['localhost'])
   assert.deepEqual(parseHosts(null), [])
 })
 

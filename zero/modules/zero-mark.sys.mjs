@@ -9,8 +9,9 @@
  * que lo que no está hecho no sale.
  *
  * Una sección: { id, rows: [fila…], watch?(fn) → dejar } (con watch, las filas se vuelven a pintar
- * cuando cambia lo que vigila). Una fila: { kind: 'switch' | 'segment', id, label, detail?, options?
- * ([{ value, label }], para segment), get() → valor, set(valor), watch?(fn) → dejar, when?() → si sale }.
+ * cuando cambia lo que vigila). Una fila: { kind: 'switch' | 'segment' | 'list', id, label, detail?, options?
+ * ([{ value, label }], para segment), placeholder? (para list), get() → valor, set(valor),
+ * watch?(fn) → dejar, when?() → si sale }.
  */
 import { prefName, PREFS } from './zero-config.sys.mjs';
 
@@ -76,6 +77,13 @@ function rowNode(doc, row, st) {
     control = el(doc, 'button', { type: 'button', class: 'zero-switch', role: 'switch', 'data-pref': row.id, 'aria-label': row.label });
     sync = () => { const on = !!row.get(); control.toggleAttribute('on', on); control.setAttribute('aria-checked', String(on)); };
     control.addEventListener('click', () => { row.set(!row.get()); sync(); });
+  } else if (row.kind === 'list') {
+    // Una lista en una línea (dominios separados por comas): se guarda al salir del campo o con Intro.
+    control = el(doc, 'input', { type: 'text', class: 'zero-list', 'data-pref': row.id, placeholder: row.placeholder ?? '', spellcheck: 'false', 'aria-label': row.label });
+    sync = () => { if (doc.activeElement !== control) control.value = row.get() ?? ''; };
+    const commit = () => row.set(control.value);
+    control.addEventListener('change', commit);
+    control.addEventListener('keydown', event => { if (event.key === 'Enter') { event.preventDefault(); commit(); } });
   } else {
     control = el(doc, 'span', { class: 'zero-segment', role: 'radiogroup', 'data-pref': row.id, 'aria-label': row.label },
       row.options.map(option => el(doc, 'button', { type: 'button', role: 'radio', 'data-value': option.value }, [option.label])));

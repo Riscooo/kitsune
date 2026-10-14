@@ -47,6 +47,8 @@ export class KitsuneZeroGlassParent extends JSWindowActorParent {
     scrolls.set(browser, data);
     const win = browser.ownerGlobal;
     if (engines.has(win)) kick(win);
+    // Para las piezas que quieran saber que se está bajando (el aviso de scroll infinito).
+    try { win.dispatchEvent(new win.CustomEvent('zero-scroll', { detail: { browser } })); } catch { /* ventana cerrándose */ }
   }
 }
 

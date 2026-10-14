@@ -11,10 +11,17 @@ export const PREFS = Object.freeze({
   pomodoroBreak: 'pomodoro.break',    // 'soft' (avisa la isla) | 'strict' (un cristal tapa las webs)
   pomodoroGuide: 'pomodoro.guide',    // 'breathe' | 'stretch' | 'alternate' (en el descanso estricto)
   pomodoroState: 'pomodoro.state',    // el reloj (JSON), uno para todas las ventanas
+  silence: 'silence',                 // el silencio, encendido o no (apagado de serie)
+  silenceNotify: 'silence.notify',    // los avisos de las webs, en «no molestar» mientras se trabaja
+  silenceBlock: 'silence.block',      // tapar las webs vetadas mientras se trabaja
+  silenceBlocked: 'silence.blocked',  // la lista de webs vetadas (dominios separados por comas)
+  silenceOnlyWork: 'silence.onlyWork', // «Solo currar»: vetadas también en el descanso
+  silenceScroll: 'silence.scroll',    // avisar tras 10 min bajando en la misma página
 });
 
 export const DEFAULTS = Object.freeze({ always: false, backdrop: 'auto', islandIcons: false,
-  pomodoro: false, pomodoroPreset: '25', pomodoroBreak: 'soft', pomodoroGuide: 'breathe', pomodoroState: '' });
+  pomodoro: false, pomodoroPreset: '25', pomodoroBreak: 'soft', pomodoroGuide: 'breathe', pomodoroState: '',
+  silence: false, silenceNotify: true, silenceBlock: true, silenceBlocked: '', silenceOnlyWork: false, silenceScroll: true });
 
 export const prefName = (prefix, key) => `${prefix}${key}`;
 

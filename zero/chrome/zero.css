@@ -475,7 +475,7 @@
 /* Los ajustes: una hoja de cristal esmerilado que brota de la marca. */
 #zero-settings {
   position: fixed; left: 46px; bottom: 16px; z-index: 7;
-  box-sizing: border-box; width: 300px; max-height: calc(100% - 80px); overflow-y: auto; scrollbar-width: none;
+  box-sizing: border-box; width: 320px; max-height: calc(100% - 80px); overflow-y: auto; scrollbar-width: none;
   padding: 14px 14px 6px; border-radius: 22px;
   color: #1d2321; font: 500 12.5px system-ui, sans-serif;
   background: rgba(246, 245, 241, .72);
@@ -493,7 +493,10 @@
 #zero-settings h4 { margin: 2px 2px 10px; font: 600 14px system-ui, sans-serif; display: flex; align-items: center; gap: 8px; }
 #zero-settings h4 .zero-logo { width: 18px; height: 18px; }
 #zero-settings h4 small { margin-inline-start: auto; font: 500 10.5px system-ui, sans-serif; color: rgba(29, 35, 33, .5); }
-#zero-settings .zero-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 8px 2px; border-top: 1px solid rgba(29, 35, 33, .08); }
+#zero-settings .zero-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 10px; padding: 8px 2px; border-top: 1px solid rgba(29, 35, 33, .08); }
+/* El texto pide su sitio; si con el segmento no cabe, el segmento baja a su línea, a la derecha. */
+#zero-settings .zero-row-text { flex: 1 1 160px; min-width: 0; }
+#zero-settings .zero-row > :is(.zero-segment, .zero-switch) { margin-inline-start: auto; }
 #zero-settings .zero-row-text small { display: block; margin-top: 1px; color: rgba(29, 35, 33, .55); font-size: 11px; font-weight: 400; }
 
 /* Interruptor y segmento, como los de la maqueta. */
@@ -637,8 +640,8 @@
 :root[zero-pomo-running] #zero-notch::after { opacity: 1; }
 :root:is([zero-pomo-phase="short"], [zero-pomo-phase="long"]) #zero-notch::after { background: rgba(58, 143, 116, .95); }
 
-/* El descanso estricto: un cristal tapa las webs (la tarjeta), no las piezas de Zero. */
-#zero-break {
+/* El descanso estricto (y la web vetada): un cristal tapa las webs (la tarjeta), no las piezas de Zero. */
+:is(#zero-break, #zero-blocked) {
   position: fixed; inset: 46px 12px 12px 50px; z-index: 3; border-radius: 18px;
   display: grid; place-items: center; color: #fff; -moz-window-dragging: no-drag;
   background: rgba(16, 20, 24, .38);
@@ -646,15 +649,15 @@
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .14);
   animation: zero-break-in var(--zero-t-move) var(--zero-calm) both;
 }
-:root[zero-full] #zero-break { inset: 0; border-radius: 0; }
+:root[zero-full] :is(#zero-break, #zero-blocked) { inset: 0; border-radius: 0; }
 @keyframes zero-break-in { from { opacity: 0; transform: scale(.985); filter: blur(6px); } }
-#zero-break .zero-break-panel {
+:is(#zero-break, #zero-blocked) .zero-break-panel {
   box-sizing: border-box; width: min(440px, 80%); padding: 34px 28px 26px; border-radius: 34px; text-align: center;
   background: rgba(255, 255, 255, .06);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, .6), inset 0 0 0 1px rgba(255, 255, 255, .16), 0 30px 80px rgba(0, 0, 0, .25);
   font-family: system-ui, sans-serif;
 }
-#zero-break .zero-break-time { font: 600 12.5px system-ui, sans-serif; letter-spacing: .08em; opacity: .75; }
+:is(#zero-break, #zero-blocked) .zero-break-time { font: 600 12.5px system-ui, sans-serif; letter-spacing: .08em; opacity: .75; }
 /* Respirar: 4 s creciendo (inspira) y 6 s menguando (suelta). */
 #zero-break .zero-breath {
   width: 120px; height: 120px; margin: 18px auto 16px; border-radius: 50%;
@@ -666,19 +669,19 @@
 #zero-break[data-guide="stretch"] .zero-breath { animation: zero-breath-slow 6s cubic-bezier(.45, 0, .55, 1) infinite; transform: scale(.7); }
 @keyframes zero-breath-slow { 50% { transform: scale(.78); } }
 #zero-break .zero-break-cue { font: 300 30px system-ui, sans-serif; letter-spacing: -.01em; min-height: 1.3em; }
-#zero-break .zero-break-hint { margin-top: 4px; font-size: 13px; opacity: .7; }
-#zero-break .zero-hold {
+:is(#zero-break, #zero-blocked) .zero-break-hint { margin-top: 4px; font-size: 13px; opacity: .7; }
+:is(#zero-break, #zero-blocked) .zero-hold {
   appearance: none; position: relative; overflow: hidden; margin-top: 24px; padding: 10px 22px; min-width: 0;
   border: none; border-radius: 999px; color: #fff; cursor: pointer; font: 600 12.5px system-ui, sans-serif;
   background: rgba(255, 255, 255, .12);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, .55), inset 0 0 0 1px rgba(255, 255, 255, .18);
 }
-#zero-break .zero-hold:focus-visible { outline: 2px solid rgba(255, 255, 255, .7); outline-offset: 3px; }
-#zero-break .zero-hold-fill { position: absolute; inset: 0 auto 0 0; width: 0; background: rgba(255, 255, 255, .24); transition: width 220ms var(--zero-soft); }
-#zero-break .zero-hold.holding .zero-hold-fill { width: 100%; transition: width 1500ms linear; }
-#zero-break .zero-hold-text { position: relative; }
+:is(#zero-break, #zero-blocked) .zero-hold:focus-visible { outline: 2px solid rgba(255, 255, 255, .7); outline-offset: 3px; }
+:is(#zero-break, #zero-blocked) .zero-hold-fill { position: absolute; inset: 0 auto 0 0; width: 0; background: rgba(255, 255, 255, .24); transition: width 220ms var(--zero-soft); }
+:is(#zero-break, #zero-blocked) .zero-hold.holding .zero-hold-fill { width: 100%; transition: width 1500ms linear; }
+:is(#zero-break, #zero-blocked) .zero-hold-text { position: relative; }
 @media (prefers-reduced-motion: reduce) {
-  #zero-break, #zero-break *, #zero-pomo, #zero-pomo *, #zero-pomo *::before, #zero-notch::after { animation: none !important; transition-duration: 1ms !important; transition-delay: 0ms !important; }
+  #zero-break, #zero-break *, #zero-blocked, #zero-blocked *, #zero-pomo, #zero-pomo *, #zero-pomo *::before, #zero-notch::after { animation: none !important; transition-duration: 1ms !important; transition-delay: 0ms !important; }
 }
 
 /* ---------------------------------------------------------------- tinta sobre el marco claro */
@@ -707,3 +710,20 @@
 :root[zero-frame-ink]:not([zero-full]) #zero-grow > button:hover { background-color: rgba(29, 35, 33, .1); }
 :root[zero-frame-ink]:not([zero-full]) #zero-mark { color: #1d2321; opacity: .26; filter: none; }
 :root[zero-frame-ink]:not([zero-full]) #zero-mark:is(:hover, [open]) { opacity: .8; }
+
+/* ---------------------------------------------------------------- el silencio (zero-silence) */
+
+#zero-blocked { -moz-window-dragging: no-drag; }
+#zero-blocked .zero-blocked-host { margin: 16px 0 6px; font: 300 34px system-ui, sans-serif; letter-spacing: -.01em; overflow-wrap: anywhere; }
+
+/* La lista de webs vetadas, en los ajustes: un campo en su propia línea. */
+#zero-settings .zero-row:has(> .zero-list) { flex-wrap: wrap; }
+#zero-settings .zero-list {
+  flex: 1 0 100%; box-sizing: border-box; min-width: 0; margin: 2px 0 0; padding: 7px 10px;
+  border: none; border-radius: 10px; outline: none;
+  font: 500 12px system-ui, sans-serif; color: #1d2321;
+  background: rgba(29, 35, 33, .06);
+  transition: background-color 200ms var(--zero-soft), box-shadow 200ms var(--zero-soft);
+}
+#zero-settings .zero-list:focus { background: #fff; box-shadow: 0 0 0 2px rgba(58, 143, 116, .5); }
+#zero-settings .zero-list::placeholder { color: rgba(29, 35, 33, .4); }

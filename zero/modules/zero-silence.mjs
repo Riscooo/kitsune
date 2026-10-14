@@ -10,7 +10,7 @@ export function parseHosts(text) {
       .replace(/:\d+$/, '')
       .replace(/^www\./, '')
       .replace(/\.$/, '');
-    if (/^[a-z0-9-]+(\.[a-z0-9-]+)+$/.test(host)) seen.add(host);
+    if (/^[a-z0-9-]+(\.[a-z0-9-]+)+$/.test(host) || host === 'localhost') seen.add(host);
   }
   return [...seen];
 }
