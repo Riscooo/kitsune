@@ -185,6 +185,15 @@ Lo de las fases que aún no estén hechas no sale en el panel.
 
 Cada fase tiene su plan y sus pruebas, y se publica cuando está entera.
 
+**Estado (15-10, madrugada):** las cuatro hechas en `superar-zen`, sin fusionar ni publicar hasta que
+Risco las vea y estén tan pulidas como Kitsune. Diferencias con lo de arriba, decididas al hacerlas
+(cada una en su registro de `.superpowers/sdd/`):
+- Silencio: los permisos no se guardan aparte (Gecko ya los deja esperando en su icono) y el autoplay
+  y los banners de cookies los quita Kitsune en sus modos de privacidad: Zero no toca esos ajustes.
+  Los avisos no esperan al descanso: van en silencio mientras trabajas (es lo que da Gecko).
+- Sonidos: los bucles se hacen al preparar las grabaciones (fundido cruzado de 4 s, ver
+  `zero/SONIDOS.md`), no al sonar: en el navegador, cada capa es un bucle sin más.
+
 ## Pruebas
 
 - Por cada módulo, una prueba con el motor real (`tests/zero_*_native.py`, perfil temporal y

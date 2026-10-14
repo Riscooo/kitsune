@@ -14,13 +14,21 @@ la ventana a Zero y la devuelve, con las mismas pestañas. Diseño completo en
   - `zero-island`: la isla (la barra de navegación de Gecko, reestilada) y sus avisos (`alert()`);
   - `zero-rail`: el raíl de pestañas con efecto Dock (`zero-dock.mjs`) y los espacios del anfitrión;
   - `zero-mark`: la marca de agua y los ajustes;
-  - `zero-glass`: el cristal en vivo sobre la web y el texto que se adapta (`zero-light.mjs`).
-  `zero-dock.mjs`, `zero-light.mjs` y `zero-config.sys.mjs` son puros y se prueban con Node.
+  - `zero-pomodoro`: el anillo, los avisos y los descansos (el reloj, puro, en `zero-pomodoro.mjs`);
+  - `zero-silence`: avisos en silencio, webs vetadas, «Solo currar» y el aviso de scroll infinito
+    (las reglas, puras, en `zero-silence.mjs`);
+  - `zero-sounds`: los sonidos CC0 por capas (el mezclador, puro, en `zero-sounds.mjs`; los
+    créditos, en `SONIDOS.md`);
+  - `zero-glass`: el cristal en vivo sobre la web y el texto que se adapta (`zero-light.mjs`). Su
+    actor (`zero-glass-child.sys.mjs`) solo cuenta el scroll de la página.
+  `zero-dock.mjs`, `zero-light.mjs`, `zero-pomodoro.mjs`, `zero-silence.mjs`, `zero-sounds.mjs` y
+  `zero-config.sys.mjs` son puros y se prueban con Node. El pomodoro, el silencio y los sonidos son
+  opcionales y vienen apagados.
 - `chrome/zero.css`: todo el aspecto, bajo `:root[zero]`. Lo carga `zero.sys.mjs` solo en las
   ventanas con Zero, como hoja de usuario (así sus `!important` pueden con los de Kitsune y Gecko).
   Dos curvas (`--zero-calm` para forma y sitio, `--zero-soft` para opacidad y color) y los tiempos
   en variables, que «reducir movimiento» pone a cero.
-- `assets/`: el logo («máscara en el cero») y, más adelante, los sonidos.
+- `assets/`: el logo («máscara en el cero») y los seis sonidos (`zero-sonido-*.ogg`, CC0).
 - `linux/`: la regla de niri que desenfoca lo que hay detrás de la ventana (`kitsune-zero.kdl`) y su
   instalador, que la añade a `~/.config/niri/config.kdl` con copia de seguridad. Sin ella, el fondo es
   una foto desenfocada de la web.
@@ -28,16 +36,20 @@ la ventana a Zero y la devuelve, con las mismas pestañas. Diseño completo en
 
 ## Ajustes de las fases siguientes
 
-Cada fase añade su sección al panel de ajustes con `ctx.settings.add(section)`, así que lo que no está
-hecho no sale. Una sección es `{ id, rows }`, y una fila
-`{ kind: 'switch' | 'segment', id, label, detail?, options?, get(), set(valor), watch?(fn) }`.
+Cada pieza añade su sección al panel de ajustes con `ctx.settings.add(section)`, así que lo que no
+está no sale. Una sección es `{ id, rows, watch? }`, y una fila
+`{ kind: 'switch' | 'segment' | 'list' | 'slider', id, label, detail?, options?, placeholder?, get(),
+set(valor), watch?(fn), when?() }` (con `when`, la fila sale solo si toca; con el `watch` de la
+sección, las filas se vuelven a pintar). Los avisos de la isla, con `ctx.island.alert(texto, detalle,
+ms)`.
 
 ## Cómo lo lleva Kitsune (el anfitrión)
 
 - `install/native/kitsune-zero-host.sys.mjs` le da a Zero lo que necesita: los textos en el idioma de
   Kitsune, los ajustes con el prefijo `kitsune.zero.`, los atajos en su propio `<keyset>`, los espacios
-  de Kitsune (`spaces`: lista, el de la ventana, cambiar y enterarse de los cambios) y si está el modo
-  ahorro (`saver.active`: el cristal en vivo baja a 15 fps).
+  de Kitsune (`spaces`: lista, el de la ventana, cambiar y enterarse de los cambios), las pestañas «de
+  paso» que el raíl no enseña (`tabs.passing`: la vista rápida) y si está el modo ahorro
+  (`saver.active`: el cristal en vivo baja a 15 fps).
 - `install/kitsune-engine.py` copia `modules/`, `chrome/` y `assets/` al motor, en
   `chrome://browser/content/zero/`. Su huella entra en la receta, así que un cambio en Zero recompila
   el motor.
