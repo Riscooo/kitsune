@@ -159,6 +159,10 @@ class AppearanceManager:
             catalog = tintas.load()
             if tinta not in catalog:
                 raise ValueError('Invalid tinta')
+            density = settings.get('densidad', 'normal')
+            if density not in ('normal', 'compacta'):
+                raise ValueError('Invalid density')
+            forma = catalog[tinta]['forma']
             if background is not None and not background_path(self.profile, background).is_file():
                 background = None
             palette = dict(catalog[tinta][theme])
@@ -176,10 +180,11 @@ class AppearanceManager:
                     raise ValueError('Invalid Google retention policy')
             except FileNotFoundError:
                 pass
-            value = {'version': 8, 'palette': palette, 'motion': motion, 'googleRemember': remember, 'theme': theme,
+            value = {'version': 9, 'palette': palette, 'motion': motion, 'googleRemember': remember, 'theme': theme,
                      'background': background, 'windowControls': controls, 'brand': brand,
                      'performance': performance, 'ramLimit': ram_limit, 'minimize': minimize,
-                     'windowButtons': buttons, 'tabs': tabs}
+                     'windowButtons': buttons, 'tabs': tabs,
+                     'esquinas': forma['esquinas'], 'letra': forma['letra'], 'densidad': density}
             value['fingerprint'] = hashlib.sha256(json.dumps(value, sort_keys=True).encode()).hexdigest()
             private_write(self.control, value)
             native = {'available': (self.browser_root / 'native/kitsune-appearance.sys.mjs').is_file(), 'status': 'queued'}

@@ -302,6 +302,11 @@
 		"El fondo de serie está dañado; vuelve a instalar Kitsune.": "The built-in background is damaged; install Kitsune again.",
 		"Ese fondo de serie no está disponible.": "That built-in background is not available.",
 		"Esa tinta no está en el catálogo.": "That ink is not in the catalog.",
+		"La densidad no es válida.": "The density is not valid.",
+		"Densidad": "Density",
+		"Compacta": "Compact",
+		"Con «Compacta», las barras y las pestañas ocupan menos alto.": "With «Compact», the toolbars and the tabs take up less height.",
+		"Los colores de todo Kitsune, en Claro y en Oscuro, y su forma: esquinas y letra. Cada tinta se lee al menos tan bien como Papel.": "The colors of all of Kitsune, in Light and in Dark, and its shape: corners and lettering. Every ink reads at least as well as Paper.",
 		"Escribe un nombre de entre 1 y 48 caracteres.": "Type a name of 1 to 48 characters.",
 		"Escribe un correo válido o deja este campo vacío. Es una etiqueta local, no una cuenta verificada.": "Type a valid email or leave this field empty. It is a local label, not a verified account.",
 		"No se ha encontrado ese perfil.": "That profile was not found.",
@@ -1429,7 +1434,8 @@
 			minimize: value?.minimize !== false,
 			windowButtons: ["kitsune", "sistema"].includes(value?.windowButtons) ? value.windowButtons : "auto",
 			tabs: TABS.includes(value?.tabs) ? value.tabs : "arriba",
-			tinta: typeof value?.tinta === "string" && /^[a-z][a-z0-9-]{1,23}$/u.test(value.tinta) ? value.tinta : "papel"
+			tinta: typeof value?.tinta === "string" && /^[a-z][a-z0-9-]{1,23}$/u.test(value.tinta) ? value.tinta : "papel",
+			densidad: value?.densidad === "compacta" ? "compacta" : "normal"
 		};
 	}
 	function mergeSettings(current, patch) {
@@ -1675,10 +1681,21 @@
 			5,
 			6,
 			7,
-			8
+			8,
+			9
 		].includes(value?.version) || typeof value.fingerprint !== "string" || !/^[a-f\d]{64}$/iu.test(value.fingerprint) || typeof value.motion !== "boolean" || !value.palette || PALETTE_KEYS.some((key) => typeof value.palette[key] !== "string" || !/^#[a-f\d]{6}$/iu.test(value.palette[key]))) throw new Error("Paleta no válida.");
 		if (value.version >= 3 && (!Object.hasOwn(THEME_COLORS, value.theme) || value.background !== null && (typeof value.background !== "string" || !/^[a-f\d]{64}$/u.test(value.background)))) throw new Error("Tema no válido.");
+		if (value.version >= 9 && (![
+			"rectas",
+			"suaves",
+			"redondas"
+		].includes(value.esquinas) || !["sans", "serif"].includes(value.letra))) throw new Error("Forma no válida.");
 		return value;
+	}
+	/** La forma de la tinta también en el inicio: sus esquinas y la letra de los títulos (data-esquinas, data-letra). */
+	function paintShape(root, value) {
+		root.dataset.esquinas = value?.esquinas ?? "suaves";
+		root.dataset.letra = value?.letra ?? "sans";
 	}
 	const CSS_NAMES = Object.freeze({
 		bg: "bg",
@@ -1774,6 +1791,7 @@
 				const settings = getSettings();
 				if (startedWith !== relevant(settings) || result.motion !== settings.motion) return false;
 				if (result.theme === settings.theme) paintPalette(document.documentElement, result.theme, result.palette);
+				paintShape(document.documentElement, result);
 				onStatus(appearanceStatus(result));
 				return true;
 			} catch (error) {
@@ -2284,6 +2302,10 @@
 				button.setAttribute("aria-pressed", String(button.dataset.tabs === settings.tabs));
 				button.disabled = !state.ready;
 			}
+			for (const button of document.querySelectorAll("[data-densidad]")) {
+				button.setAttribute("aria-pressed", String(button.dataset.densidad === settings.densidad));
+				button.disabled = !state.ready;
+			}
 			for (const button of document.querySelectorAll("[data-window-buttons]")) {
 				button.setAttribute("aria-pressed", String(button.dataset.windowButtons === buttons));
 				button.disabled = !state.ready;
@@ -2321,6 +2343,7 @@
 	});
 	for (const button of document.querySelectorAll("[data-window-controls]")) button.addEventListener("click", () => void save({ windowControls: button.dataset.windowControls }));
 	for (const button of document.querySelectorAll("[data-tabs]")) button.addEventListener("click", () => void save({ tabs: button.dataset.tabs }));
+	for (const button of document.querySelectorAll("[data-densidad]")) button.addEventListener("click", () => void save({ densidad: button.dataset.densidad }));
 	for (const button of document.querySelectorAll("[data-window-buttons]")) button.addEventListener("click", () => void save({ windowButtons: button.dataset.windowButtons }));
 	for (const button of document.querySelectorAll("[data-performance]")) button.addEventListener("click", () => void save({ performance: button.dataset.performance }));
 	for (const button of document.querySelectorAll("[data-ram-limit]")) button.addEventListener("click", () => void save({ ramLimit: Number(button.dataset.ramLimit) }));

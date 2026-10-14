@@ -53,13 +53,19 @@ class AppearanceTests(unittest.TestCase):
         self.assertEqual(appearance.PAPEL, expected)
         self.assertEqual(self.refresh()["palette"], expected)
 
-    def test_control_is_version_8_with_theme_background_window_saver_minimize_buttons_and_tabs(self):
+    def test_control_is_version_9_with_theme_background_window_saver_minimize_buttons_tabs_and_shape(self):
         self.refresh()
         control = json.loads(self.manager.control.read_text())
-        self.assertEqual(control["version"], 8)
+        self.assertEqual(control["version"], 9)
         self.assertEqual(set(control), {"version", "palette", "motion", "googleRemember", "theme", "background",
                                         "windowControls", "brand", "performance", "ramLimit", "minimize", "windowButtons",
-                                        "tabs", "fingerprint"})
+                                        "tabs", "esquinas", "letra", "densidad", "fingerprint"})
+        # La forma sale de la tinta; la densidad, de los ajustes.
+        self.assertEqual((control["esquinas"], control["letra"], control["densidad"]), ("suaves", "sans", "normal"))
+        noche = self.refresh(tinta="noche", densidad="compacta")
+        self.assertEqual((noche["esquinas"], noche["letra"], noche["densidad"]), ("rectas", "serif", "compacta"))
+        with self.assertRaises(ValueError):
+            self.refresh(densidad="enorme")
         self.assertEqual(control["tabs"], "arriba")
         self.assertEqual(self.refresh(tabs="lado")["tabs"], "lado")
         self.assertEqual(self.refresh(tabs="iconos")["tabs"], "iconos")

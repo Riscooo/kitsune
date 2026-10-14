@@ -52,7 +52,7 @@
     margin: 0;
     padding: 0;
     border: 1px solid transparent;
-    border-radius: 9px;
+    border-radius: calc(9px * var(--kb-round, 1));
     background: transparent;
     color: var(--kitsune-quiet);
     font: inherit;
@@ -102,7 +102,7 @@
     height: 32px;
     padding: 0 10px;
     border: 1px solid var(--kitsune-rule);
-    border-radius: 9px;
+    border-radius: calc(9px * var(--kb-round, 1));
     background: var(--kitsune-field);
     color: var(--kitsune-text);
     font: inherit;
@@ -130,7 +130,7 @@
     height: 30px;
     padding: 0 14px;
     border: 1px solid var(--kitsune-rule);
-    border-radius: 9px;
+    border-radius: calc(9px * var(--kb-round, 1));
     background: transparent;
     color: var(--kitsune-text);
     font: 500 13px "Noto Sans", "Kitsune Sans", sans-serif;
@@ -151,7 +151,7 @@
     gap: 10px;
     padding: 8px 10px;
     border: 1px solid var(--kitsune-rule);
-    border-radius: 9px;
+    border-radius: calc(9px * var(--kb-round, 1));
     color: var(--kitsune-text);
   }
   .kitsune-import-panel label.kitsune-import-source:has(input:checked) { border-color: var(--kb-primary); background: var(--kitsune-sheet); }

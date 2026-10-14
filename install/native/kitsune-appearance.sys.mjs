@@ -38,7 +38,13 @@ const CONTROL_KEYS = Object.freeze({
   // Pestañas arriba, en una barra a un lado o a un lado solo con iconos.
   8: Object.freeze(['version', 'fingerprint', 'palette', 'motion', 'googleRemember', 'theme', 'background', 'windowControls', 'brand',
                     'performance', 'ramLimit', 'minimize', 'windowButtons', 'tabs']),
+  // La forma de la tinta (esquinas y letra) y la densidad de la ventana.
+  9: Object.freeze(['version', 'fingerprint', 'palette', 'motion', 'googleRemember', 'theme', 'background', 'windowControls', 'brand',
+                    'performance', 'ramLimit', 'minimize', 'windowButtons', 'tabs', 'esquinas', 'letra', 'densidad']),
 });
+const ESQUINAS = Object.freeze({ rectas: 0.25, suaves: 1, redondas: 1.75 });
+const LETRAS = Object.freeze(['sans', 'serif']);
+const DENSIDADES = Object.freeze(['normal', 'compacta']);
 const TABS = Object.freeze(['arriba', 'lado', 'iconos']);
 const WINDOW_BUTTONS = Object.freeze(['auto', 'kitsune', 'sistema']);
 const PERFORMANCE = Object.freeze(['normal', 'ahorro']);
@@ -56,6 +62,7 @@ function validate(value) {
       (value.version >= 6 && typeof value.minimize !== 'boolean') ||
       (value.version >= 7 && !WINDOW_BUTTONS.includes(value.windowButtons)) ||
       (value.version >= 8 && !TABS.includes(value.tabs)) ||
+      (value.version >= 9 && (!Object.hasOwn(ESQUINAS, value.esquinas) || !LETRAS.includes(value.letra) || !DENSIDADES.includes(value.densidad))) ||
       typeof value.fingerprint !== 'string' || !/^[a-f0-9]{64}$/.test(value.fingerprint) ||
       ['motion','googleRemember'].some(key => typeof value[key] !== 'boolean') ||
       !value.palette || typeof value.palette !== 'object' || Array.isArray(value.palette) ||
@@ -63,7 +70,7 @@ function validate(value) {
       Object.keys(TOKENS).some(key => typeof value.palette[key] !== 'string' || !/^#[0-9a-f]{6}$/.test(value.palette[key]))) throw Error('Invalid local appearance control');
   // Un control v2 (0.6) es papel claro y sin fondo; v2 y v3, botones a la izquierda y con logo.
   return {theme:'claro', background:null, windowControls:'izquierda', brand:true, performance:'normal', ramLimit:2048, minimize:true,
-          windowButtons:'auto', tabs:'arriba', ...value};
+          windowButtons:'auto', tabs:'arriba', esquinas:'suaves', letra:'sans', densidad:'normal', ...value};
 }
 
 function backgroundUri(hash) {
@@ -79,7 +86,7 @@ function backgroundUri(hash) {
 function nativeCss(value) {
   const scheme = SCHEMES[value.theme];
   const variables = Object.entries(TOKENS).map(([key, name]) => `--kb-${name}:${value.palette[key]} !important;`).join('') +
-    `--kb-scheme:${scheme} !important;`;
+    `--kb-scheme:${scheme} !important;--kb-round:${ESQUINAS[value.esquinas] ?? 1} !important;`;
   const background = value.background
     ? `background:linear-gradient(color-mix(in srgb,var(--kb-bg) 30%,transparent),color-mix(in srgb,var(--kb-bg) 62%,transparent)),url("${backgroundUri(value.background)}") center/cover no-repeat fixed var(--kb-bg)!important;`
     : 'background-color:var(--kb-bg)!important;background-image:none!important;';
@@ -105,7 +112,24 @@ function windowCss(value) {
     ${KITSUNE_BUTTONS} .titlebar-buttonbox .titlebar-min{display:none!important;}`;
   const hidden = value.brand ? '' : `
     :root#main-window #TabsToolbar::before,:root#main-window #navigator-toolbox[tabs-hidden]>#nav-bar::before{display:none!important;}`;
-  return right + noMinimize + hidden;
+  return right + noMinimize + hidden + shapeCss(value);
+}
+
+// La forma de la tinta: las esquinas de Gecko (pestañas, botones, barra de direcciones, paneles y
+// tarjetas) escaladas a la vez, y la letra de los nombres (pestañas, espacios, paleta, títulos).
+// La barra de direcciones sigue en letra de palo, que se lee mejor en una dirección.
+function shapeCss(value) {
+  const scale = ESQUINAS[value.esquinas] ?? 1;
+  if (scale === 1 && value.letra !== 'serif') return '';
+  const px = base => `${Math.round(base * scale * 10) / 10}px`;
+  const corners = scale === 1 ? '' : `
+    :root#main-window{--border-radius-small:${px(4)}!important;--border-radius-medium:${px(8)}!important;--border-radius-large:${px(12)}!important;
+      --tab-border-radius:${px(6)}!important;--toolbarbutton-border-radius:${px(6)}!important;--urlbar-container-border-radius:${px(8)}!important;
+      --arrowpanel-border-radius:${px(10)}!important;--panel-border-radius:${px(10)}!important;}`;
+  const serif = value.letra !== 'serif' ? '' : `
+    :root#main-window :is(.tab-label,.kitsune-space-name,.kitsune-palette-label,.kitsune-space-panel-title,panelview .panel-header h1){
+      font-family:"Noto Serif","Kitsune Serif",Georgia,serif!important;letter-spacing:.01em;}`;
+  return corners + serif;
 }
 
 /** Los botones que se ven: «auto» son los de Apple en macOS y los de Kitsune en el resto. */
@@ -220,6 +244,16 @@ async function watchMemory() {
 // que hay sin cambiar nada, así que unas verticales puestas a mano en Ajustes se respetan.
 // Al volver arriba se quita lo que puso Kitsune y la barra lateral vuelve a la de siempre.
 const TABS_APPLIED_PREF = 'kitsune.tabs.applied';
+// Densidad: la compacta de Gecko (browser.uidensity = 1). Solo cuando cambia la elección del
+// inicio, para no pisar un cambio hecho a mano en about:config.
+const DENSITY_APPLIED_PREF = 'kitsune.appearance.densityApplied';
+function applyDensity(choice) {
+  if (Services.prefs.getStringPref(DENSITY_APPLIED_PREF, '') === choice) return;
+  if (choice === 'compacta') Services.prefs.setIntPref('browser.uidensity', 1);
+  else if (Services.prefs.prefHasUserValue('browser.uidensity')) Services.prefs.clearUserPref('browser.uidensity');
+  Services.prefs.setStringPref(DENSITY_APPLIED_PREF, choice);
+}
+
 function applyTabs(mode) {
   const applied = Services.prefs.getStringPref(TABS_APPLIED_PREF, '');
   if (applied === mode) return;
@@ -412,6 +446,7 @@ async function update() {
       applyGoogle(value.googleRemember);
       applyButtons(value.windowButtons);
       applyTabs(value.tabs);
+      applyDensity(value.densidad);
       current = value.fingerprint;
       lastAck = 0;
     }

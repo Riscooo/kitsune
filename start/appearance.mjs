@@ -5,9 +5,16 @@ const THEME_COLORS = Object.freeze({ claro: '#f6f5f1', oscuro: '#161a19' })
 // Papel (Claro) o sumi (Oscuro). El inicio pinta su paleta con CSS según
 // data-theme; la respuesta del servidor solo confirma lo que recibe el navegador.
 export function parseAppearance(value) {
-  if (![2, 3, 4, 5, 6, 7, 8].includes(value?.version) || typeof value.fingerprint !== 'string' || !/^[a-f\d]{64}$/iu.test(value.fingerprint) || typeof value.motion !== 'boolean' || !value.palette || PALETTE_KEYS.some(key => typeof value.palette[key] !== 'string' || !/^#[a-f\d]{6}$/iu.test(value.palette[key]))) throw new Error('Paleta no válida.')
+  if (![2, 3, 4, 5, 6, 7, 8, 9].includes(value?.version) || typeof value.fingerprint !== 'string' || !/^[a-f\d]{64}$/iu.test(value.fingerprint) || typeof value.motion !== 'boolean' || !value.palette || PALETTE_KEYS.some(key => typeof value.palette[key] !== 'string' || !/^#[a-f\d]{6}$/iu.test(value.palette[key]))) throw new Error('Paleta no válida.')
   if (value.version >= 3 && (!Object.hasOwn(THEME_COLORS, value.theme) || (value.background !== null && (typeof value.background !== 'string' || !/^[a-f\d]{64}$/u.test(value.background))))) throw new Error('Tema no válido.')
+  if (value.version >= 9 && (!['rectas', 'suaves', 'redondas'].includes(value.esquinas) || !['sans', 'serif'].includes(value.letra))) throw new Error('Forma no válida.')
   return value
+}
+
+/** La forma de la tinta también en el inicio: sus esquinas y la letra de los títulos (data-esquinas, data-letra). */
+export function paintShape(root, value) {
+  root.dataset.esquinas = value?.esquinas ?? 'suaves'
+  root.dataset.letra = value?.letra ?? 'sans'
 }
 
 const CSS_NAMES = Object.freeze({ bg: 'bg', surface: 'surface', surfaceHigh: 'surface-high', text: 'text', muted: 'muted', outline: 'outline',
@@ -79,6 +86,7 @@ export function createAppearance({ getSettings, refreshSettings = async () => {}
       // Ignore a response computed before the most recent preference change.
       if (startedWith !== relevant(settings) || result.motion !== settings.motion) return false
       if (result.theme === settings.theme) paintPalette(document.documentElement, result.theme, result.palette)
+      paintShape(document.documentElement, result)
       onStatus(appearanceStatus(result))
       return true
     } catch (error) {

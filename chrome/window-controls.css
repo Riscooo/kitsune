@@ -48,7 +48,7 @@
     padding: 0 !important;
     margin: 0 !important;
     border: 0 !important;
-    border-radius: 5px !important;
+    border-radius: calc(5px * var(--kb-round, 1)) !important;
     background: transparent !important;
     -moz-window-dragging: no-drag !important;
     color: var(--kb-text) !important;

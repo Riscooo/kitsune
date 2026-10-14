@@ -107,6 +107,28 @@ def main():
                     driver.screenshot(f'poco-contraste-{tinta}-{theme}.png', chrome=True)
                 assert result['checked'] > 0 and not result['low'], f'{tinta} {theme}: {result["low"]}'
         check(f'La ventana se lee con las {len(CATALOG)} tintas en Claro y en Oscuro (≥ {MINIMUM:g}:1)')
+
+        # La forma: Noche y oro (esquinas rectas, letra serif) y Arena (redondas), y la densidad compacta.
+        SHAPE = """const root = getComputedStyle(document.documentElement);
+          const label = document.querySelector('.tabbrowser-tab .tab-label');
+          return {radius: root.getPropertyValue('--tab-border-radius').trim(), font: label ? getComputedStyle(label).fontFamily : '',
+                  density: document.documentElement.getAttribute('uidensity') || 'normal'};"""
+        driver.navigate('data:text/html,<title>Diario de papel</title><h1>Diario</h1>')
+        settled = lambda: not chrome("return document.documentElement.hasAttribute('kitsune-theme-changing')")
+        save(tinta='noche', theme='claro', densidad='compacta')
+        noche = eventually(lambda: (v := chrome(SHAPE))['radius'] == '1.5px' and v, timeout=20)
+        assert 'Serif' in noche['font'] and noche['density'] == 'compact', noche
+        eventually(settled, timeout=5); time.sleep(0.5)
+        driver.screenshot('noche-compacta.png', chrome=True)
+        save(tinta='arena', densidad='normal')
+        arena = eventually(lambda: (v := chrome(SHAPE))['radius'] == '10.5px' and v, timeout=20)
+        assert arena['density'] == 'normal', arena
+        eventually(settled, timeout=5); time.sleep(0.5)
+        driver.screenshot('arena.png', chrome=True)
+        save(tinta='papel')
+        papel = eventually(lambda: (v := chrome(SHAPE))['radius'] != '10.5px' and v, timeout=20)
+        assert 'Serif' not in papel['font'], papel
+        check(f'La forma de la tinta llega a la ventana (Noche: {noche["radius"]} y serif; Arena: {arena["radius"]}) y la densidad compacta también')
         report['status'] = 'passed'
     finally:
         if driver: driver.close()

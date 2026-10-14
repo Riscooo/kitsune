@@ -50,8 +50,8 @@
   --toolbarbutton-active-background: var(--kb-selected) !important;
   --toolbarbutton-background-color-hover: var(--kb-hover) !important;
   --toolbarbutton-background-color-active: var(--kb-selected) !important;
-  --toolbarbutton-border-radius: 8px !important;
-  --tab-border-radius: 9px !important;
+  --toolbarbutton-border-radius: calc(8px * var(--kb-round, 1)) !important;
+  --tab-border-radius: calc(9px * var(--kb-round, 1)) !important;
   --tab-selected-bgcolor: var(--kb-selected) !important;
   --tab-selected-textcolor: var(--kb-text) !important;
   /* Gecko 157 pinta el título con estos (light-dark() según el sistema): sin ellos, con el
@@ -65,7 +65,7 @@
   --arrowpanel-background: var(--kb-surface) !important;
   --arrowpanel-color: var(--kb-text) !important;
   --arrowpanel-border-color: var(--kb-line) !important;
-  --arrowpanel-border-radius: 12px !important;
+  --arrowpanel-border-radius: calc(12px * var(--kb-round, 1)) !important;
   --panel-separator-color: var(--kb-line) !important;
   --panel-item-hover-bgcolor: var(--kb-hover) !important;
   --panel-item-active-bgcolor: var(--kb-selected) !important;
@@ -73,7 +73,7 @@
   --urlbarView-highlight-color: var(--kb-text) !important;
   --urlbar-background-color: var(--kb-bg) !important;
   --urlbar-background-color-focus: var(--kb-bg) !important;
-  --urlbar-background-border-radius: 9px !important;
+  --urlbar-background-border-radius: calc(9px * var(--kb-round, 1)) !important;
   --sidebar-background-color: var(--kb-surface) !important;
   --sidebar-text-color: var(--kb-text) !important;
   --sidebar-border-color: var(--kb-line) !important;
@@ -127,7 +127,7 @@
 
 /* Do not force close buttons to appear when native narrow/pinned tabs hide
    them. Favicons, mute/sharing badges and group colors are also left intact. */
-.tab-close-button { border-radius: 9px !important; }
+.tab-close-button { border-radius: calc(9px * var(--kb-round, 1)) !important; }
 .tab-close-button:hover {
   background-color: var(--kb-primary-container) !important;
   color: var(--kb-primary) !important;
@@ -135,9 +135,9 @@
 
 #tabs-newtab-button > .toolbarbutton-icon,
 #new-tab-button > .toolbarbutton-icon,
-#alltabs-button > .toolbarbutton-badge-stack { border-radius: 12px !important; }
+#alltabs-button > .toolbarbutton-badge-stack { border-radius: calc(12px * var(--kb-round, 1)) !important; }
 
-tab-group > .tab-group-label-container > label { border-radius: 8px !important; }
+tab-group > .tab-group-label-container > label { border-radius: calc(8px * var(--kb-round, 1)) !important; }
 
 /* Omnibox: one readable surface; real padlock, protection and permission
    indicators keep their original colors and states. */
@@ -152,7 +152,7 @@ tab-group > .tab-group-label-container > label { border-radius: 8px !important; 
 #urlbar { --urlbar-min-height: 38px !important; }
 #urlbar .urlbar-background {
   border: 1px solid var(--kb-line) !important;
-  border-radius: 9px !important;
+  border-radius: calc(9px * var(--kb-round, 1)) !important;
   background: var(--kb-bg) !important;
   box-shadow: none !important;
 }
@@ -165,7 +165,7 @@ tab-group > .tab-group-label-container > label { border-radius: 8px !important; 
 
 #urlbar[open] > .urlbar-background {
   border-color: color-mix(in srgb, var(--kb-accent) 62%, var(--kb-outline)) !important;
-  border-radius: 11px !important;
+  border-radius: calc(11px * var(--kb-round, 1)) !important;
   background: var(--kb-surface) !important;
   box-shadow: 0 10px 28px var(--kb-shadow) !important;
 }
@@ -180,21 +180,21 @@ tab-group > .tab-group-label-container > label { border-radius: 8px !important; 
   border-top-color: var(--kb-line) !important;
   color: var(--kb-text) !important;
 }
-.urlbarView-row-inner { border-radius: 10px !important; }
+.urlbarView-row-inner { border-radius: calc(10px * var(--kb-round, 1)) !important; }
 .urlbarView-row[selected] .urlbarView-row-inner { background-color: var(--kb-selected) !important; }
 .urlbarView-url { color: var(--kb-accent) !important; }
 
 /* Keep native button hit targets/overflow logic and disabled-state contrast. */
 #nav-bar .toolbarbutton-1 > .toolbarbutton-icon,
 #nav-bar .toolbarbutton-1 > .toolbarbutton-badge-stack,
-#nav-bar .toolbarbutton-1 > .toolbarbutton-text { border-radius: 12px !important; }
+#nav-bar .toolbarbutton-1 > .toolbarbutton-text { border-radius: calc(12px * var(--kb-round, 1)) !important; }
 
 #PersonalToolbar {
   padding: 0 10px 6px !important;
   color: var(--kb-muted) !important;
   background: var(--kb-bg) !important;
 }
-#PlacesToolbarItems > .bookmark-item { border-radius: 8px !important; }
+#PlacesToolbarItems > .bookmark-item { border-radius: calc(8px * var(--kb-round, 1)) !important; }
 #PlacesToolbarItems > .bookmark-item:hover { background-color: var(--kb-hover) !important; }
 
 /* Panels have a single outer surface; avoid adding a nested border/shadow to
@@ -205,8 +205,8 @@ menupopup {
   --panel-background-color: var(--kb-surface) !important;
   --panel-text-color: var(--kb-text) !important;
   --panel-border-color: var(--kb-line) !important;
-  --panel-border-radius: 12px !important;
-  --menuitem-border-radius: 8px !important;
+  --panel-border-radius: calc(12px * var(--kb-round, 1)) !important;
+  --menuitem-border-radius: calc(8px * var(--kb-round, 1)) !important;
 }
 /* A page's <select> drop-down follows the page: Gecko marks it dark when the select
    is dark, and it keeps the system's dark menu then instead of paper and ink. */
@@ -221,12 +221,12 @@ panel[type="arrow"] {
   --panel-background-color: var(--kb-surface) !important;
   --panel-text-color: var(--kb-text) !important;
   --panel-border-color: var(--kb-line) !important;
-  --panel-border-radius: 16px !important;
+  --panel-border-radius: calc(16px * var(--kb-round, 1)) !important;
 }
 panelview { color: var(--kb-text) !important; }
 .panel-subview-body .subviewbutton,
 .panel-subview-body .subviewbutton-nav,
-.unified-extensions-item { border-radius: 10px !important; }
+.unified-extensions-item { border-radius: calc(10px * var(--kb-round, 1)) !important; }
 
 /* Extensions use modern shadow-DOM buttons as well as XUL menu rows. Theme
    their supported tokens too: the old arrowpanel colors alone leave a bright,
@@ -238,9 +238,9 @@ panelview { color: var(--kb-text) !important; }
   --panel-background-color: var(--kb-surface) !important;
   --panel-text-color: var(--kb-text) !important;
   --panel-border-color: var(--kb-line) !important;
-  --panel-border-radius: 16px !important;
-  --panel-menuitem-border-radius: 10px !important;
-  --button-border-radius: 12px !important;
+  --panel-border-radius: calc(16px * var(--kb-round, 1)) !important;
+  --panel-menuitem-border-radius: calc(10px * var(--kb-round, 1)) !important;
+  --button-border-radius: calc(12px * var(--kb-round, 1)) !important;
   --button-background-color-primary: var(--kb-accent) !important;
   --button-background-color-primary-hover: color-mix(in srgb, var(--kb-accent) 86%, var(--kb-text)) !important;
   --button-background-color-primary-active: color-mix(in srgb, var(--kb-accent) 76%, var(--kb-text)) !important;
@@ -262,7 +262,7 @@ panelview { color: var(--kb-text) !important; }
   max-width: calc(100vw - 24px) !important;
 }
 #unified-extensions-empty-state > img {
-  border-radius: 12px !important;
+  border-radius: calc(12px * var(--kb-round, 1)) !important;
   margin: 8px 12px 4px !important;
   max-width: calc(100% - 24px) !important;
 }
@@ -272,24 +272,24 @@ panelview { color: var(--kb-text) !important; }
   --button-font-weight: 600 !important;
 }
 #unified-extensions-discover-extensions::part(button) {
-  border-radius: 12px !important;
+  border-radius: calc(12px * var(--kb-round, 1)) !important;
 }
 #unified-extensions-manage-extensions {
   margin: 6px 8px 8px !important;
-  border-radius: 10px !important;
+  border-radius: calc(10px * var(--kb-round, 1)) !important;
 }
 
 .download-state {
   margin-block: 3px !important;
-  border-radius: 12px !important;
+  border-radius: calc(12px * var(--kb-round, 1)) !important;
 }
 .download-state:hover { background-color: var(--kb-hover) !important; }
 .downloadProgress {
   accent-color: var(--kb-accent) !important;
-  border-radius: 999px !important;
+  border-radius: calc(999px * var(--kb-round, 1)) !important;
 }
 .downloadProgress::-moz-progress-bar {
-  border-radius: 999px !important;
+  border-radius: calc(999px * var(--kb-round, 1)) !important;
   background-color: var(--kb-accent) !important;
 }
 
@@ -300,9 +300,9 @@ panelview { color: var(--kb-text) !important; }
   color: var(--kb-text) !important;
   background: var(--kb-surface) !important;
 }
-#sidebar { border-radius: 14px !important; }
+#sidebar { border-radius: calc(14px * var(--kb-round, 1)) !important; }
 #sidebar-search-container textbox,
-#sidebar-search-container input { border-radius: 10px !important; }
+#sidebar-search-container input { border-radius: calc(10px * var(--kb-round, 1)) !important; }
 
 findbar {
   padding: 6px 8px !important;
@@ -312,7 +312,7 @@ findbar {
 }
 findbar .findbar-textbox {
   border: 1px solid var(--kb-line) !important;
-  border-radius: 10px !important;
+  border-radius: calc(10px * var(--kb-round, 1)) !important;
   color: var(--kb-text) !important;
   background-color: var(--kb-surface) !important;
 }
@@ -345,7 +345,7 @@ findbar .findbar-textbox[status="notfound"] {
 .private-browsing-indicator-with-label {
   padding-inline: 10px !important;
   border: 1px solid color-mix(in srgb, var(--kb-secondary) 45%, transparent) !important;
-  border-radius: 8px !important;
+  border-radius: calc(8px * var(--kb-round, 1)) !important;
   color: var(--kb-secondary) !important;
   background: color-mix(in srgb, var(--kb-secondary) 10%, var(--kb-surface)) !important;
 }

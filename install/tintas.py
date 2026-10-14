@@ -38,13 +38,27 @@ def problems(palette):
             if contrast(palette[a], palette[b]) < minimum]
 
 
+# La forma de una tinta (opcional): las esquinas de pestañas, botones y paneles, y la letra de los
+# nombres (pestañas, espacios, títulos). Lo que no diga, como Papel (la primera de cada lista).
+FORMA = {'esquinas': ('suaves', 'rectas', 'redondas'), 'letra': ('sans', 'serif')}
+DEFAULT_FORMA = {name: options[0] for name, options in FORMA.items()}
+
+
+def parse_forma(value, tinta_id):
+    if value is None:
+        return dict(DEFAULT_FORMA)
+    if not isinstance(value, dict) or not set(value) <= set(FORMA) or any(value[name] not in FORMA[name] for name in value):
+        raise ValueError(f"{tinta_id}: forma no válida (esquinas: {', '.join(FORMA['esquinas'])}; letra: {', '.join(FORMA['letra'])})")
+    return {**DEFAULT_FORMA, **value}
+
+
 def parse(value):
     """El catálogo, comprobado del todo; ValueError si algo no vale."""
     if not isinstance(value, dict) or value.get('version') != 1 or set(value) != {'version', 'tintas'} or not isinstance(value['tintas'], list):
         raise ValueError('Catálogo de tintas no válido')
     catalog = {}
     for tinta in value['tintas']:
-        if not isinstance(tinta, dict) or set(tinta) != {'id', 'name', 'author', 'claro', 'oscuro'}:
+        if not isinstance(tinta, dict) or not {'id', 'name', 'author', 'claro', 'oscuro'} <= set(tinta) <= {'id', 'name', 'author', 'claro', 'oscuro', 'forma'}:
             raise ValueError('Tinta no válida')
         if not isinstance(tinta['id'], str) or not ID.fullmatch(tinta['id']) or tinta['id'] in catalog:
             raise ValueError(f"Id de tinta no válido: {tinta.get('id')!r}")
@@ -59,7 +73,8 @@ def parse(value):
             if bad:
                 raise ValueError(f"{tinta['id']} ({theme}) se lee peor que Papel: {', '.join(bad)}")
         catalog[tinta['id']] = {'id': tinta['id'], 'name': tinta['name'], 'author': tinta['author'],
-                                'claro': {k: tinta['claro'][k] for k in KEYS}, 'oscuro': {k: tinta['oscuro'][k] for k in KEYS}}
+                                'claro': {k: tinta['claro'][k] for k in KEYS}, 'oscuro': {k: tinta['oscuro'][k] for k in KEYS},
+                                'forma': parse_forma(tinta.get('forma'), tinta['id'])}
     if DEFAULT not in catalog:
         raise ValueError('Falta la tinta de serie, «papel»')
     return catalog

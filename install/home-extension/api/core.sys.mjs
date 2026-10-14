@@ -54,6 +54,7 @@ export const DEFAULT_DATA = Object.freeze({
   windowButtons: 'auto',
   tabs: 'arriba',
   tinta: 'papel',
+  densidad: 'normal',
 })
 // Botones de la ventana: los de Kitsune, los del sistema o según el sistema (auto: los de Apple en macOS).
 export const WINDOW_BUTTONS = Object.freeze(['auto', 'kitsune', 'sistema'])
@@ -100,6 +101,7 @@ export function validateSettings(value, base = null) {
   if (!WINDOW_BUTTONS.includes(data.windowButtons)) throw invalid('Las opciones de la ventana no son válidas.')
   if (!TABS.includes(data.tabs)) throw invalid('La posición de las pestañas no es válida.')
   if (!TINTAS.some(tinta => tinta.id === data.tinta)) throw invalid('Esa tinta no está en el catálogo.')
+  if (!['normal', 'compacta'].includes(data.densidad)) throw invalid('La densidad no es válida.')
   if (!['normal', 'ahorro'].includes(data.performance) || ![1024, 2048, 4096].includes(data.ramLimit)) throw invalid('El modo de rendimiento no es válido.')
   if (data.background !== null && (typeof data.background !== 'string' || !HASH.test(data.background))) throw invalid('El fondo no es válido.')
   const modules = data.modules
@@ -161,11 +163,13 @@ export const PALETTES = Object.freeze({
 /** El control sin la huella; `backgroundExists` dice si la imagen está en el perfil. */
 export function appearanceControl(settings, { remember = false, backgroundExists = true } = {}) {
   const background = settings.background && backgroundExists ? settings.background : null
+  const tinta = TINTAS.find(item => item.id === settings.tinta) ?? TINTAS[0]
   return {
-    version: 8, palette: { ...(TINTAS.find(tinta => tinta.id === settings.tinta) ?? TINTAS[0])[settings.theme] }, motion: settings.motion, googleRemember: remember === true,
+    version: 9, palette: { ...tinta[settings.theme] }, motion: settings.motion, googleRemember: remember === true,
     theme: settings.theme, background, windowControls: settings.windowControls, brand: settings.brand,
     performance: settings.performance, ramLimit: settings.ramLimit, minimize: settings.minimize,
     windowButtons: settings.windowButtons, tabs: settings.tabs,
+    esquinas: tinta.forma.esquinas, letra: tinta.forma.letra, densidad: settings.densidad ?? 'normal',
   }
 }
 
@@ -405,6 +409,10 @@ export const TINTAS = Object.freeze([
       "primaryContainer": "#4b2a23",
       "secondary": "#8fb8aa",
       "tertiary": "#8d9389"
+    },
+    "forma": {
+      "esquinas": "suaves",
+      "letra": "sans"
     }
   },
   {
@@ -434,6 +442,10 @@ export const TINTAS = Object.freeze([
       "primaryContainer": "#5a2433",
       "secondary": "#dba8c1",
       "tertiary": "#a58f95"
+    },
+    "forma": {
+      "esquinas": "redondas",
+      "letra": "sans"
     }
   },
   {
@@ -463,6 +475,10 @@ export const TINTAS = Object.freeze([
       "primaryContainer": "#26421f",
       "secondary": "#c3d48e",
       "tertiary": "#8a9783"
+    },
+    "forma": {
+      "esquinas": "suaves",
+      "letra": "serif"
     }
   },
   {
@@ -492,6 +508,10 @@ export const TINTAS = Object.freeze([
       "primaryContainer": "#22325a",
       "secondary": "#9cc0e0",
       "tertiary": "#8790a3"
+    },
+    "forma": {
+      "esquinas": "rectas",
+      "letra": "sans"
     }
   },
   {
@@ -521,6 +541,10 @@ export const TINTAS = Object.freeze([
       "primaryContainer": "#4a3a14",
       "secondary": "#c9b98f",
       "tertiary": "#8f8d86"
+    },
+    "forma": {
+      "esquinas": "rectas",
+      "letra": "serif"
     }
   },
   {
@@ -550,6 +574,10 @@ export const TINTAS = Object.freeze([
       "primaryContainer": "#55301c",
       "secondary": "#d8c08c",
       "tertiary": "#9a8f7e"
+    },
+    "forma": {
+      "esquinas": "redondas",
+      "letra": "serif"
     }
   }
 ])

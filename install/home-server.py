@@ -99,6 +99,8 @@ DEFAULT_DATA = {
     "tabs": "arriba",
     # La tinta (tema de color) del catálogo start/tintas.json.
     "tinta": "papel",
+    # Densidad de la ventana: normal o compacta (las barras y las pestañas, más bajas).
+    "densidad": "normal",
 }
 # Cabecera con el usuario de la pestaña (usuarios en la misma ventana).
 USER_HEADER = "X-Kitsune-Usuario"
@@ -140,6 +142,8 @@ def validate_data(value, base=None):
         raise InvalidSettings("La posición de las pestañas no es válida.")
     if value["tinta"] not in tintas_module.load():
         raise InvalidSettings("Esa tinta no está en el catálogo.")
+    if value["densidad"] not in ("normal", "compacta"):
+        raise InvalidSettings("La densidad no es válida.")
     if value["performance"] not in ("normal", "ahorro") or type(value["ramLimit"]) is not int or value["ramLimit"] not in (1024, 2048, 4096):
         raise InvalidSettings("El modo de rendimiento no es válido.")
     background = value["background"]

@@ -37,6 +37,7 @@ const store = createSettingsStore({
     // «auto»: los de Apple en macOS y los de Kitsune en el resto. Con los del sistema, el lado y minimizar los decide él.
     const buttons = settings.windowButtons === 'auto' ? (navigator.userAgent.includes('Macintosh') ? 'sistema' : 'kitsune') : settings.windowButtons
     for (const button of document.querySelectorAll('[data-tabs]')) { button.setAttribute('aria-pressed', String(button.dataset.tabs === settings.tabs)); button.disabled = !state.ready }
+    for (const button of document.querySelectorAll('[data-densidad]')) { button.setAttribute('aria-pressed', String(button.dataset.densidad === settings.densidad)); button.disabled = !state.ready }
     for (const button of document.querySelectorAll('[data-window-buttons]')) { button.setAttribute('aria-pressed', String(button.dataset.windowButtons === buttons)); button.disabled = !state.ready }
     for (const button of document.querySelectorAll('[data-window-controls]')) { button.setAttribute('aria-pressed', String(button.dataset.windowControls === settings.windowControls)); button.disabled = !state.ready || buttons === 'sistema' }
     $('#minimize-toggle').disabled = !state.ready || buttons === 'sistema'
@@ -60,6 +61,7 @@ const store = createSettingsStore({
 // Botones de los ajustes: se registran una sola vez (no en cada cambio de ajustes).
 for (const button of document.querySelectorAll('[data-window-controls]')) button.addEventListener('click', () => void save({ windowControls: button.dataset.windowControls }))
 for (const button of document.querySelectorAll('[data-tabs]')) button.addEventListener('click', () => void save({ tabs: button.dataset.tabs }))
+for (const button of document.querySelectorAll('[data-densidad]')) button.addEventListener('click', () => void save({ densidad: button.dataset.densidad }))
 for (const button of document.querySelectorAll('[data-window-buttons]')) button.addEventListener('click', () => void save({ windowButtons: button.dataset.windowButtons }))
 for (const button of document.querySelectorAll('[data-performance]')) button.addEventListener('click', () => void save({ performance: button.dataset.performance }))
 for (const button of document.querySelectorAll('[data-ram-limit]')) button.addEventListener('click', () => void save({ ramLimit: Number(button.dataset.ramLimit) }))

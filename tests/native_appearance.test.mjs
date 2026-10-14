@@ -13,6 +13,7 @@ const SCHEME_PREFS = ['ui.systemUsesDarkTheme'];
 const WEBSITES = 'layout.css.prefers-color-scheme.content-override';
 // Pestañas a un lado: lo único que applyTabs puede tocar.
 const TAB_PREFS = ['kitsune.tabs.applied', 'sidebar.verticalTabs', 'sidebar.visibility', 'sidebar.revamp'];
+const DENSITY_PREFS = ['browser.uidensity', 'kitsune.appearance.densityApplied'];
 
 function fixture({ permissions = new Map(), preferences = new Map(), inherited = false, newTab = null, defaults = new Map() } = {}) {
   const calls = [];
@@ -20,15 +21,15 @@ function fixture({ permissions = new Map(), preferences = new Map(), inherited =
     getStringPref: (name, fallback) => preferences.has(name) ? preferences.get(name) : fallback,
     getBoolPref: (name, fallback) => preferences.has(name) ? preferences.get(name) : fallback,
     getIntPref: (name, fallback) => preferences.has(name) ? preferences.get(name) : fallback,
-    setIntPref(name, value) { assert.ok(SCHEME_PREFS.includes(name), name); preferences.set(name, value); calls.push(['int', name, value]); },
+    setIntPref(name, value) { assert.ok([...SCHEME_PREFS, ...DENSITY_PREFS].includes(name), name); preferences.set(name, value); calls.push([DENSITY_PREFS.includes(name) ? 'pref' : 'int', name, value]); },
     setBoolPref(name, value) { assert.ok(TAB_PREFS.includes(name), name); assert.equal(typeof value, 'boolean'); preferences.set(name, value); calls.push(['bool', name, value]); },
-    setStringPref(name, value) { assert.ok([OWNED, 'kitsune.theme.applied', ...TAB_PREFS].includes(name), name); assert.equal(typeof value, 'string'); preferences.set(name, value); calls.push(['pref', name, value]); },
+    setStringPref(name, value) { assert.ok([OWNED, 'kitsune.theme.applied', ...TAB_PREFS, ...DENSITY_PREFS].includes(name), name); assert.equal(typeof value, 'string'); preferences.set(name, value); calls.push(['pref', name, value]); },
     prefHasUserValue: name => preferences.has(name),
     getDefaultBranch: () => ({ PREF_STRING: 32, getChildList: () => [...defaults.keys()],
       getPrefType: name => typeof defaults.get(name) === 'string' ? 32 : 64,
       getStringPref: (name, fallback) => defaults.has(name) ? defaults.get(name) : fallback,
       setStringPref(name, value) { defaults.set(name, value); calls.push(['default', name, value]); } }),
-    clearUserPref(name) { assert.ok([OWNED, LEGACY, WEBSITES, ...TAB_PREFS].includes(name), name); preferences.delete(name); calls.push(['clear', name]); },
+    clearUserPref(name) { assert.ok([OWNED, LEGACY, WEBSITES, ...TAB_PREFS, ...DENSITY_PREFS].includes(name), name); preferences.delete(name); calls.push(['clear', name]); },
   };
   const perms = {
     ALLOW_ACTION: 1,
@@ -70,7 +71,7 @@ function fixture({ permissions = new Map(), preferences = new Map(), inherited =
   // Execute only this local trusted source against fake Services. No network,
   // real profile, timers or native browser APIs are available in the context.
   vm.runInContext(source.replace('export const KitsuneAppearance', 'const KitsuneAppearance') +
-    '\nglobalThis.api = { validate, nativeCss, applyGoogle, applyScheme, applyNewTab, applySupportUrl, managedOrigins, IDENTITY_CSS, resolveButtons, applyButtons, applyTabs, summarizeProtections };', context);
+    '\nglobalThis.api = { validate, nativeCss, applyGoogle, applyScheme, applyNewTab, applySupportUrl, managedOrigins, IDENTITY_CSS, resolveButtons, applyButtons, applyTabs, applyDensity, shapeCss, summarizeProtections };', context);
   return { api: context.api, permissions, preferences, calls };
 }
 
@@ -179,6 +180,33 @@ test('v8 puts the tabs on top, at one side or at one side with only icons', () =
   assert.throws(() => api.validate(withoutTabs));
   // Controles anteriores: arriba, como siempre.
   assert.equal(api.validate(control()).tabs, 'arriba');
+});
+
+test('v9 brings the ink shape (corners and lettering) and the window density', () => {
+  const { api } = fixture();
+  const v9 = (extra = {}) => ({ ...controlV3(), version: 9, windowControls: 'izquierda', brand: true, performance: 'normal', ramLimit: 2048,
+    minimize: true, windowButtons: 'auto', tabs: 'arriba', esquinas: 'rectas', letra: 'serif', densidad: 'compacta', ...extra });
+  const value = api.validate(v9());
+  assert.deepEqual([value.esquinas, value.letra, value.densidad], ['rectas', 'serif', 'compacta']);
+  for (const change of [{ esquinas: 'picudas' }, { letra: 'comic' }, { densidad: 'enorme' }, { esquinas: null }]) assert.throws(() => api.validate(v9(change)));
+  // Controles anteriores: la forma de Papel y densidad normal; y Papel no añade CSS.
+  const old = api.validate(control());
+  assert.deepEqual([old.esquinas, old.letra, old.densidad], ['suaves', 'sans', 'normal']);
+  assert.equal(api.shapeCss(old), '');
+  const css = api.shapeCss(value);
+  assert.match(css, /--tab-border-radius:1\.5px!important/);
+  assert.match(css, /\.tab-label/);
+  assert.match(css, /Noto Serif/);
+  assert.match(api.shapeCss(api.validate(v9({ esquinas: 'redondas', letra: 'sans' }))), /--border-radius-medium:14px!important/);
+});
+
+test('density changes Gecko only when the choice changes', () => {
+  const { api, calls } = fixture();
+  api.applyDensity('compacta');
+  assert.deepEqual(calls, [['pref', 'browser.uidensity', 1], ['pref', 'kitsune.appearance.densityApplied', 'compacta']]);
+  calls.length = 0;
+  api.applyDensity('compacta');
+  assert.deepEqual(calls, []);
 });
 
 test('tabs change Gecko only when the choice changes, and going back to the top removes what Kitsune set', () => {
