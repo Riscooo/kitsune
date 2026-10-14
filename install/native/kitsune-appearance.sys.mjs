@@ -41,6 +41,9 @@ const CONTROL_KEYS = Object.freeze({
   // La forma de la tinta (esquinas y letra) y la densidad de la ventana.
   9: Object.freeze(['version', 'fingerprint', 'palette', 'motion', 'googleRemember', 'theme', 'background', 'windowControls', 'brand',
                     'performance', 'ramLimit', 'minimize', 'windowButtons', 'tabs', 'esquinas', 'letra', 'densidad']),
+  // Oscurecer las webs claras (las que no tienen modo oscuro propio), con Oscuro.
+  10: Object.freeze(['version', 'fingerprint', 'palette', 'motion', 'googleRemember', 'theme', 'background', 'windowControls', 'brand',
+                     'performance', 'ramLimit', 'minimize', 'windowButtons', 'tabs', 'esquinas', 'letra', 'densidad', 'oscurecer']),
 });
 const ESQUINAS = Object.freeze({ rectas: 0.25, suaves: 1, redondas: 1.75 });
 const LETRAS = Object.freeze(['sans', 'serif']);
@@ -63,6 +66,7 @@ function validate(value) {
       (value.version >= 7 && !WINDOW_BUTTONS.includes(value.windowButtons)) ||
       (value.version >= 8 && !TABS.includes(value.tabs)) ||
       (value.version >= 9 && (!Object.hasOwn(ESQUINAS, value.esquinas) || !LETRAS.includes(value.letra) || !DENSIDADES.includes(value.densidad))) ||
+      (value.version >= 10 && typeof value.oscurecer !== 'boolean') ||
       typeof value.fingerprint !== 'string' || !/^[a-f0-9]{64}$/.test(value.fingerprint) ||
       ['motion','googleRemember'].some(key => typeof value[key] !== 'boolean') ||
       !value.palette || typeof value.palette !== 'object' || Array.isArray(value.palette) ||
@@ -70,7 +74,7 @@ function validate(value) {
       Object.keys(TOKENS).some(key => typeof value.palette[key] !== 'string' || !/^#[0-9a-f]{6}$/.test(value.palette[key]))) throw Error('Invalid local appearance control');
   // Un control v2 (0.6) es papel claro y sin fondo; v2 y v3, botones a la izquierda y con logo.
   return {theme:'claro', background:null, windowControls:'izquierda', brand:true, performance:'normal', ramLimit:2048, minimize:true,
-          windowButtons:'auto', tabs:'arriba', esquinas:'suaves', letra:'sans', densidad:'normal', ...value};
+          windowButtons:'auto', tabs:'arriba', esquinas:'suaves', letra:'sans', densidad:'normal', oscurecer:false, ...value};
 }
 
 function backgroundUri(hash) {
@@ -278,6 +282,8 @@ function applyTabs(mode) {
 // («como el sistema») y lo reescribe Gecko; manda ui.systemUsesDarkTheme.
 // Al cambiar de tema (y la primera vez), las webs vuelven a «automático» para
 // seguirlo, aunque antes se hubieran fijado en claro u oscuro en los ajustes.
+// (El gris de about:blank y de una página oscura sin estilos, #1C1B22, lo fija Gecko 158 en
+// nsXPLookAndFeel::GenericDarkColor para las webs: browser.display.background_color.dark no lo cambia.)
 function applyScheme(theme) {
   const wanted = theme === 'oscuro' ? 1 : 0;
   if (Services.prefs.getIntPref('ui.systemUsesDarkTheme', -1) !== wanted) Services.prefs.setIntPref('ui.systemUsesDarkTheme', wanted);
@@ -285,6 +291,64 @@ function applyScheme(theme) {
     if (Services.prefs.prefHasUserValue(WEBSITE_SCHEME_PREF)) Services.prefs.clearUserPref(WEBSITE_SCHEME_PREF);
     Services.prefs.setStringPref(THEME_APPLIED_PREF, theme);
   }
+}
+
+// Oscurecer las webs claras (kitsune-oscurecer-child.sys.mjs, en el proceso de cada web): solo
+// con Oscuro. La lista de webs que no se oscurecen la lleva el menú contextual de la página.
+const DARKEN_PREF = 'kitsune.oscurecer.enabled';
+const DARKEN_EXCEPTIONS_PREF = 'kitsune.oscurecer.excepciones';
+function applyDarken(value) {
+  const wanted = value.oscurecer === true && value.theme === 'oscuro';
+  if (Services.prefs.getBoolPref(DARKEN_PREF, false) !== wanted) Services.prefs.setBoolPref(DARKEN_PREF, wanted);
+}
+const darkenExceptions = () => Services.prefs.getStringPref(DARKEN_EXCEPTIONS_PREF, '').split(',').map(host => host.trim().toLowerCase()).filter(Boolean);
+/** Añade o quita una web de las que no se oscurecen (como mucho 500, las más recientes). */
+function toggleDarkenException(host) {
+  const name = String(host ?? '').toLowerCase();
+  if (!/^[a-z0-9.-]{1,253}$/.test(name)) return false;
+  const list = darkenExceptions().filter(item => item !== name);
+  const excluded = list.length === darkenExceptions().length;
+  if (excluded) list.push(name);
+  Services.prefs.setStringPref(DARKEN_EXCEPTIONS_PREF, list.slice(-500).join(','));
+  return excluded;
+}
+const DARKEN_ITEM = 'kitsune-oscurecer-web';
+const i18n = (spanish, english) => {
+  try { return ChromeUtils.importESModule('chrome://browser/content/kitsune-i18n.sys.mjs').t(spanish, english); } catch { return spanish; }
+};
+function decorateDarken(window) {
+  const doc = window.document, menu = doc.getElementById('contentAreaContextMenu');
+  if (!menu || doc.getElementById(DARKEN_ITEM)) return;
+  const item = doc.createXULElement('menuitem');
+  item.id = DARKEN_ITEM;
+  item.hidden = true;
+  const pageHost = () => {
+    const uri = window.gBrowser?.selectedBrowser?.currentURI;
+    try { return ['http', 'https'].includes(uri?.scheme) ? uri.host.toLowerCase() : ''; } catch { return ''; }
+  };
+  menu.addEventListener('popupshowing', event => {
+    if (event.target !== menu) return;
+    const host = pageHost();
+    item.hidden = !host || !Services.prefs.getBoolPref(DARKEN_PREF, false);
+    if (item.hidden) return;
+    item.setAttribute('label', darkenExceptions().includes(host)
+      ? i18n('Oscurecer esta web', 'Darken this site') : i18n('No oscurecer esta web', 'Don’t darken this site'));
+  });
+  item.addEventListener('command', () => toggleDarkenException(pageHost()));
+  const anchor = doc.getElementById('inspect-separator');
+  if (anchor) menu.insertBefore(item, anchor); else menu.append(item);
+}
+let darkenRegistered = false;
+function registerDarken() {
+  if (darkenRegistered) return;
+  darkenRegistered = true;
+  ChromeUtils.registerWindowActor('KitsuneOscurecer', {
+    child: { esModuleURI: 'chrome://browser/content/kitsune-oscurecer-child.sys.mjs', events: { DOMContentLoaded: {}, pageshow: {} } },
+    // No hay padre: el hijo no manda nada, solo lee dos ajustes.
+    safeForUntrustedWebProcess: true,
+    matches: ['http://*/*', 'https://*/*', 'file:///*'],
+    messageManagerGroups: ['browsers'],
+  });
 }
 
 function googlePrincipals() {
@@ -442,6 +506,7 @@ async function update() {
       sheet = next;
       fadeChrome(value.theme);
       applyScheme(value.theme);
+      applyDarken(value);
       applyPerformance(value.performance, value.ramLimit);
       applyGoogle(value.googleRemember);
       applyButtons(value.windowButtons);
@@ -505,11 +570,13 @@ export const KitsuneAppearance = {
     try {
       if (!profileHasStyle('userChrome.css')) window.windowUtils.loadSheetUsingURIString(BUILTIN_STYLE + 'userChrome.css', window.windowUtils.USER_SHEET);
     } catch { /* la ventana sigue con el aspecto de Gecko */ }
+    try { decorateDarken(window); } catch { /* sin la opción en el menú; el resto sigue */ }
   },
   start() {
     if (timer !== null) return;
     try { registerIdentity(); } catch { /* el resto de Kitsune sigue */ }
     try { registerBuiltinContent(); } catch { /* sin estilo propio, Gecko sigue con el suyo */ }
+    try { registerDarken(); } catch { /* las webs se quedan como son */ }
     void update();
     timer = setInterval(update, 2000);
     Services.obs.addObserver(this, 'quit-application-granted');

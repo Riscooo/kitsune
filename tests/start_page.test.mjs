@@ -42,7 +42,8 @@ test('Ajustes → Apariencia offers Claro/Oscuro, your own background and motion
 });
 
 test('every literal color on the home page is paper, sumi or a profile ink', () => {
-  const allowed = new Set([...PAPEL, ...SUMI, ...PROFILE_INKS]);
+  // Y el negro puro de Negro absoluto, en su muestra.
+  const allowed = new Set([...PAPEL, ...SUMI, ...PROFILE_INKS, '#000000']);
   for (const [hex] of css.replace(/\/\*[\s\S]*?\*\//g, '').matchAll(/#[0-9a-fA-F]{3,8}\b/g)) {
     const base = hex.length === 9 ? hex.slice(0, 7) : hex;
     assert.ok(allowed.has(base.toLowerCase()), `app.css: ${hex} no es un color de papel`);

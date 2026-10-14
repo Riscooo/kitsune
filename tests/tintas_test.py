@@ -30,6 +30,16 @@ class TintasTests(unittest.TestCase):
             for theme in ('claro', 'oscuro'):
                 self.assertEqual(tintas.problems(tinta[theme]), [], f"{tinta['id']} {theme}")
 
+    def test_negro_absoluto_reads_at_least_as_well_as_papel_in_every_tinta(self):
+        # Negro absoluto: fondo y superficies en negro puro, y aun así los contrastes de Papel.
+        for tinta_id, tinta in tintas.load().items():
+            palette = tintas.negro(tinta['oscuro'])
+            with self.subTest(tinta=tinta_id):
+                self.assertEqual((palette['bg'], palette['surface']), ('#000000', '#000000'))
+                self.assertEqual(tintas.problems(palette), [])
+                self.assertEqual({key: palette[key] for key in ('text', 'muted', 'primary', 'secondary')},
+                                 {key: tinta['oscuro'][key] for key in ('text', 'muted', 'primary', 'secondary')})
+
     def test_bad_catalogs_are_rejected(self):
         def broken(change):
             value = copy.deepcopy(RAW)

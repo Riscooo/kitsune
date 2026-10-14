@@ -5,9 +5,10 @@ const THEME_COLORS = Object.freeze({ claro: '#f6f5f1', oscuro: '#161a19' })
 // Papel (Claro) o sumi (Oscuro). El inicio pinta su paleta con CSS según
 // data-theme; la respuesta del servidor solo confirma lo que recibe el navegador.
 export function parseAppearance(value) {
-  if (![2, 3, 4, 5, 6, 7, 8, 9].includes(value?.version) || typeof value.fingerprint !== 'string' || !/^[a-f\d]{64}$/iu.test(value.fingerprint) || typeof value.motion !== 'boolean' || !value.palette || PALETTE_KEYS.some(key => typeof value.palette[key] !== 'string' || !/^#[a-f\d]{6}$/iu.test(value.palette[key]))) throw new Error('Paleta no válida.')
+  if (![2, 3, 4, 5, 6, 7, 8, 9, 10].includes(value?.version) || typeof value.fingerprint !== 'string' || !/^[a-f\d]{64}$/iu.test(value.fingerprint) || typeof value.motion !== 'boolean' || !value.palette || PALETTE_KEYS.some(key => typeof value.palette[key] !== 'string' || !/^#[a-f\d]{6}$/iu.test(value.palette[key]))) throw new Error('Paleta no válida.')
   if (value.version >= 3 && (!Object.hasOwn(THEME_COLORS, value.theme) || (value.background !== null && (typeof value.background !== 'string' || !/^[a-f\d]{64}$/u.test(value.background))))) throw new Error('Tema no válido.')
   if (value.version >= 9 && (!['rectas', 'suaves', 'redondas'].includes(value.esquinas) || !['sans', 'serif'].includes(value.letra))) throw new Error('Forma no válida.')
+  if (value.version >= 10 && typeof value.oscurecer !== 'boolean') throw new Error('Tema no válido.')
   return value
 }
 
@@ -42,7 +43,7 @@ export function createAppearance({ getSettings, refreshSettings = async () => {}
     const root = document.documentElement
     root.dataset.theme = settings.theme
     try { localStorage.setItem('kitsune-tema', settings.theme) } catch { /* sin almacenamiento */ }
-    document.querySelector('meta[name="theme-color"]')?.setAttribute('content', THEME_COLORS[settings.theme] ?? THEME_COLORS.claro)
+    document.querySelector('meta[name="theme-color"]')?.setAttribute('content', settings.theme === 'oscuro' && settings.negro ? '#000000' : THEME_COLORS[settings.theme] ?? THEME_COLORS.claro)
     // El icono de la pestaña también en negativo: la tinta no se ve sobre una pestaña oscura.
     const icon = document.querySelector('link[rel="icon"]')
     const href = settings.theme === 'oscuro' ? 'favicon-dark.svg' : 'favicon.svg'

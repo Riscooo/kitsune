@@ -38,6 +38,17 @@ def problems(palette):
             if contrast(palette[a], palette[b]) < minimum]
 
 
+def negro(palette):
+    """Negro absoluto (OLED), como Onyx en Discord o «Lights out» en X: la paleta de Oscuro de una
+    tinta con el fondo y las superficies en negro puro. Botones, líneas y selección salen de su
+    texto y de su acento, muy apagados; el texto y los acentos son los suyos (sobre negro solo
+    ganan contraste). Igual que negroPalette() en install/home-extension/api/core.sys.mjs."""
+    def dim(color, amount):
+        return '#' + ''.join(f'{int(int(color[i:i + 2], 16) * amount + 0.5):02x}' for i in (1, 3, 5))
+    return {**palette, 'bg': '#000000', 'surface': '#000000', 'surfaceHigh': dim(palette['text'], 0.14),
+            'outline': dim(palette['text'], 0.26), 'primaryContainer': dim(palette['primary'], 0.26)}
+
+
 # La forma de una tinta (opcional): las esquinas de pestañas, botones y paneles, y la letra de los
 # nombres (pestañas, espacios, títulos). Lo que no diga, como Papel (la primera de cada lista).
 FORMA = {'esquinas': ('suaves', 'rectas', 'redondas'), 'letra': ('sans', 'serif')}

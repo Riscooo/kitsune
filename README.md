@@ -74,6 +74,27 @@ navegar. 0.8 trae lo que hace que la gente use Zen y lo que Zen no tiene.
   Essentials), Firefox, LibreWolf, Floorp y Waterfox: marcadores, un año de historial y
   pestañas, leyendo una copia de sus archivos. Chrome, Edge, Brave…: el asistente de
   Gecko. La primera vez lo ofrece una barra; siempre está en el menú.
+- **Modo oscuro de primera** (lo que hacen bien Material, Apple, Linear, GitHub, Discord, X,
+  Chrome y Dark Reader). «Tu inicio» → Apariencia:
+  - **Alturas como en Material y Apple**: lo que sube, se aclara. En Oscuro, la tira de pestañas
+    es lo más hondo (antes era lo más claro y la pestaña activa parecía un hueco) y menús y
+    paneles quedan un escalón por encima de la barra (`--kitsune-frame`, `--kb-raised`, con
+    `light-dark()`: Claro no cambia).
+  - **Negro absoluto** (como Onyx en Discord o «Lights out» en X): tercera opción de Tema. Es
+    Oscuro con la paleta de la tinta llevada a negro puro (`tintas.negro()` y `negroPalette()`):
+    fondo y superficies `#000`, bordes finos; texto y acentos, los de la tinta. Las seis tintas
+    se leen al menos como Papel. El motor no ve un tema nuevo: solo otra paleta.
+  - **Oscurecer las webs claras** (como el modo oscuro automático de Chrome, Samsung Internet o
+    el modo «filtro» de Dark Reader). Con Oscuro o Negro absoluto, las webs sin modo oscuro
+    propio se pasan a negativo con el tono girado (el rojo sigue rojo) y fotos, vídeos, lienzos y
+    marcos vuelven a su color, algo más suaves; a pantalla completa, sin filtro. Solo las claras:
+    `kitsune-oscurecer-child.sys.mjs` mira el fondo de cuatro puntos y el del lienzo, y deja en
+    paz las que ya son oscuras o traen su modo. También las hojas de los PDF. No toca el DOM de
+    la web ni envía nada. Clic derecho → «No oscurecer esta web» (`kitsune.oscurecer.excepciones`).
+    Control de apariencia v10 (`oscurecer`). Límites conocidos: las imágenes de fondo puestas por
+    CSS (no en `style`) y los emojis salen en negativo, como en el modo filtro de Dark Reader.
+  - El gris de `about:blank` y de una página oscura sin estilos (`#1C1B22`) lo fija Gecko en
+    `GenericDarkColor`; ninguna preferencia lo cambia (haría falta un parche al motor).
 - **Tintas** (`start/tintas.json`, `install/tintas.py`). Temas de color: una paleta de los
   diez tokens `--kb-*` para Claro y otra para Oscuro, que pintan toda la ventana y el
   inicio sin tocar el CSS de Gecko (así no se rompen con un Gecko nuevo), y su forma: esquinas

@@ -86,7 +86,7 @@ test('a save needs the current revision and the background can only stay, go or 
   assert.deepEqual(core.parseSettingsRecord(JSON.stringify(stored.record)), stored.record)
 })
 
-test('the appearance control is the same v8 control that appearance.py writes', () => {
+test('the appearance control is the same v10 control that appearance.py writes', () => {
   const settings = { ...base, theme: 'oscuro', background: 'c'.repeat(64), windowControls: 'derecha', performance: 'ahorro', ramLimit: 4096, windowButtons: 'sistema', tabs: 'iconos' }
   const expected = python(`
 import importlib.util, json, sys, tempfile
@@ -102,7 +102,25 @@ value = manager.refresh(settings)
 value.pop('fingerprint'); value.pop('native')
 print(json.dumps(value))`, settings)
   assert.deepEqual(core.appearanceControl(settings), expected)
-  assert.equal(expected.version, 9)
+  assert.equal(expected.version, 10)
+  assert.equal(expected.oscurecer, false)
+  // Negro absoluto y oscurecer las webs claras: la misma paleta en negro y la misma opción en los dos.
+  const black = { ...settings, negro: true, oscurecer: true }
+  const expectedBlack = python(`
+import importlib.util, json, sys, tempfile
+from pathlib import Path
+spec = importlib.util.spec_from_file_location('appearance', 'install/appearance.py')
+appearance = importlib.util.module_from_spec(spec); spec.loader.exec_module(appearance)
+root = Path(tempfile.mkdtemp())
+value = appearance.AppearanceManager(root / 'browser', root / 'state').refresh(json.load(sys.stdin))
+value.pop('fingerprint'); value.pop('native')
+print(json.dumps(value))`, black)
+  assert.deepEqual(core.appearanceControl(black, { backgroundExists: false }), expectedBlack)
+  assert.deepEqual(expectedBlack.palette, { ...core.TINTAS.find(t => t.id === settings.tinta).oscuro, bg: '#000000', surface: '#000000',
+    surfaceHigh: '#21201f', outline: '#3d3c3a', primaryContainer: '#3a211c' })
+  assert.equal(expectedBlack.oscurecer, true)
+  // En Claro, negro no cambia nada.
+  assert.deepEqual(core.appearanceControl({ ...black, theme: 'claro' }).palette, core.TINTAS.find(t => t.id === settings.tinta).claro)
   assert.deepEqual([expected.esquinas, expected.letra, expected.densidad], [core.TINTAS.find(t => t.id === settings.tinta).forma.esquinas, core.TINTAS.find(t => t.id === settings.tinta).forma.letra, settings.densidad ?? 'normal'])
   assert.equal(expected.windowButtons, 'sistema')
   assert.equal(expected.tabs, 'iconos')

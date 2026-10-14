@@ -248,16 +248,19 @@ input::placeholder { color: var(--muted); opacity: .8; }
 .privacy-mode small { color: var(--muted); font-size: 10px; line-height: 1.5; }
 .privacy-mode input { accent-color: var(--accent); margin: 1px 0 0; flex-shrink: 0; }
 @media (max-width: 520px) { .privacy-modes { grid-template-columns: 1fr; } }
-.theme-modes { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-.theme-mode { display: flex; align-items: center; gap: 10px; padding: 11px 12px; border: 1px solid var(--line); border-radius: calc(12px * var(--k-round, 1)); cursor: pointer; font-size: 12px; }
+.theme-modes { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.theme-mode { position: relative; display: flex; align-items: center; gap: 9px; min-width: 0; padding: 11px 10px; border: 1px solid var(--line); border-radius: calc(12px * var(--k-round, 1)); cursor: pointer; font-size: 12px; }
 .theme-mode:has(input:checked) { border-color: var(--accent); background: var(--surface-high); }
 .theme-mode:has(input:disabled) { cursor: not-allowed; opacity: .6; }
-.theme-mode > span:last-child { display: flex; flex-direction: column; gap: 3px; }
+.theme-mode > span:last-child { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
 .theme-mode b { font-size: 12px; font-weight: 550; }
 .theme-mode small { color: var(--muted); font-size: 10px; }
-.theme-mode input { accent-color: var(--accent); margin: 0; flex-shrink: 0; }
+/* Tres temas en una fila: sin el círculo del radio (la tarjeta elegida ya lleva borde y fondo), que sigue ahí para el teclado y los lectores. */
+.theme-mode input { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; opacity: 0; cursor: pointer; }
+.theme-mode:has(input:focus-visible) { outline: 2px solid var(--accent); outline-offset: 2px; }
 .theme-swatch { width: 26px; height: 26px; flex-shrink: 0; border-radius: 50%; border: 1px solid var(--line); background: linear-gradient(135deg, #f6f5f1 50%, #963d32 50%); }
 .theme-swatch[data-swatch=oscuro] { background: linear-gradient(135deg, #161a19 50%, #e0806b 50%); }
+.theme-swatch[data-swatch=negro] { background: linear-gradient(135deg, #000000 50%, #e0806b 50%); }
 .background-field { display: flex; align-items: center; gap: 15px; }
 .background-preview { display: grid; place-items: center; width: 132px; aspect-ratio: 16 / 10; flex-shrink: 0; overflow: hidden; border: 1px solid var(--line); border-radius: calc(12px * var(--k-round, 1)); background: var(--surface-high); color: var(--muted); font-size: 10px; }
 :root[data-background=on] .background-preview { background: var(--home-background) center / cover no-repeat, var(--surface-high); }

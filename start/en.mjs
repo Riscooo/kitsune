@@ -78,6 +78,11 @@ export default Object.freeze({
   'Papel y tinta': 'Paper and ink',
   'Oscuro': 'Dark',
   'Tinta sumi': 'Sumi ink',
+  'Negro absoluto': 'Pure black',
+  'Negro puro, para OLED': 'True black, for OLED',
+  'Oscurecer las webs claras': 'Darken light sites',
+  'Con Oscuro o Negro absoluto, las webs sin modo oscuro propio también se ven oscuras; fotos y vídeos conservan su color. Para dejar una como es: clic derecho en la página → «No oscurecer esta web».':
+    'With Dark or Pure black, sites without a dark mode of their own look dark too; photos and videos keep their colors. To leave one as it is: right-click the page → “Don’t darken this site”.',
   'Se aplica a todo el navegador: barras, menús, ajustes y las webs que tienen modo oscuro.': 'It applies to the whole browser: toolbars, menus, settings and the sites that have a dark mode.',
   'Tinta': 'Ink',
   // Los nombres de las tintas de serie (las de la comunidad salen con el suyo).

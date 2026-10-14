@@ -9,7 +9,8 @@ export async function initializeTintas({ $, save, getSettings }) {
   } catch { /* sin catálogo: el selector se queda vacío */ }
   const render = (settings = getSettings(), ready = true) => {
     grid.replaceChildren(...catalog.map(tinta => {
-      const palette = tinta[settings.theme] ?? tinta.claro
+      // En Negro absoluto, la muestra sobre negro puro (como la pinta el navegador).
+      const palette = settings.theme === 'oscuro' && settings.negro ? { ...tinta.oscuro, bg: '#000000' } : tinta[settings.theme] ?? tinta.claro
       const button = document.createElement('button')
       button.type = 'button'
       button.className = 'tinta'

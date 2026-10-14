@@ -16,6 +16,9 @@
   --kb-hover: color-mix(in srgb, var(--kb-text) 6%, var(--kb-surface));
   --kb-selected: var(--kb-primary-container);
   --kb-shadow: color-mix(in srgb, var(--kb-text) 14%, transparent);
+  /* Menús y paneles, un escalón por encima de la barra (lo que sube se aclara): en Oscuro, algo más
+     claros que ella; en Claro, la superficie de siempre. En Negro absoluto, casi negro sobre el negro. */
+  --kb-raised: light-dark(var(--kb-surface), color-mix(in oklab, var(--kb-surface) 94%, var(--kb-text)));
   /* Gecko 154 design tokens: every panel (translations, permissions, menus)
      inherits rust instead of system blue; jade in private windows. */
   --color-accent-primary: var(--kb-accent) !important;
@@ -63,7 +66,7 @@
   --tab-box-shadow-selected: none !important;
   /* El destello al terminar de cargar (y el sonido) llevaban el azul de Mozilla: óxido suave. */
   --tab-loading-fill: color-mix(in srgb, var(--kb-primary) 45%, transparent) !important;
-  --arrowpanel-background: var(--kb-surface) !important;
+  --arrowpanel-background: var(--kb-raised) !important;
   --arrowpanel-color: var(--kb-text) !important;
   --arrowpanel-border-color: var(--kb-line) !important;
   --arrowpanel-border-radius: calc(12px * var(--kb-round, 1)) !important;
@@ -201,9 +204,9 @@ tab-group > .tab-group-label-container > label { border-radius: calc(8px * var(-
 /* Panels have a single outer surface; avoid adding a nested border/shadow to
    every panelview or forcing a minimum width larger than the window. */
 menupopup {
-  --panel-background: var(--kb-surface) !important;
+  --panel-background: var(--kb-raised) !important;
   --panel-color: var(--kb-text) !important;
-  --panel-background-color: var(--kb-surface) !important;
+  --panel-background-color: var(--kb-raised) !important;
   --panel-text-color: var(--kb-text) !important;
   --panel-border-color: var(--kb-line) !important;
   --panel-border-radius: calc(12px * var(--kb-round, 1)) !important;
@@ -219,7 +222,7 @@ menupopup {
 /* Gecko 154 replaced the old --arrowpanel-background token. Style the native
    popup surface, not an extra rectangle layered over its content. */
 panel[type="arrow"] {
-  --panel-background-color: var(--kb-surface) !important;
+  --panel-background-color: var(--kb-raised) !important;
   --panel-text-color: var(--kb-text) !important;
   --panel-border-color: var(--kb-line) !important;
   --panel-border-radius: calc(16px * var(--kb-round, 1)) !important;
@@ -234,9 +237,9 @@ panelview { color: var(--kb-text) !important; }
    square discovery button inside an otherwise rounded panel. Security
    warning/message bars keep their native warning colors and action semantics. */
 #unified-extensions-panel {
-  --panel-background: var(--kb-surface) !important;
+  --panel-background: var(--kb-raised) !important;
   --panel-color: var(--kb-text) !important;
-  --panel-background-color: var(--kb-surface) !important;
+  --panel-background-color: var(--kb-raised) !important;
   --panel-text-color: var(--kb-text) !important;
   --panel-border-color: var(--kb-line) !important;
   --panel-border-radius: calc(16px * var(--kb-round, 1)) !important;

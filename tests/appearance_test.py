@@ -53,13 +53,24 @@ class AppearanceTests(unittest.TestCase):
         self.assertEqual(appearance.PAPEL, expected)
         self.assertEqual(self.refresh()["palette"], expected)
 
-    def test_control_is_version_9_with_theme_background_window_saver_minimize_buttons_tabs_and_shape(self):
+    def test_control_is_version_10_with_theme_background_window_saver_minimize_buttons_tabs_shape_and_darken(self):
         self.refresh()
         control = json.loads(self.manager.control.read_text())
-        self.assertEqual(control["version"], 9)
+        self.assertEqual(control["version"], 10)
         self.assertEqual(set(control), {"version", "palette", "motion", "googleRemember", "theme", "background",
                                         "windowControls", "brand", "performance", "ramLimit", "minimize", "windowButtons",
-                                        "tabs", "esquinas", "letra", "densidad", "fingerprint"})
+                                        "tabs", "esquinas", "letra", "densidad", "oscurecer", "fingerprint"})
+        # Oscurecer las webs claras viaja tal cual; Negro absoluto solo cambia la paleta de Oscuro.
+        self.assertIs(control["oscurecer"], False)
+        self.assertIs(self.refresh(oscurecer=True)["oscurecer"], True)
+        papel = appearance.tintas.load()["papel"]
+        negro = self.refresh(theme="oscuro", negro=True)["palette"]
+        self.assertEqual(negro, {**papel["oscuro"], "bg": "#000000", "surface": "#000000", "surfaceHigh": "#21201f",
+                                 "outline": "#3d3c3a", "primaryContainer": "#3a211c"})
+        self.assertEqual(self.refresh(theme="claro", negro=True)["palette"], papel["claro"])
+        for change in ({"negro": "sí"}, {"oscurecer": 1}):
+            with self.subTest(change=change), self.assertRaises(ValueError):
+                self.refresh(**change)
         # La forma sale de la tinta; la densidad, de los ajustes.
         self.assertEqual((control["esquinas"], control["letra"], control["densidad"]), ("suaves", "sans", "normal"))
         noche = self.refresh(tinta="noche", densidad="compacta")

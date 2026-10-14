@@ -4,8 +4,12 @@
  */
 @-moz-document url("chrome://browser/content/browser.xhtml") {
   #main-window {
-    --kitsune-wash: var(--kb-surface-high);
-    --kitsune-wash-hover: color-mix(in srgb, var(--kb-text) 7%, var(--kb-surface-high));
+    /* La tira de pestañas es lo más hondo de la ventana y lo que sube se aclara, como en Chrome,
+     * Firefox y las guías de Material y Apple: en Claro, el lavado (más oscuro que el papel); en
+     * Oscuro, más honda que el fondo (antes era lo más claro y la pestaña activa parecía un hueco). */
+    --kitsune-frame: light-dark(var(--kb-surface-high), color-mix(in oklab, var(--kb-bg) 72%, #000000));
+    --kitsune-wash: var(--kitsune-frame);
+    --kitsune-wash-hover: color-mix(in srgb, var(--kb-text) 7%, var(--kitsune-frame));
     --kitsune-sheet: var(--kb-surface);
     --kitsune-field: var(--kb-bg);
     --kitsune-text: var(--kb-text);
@@ -242,7 +246,7 @@
 
   /* El modo privado se distingue (jade), no se disfraza de ventana normal. */
   #main-window[privatebrowsingmode="temporary"] {
-    --kitsune-wash: color-mix(in srgb, var(--kb-secondary) 16%, var(--kb-surface-high));
+    --kitsune-wash: color-mix(in srgb, var(--kb-secondary) 16%, var(--kitsune-frame));
     --kitsune-focus: var(--kb-secondary);
   }
 

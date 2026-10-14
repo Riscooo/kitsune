@@ -55,6 +55,9 @@ export const DEFAULT_DATA = Object.freeze({
   tabs: 'arriba',
   tinta: 'papel',
   densidad: 'normal',
+  // Negro absoluto (Oscuro sobre negro puro, OLED) y oscurecer las webs sin modo oscuro propio.
+  negro: false,
+  oscurecer: false,
   // La bienvenida ya se vio (unos ajustes de antes que no lo dicen); un perfil nuevo empieza con false.
   bienvenida: true,
 })
@@ -104,7 +107,7 @@ export function validateSettings(value, base = null) {
   if (!TABS.includes(data.tabs)) throw invalid('La posición de las pestañas no es válida.')
   if (!TINTAS.some(tinta => tinta.id === data.tinta)) throw invalid('Esa tinta no está en el catálogo.')
   if (!['normal', 'compacta'].includes(data.densidad)) throw invalid('La densidad no es válida.')
-  if (typeof data.bienvenida !== 'boolean') throw invalid('Las preferencias deben ser verdaderas o falsas.')
+  if ([data.bienvenida, data.negro, data.oscurecer].some(flag => typeof flag !== 'boolean')) throw invalid('Las preferencias deben ser verdaderas o falsas.')
   if (!['normal', 'ahorro'].includes(data.performance) || ![1024, 2048, 4096].includes(data.ramLimit)) throw invalid('El modo de rendimiento no es válido.')
   if (data.background !== null && (typeof data.background !== 'string' || !HASH.test(data.background))) throw invalid('El fondo no es válido.')
   const modules = data.modules
@@ -156,7 +159,7 @@ export function updateSettings(record, data, revision, newBackground = null) {
   return { updated: true, record: next }
 }
 
-// Apariencia: el control v8 que lee install/native/kitsune-appearance.sys.mjs.
+// Apariencia: el control v10 que lee install/native/kitsune-appearance.sys.mjs.
 const KEYS = ['bg', 'surface', 'surfaceHigh', 'text', 'muted', 'outline', 'primary', 'primaryContainer', 'secondary', 'tertiary']
 const palette = colors => Object.fromEntries(KEYS.map((key, index) => [key, colors[index]]))
 export const PALETTES = Object.freeze({
@@ -164,16 +167,26 @@ export const PALETTES = Object.freeze({
   oscuro: palette(['#161a19', '#1e2321', '#2a302d', '#ebe8e0', '#a9b0a8', '#3f4743', '#e0806b', '#4b2a23', '#8fb8aa', '#8d9389']),
 })
 
+/** Negro absoluto (OLED): la paleta de Oscuro de una tinta con el fondo y las superficies en negro
+ * puro; botones, líneas y selección, de su texto y su acento muy apagados. Igual que tintas.negro(). */
+export function negroPalette(palette) {
+  const dim = (color, amount) => '#' + [1, 3, 5].map(index => Math.floor(parseInt(color.slice(index, index + 2), 16) * amount + 0.5).toString(16).padStart(2, '0')).join('')
+  return { ...palette, bg: '#000000', surface: '#000000', surfaceHigh: dim(palette.text, 0.14),
+    outline: dim(palette.text, 0.26), primaryContainer: dim(palette.primary, 0.26) }
+}
+
 /** El control sin la huella; `backgroundExists` dice si la imagen está en el perfil. */
 export function appearanceControl(settings, { remember = false, backgroundExists = true } = {}) {
   const background = settings.background && backgroundExists ? settings.background : null
   const tinta = TINTAS.find(item => item.id === settings.tinta) ?? TINTAS[0]
   return {
-    version: 9, palette: { ...tinta[settings.theme] }, motion: settings.motion, googleRemember: remember === true,
+    version: 10, palette: settings.theme === 'oscuro' && settings.negro === true ? negroPalette(tinta.oscuro) : { ...tinta[settings.theme] },
+    motion: settings.motion, googleRemember: remember === true,
     theme: settings.theme, background, windowControls: settings.windowControls, brand: settings.brand,
     performance: settings.performance, ramLimit: settings.ramLimit, minimize: settings.minimize,
     windowButtons: settings.windowButtons, tabs: settings.tabs,
     esquinas: tinta.forma.esquinas, letra: tinta.forma.letra, densidad: settings.densidad ?? 'normal',
+    oscurecer: settings.oscurecer === true,
   }
 }
 

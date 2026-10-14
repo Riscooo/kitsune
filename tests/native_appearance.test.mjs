@@ -14,6 +14,8 @@ const WEBSITES = 'layout.css.prefers-color-scheme.content-override';
 // Pestañas a un lado: lo único que applyTabs puede tocar.
 const TAB_PREFS = ['kitsune.tabs.applied', 'sidebar.verticalTabs', 'sidebar.visibility', 'sidebar.revamp'];
 const DENSITY_PREFS = ['browser.uidensity', 'kitsune.appearance.densityApplied'];
+// Oscurecer las webs claras: si está encendido y las webs que se dejan como son.
+const DARKEN = 'kitsune.oscurecer.enabled', DARKEN_EXCEPTIONS = 'kitsune.oscurecer.excepciones';
 
 function fixture({ permissions = new Map(), preferences = new Map(), inherited = false, newTab = null, defaults = new Map() } = {}) {
   const calls = [];
@@ -22,8 +24,8 @@ function fixture({ permissions = new Map(), preferences = new Map(), inherited =
     getBoolPref: (name, fallback) => preferences.has(name) ? preferences.get(name) : fallback,
     getIntPref: (name, fallback) => preferences.has(name) ? preferences.get(name) : fallback,
     setIntPref(name, value) { assert.ok([...SCHEME_PREFS, ...DENSITY_PREFS].includes(name), name); preferences.set(name, value); calls.push([DENSITY_PREFS.includes(name) ? 'pref' : 'int', name, value]); },
-    setBoolPref(name, value) { assert.ok(TAB_PREFS.includes(name), name); assert.equal(typeof value, 'boolean'); preferences.set(name, value); calls.push(['bool', name, value]); },
-    setStringPref(name, value) { assert.ok([OWNED, 'kitsune.theme.applied', ...TAB_PREFS, ...DENSITY_PREFS].includes(name), name); assert.equal(typeof value, 'string'); preferences.set(name, value); calls.push(['pref', name, value]); },
+    setBoolPref(name, value) { assert.ok([...TAB_PREFS, DARKEN].includes(name), name); assert.equal(typeof value, 'boolean'); preferences.set(name, value); calls.push(['bool', name, value]); },
+    setStringPref(name, value) { assert.ok([OWNED, 'kitsune.theme.applied', ...TAB_PREFS, ...DENSITY_PREFS, DARKEN_EXCEPTIONS].includes(name), name); assert.equal(typeof value, 'string'); preferences.set(name, value); calls.push(['pref', name, value]); },
     prefHasUserValue: name => preferences.has(name),
     getDefaultBranch: () => ({ PREF_STRING: 32, getChildList: () => [...defaults.keys()],
       getPrefType: name => typeof defaults.get(name) === 'string' ? 32 : 64,
@@ -71,7 +73,7 @@ function fixture({ permissions = new Map(), preferences = new Map(), inherited =
   // Execute only this local trusted source against fake Services. No network,
   // real profile, timers or native browser APIs are available in the context.
   vm.runInContext(source.replace('export const KitsuneAppearance', 'const KitsuneAppearance') +
-    '\nglobalThis.api = { validate, nativeCss, applyGoogle, applyScheme, applyNewTab, applySupportUrl, managedOrigins, IDENTITY_CSS, resolveButtons, applyButtons, applyTabs, applyDensity, shapeCss, summarizeProtections };', context);
+    '\nglobalThis.api = { validate, nativeCss, applyGoogle, applyScheme, applyNewTab, applySupportUrl, managedOrigins, IDENTITY_CSS, resolveButtons, applyButtons, applyTabs, applyDensity, shapeCss, summarizeProtections, applyDarken, toggleDarkenException };', context);
   return { api: context.api, permissions, preferences, calls };
 }
 
@@ -271,6 +273,30 @@ test('the Gecko dark-scheme pref follows the theme and is written only when it c
   assert.equal(f.calls.length, writes);
   f.api.applyScheme('claro');
   assert.deepEqual(SCHEME_PREFS.map(name => f.preferences.get(name)), [0]);
+});
+
+test('v10 darkens light sites only in Oscuro, and the menu keeps a short list of sites left as they are', () => {
+  const f = fixture();
+  const v10 = (extra = {}) => ({ ...controlV3(), version: 10, windowControls: 'izquierda', brand: true, performance: 'normal', ramLimit: 2048,
+    minimize: true, windowButtons: 'auto', tabs: 'arriba', esquinas: 'suaves', letra: 'sans', densidad: 'normal', oscurecer: true, ...extra });
+  assert.equal(f.api.validate(v10()).oscurecer, true);
+  for (const change of [{ oscurecer: 'sí' }, { oscurecer: null }]) assert.throws(() => f.api.validate(v10(change)));
+  assert.throws(() => f.api.validate({ ...v10(), version: 9 }));
+  // Controles anteriores: las webs como son.
+  assert.equal(f.api.validate(control()).oscurecer, false);
+  f.api.applyDarken(f.api.validate(v10({ theme: 'oscuro' })));
+  assert.equal(f.preferences.get(DARKEN), true);
+  f.api.applyDarken(f.api.validate(v10({ theme: 'claro' })));
+  assert.equal(f.preferences.get(DARKEN), false);
+  f.api.applyDarken(f.api.validate(v10({ theme: 'oscuro', oscurecer: false })));
+  assert.equal(f.preferences.get(DARKEN), false);
+  assert.equal(f.api.toggleDarkenException('Example.COM'), true);
+  assert.equal(f.api.toggleDarkenException('news.example.org'), true);
+  assert.equal(f.preferences.get(DARKEN_EXCEPTIONS), 'example.com,news.example.org');
+  assert.equal(f.api.toggleDarkenException('example.com'), false);
+  assert.equal(f.preferences.get(DARKEN_EXCEPTIONS), 'news.example.org');
+  for (const host of ['', 'a,b', 'evil host', 'x'.repeat(254), null]) assert.equal(f.api.toggleDarkenException(host), false);
+  assert.equal(f.preferences.get(DARKEN_EXCEPTIONS), 'news.example.org');
 });
 
 test('new tabs open the profile\'s own Kitsune home, unless an extension already changed them', () => {

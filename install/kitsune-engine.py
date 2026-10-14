@@ -58,7 +58,7 @@ RECIPE, BRANDING, NATIVE = HERE / "recipe", HERE / "branding", HERE / "native"
 NATIVE_FILES = ("kitsune-bootstrap.js", "kitsune-appearance.sys.mjs", "kitsune-updates.sys.mjs", "kitsune-updater.sys.mjs", "kitsune-users.sys.mjs",
                 "kitsune-spaces.sys.mjs", "kitsune-layout.sys.mjs", "kitsune-import.sys.mjs",
                 "kitsune-glance.sys.mjs", "kitsune-glance-child.sys.mjs", "kitsune-palette.sys.mjs", "kitsune-saver.sys.mjs", "kitsune-i18n.sys.mjs",
-                "kitsune-copia.sys.mjs", "kitsune-media.sys.mjs", "kitsune-keys.sys.mjs",
+                "kitsune-copia.sys.mjs", "kitsune-media.sys.mjs", "kitsune-keys.sys.mjs", "kitsune-oscurecer-child.sys.mjs",
                 "kitsune-retoques.sys.mjs", "kitsune-zero-host.sys.mjs")
 # Inicio integrado (Windows y macOS, sin servidor local): la extensión inicio@kitsune
 # con la API del inicio (install/home-extension) y las páginas de start/, dentro del

@@ -162,10 +162,15 @@ class AppearanceManager:
             density = settings.get('densidad', 'normal')
             if density not in ('normal', 'compacta'):
                 raise ValueError('Invalid density')
+            negro = settings.get('negro', False)
+            darken = settings.get('oscurecer', False)
+            if type(negro) is not bool or type(darken) is not bool:
+                raise ValueError('Invalid dark option')
             forma = catalog[tinta]['forma']
             if background is not None and not background_path(self.profile, background).is_file():
                 background = None
-            palette = dict(catalog[tinta][theme])
+            # Negro absoluto: la paleta de Oscuro de la tinta, con el fondo y las superficies en negro.
+            palette = tintas.negro(catalog[tinta]['oscuro']) if theme == 'oscuro' and negro else dict(catalog[tinta][theme])
             remember = False
             try:
                 registry = read_json(self.state_root / 'profiles.json', 1048576)
@@ -180,11 +185,11 @@ class AppearanceManager:
                     raise ValueError('Invalid Google retention policy')
             except FileNotFoundError:
                 pass
-            value = {'version': 9, 'palette': palette, 'motion': motion, 'googleRemember': remember, 'theme': theme,
+            value = {'version': 10, 'palette': palette, 'motion': motion, 'googleRemember': remember, 'theme': theme,
                      'background': background, 'windowControls': controls, 'brand': brand,
                      'performance': performance, 'ramLimit': ram_limit, 'minimize': minimize,
                      'windowButtons': buttons, 'tabs': tabs,
-                     'esquinas': forma['esquinas'], 'letra': forma['letra'], 'densidad': density}
+                     'esquinas': forma['esquinas'], 'letra': forma['letra'], 'densidad': density, 'oscurecer': darken}
             value['fingerprint'] = hashlib.sha256(json.dumps(value, sort_keys=True).encode()).hexdigest()
             private_write(self.control, value)
             native = {'available': (self.browser_root / 'native/kitsune-appearance.sys.mjs').is_file(), 'status': 'queued'}

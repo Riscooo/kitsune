@@ -13,7 +13,8 @@ const PAPEL = { ...INTERFACE, hanko: '#a8432f', vermilion: '#db452e' };
 // Y el óxido de la paleta sumi (Oscuro), para la barra de scroll de las páginas oscuras.
 // Y las tintas de los usuarios: las mismas que sus avatares del inicio (claro y oscuro).
 const USER_INKS = ['#35587a', '#9c4a68', '#5b4a7a', '#8a6326', '#8fb0d4', '#e09ab3', '#b4a3d6', '#d9ac62'];
-const ALLOWED = new Set([...Object.values(PAPEL), '#e0806b', ...USER_INKS]);
+// Y el negro: la tira de pestañas se hunde hacia él en Oscuro (y es el de Negro absoluto).
+const ALLOWED = new Set([...Object.values(PAPEL), '#e0806b', ...USER_INKS, '#000000']);
 const CHROME = ['userChrome.css', 'kitsune-header.css', 'window-controls.css', 'kitsune-spaces.css', 'kitsune-layout.css', 'kitsune-retoques.css'];
 
 test('the chrome palette is exactly the InkShadow paper tokens, generated from their single source', async () => {

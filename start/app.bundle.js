@@ -100,6 +100,10 @@
 		"Papel y tinta": "Paper and ink",
 		"Oscuro": "Dark",
 		"Tinta sumi": "Sumi ink",
+		"Negro absoluto": "Pure black",
+		"Negro puro, para OLED": "True black, for OLED",
+		"Oscurecer las webs claras": "Darken light sites",
+		"Con Oscuro o Negro absoluto, las webs sin modo oscuro propio también se ven oscuras; fotos y vídeos conservan su color. Para dejar una como es: clic derecho en la página → «No oscurecer esta web».": "With Dark or Pure black, sites without a dark mode of their own look dark too; photos and videos keep their colors. To leave one as it is: right-click the page → “Don’t darken this site”.",
 		"Se aplica a todo el navegador: barras, menús, ajustes y las webs que tienen modo oscuro.": "It applies to the whole browser: toolbars, menus, settings and the sites that have a dark mode.",
 		"Tinta": "Ink",
 		"Papel": "Paper",
@@ -1441,6 +1445,8 @@
 			tabs: TABS.includes(value?.tabs) ? value.tabs : "arriba",
 			tinta: typeof value?.tinta === "string" && /^[a-z][a-z0-9-]{1,23}$/u.test(value.tinta) ? value.tinta : "papel",
 			densidad: value?.densidad === "compacta" ? "compacta" : "normal",
+			negro: value?.negro === true,
+			oscurecer: value?.oscurecer === true,
 			bienvenida: value?.bienvenida !== false
 		};
 	}
@@ -1688,7 +1694,8 @@
 			6,
 			7,
 			8,
-			9
+			9,
+			10
 		].includes(value?.version) || typeof value.fingerprint !== "string" || !/^[a-f\d]{64}$/iu.test(value.fingerprint) || typeof value.motion !== "boolean" || !value.palette || PALETTE_KEYS.some((key) => typeof value.palette[key] !== "string" || !/^#[a-f\d]{6}$/iu.test(value.palette[key]))) throw new Error("Paleta no válida.");
 		if (value.version >= 3 && (!Object.hasOwn(THEME_COLORS, value.theme) || value.background !== null && (typeof value.background !== "string" || !/^[a-f\d]{64}$/u.test(value.background)))) throw new Error("Tema no válido.");
 		if (value.version >= 9 && (![
@@ -1696,6 +1703,7 @@
 			"suaves",
 			"redondas"
 		].includes(value.esquinas) || !["sans", "serif"].includes(value.letra))) throw new Error("Forma no válida.");
+		if (value.version >= 10 && typeof value.oscurecer !== "boolean") throw new Error("Tema no válido.");
 		return value;
 	}
 	/** La forma de la tinta también en el inicio: sus esquinas y la letra de los títulos (data-esquinas, data-letra). */
@@ -1748,7 +1756,7 @@
 			try {
 				localStorage.setItem("kitsune-tema", settings.theme);
 			} catch {}
-			document.querySelector("meta[name=\"theme-color\"]")?.setAttribute("content", THEME_COLORS[settings.theme] ?? THEME_COLORS.claro);
+			document.querySelector("meta[name=\"theme-color\"]")?.setAttribute("content", settings.theme === "oscuro" && settings.negro ? "#000000" : THEME_COLORS[settings.theme] ?? THEME_COLORS.claro);
 			const icon = document.querySelector("link[rel=\"icon\"]");
 			const href = settings.theme === "oscuro" ? "favicon-dark.svg" : "favicon.svg";
 			if (icon && icon.getAttribute("href") !== href) icon.setAttribute("href", href);
@@ -2236,7 +2244,10 @@
 		} catch {}
 		const render = (settings = getSettings(), ready = true) => {
 			grid.replaceChildren(...catalog.map((tinta) => {
-				const palette = tinta[settings.theme] ?? tinta.claro;
+				const palette = settings.theme === "oscuro" && settings.negro ? {
+					...tinta.oscuro,
+					bg: "#000000"
+				} : tinta[settings.theme] ?? tinta.claro;
 				const button = document.createElement("button");
 				button.type = "button";
 				button.className = "tinta";
@@ -2294,7 +2305,10 @@
 			for (const button of dialog.querySelectorAll("[data-welcome-theme]")) button.setAttribute("aria-pressed", String(button.dataset.welcomeTheme === settings.theme));
 			for (const button of dialog.querySelectorAll("[data-welcome-tabs]")) button.setAttribute("aria-pressed", String(button.dataset.welcomeTabs === settings.tabs));
 			grid.replaceChildren(...catalog.map((tinta) => {
-				const palette = tinta[settings.theme] ?? tinta.claro;
+				const palette = settings.theme === "oscuro" && settings.negro ? {
+					...tinta.oscuro,
+					bg: "#000000"
+				} : tinta[settings.theme] ?? tinta.claro;
 				const button = document.createElement("button");
 				button.type = "button";
 				button.className = "tinta";
@@ -2346,8 +2360,10 @@
 		"motion-toggle": "motion",
 		"newtab-toggle": "newTab",
 		"brand-toggle": "brand",
-		"minimize-toggle": "minimize"
+		"minimize-toggle": "minimize",
+		"darken-toggle": "oscurecer"
 	};
+	const themeChoice = (settings) => settings.theme === "oscuro" && settings.negro ? "negro" : settings.theme;
 	const store = createSettingsStore({
 		onChange(settings, state) {
 			appearance?.applySettings(settings);
@@ -2361,7 +2377,7 @@
 				$(`#module-${key}`).disabled = !state.ready;
 			}
 			for (const radio of document.querySelectorAll("input[name=\"theme\"]")) {
-				radio.checked = radio.value === settings.theme;
+				radio.checked = radio.value === themeChoice(settings);
 				radio.disabled = !state.ready;
 			}
 			$("#background-file").disabled = !state.ready;
@@ -2497,11 +2513,14 @@
 	}
 	for (const radio of document.querySelectorAll("input[name=\"theme\"]")) radio.addEventListener("change", (event) => {
 		if (!event.target.checked) return;
-		const theme = event.target.value;
+		const choice = event.target.value, theme = choice === "negro" ? "oscuro" : choice;
 		playInk(theme, () => {
 			document.documentElement.dataset.theme = theme;
 		});
-		save({ theme });
+		save({
+			theme,
+			negro: choice === "negro"
+		});
 	});
 	const BACKGROUND_HINT = "PNG, JPG o WebP · hasta 12 MB. Se ve en el inicio y en las pestañas nuevas.";
 	const readImage = (file) => new Promise((resolve, reject) => {

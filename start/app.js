@@ -27,13 +27,15 @@ const announce = message => {
   toastTimer = setTimeout(() => { $('#status').hidden = true }, 4000)
 }
 void initializeLanguage()
-const toggles = { 'motion-toggle': 'motion', 'newtab-toggle': 'newTab', 'brand-toggle': 'brand', 'minimize-toggle': 'minimize' }
+const toggles = { 'motion-toggle': 'motion', 'newtab-toggle': 'newTab', 'brand-toggle': 'brand', 'minimize-toggle': 'minimize', 'darken-toggle': 'oscurecer' }
+// Negro absoluto es Oscuro con la paleta llevada a negro puro (ajuste «negro»).
+const themeChoice = settings => settings.theme === 'oscuro' && settings.negro ? 'negro' : settings.theme
 const store = createSettingsStore({
   onChange(settings, state) {
     appearance?.applySettings(settings); shortcuts?.render(settings)
     for (const [id, key] of Object.entries(toggles)) { $(`#${id}`).checked = settings[key]; $(`#${id}`).disabled = !state.ready }
     for (const key of ['clock', 'shortcuts']) { $(`#module-${key}`).checked = settings.modules[key]; $(`#module-${key}`).disabled = !state.ready }
-    for (const radio of document.querySelectorAll('input[name="theme"]')) { radio.checked = radio.value === settings.theme; radio.disabled = !state.ready }
+    for (const radio of document.querySelectorAll('input[name="theme"]')) { radio.checked = radio.value === themeChoice(settings); radio.disabled = !state.ready }
     $('#background-file').disabled = !state.ready
     // «auto»: los de Apple en macOS y los de Kitsune en el resto. Con los del sistema, el lado y minimizar los decide él.
     const buttons = settings.windowButtons === 'auto' ? (navigator.userAgent.includes('Macintosh') ? 'sistema' : 'kitsune') : settings.windowButtons
@@ -116,9 +118,9 @@ function playInk(theme, apply) {
 }
 for (const radio of document.querySelectorAll('input[name="theme"]')) radio.addEventListener('change', event => {
   if (!event.target.checked) return
-  const theme = event.target.value
+  const choice = event.target.value, theme = choice === 'negro' ? 'oscuro' : choice
   playInk(theme, () => { document.documentElement.dataset.theme = theme })
-  void save({ theme })
+  void save({ theme, negro: choice === 'negro' })
 })
 const BACKGROUND_HINT = 'PNG, JPG o WebP · hasta 12 MB. Se ve en el inicio y en las pestañas nuevas.'
 const readImage = file => new Promise((resolve, reject) => {

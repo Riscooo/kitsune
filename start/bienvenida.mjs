@@ -23,7 +23,7 @@ export function initializeBienvenida({ $, save }) {
     for (const button of dialog.querySelectorAll('[data-welcome-theme]')) button.setAttribute('aria-pressed', String(button.dataset.welcomeTheme === settings.theme))
     for (const button of dialog.querySelectorAll('[data-welcome-tabs]')) button.setAttribute('aria-pressed', String(button.dataset.welcomeTabs === settings.tabs))
     grid.replaceChildren(...catalog.map(tinta => {
-      const palette = tinta[settings.theme] ?? tinta.claro
+      const palette = settings.theme === 'oscuro' && settings.negro ? { ...tinta.oscuro, bg: '#000000' } : tinta[settings.theme] ?? tinta.claro
       const button = document.createElement('button')
       button.type = 'button'
       button.className = 'tinta'
