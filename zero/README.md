@@ -6,9 +6,9 @@ la ventana a Zero y la devuelve, con las mismas pestañas. Diseño completo en
 
 ## Cómo está hecho
 
-- `modules/`: los módulos de chrome (`zero.sys.mjs` es la entrada; cada pieza se registra con
-  `Zero.piece({ attach, detach })`). Se importan entre sí con rutas relativas y **no importan nada de
-  Kitsune**.
+- `modules/`: los módulos de chrome. `zero.sys.mjs` es la entrada; cada pieza es un módulo con
+  `attach(win, ctx)` y `detach(win)`, en su lista de piezas. Se importan entre sí con rutas relativas y
+  **no importan nada de Kitsune**.
 - `chrome/zero.css`: todo el aspecto, bajo `:root[zero]`. Lo carga `zero.sys.mjs` solo en las
   ventanas con Zero.
 - `assets/`: el logo («máscara en el cero») y, más adelante, los sonidos.

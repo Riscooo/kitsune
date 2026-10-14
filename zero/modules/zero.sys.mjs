@@ -5,16 +5,17 @@
  * ajustes, atajos) se lo da un «anfitrión» en start(host). Así Zero se puede sacar algún día como
  * navegador aparte sin tocar su código (ver zero/README.md).
  *
- * Cada pieza de Zero (marco, isla, raíl…) se registra con piece({ attach, detach }): al encender
- * se le llama attach(win, ctx) y al apagar detach(win). El CSS, zero.css, solo se carga en las
- * ventanas con Zero.
+ * Cada pieza de Zero (marco, isla, raíl…) es un módulo con attach(win, ctx) y detach(win), en la
+ * lista «pieces». El CSS, zero.css, solo se carga en las ventanas con Zero.
  */
 import { readPrefs } from './zero-config.sys.mjs';
+import * as frame from './zero-frame.sys.mjs';
 
 const SHEET = 'chrome://browser/content/zero/zero.css';
 const REMEMBER = 'kitsune-zero';
 let host = null;
-const pieces = [];
+// Las piezas de Zero, en orden: al encender se ponen así y al apagar se quitan al revés.
+const pieces = [frame];
 const decorated = new WeakSet();
 const listeners = new WeakMap(); // ventana → Set de funciones (active) => …
 
@@ -28,11 +29,13 @@ function remember(win, on) {
   try { win.SessionStore.setCustomWindowValue(win, REMEMBER, on ? '1' : ''); } catch { /* sin sesión */ }
 }
 
+// Hoja de usuario, como el userChrome.css de Kitsune: así sus !important pueden con los de Kitsune
+// (en la cascada, un !important de autor pierde siempre ante uno de usuario).
 function sheet(win, on) {
   const utils = win.windowUtils;
   try {
-    if (on) utils.loadSheetUsingURIString(SHEET, utils.AUTHOR_SHEET);
-    else utils.removeSheetUsingURIString(SHEET, utils.AUTHOR_SHEET);
+    if (on) utils.loadSheetUsingURIString(SHEET, utils.USER_SHEET);
+    else utils.removeSheetUsingURIString(SHEET, utils.USER_SHEET);
   } catch { /* ya estaba (o ya no estaba) */ }
 }
 
@@ -76,6 +79,4 @@ export const Zero = {
   toggle: (win, on) => toggle(win, on),
   active: win => active(win),
   onChange: (win, fn) => onChange(win, fn),
-  /** Para las piezas de Zero (zero-frame, zero-island…): attach(win, ctx) y detach(win). */
-  piece(p) { if (!pieces.includes(p)) pieces.push(p); },
 };

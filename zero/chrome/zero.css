@@ -13,3 +13,109 @@
 @media (prefers-reduced-motion: reduce) {
   :root[zero] { --zero-t-morph: 1ms; --zero-t-fade: 1ms; --zero-t-move: 1ms; --zero-t-color: 1ms; }
 }
+
+/* ---------------------------------------------------------------- el marco (zero-frame) */
+
+/* Ventana de cristal: nada opaco en el marco. Gecko ve el fondo de la raíz transparente y pasa la
+   ventana a transparente; el desenfoque de detrás lo pone el compositor. */
+:root[zero],
+:root[zero] body,
+:root[zero] #browser,
+:root[zero] #navigator-toolbox,
+:root[zero] #tabbrowser-tabpanels {
+  background: transparent !important;
+  background-image: none !important;
+}
+/* Sin desenfoque del compositor: detrás, una foto diminuta de la web, estirada y desenfocada. */
+:root[zero][zero-backdrop="web"] {
+  background-color: #23272b !important;
+  background-image: var(--zero-backdrop-image, none) !important;
+  background-size: cover !important;
+  background-position: center !important;
+}
+/* El velo del marco: el color de la web, muy leve, cambiando despacio. */
+:root[zero] #tabbrowser-tabbox {
+  background-color: color-mix(in srgb, var(--zero-tint, transparent) 20%, transparent) !important;
+  transition: background-color var(--zero-t-color) var(--zero-soft);
+}
+
+/* Lo que Zero sustituye: las pestañas de arriba y la barra lateral de Gecko (el raíl las hace),
+   y la barra de marcadores. La barra de navegación se queda (la isla). */
+:root[zero] #sidebar-main,
+:root[zero] #sidebar-box,
+:root[zero] #sidebar-splitter,
+:root[zero] #ai-window-splitter {
+  display: none !important;
+}
+:root[zero] #navigator-toolbox {
+  position: fixed !important;
+  top: 0; inset-inline: 0;
+  z-index: 3;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+/* El marco se arrastra para mover la ventana; la web y los botones, no. */
+:root[zero] #browser { -moz-window-dragging: drag; }
+:root[zero] #tabbrowser-tabpanels,
+:root[zero] #zero-lights,
+:root[zero] #zero-grow { -moz-window-dragging: no-drag; }
+
+/* La web, una tarjeta dentro de la ventana; ampliada, toda la ventana. */
+:root[zero] #tabbrowser-tabpanels {
+  margin: 46px 12px 12px 50px !important;
+  transition: margin var(--zero-t-move) var(--zero-calm);
+}
+:root[zero][zero-full] #tabbrowser-tabpanels { margin: 0 !important; }
+:root[zero] #tabbrowser-tabpanels > .browserSidebarContainer {
+  border-radius: 18px !important;
+  overflow: clip !important;
+  box-shadow: 0 18px 50px rgba(0, 0, 0, .22), 0 0 0 1px rgba(255, 255, 255, .35) !important;
+  transition: border-radius var(--zero-t-move) var(--zero-calm), box-shadow var(--zero-t-move) var(--zero-soft);
+}
+:root[zero] #tabbrowser-tabpanels > .browserSidebarContainer .browserContainer { border-radius: 0 !important; border: none !important; }
+:root[zero][zero-full] #tabbrowser-tabpanels > .browserSidebarContainer { border-radius: 0 !important; box-shadow: none !important; }
+/* Vista dividida (2 a 4): tarjetas separadas por 10 px. */
+:root[zero] #tabbrowser-tabpanels[splitview] > .split-view-panel.split-view-panel-active { margin: 0 !important; }
+:root[zero] #tabbrowser-tabpanels[splitview] > .split-view-splitter {
+  width: 10px !important; min-width: 10px !important; max-width: 10px !important;
+  margin: 0 !important; background: transparent !important; border: none !important; opacity: 0;
+}
+
+/* Botones de ventana: en fila arriba a la izquierda, discretos hasta que te acercas. */
+#zero-lights {
+  position: fixed; top: 16px; left: 15px; z-index: 6;
+  display: flex; gap: 8px;
+}
+#zero-lights > button {
+  appearance: none; width: 12px; height: 12px; min-width: 0; padding: 0; margin: 0; border: none; border-radius: 50%;
+  background-color: rgba(255, 255, 255, .55);
+  box-shadow: inset 0 0 0 .5px rgba(0, 0, 0, .15);
+  transition: background-color 320ms var(--zero-soft), transform 320ms var(--zero-calm);
+}
+#zero-lights:hover > button[data-action="close"] { background-color: #d0634f; }
+#zero-lights:hover > button[data-action="min"] { background-color: #5aa58f; }
+#zero-lights:hover > button[data-action="max"] { background-color: #e2b05a; }
+#zero-lights > button:hover { transform: scale(1.12); }
+
+/* Ampliar / dejar de ampliar y dividir: a la izquierda de la tarjeta, al acercarse. */
+#zero-grow {
+  position: fixed; z-index: 6;
+  left: var(--zero-grow-x, 60px); top: var(--zero-grow-y, 56px);
+  height: 30px; padding: 0 3px; border-radius: 999px;
+  display: flex; align-items: center; gap: 2px;
+  color: #fff;
+  background: rgba(30, 33, 36, .32);
+  backdrop-filter: blur(12px) saturate(1.7);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .7), inset 0 0 0 1px rgba(255, 255, 255, .22), 0 8px 24px rgba(0, 0, 0, .18);
+  opacity: 0; transform: translateY(-3px) scale(.96); filter: blur(2px); pointer-events: none;
+  transition: opacity var(--zero-t-fade) var(--zero-soft), transform var(--zero-t-morph) var(--zero-calm),
+              filter var(--zero-t-fade) var(--zero-soft), left var(--zero-t-move) var(--zero-calm), top var(--zero-t-move) var(--zero-calm);
+}
+#zero-grow.near { opacity: 1; transform: none; filter: none; pointer-events: auto; transition-delay: 180ms, 180ms, 180ms, 0ms, 0ms; }
+#zero-grow > button {
+  appearance: none; min-width: 0; width: 26px; height: 24px; padding: 0; margin: 0; border: none; border-radius: 999px;
+  background: transparent; color: inherit; font: 13px system-ui, sans-serif;
+  transition: background-color 200ms var(--zero-soft);
+}
+#zero-grow > button:hover { background-color: rgba(255, 255, 255, .2); }
