@@ -173,5 +173,114 @@
   .kitsune-saver-panel label.kitsune-saver-keep-row { flex-direction: row; align-items: center; gap: 8px; color: var(--kb-text); font-size: 12px; }
   .kitsune-saver-panel .kitsune-saver-keep { width: 14px; height: 14px; margin: 0; accent-color: var(--kb-primary); }
   .kitsune-saver-panel .kitsune-space-form { width: 300px; }
+
+  /* Lo que suena (kitsune-media.sys.mjs): la música o el vídeo de otra pestaña. Abajo en la
+     barra lateral con las pestañas a un lado; compacto en la barra con las pestañas arriba.
+     Los iconos son máscaras: llevan el color del texto en cada tinta y tema. */
+  #main-window .kitsune-media {
+    --kitsune-media-art: 32px;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 4px;
+    box-sizing: border-box;
+    margin: 4px 6px 2px;
+    padding: 6px;
+    border: 1px solid var(--kitsune-rule);
+    border-radius: calc(10px * var(--kb-round, 1));
+    background: var(--kb-surface, transparent);
+    color: var(--kb-text);
+    font: 500 12px "Noto Sans", "Kitsune Sans", sans-serif;
+  }
+  #main-window .kitsune-media[hidden] { display: none; }
+  #main-window .kitsune-media :is(button) {
+    appearance: none;
+    margin: 0;
+    border: 0;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+  }
+  #main-window .kitsune-media-go {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+    padding: 2px;
+    border-radius: calc(7px * var(--kb-round, 1));
+    text-align: start;
+  }
+  #main-window .kitsune-media-go:hover { background: var(--kb-hover); }
+  #main-window .kitsune-media-art {
+    flex: 0 0 auto;
+    width: var(--kitsune-media-art);
+    height: var(--kitsune-media-art);
+    border-radius: calc(6px * var(--kb-round, 1));
+    object-fit: cover;
+  }
+  #main-window .kitsune-media-text { display: grid; min-width: 0; line-height: 1.3; }
+  #main-window :is(.kitsune-media-title, .kitsune-media-subtitle) { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+  #main-window .kitsune-media-title { font-weight: 600; }
+  #main-window .kitsune-media-subtitle { color: var(--kitsune-quiet); font-size: 11px; }
+  #main-window .kitsune-media-subtitle:empty { display: none; }
+  #main-window .kitsune-media-buttons { display: flex; justify-content: center; gap: 4px; }
+  #main-window .kitsune-media-button {
+    width: 28px;
+    height: 26px;
+    padding: 0;
+    border-radius: calc(7px * var(--kb-round, 1));
+    color: var(--kitsune-quiet);
+    transition: background-color var(--kitsune-motion) ease, color var(--kitsune-motion) ease;
+  }
+  #main-window .kitsune-media-button:hover { background: var(--kb-hover); color: var(--kb-text); }
+  #main-window .kitsune-media-button[hidden] { display: none; }
+  #main-window .kitsune-media-button::before {
+    content: "";
+    display: block;
+    width: 14px;
+    height: 14px;
+    margin: auto;
+    background: currentColor;
+    mask: var(--kitsune-media-icon) center / contain no-repeat;
+  }
+  #main-window .kitsune-media-playpause { color: var(--kb-primary); }
+  #main-window .kitsune-media-prev { --kitsune-media-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M3 2.5h2v11H3zM14 2.8v10.4L6.2 8z'/%3E%3C/svg%3E"); }
+  #main-window .kitsune-media-next { --kitsune-media-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M11 2.5h2v11h-2zM2 2.8v10.4L9.8 8z'/%3E%3C/svg%3E"); }
+  #main-window .kitsune-media-playpause { --kitsune-media-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M4 2.2v11.6L13.6 8z'/%3E%3C/svg%3E"); }
+  #main-window .kitsune-media[playing] .kitsune-media-playpause { --kitsune-media-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M3.5 2.5h3v11h-3zM9.5 2.5h3v11h-3z'/%3E%3C/svg%3E"); }
+  #main-window .kitsune-media-mute { --kitsune-media-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M1.5 5.5h3L8.5 2v12l-4-3.5h-3z'/%3E%3Cpath d='M10.6 5.2a4 4 0 0 1 0 5.6M12.4 3.4a6.5 6.5 0 0 1 0 9.2' fill='none' stroke='black' stroke-width='1.4' stroke-linecap='round'/%3E%3C/svg%3E"); }
+  #main-window .kitsune-media[muted] .kitsune-media-mute { --kitsune-media-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M1.5 5.5h3L8.5 2v12l-4-3.5h-3z'/%3E%3Cpath d='M10.5 5.5l4 5M14.5 5.5l-4 5' fill='none' stroke='black' stroke-width='1.4' stroke-linecap='round'/%3E%3C/svg%3E"); color: var(--kb-primary); }
+  /* Sin carátula ni favicon (o mientras carga): una nota. */
+  #main-window .kitsune-media-art:not([loaded]) { display: none; }
+  #main-window .kitsune-media-go:not(:has(> .kitsune-media-art[loaded]))::before {
+    content: "";
+    flex: 0 0 auto;
+    width: var(--kitsune-media-art);
+    height: var(--kitsune-media-art);
+    border-radius: calc(6px * var(--kb-round, 1));
+    background: var(--kb-primary-container, var(--kb-hover)) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='%23888'%3E%3Cpath d='M6 3.5l7-1.5v8.5a2 2 0 1 1-1.4-1.9V4.2L7.4 5.1v7.4A2 2 0 1 1 6 10.6z'/%3E%3C/svg%3E") center / 55% no-repeat;
+  }
+  /* Cada sitio, según dónde estén las pestañas. */
+  @media not -moz-pref("sidebar.verticalTabs") { #main-window #kitsune-media-side { display: none; } }
+  @media -moz-pref("sidebar.verticalTabs") { #main-window #kitsune-media-top-item { display: none; } }
+  /* Barra lateral plegada (solo iconos): la carátula y la pausa, una encima de otra. */
+  #main-window sidebar-main:not([expanded]) #kitsune-media-side { justify-items: center; margin-inline: 4px; padding: 4px 2px; }
+  #main-window sidebar-main:not([expanded]) #kitsune-media-side :is(.kitsune-media-text, .kitsune-media-prev, .kitsune-media-next, .kitsune-media-mute) { display: none; }
+  #main-window sidebar-main:not([expanded]) #kitsune-media-side { --kitsune-media-art: 26px; }
+  /* Arriba: en una línea, a la altura de los botones. */
+  #main-window #kitsune-media-top-item { align-items: center; }
+  #main-window #kitsune-media-top {
+    --kitsune-media-art: 20px;
+    grid-template-columns: minmax(0, 180px) auto;
+    align-items: center;
+    gap: 2px;
+    margin: 0 4px;
+    padding: 1px 2px;
+    border-color: transparent;
+    background: var(--kb-hover);
+  }
+  #main-window #kitsune-media-top .kitsune-media-go { gap: 6px; padding: 1px 4px 1px 2px; }
+  #main-window #kitsune-media-top .kitsune-media-subtitle { display: none; }
+  #main-window #kitsune-media-top .kitsune-media-button { width: 24px; height: 24px; }
+  #main-window #kitsune-media-top .kitsune-media-mute { display: none; }
 }
 

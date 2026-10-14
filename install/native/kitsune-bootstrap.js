@@ -40,6 +40,11 @@
     const { KitsuneSaver } = ChromeUtils.importESModule('chrome://browser/content/kitsune-saver.sys.mjs');
     void KitsuneSaver.decorate(window).catch(() => {});
   } catch { /* sin medidor, el modo ahorro sigue igual */ }
+  // Lo que suena en otra pestaña: título, carátula y botones (como en Zen).
+  try {
+    const { KitsuneMedia } = ChromeUtils.importESModule('chrome://browser/content/kitsune-media.sys.mjs');
+    void KitsuneMedia.decorate(window).catch(() => {});
+  } catch { /* sin tarjeta, la música sigue igual */ }
   // Copia de Kitsune: tus cosas en un archivo cifrado, para otro ordenador.
   try {
     const { KitsuneCopia } = ChromeUtils.importESModule('chrome://browser/content/kitsune-copia.sys.mjs');
