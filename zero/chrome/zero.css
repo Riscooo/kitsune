@@ -727,3 +727,17 @@
 }
 #zero-settings .zero-list:focus { background: #fff; box-shadow: 0 0 0 2px rgba(58, 143, 116, .5); }
 #zero-settings .zero-list::placeholder { color: rgba(29, 35, 33, .4); }
+
+/* Un nivel (los sonidos): una barra fina con el tirador redondo, como los de los sistemas de Apple. */
+#zero-settings .zero-slider {
+  appearance: none; flex: 0 0 132px; height: 20px; margin: 0; background: transparent; cursor: pointer;
+}
+#zero-settings .zero-slider::-moz-range-track { height: 4px; border-radius: 999px; background: rgba(29, 35, 33, .12); }
+#zero-settings .zero-slider::-moz-range-progress { height: 4px; border-radius: 999px; background: #3a8f74; }
+#zero-settings .zero-slider::-moz-range-thumb {
+  width: 16px; height: 16px; border: none; border-radius: 50%; background: #fff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, .3), 0 0 0 .5px rgba(0, 0, 0, .08);
+  transition: transform 200ms var(--zero-calm);
+}
+#zero-settings .zero-slider:active::-moz-range-thumb { transform: scale(1.15); }
+#zero-settings .zero-slider:focus-visible { outline: 2px solid #3a8f74; outline-offset: 2px; border-radius: 999px; }

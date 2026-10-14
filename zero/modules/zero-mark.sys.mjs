@@ -9,7 +9,7 @@
  * que lo que no está hecho no sale.
  *
  * Una sección: { id, rows: [fila…], watch?(fn) → dejar } (con watch, las filas se vuelven a pintar
- * cuando cambia lo que vigila). Una fila: { kind: 'switch' | 'segment' | 'list', id, label, detail?, options?
+ * cuando cambia lo que vigila). Una fila: { kind: 'switch' | 'segment' | 'list' | 'slider', id, label, detail?, options?
  * ([{ value, label }], para segment), placeholder? (para list), get() → valor, set(valor),
  * watch?(fn) → dejar, when?() → si sale }.
  */
@@ -77,6 +77,11 @@ function rowNode(doc, row, st) {
     control = el(doc, 'button', { type: 'button', class: 'zero-switch', role: 'switch', 'data-pref': row.id, 'aria-label': row.label });
     sync = () => { const on = !!row.get(); control.toggleAttribute('on', on); control.setAttribute('aria-checked', String(on)); };
     control.addEventListener('click', () => { row.set(!row.get()); sync(); });
+  } else if (row.kind === 'slider') {
+    // Un nivel de 0 a 1 (en pantalla, de 0 a 100): se aplica mientras se arrastra.
+    control = el(doc, 'input', { type: 'range', class: 'zero-slider', 'data-pref': row.id, min: '0', max: '100', step: '1', 'aria-label': row.label });
+    sync = () => { if (doc.activeElement !== control) control.value = String(Math.round((row.get() ?? 0) * 100)); control.style.setProperty('--zero-fill', `${control.value}%`); };
+    control.addEventListener('input', () => { control.style.setProperty('--zero-fill', `${control.value}%`); row.set(Number(control.value) / 100); });
   } else if (row.kind === 'list') {
     // Una lista en una línea (dominios separados por comas): se guarda al salir del campo o con Intro.
     control = el(doc, 'input', { type: 'text', class: 'zero-list', 'data-pref': row.id, placeholder: row.placeholder ?? '', spellcheck: 'false', 'aria-label': row.label });
