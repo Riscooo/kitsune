@@ -36,6 +36,7 @@ function zeroSection(win, host) {
   };
   return {
     id: 'zero',
+    watch: watchPref(PREFS.backdrop),
     rows: [
       {
         // Una fila para dos ajustes: como la ventana de origen (de serie), siempre en Zero o normales.
@@ -56,15 +57,48 @@ function zeroSection(win, host) {
       {
         kind: 'segment', id: PREFS.backdrop,
         label: host.t('Fondo', 'Background'),
-        options: [{ value: 'system', label: host.t('Del sistema', 'System') }, { value: 'web', label: host.t('De la web', 'Page') }],
+        // Cristal solo donde el sistema lo pone (macOS 26, o un escritorio con la regla de Kitsune).
+        options: [
+          ...(win.document.documentElement.getAttribute('zero-glass') === 'system' ? [{ value: 'system', label: host.t('Cristal', 'Glass') }] : []),
+          { value: 'space', label: host.t('Espacio', 'Space') }, { value: 'mist', label: host.t('Niebla', 'Mist') },
+          { value: 'photo', label: host.t('Foto', 'Photo') }, { value: 'web', label: host.t('Web', 'Page') }],
         // Con «auto» se marca el que está puesto de verdad.
         get: () => win.document.documentElement.getAttribute('zero-backdrop'),
-        set: value => prefs.setStringPref(prefName(prefix, PREFS.backdrop), value),
+        set: value => {
+          if (value === 'photo' && !prefs.getStringPref(prefName(prefix, PREFS.backgroundImage), '')) chooseBackground(win, host);
+          else prefs.setStringPref(prefName(prefix, PREFS.backdrop), value);
+        },
         watch: fn => {
           const observer = new win.MutationObserver(() => fn());
           observer.observe(win.document.documentElement, { attributes: true, attributeFilter: ['zero-backdrop'] });
           return () => observer.disconnect();
         },
+      },
+      {
+        kind: 'action', id: PREFS.backgroundImage,
+        label: host.t('Foto del fondo', 'Background photo'),
+        actionLabel: host.t('Elegir…', 'Choose…'),
+        run: () => chooseBackground(win, host),
+        when: () => win.document.documentElement.getAttribute('zero-backdrop') === 'photo',
+        watch: watchPref(PREFS.backgroundImage),
+      },
+      {
+        // Con menos opacidad se ve lo de detrás: el cristal del sistema (acrílico) donde lo hay.
+        kind: 'slider', id: PREFS.backgroundOpacity,
+        label: host.t('Opacidad del fondo', 'Background opacity'),
+        detail: host.t('Con menos, se ve lo que hay detrás de la ventana, desenfocado si el sistema lo permite.', 'Lower it to see what is behind the window, blurred where the system allows it.'),
+        get: () => Number(prefs.getStringPref(prefName(prefix, PREFS.backgroundOpacity), '1')),
+        set: value => prefs.setStringPref(prefName(prefix, PREFS.backgroundOpacity), String(Math.max(0.2, value))),
+        when: () => ['space', 'mist', 'photo'].includes(win.document.documentElement.getAttribute('zero-backdrop')),
+        watch: watchPref(PREFS.backgroundOpacity),
+      },
+      {
+        kind: 'switch', id: PREFS.focus,
+        label: host.t('Modo concentración', 'Focus mode'),
+        detail: host.t('Activa Currar/Chill y recuerda sus ajustes por perfil.', 'Enables Work/Chill and remembers its settings per profile.'),
+        get: () => prefs.getBoolPref(prefName(prefix, PREFS.focus), true),
+        set: on => prefs.setBoolPref(prefName(prefix, PREFS.focus), !!on),
+        watch: watchPref(PREFS.focus),
       },
       {
         // El raíl de pestañas (la isla de la izquierda): con sus títulos al abrirse, o solo iconos.
@@ -85,6 +119,32 @@ function zeroSection(win, host) {
       },
     ],
   };
+}
+
+/** Copia una foto normalizada al perfil: no dependemos de que el archivo original siga en su sitio. */
+function chooseBackground(win, host) {
+  const picker = Cc['@mozilla.org/filepicker;1'].createInstance(Ci.nsIFilePicker);
+  picker.init(win.browsingContext, host.t('Fondo de Kitsune Zero', 'Kitsune Zero background'), Ci.nsIFilePicker.modeOpen);
+  picker.appendFilters(Ci.nsIFilePicker.filterImages);
+  picker.open(async result => {
+    if (result !== Ci.nsIFilePicker.returnOK || !picker.file) return;
+    try {
+      const bytes = await IOUtils.read(picker.file.path, { maxBytes: 20 * 1024 * 1024 });
+      const bitmap = await win.createImageBitmap(new win.Blob([bytes]));
+      const scale = Math.min(1, 2560 / bitmap.width, 1600 / bitmap.height);
+      const width = Math.max(1, Math.round(bitmap.width * scale)), height = Math.max(1, Math.round(bitmap.height * scale));
+      const canvas = new win.OffscreenCanvas(width, height);
+      canvas.getContext('2d').drawImage(bitmap, 0, 0, width, height);
+      bitmap.close?.();
+      const blob = await canvas.convertToBlob({ type: 'image/jpeg', quality: .88 });
+      const file = Services.dirsvc.get('ProfD', Ci.nsIFile).clone();
+      file.append('chrome'); await IOUtils.makeDirectory(file.path, { ignoreExisting: true });
+      file.append('kitsune-zero-background.jpg');
+      await IOUtils.write(file.path, new Uint8Array(await blob.arrayBuffer()));
+      host.prefs.setStringPref(prefName(host.prefix, PREFS.backgroundImage), file.path);
+      host.prefs.setStringPref(prefName(host.prefix, PREFS.backdrop), 'photo');
+    } catch (error) { console.error('Zero: no se pudo poner el fondo', error); }
+  });
 }
 
 function rowNode(doc, row, undo) {
@@ -108,6 +168,10 @@ function rowNode(doc, row, undo) {
     const commit = () => row.set(control.value);
     control.addEventListener('change', commit);
     control.addEventListener('keydown', event => { if (event.key === 'Enter') { event.preventDefault(); commit(); } });
+  } else if (row.kind === 'action') {
+    control = el(doc, 'button', { type: 'button', class: 'zero-action-button', 'data-pref': row.id }, [row.actionLabel]);
+    sync = () => {};
+    control.addEventListener('click', () => row.run());
   } else {
     // La elegida lleva una pastilla que se desliza hasta ella (no salta de una a otra).
     const thumb = el(doc, 'span', { class: 'zero-seg-thumb', 'aria-hidden': 'true', still: '' });
@@ -226,6 +290,14 @@ function placeThumbs(root) {
 }
 
 function setOpen(win, st, open) {
+  if (open) {
+    const mark = st.mark.getBoundingClientRect();
+    const height = st.panel.offsetHeight || 520;
+    const y = Math.max(8, Math.min(mark.top + mark.height / 2 - height / 2, win.innerHeight - height - 8));
+    st.panel.style.setProperty('--zero-settings-x', `${Math.round(mark.right + 12)}px`);
+    st.panel.style.setProperty('--zero-settings-y', `${Math.round(y)}px`);
+    st.panel.style.setProperty('--zero-settings-origin-y', `${Math.round(mark.top + mark.height / 2 - y)}px`);
+  }
   st.panel.toggleAttribute('open', open);
   st.mark.toggleAttribute('open', open);
   st.mark.setAttribute('aria-expanded', String(open));
@@ -251,7 +323,9 @@ export function attach(win, ctx) {
     el(doc, 'h4', {}, [el(doc, 'span', { class: 'zero-logo', 'aria-hidden': 'true' }), 'Kitsune Zero']),
     st.rows,
   ]);
-  doc.body.append(st.mark, st.panel);
+  // Ajustes dentro de la misma columna que perfiles, modo, pestañas y accesos directos.
+  (doc.getElementById('zero-dock') ?? doc.body).append(st.mark);
+  doc.body.append(st.panel);
   st.cleanups.push(() => { st.mark.remove(); st.panel.remove(); });
   renderRows(win, st);
 

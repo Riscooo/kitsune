@@ -47,6 +47,22 @@ export function serviceOf(value) {
 
 const readService = host => { try { return host.prefs.getStringPref(prefName(host.prefix, SERVICE_PREF), ''); } catch { return ''; } };
 
+/** El nombre del servicio elegido (para el panel de sonido), o null. */
+export const musicName = host => serviceOf(readService(host))?.name ?? null;
+
+/** Abre la música desde `anchor` (el altavoz de la columna): la primera vez, la lista de servicios; luego,
+ *  el reproductor (o lo minimiza si ya está a la vista). */
+export function openMusic(win, anchor) {
+  const st = state.get(win);
+  if (!st) return;
+  st.anchor = anchor ?? st.anchor;
+  const service = serviceOf(readService(st.host));
+  if (!service) { if (st.services.hasAttribute('open')) closeServices(st); else openServices(win, st); return; }
+  closeServices(st);
+  ensurePanel(win, st, service);
+  show(win, st, st.view === 'open' ? 'mini' : 'open');
+}
+
 function controllerOf(st) {
   try { return st.browser?.browsingContext?.mediaController ?? null; } catch { return null; }
 }
@@ -129,7 +145,7 @@ function show(win, st, view) {
   st.view = view;
   st.panel?.toggleAttribute('open', view === 'open');
   st.mini.toggleAttribute('open', view === 'mini');
-  st.button.toggleAttribute('on', view !== 'closed');
+  st.anchor?.toggleAttribute('on', view !== 'closed');
   // Con el panel a la vista se pinta; si no, como una pestaña de fondo: no se pinta, pero sigue sonando.
   try { if (st.browser) st.browser.docShellIsActive = view === 'open'; } catch { /* sin esa propiedad */ }
   if (view === 'mini') { placeMini(win, st); paintMini(win, st); }
@@ -142,7 +158,7 @@ function positionPanel(win, st) {
 }
 
 function openServices(win, st) {
-  const r = st.button.getBoundingClientRect();
+  const r = (st.anchor ?? win.document.getElementById('zero-dock') ?? win.document.body).getBoundingClientRect();
   st.services.style.left = `${Math.round(r.right + 14)}px`;
   st.services.style.top = `${Math.round(r.top)}px`;
   st.services.setAttribute('open', '');
@@ -158,9 +174,7 @@ export function attach(win, ctx) {
   state.set(win, st);
   const listen = (target, type, fn, options) => { target.addEventListener(type, fn, options); st.cleanups.push(() => target.removeEventListener(type, fn, options)); };
 
-  st.button = el(doc, 'button', { type: 'button', class: 'zero-music', title: t('Música', 'Music'), 'aria-label': t('Música', 'Music') },
-    [el(doc, 'span', { class: 'zero-fav', 'aria-hidden': 'true' })]);
-  pill.prepend(st.button);
+  // El botón es el altavoz del panel de sonido (zero-audio): «Música → Abrir» llama a openMusic.
   st.services = el(doc, 'div', { id: 'zero-music-services', role: 'menu', 'aria-label': t('Servicio de música', 'Music service') },
     SERVICES.map(service => el(doc, 'button', { type: 'button', role: 'menuitem', 'data-service': service.id }, [service.name])));
   st.miniArt = el(doc, 'img', { class: 'zero-mini-art', alt: '', hidden: 'true' });
@@ -176,16 +190,9 @@ export function attach(win, ctx) {
   st.cleanups.push(() => {
     win.clearInterval(st.hooking);
     if (st.controller) for (const name of EVENTS) { try { st.controller.removeEventListener(name, paintMini); } catch { /* ya no está */ } }
-    st.button.remove(); st.services.remove(); st.mini.remove(); st.panel?.remove();
+    st.anchor?.removeAttribute('on'); st.services.remove(); st.mini.remove(); st.panel?.remove();
   });
 
-  st.button.addEventListener('click', () => {
-    const service = serviceOf(readService(host));
-    if (!service) { if (st.services.hasAttribute('open')) closeServices(st); else openServices(win, st); return; }
-    closeServices(st);
-    ensurePanel(win, st, service);
-    show(win, st, st.view === 'open' ? 'mini' : 'open');
-  });
   st.services.addEventListener('click', event => {
     const button = event.target.closest('[data-service]');
     if (!button) return;
@@ -194,7 +201,7 @@ export function attach(win, ctx) {
     ensurePanel(win, st, serviceOf(button.dataset.service));
     show(win, st, 'open');
   });
-  listen(win, 'mousedown', event => { if (st.services.hasAttribute('open') && !st.services.contains(event.target) && !st.button.contains(event.target)) closeServices(st); }, true);
+  listen(win, 'mousedown', event => { if (st.services.hasAttribute('open') && !st.services.contains(event.target) && !st.anchor?.contains(event.target)) closeServices(st); }, true);
   listen(win, 'keydown', event => { if (event.key === 'Escape') closeServices(st); }, true);
 
   const act = name => () => {

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { dominantColor, backdropMode, desktopOf, GLASS_RULES, macGlass } from '../zero/modules/zero-frame.sys.mjs'
+import { dominantColor, backdropMode, backdropOpacity, painted, desktopOf, GLASS_RULES, macGlass } from '../zero/modules/zero-frame.sys.mjs'
 
 const block = (...parts) => {
   const bytes = []
@@ -23,13 +23,28 @@ test('a page that is only white (or only black) still gives its own colour', () 
   assert.equal(dominantColor(new Uint8ClampedArray(0)), null)
 })
 
-test('the system glass is used only when the compositor can blur behind Kitsune', () => {
-  assert.equal(backdropMode('auto', { niri: true, rule: true }), 'system')
-  assert.equal(backdropMode('auto', { niri: true, rule: false }), 'web')
-  assert.equal(backdropMode('auto', { niri: false, rule: false }), 'web')
+test('the system glass is used by default only where the compositor can blur behind Kitsune (Linux)', () => {
+  assert.equal(backdropMode('auto', { niri: true, desktop: 'niri', rule: true }), 'system')
+  // Sin cristal (y en macOS), el espacio con el tema oscuro y la niebla con el claro.
+  assert.equal(backdropMode('auto', { niri: true, rule: false }), 'space')
+  assert.equal(backdropMode('auto', { niri: false, rule: false, dark: false }), 'mist')
+  assert.equal(backdropMode('auto', { desktop: 'macos', rule: true, dark: true }), 'space')
+  assert.equal(backdropMode('auto', { desktop: 'macos', rule: true, dark: false }), 'mist')
   assert.equal(backdropMode('web', { niri: true, rule: true }), 'web')
   assert.equal(backdropMode('system', { niri: false }), 'system')
-  assert.equal(backdropMode('raro', { niri: true, rule: true }), 'system')
+  assert.equal(backdropMode('space', { rule: false }), 'space')
+  assert.equal(backdropMode('mist', { rule: true }), 'mist')
+  assert.equal(backdropMode('photo', { rule: true }), 'photo')
+  assert.equal(backdropMode('raro', { desktop: 'niri', rule: true }), 'system')
+})
+
+test('the painted backgrounds have an opacity from 0.2 to 1', () => {
+  assert.equal(backdropOpacity('1'), 1)
+  assert.equal(backdropOpacity('0.5'), 0.5)
+  assert.equal(backdropOpacity('0'), 0.2)
+  assert.equal(backdropOpacity('7'), 1)
+  assert.equal(backdropOpacity('nada'), 1)
+  assert.deepEqual(['system', 'web', 'space', 'mist', 'photo'].filter(painted), ['space', 'mist', 'photo'])
 })
 
 test('the desktop comes from the session: niri, Hyprland, KDE or GNOME', () => {
@@ -45,9 +60,9 @@ test('the desktop comes from the session: niri, Hyprland, KDE or GNOME', () => {
 test('the desktop glass is used with the Kitsune rule of any desktop that has one', () => {
   for (const desktop of ['niri', 'hyprland', 'kde', 'gnome']) {
     assert.equal(backdropMode('auto', { desktop, rule: true }), 'system')
-    assert.equal(backdropMode('auto', { desktop, rule: false }), 'web')
+    assert.equal(backdropMode('auto', { desktop, rule: false }), 'space')
   }
-  assert.equal(backdropMode('auto', { desktop: null, rule: false }), 'web')
+  assert.equal(backdropMode('auto', { desktop: null, rule: false }), 'space')
   assert.deepEqual(Object.keys(GLASS_RULES).sort(), ['gnome', 'hyprland', 'kde', 'niri'])
   assert.deepEqual(GLASS_RULES.niri, ['.config/niri/kitsune-zero.kdl'])
 })

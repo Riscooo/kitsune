@@ -40,12 +40,22 @@ export function dominantColor(bytes) {
   return `#${hex(best.r)}${hex(best.g)}${hex(best.b)}`;
 }
 
-/** Cristal del sistema (lo de detrás, con lo que le ponga el compositor) o fondo del color de la web. */
+/** Los fondos de Zero: el cristal del sistema (lo de detrás, con lo que le ponga el compositor), el de la
+ *  web (una foto suya desenfocada), el espacio (negro con estrellas), la niebla (su versión clara) o una
+ *  foto propia. Los tres últimos los pinta Zero en una capa con su opacidad (#zero-bg). */
+export const BACKDROPS = Object.freeze(['system', 'web', 'space', 'mist', 'photo']);
+
+/** El fondo que toca. De serie («auto»): en un Linux con la regla de cristal de Kitsune, ese cristal (el de
+ *  Risco); en los demás (macOS incluido), el espacio con el tema oscuro y la niebla con el claro: tranquilo,
+ *  sin colores de la web ni del escritorio (Dani, 15-10: «más como concentración»). */
 export function backdropMode(pref, env = {}) {
-  if (pref === 'web') return 'web';
-  if (pref === 'system') return 'system';
-  return env.rule ? 'system' : 'web';
+  if (BACKDROPS.includes(pref)) return pref;
+  if (env.rule && env.desktop !== 'macos') return 'system';
+  return env.dark === false ? 'mist' : 'space';
 }
+
+/** Los fondos que pinta Zero (con su capa, su opacidad y las esquinas de una ventana normal). */
+export const painted = mode => mode === 'space' || mode === 'mist' || mode === 'photo';
 
 /** El escritorio de la sesión, de los que tienen cristal para Kitsune (su regla: GLASS_RULES), o null. */
 export function desktopOf(get) {
@@ -109,8 +119,18 @@ let knownEnv = null;
 /** Mira el compositor ya (al cargar Zero), para que la primera ventana no tenga que esperar. */
 export function warm() { if (!knownEnv) compositorEnv().catch(() => {}); }
 
-/** El fondo que toca con lo que ya se sabe del compositor, o null si aún no se sabe. */
-export function knownBackdrop(pref) { return knownEnv ? backdropMode(pref, knownEnv) : null; }
+/** El fondo que toca con lo que ya se sabe (el compositor y si el tema es oscuro), o null si aún no se sabe. */
+export function knownBackdrop(pref, dark) {
+  const mode = backdropMode(pref, { ...knownEnv, dark });
+  return painted(mode) || knownEnv ? mode : null;
+}
+
+/** La opacidad del fondo pintado (de 0,2 a 1; con menos de 1 se ve lo de detrás, el cristal del sistema
+ *  si lo hay). */
+export function backdropOpacity(value) {
+  const number = Number(value);
+  return Number.isFinite(number) ? Math.min(1, Math.max(0.2, number)) : 1;
+}
 
 /** Una foto pequeña de lo que se ve en la web: { bytes, canvas } (o null si no se puede). Sin
  *  rectángulo, drawSnapshot fotografía la vista (con su scroll); con uno, mediría desde el principio
@@ -169,14 +189,32 @@ function schedule(win, st) {
 
 function applyBackdrop(win, st) {
   const root = win.document.documentElement;
-  const pref = (() => { try { return st.host.prefs.getStringPref(`${st.host.prefix}backdrop`, 'auto'); } catch { return 'auto'; } })();
-  root.setAttribute('zero-backdrop', backdropMode(pref, st.env));
-  if (root.getAttribute('zero-backdrop') !== 'web') {
+  const read = (key, fallback) => { try { return st.host.prefs.getStringPref(prefName(st.host.prefix, PREFS[key]), fallback); } catch { return fallback; } };
+  const dark = win.matchMedia('(prefers-color-scheme: dark)').matches;
+  let mode = backdropMode(read('backdrop', 'auto'), { ...st.env, dark });
+  // Una foto elegida por la persona vive en su perfil. La ruta no sale del equipo; se convierte a una
+  // URL file: solo para que la hoja de chrome pueda pintarla. Sin foto (o si ya no está), el espacio.
+  let image = null;
+  if (mode === 'photo') {
+    try {
+      const file = Cc['@mozilla.org/file/local;1'].createInstance(Ci.nsIFile);
+      file.initWithPath(read('backgroundImage', ''));
+      if (file.exists()) image = Services.io.newFileURI(file).spec;
+    } catch { /* sin foto */ }
+    if (!image) mode = 'space';
+  }
+  root.setAttribute('zero-backdrop', mode);
+  // Si el sistema pone cristal detrás (para ofrecerlo en los ajustes).
+  root.setAttribute('zero-glass', st.env.rule ? 'system' : 'none');
+  if (image) root.style.setProperty('--zero-custom-image', `url("${image}")`);
+  else root.style.removeProperty('--zero-custom-image');
+  root.style.setProperty('--zero-bg-opacity', String(backdropOpacity(read('backgroundOpacity', '1'))));
+  if (mode !== 'web') {
     root.style.removeProperty('--zero-backdrop-image'); delete st.backdrop.dataset.painted;
     // Con el fondo del sistema, detrás está el escritorio (transparente) y no se sabe su luz: las piezas
-    // son de cristal transparente (decisión de Risco, 15-10) y su texto sigue el modo del sistema: en
-    // oscuro, blanco con halo; en claro, tinta.
-    st.frameInk = win.matchMedia('(prefers-color-scheme: dark)').matches ? 'white' : 'ink';
+    // siguen el modo del sistema (en oscuro, blanco; en claro, tinta). El espacio y la foto (con su velo)
+    // son oscuros; la niebla, clara.
+    st.frameInk = mode === 'mist' || (mode === 'system' && !dark) ? 'ink' : 'white';
     root.toggleAttribute('zero-frame-ink', st.frameInk === 'ink');
   }
   paintColors(win, st);
@@ -301,6 +339,13 @@ async function setFull(win, st, on) {
   placeGrow(win, st);
 }
 
+/** El botón verde: en macOS, pantalla completa de verdad, como el de cualquier ventana (Dani, 15-10: «lo
+ *  pones en pantalla completa y no se pone en pantalla completa»); en los demás, maximizar. */
+function maximize(win) {
+  if (Services.appinfo.OS === 'Darwin') { win.fullScreen = !win.fullScreen; return; }
+  if (win.windowState === win.STATE_MAXIMIZED) win.restore(); else win.maximize();
+}
+
 /** Ampliar la web o dejar de ampliarla (el atajo, Ctrl+Alt+F). */
 export function toggleFull(win, on) {
   const st = state.get(win);
@@ -311,6 +356,8 @@ export function attach(win, ctx) {
   const doc = win.document, root = doc.documentElement, { host } = ctx;
   const st = { host, env: knownEnv ?? { niri: false, desktop: null, rule: false }, cleanups: [] };
   state.set(win, st);
+  // En macOS, las esquinas de una ventana normal del sistema (zero.css): las de 48 px no casaban con las demás.
+  root.setAttribute('zero-os', ({ Darwin: 'mac', WINNT: 'windows' })[Services.appinfo.OS] ?? 'linux');
   const listen = (target, type, fn, options) => { target.addEventListener(type, fn, options); st.cleanups.push(() => target.removeEventListener(type, fn, options)); };
 
   // Botones de ventana, en fila, como los de Kitsune: cerrar, minimizar y ampliar.
@@ -323,7 +370,7 @@ export function attach(win, ctx) {
     const action = event.target.closest('button')?.dataset.action;
     if (action === 'close') win.close();
     else if (action === 'min') win.minimize();
-    else if (action === 'max') win.windowState === win.STATE_MAXIMIZED ? win.restore() : win.maximize();
+    else if (action === 'max') maximize(win);
   });
 
   // Ampliar / dejar de ampliar, y dividir: aparecen al acercarse a la esquina de la tarjeta.
@@ -338,6 +385,10 @@ export function attach(win, ctx) {
     else if (action === 'split') win.BrowserCommands?.addTabSplitView?.();
   });
   st.backdrop = el(doc, 'canvas', { id: 'zero-backdrop', hidden: 'true' });
+  // El fondo que pinta Zero (espacio, niebla o foto), con su opacidad y las esquinas de la ventana.
+  st.bg = el(doc, 'div', { id: 'zero-bg', 'aria-hidden': 'true' });
+  doc.body.prepend(st.bg);
+  st.cleanups.push(() => st.bg.remove());
   st.notch = el(doc, 'div', { id: 'zero-notch', 'aria-hidden': 'true' });
   doc.body.append(lights, st.grow, st.backdrop, st.notch);
   st.cleanups.push(() => { lights.remove(); st.grow.remove(); st.backdrop.remove(); st.notch.remove(); });
@@ -436,8 +487,9 @@ export function attach(win, ctx) {
   win.gBrowser.addTabsProgressListener(progress);
   st.cleanups.push(() => win.gBrowser.removeTabsProgressListener(progress));
   const observer = { observe: () => applyBackdrop(win, st) };
-  host.prefs.addObserver(`${host.prefix}backdrop`, observer);
-  st.cleanups.push(() => host.prefs.removeObserver(`${host.prefix}backdrop`, observer));
+  const backdropPrefs = [PREFS.backdrop, PREFS.backgroundImage, PREFS.backgroundOpacity].map(key => prefName(host.prefix, key));
+  for (const name of backdropPrefs) host.prefs.addObserver(name, observer);
+  st.cleanups.push(() => { for (const name of backdropPrefs) host.prefs.removeObserver(name, observer); });
 
   applyBackdrop(win, st);
   // Si el sistema pasa de claro a oscuro (o al revés), la tinta de lo de encima también.
@@ -460,6 +512,6 @@ export function detach(win) {
   win.clearTimeout(st.timer);
   for (const undo of st.cleanups.reverse()) { try { undo(); } catch { /* ya no estaba */ } }
   const root = win.document.documentElement;
-  for (const name of ['zero-full', 'zero-backdrop', 'zero-peek', 'zero-frame-ink']) root.removeAttribute(name);
-  for (const name of ['--zero-tint', '--zero-backdrop-image']) root.style.removeProperty(name);
+  for (const name of ['zero-full', 'zero-backdrop', 'zero-peek', 'zero-frame-ink', 'zero-os', 'zero-glass']) root.removeAttribute(name);
+  for (const name of ['--zero-tint', '--zero-backdrop-image', '--zero-custom-image', '--zero-bg-opacity']) root.style.removeProperty(name);
 }

@@ -23,7 +23,7 @@
 import { prefName, PREFS } from './zero-config.sys.mjs';
 
 const HTML = 'http://www.w3.org/1999/xhtml';
-const RADIUS = 48;   // esquinas de la ventana (= zero.css)
+const RADIUS = 48;   // esquinas de la ventana si zero.css no dice otra cosa (--zero-win-radius)
 const BAND = 30;     // la franja del borde de la pompa, en px CSS
 const CARD_RADIUS = 18; // las esquinas de la tarjeta (= zero.css)
 const FILM = 0.24;   // cuánto se ve la película en el filo: poco, como una pompa (no «luces de feria»)
@@ -101,6 +101,8 @@ void main() {
   // La película: su grosor cambia despacio a lo largo del borde (y crece hacia el filo); de él salen los
   // colores, como en una pompa de jabón (interferencia, aproximada con una paleta de cosenos).
   vec3 film = filmAt(p, 0.35 * u);
+  // Sin los colores de la pompa (Dani, 15-10: «que no sea tan colorido»): su luz, en gris.
+  film = vec3(dot(film, vec3(0.299, 0.587, 0.114)));
   // Y el filo mismo, una línea fina y limpia que hace de borde de la ventana (Risco, 15-10).
   float a = uFilm * fresnel + 0.15 * clamp(1.8 - window, 0.0, 1.0);
   // Los reflejos de la luz, suaves (una arriba a la izquierda y su eco abajo a la derecha).
@@ -159,7 +161,8 @@ function draw(win, st) {
   st.frame = 0;
   const { canvas } = st;
   const root = win.document.documentElement;
-  const hidden = root.hasAttribute('zero-full');
+  // Con la web ampliada no hay lámina; con un fondo que pinta Zero (espacio, niebla, foto), tampoco.
+  const hidden = root.hasAttribute('zero-full') || ['space', 'mist', 'photo'].includes(root.getAttribute('zero-backdrop'));
   if (canvas.hidden !== hidden) canvas.hidden = hidden;
   if (hidden || !st.gl) return;
   const W = win.innerWidth, H = win.innerHeight, k = win.devicePixelRatio || 1;
@@ -170,7 +173,8 @@ function draw(win, st) {
   gl.viewport(0, 0, width, height);
   gl.uniform2f(u.uSize, W, H);
   gl.uniform1f(u.uScale, k);
-  gl.uniform1f(u.uRadius, RADIUS);
+  // Las esquinas de la ventana, las de zero.css (en macOS, las de una ventana normal).
+  gl.uniform1f(u.uRadius, parseFloat(win.getComputedStyle(root).getPropertyValue('--zero-win-radius')) || RADIUS);
   gl.uniform1f(u.uBand, BAND);
   gl.uniform1f(u.uFilm, FILM);
   gl.uniform1f(u.uStrength, strength(win, st));

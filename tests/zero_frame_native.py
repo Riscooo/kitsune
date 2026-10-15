@@ -303,7 +303,9 @@ def main():
         # Lo que toca en este ordenador: el cristal del sistema con niri y la regla de Zero; si no, la web.
         expected = chrome("""const niri = !!Services.env.get('NIRI_SOCKET');
             const rule = Services.dirsvc.get('Home', Ci.nsIFile); rule.append('.config'); rule.append('niri'); rule.append('kitsune-zero.kdl');
-            return niri && rule.exists() ? 'system' : 'web';""")
+            const macGlass = Services.appinfo.OS === 'Darwin' && parseInt(Services.sysinfo.getProperty('version'), 10) >= 25
+              && Services.prefs.getBoolPref('kitsune.zero.macos-glass', true);
+            return macGlass || (niri && rule.exists()) ? 'system' : 'web';""")
         chrome("""window.__fondos = []; window.__vigia = new MutationObserver(() => { const v = document.documentElement.getAttribute('zero-backdrop'); if (v) window.__fondos.push(v); });
             window.__vigia.observe(document.documentElement, { attributes: true, attributeFilter: ['zero-backdrop'] });
             document.getElementById('kitsune-zero-key').doCommand();""")

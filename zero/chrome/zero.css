@@ -506,24 +506,33 @@
 #main-window[zero] #zero-host .zero-now[playing]:not([still]) .zero-now-wave > i:nth-child(2) { animation-delay: -.4s !important; animation-duration: .9s !important; }
 #main-window[zero] #zero-host .zero-now[playing]:not([still]) .zero-now-wave > i:nth-child(3) { animation-delay: -.7s !important; animation-duration: 1.3s !important; }
 @keyframes zero-now-wave { from { transform: scaleY(.3); } to { transform: scaleY(1); } }
-#main-window[zero] #zero-host :is(.zero-now-toggle, .zero-now-next) {
+#main-window[zero] #zero-host :is(.zero-now-toggle, .zero-now-next, .zero-now-mute) {
   display: none !important; flex: none !important; width: 14px !important; height: 14px !important; padding: 4px !important; border-radius: 999px !important;
   background-color: currentColor !important; background-clip: content-box !important; opacity: .75 !important;
   mask: var(--zero-now-icon) center / 12px no-repeat !important; pointer-events: auto !important; cursor: pointer !important;
 }
-#main-window[zero] #zero-host :is(.zero-now-toggle, .zero-now-next):hover { opacity: 1 !important; }
+#main-window[zero] #zero-host :is(.zero-now-toggle, .zero-now-next, .zero-now-mute):hover { opacity: 1 !important; }
 #main-window[zero] #zero-host .zero-now-toggle { --zero-now-icon: url("chrome://global/skin/media/play-fill.svg"); }
 #main-window[zero] #zero-host .zero-now[playing] .zero-now-toggle { --zero-now-icon: url("chrome://global/skin/media/pause-fill.svg"); }
 #main-window[zero] #zero-host .zero-now-next { --zero-now-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M11 2.5h2v11h-2zM2 2.8v10.4L9.8 8z'/%3E%3C/svg%3E"); }
+#main-window[zero] #zero-host .zero-now-mute { --zero-now-icon: url("chrome://global/skin/media/audio.svg"); }
+#main-window[zero] #zero-host .zero-now-mute[muted] { --zero-now-icon: url("chrome://browser/skin/tabbrowser/tab-audio-muted-small.svg"); }
+#main-window[zero] #zero-host .zero-now-volume {
+  display: none !important; width: 62px !important; height: 14px !important; margin: 0 2px !important; padding: 0 !important;
+  accent-color: currentColor !important; pointer-events: auto !important;
+}
 #main-window[zero] #navigator-toolbox[zero-island="open"] #zero-host .zero-now-wave { display: none !important; }
 #main-window[zero] #navigator-toolbox[zero-island="open"] #zero-host .zero-now-toggle,
-#main-window[zero] #navigator-toolbox[zero-island="open"] #zero-host .zero-now-next:not([hidden]) { display: block !important; }
+#main-window[zero] #navigator-toolbox[zero-island="open"] #zero-host .zero-now-next:not([hidden]),
+#main-window[zero] #navigator-toolbox[zero-island="open"] #zero-host .zero-now-mute { display: block !important; }
+#main-window[zero] #navigator-toolbox[zero-island="open"] #zero-host .zero-now-volume { display: block !important; }
 
 /* Cargando la web que se ve: una línea fina en el borde de abajo de la isla, que avanza y se va. */
 #main-window[zero] #nav-bar > .zero-load {
   position: absolute !important; left: 16px !important; right: 16px !important; bottom: 3px !important; height: 2px !important;
   border-radius: 1px !important; pointer-events: none !important;
-  background: currentColor !important; opacity: 0 !important;
+  /* Neutra y siempre dentro de la isla: no hereda el azul de una web o de una tinta. */
+  background: rgba(255, 255, 255, .72) !important; opacity: 0 !important;
   transform: scaleX(var(--zero-load, 0)) !important; transform-origin: left center !important;
   transition: transform 260ms var(--zero-calm), opacity var(--zero-t-fade) var(--zero-soft) !important;
 }
@@ -820,6 +829,12 @@
   background: rgba(255, 255, 255, .1) !important; color: #fff !important; font: 600 14px system-ui, sans-serif;
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .14) !important; transition: box-shadow 200ms var(--zero-soft), background-color 200ms var(--zero-soft);
 }
+#zero-profiles .zero-profile-detail {
+  appearance: none; box-sizing: border-box; width: 100%; height: 30px; padding: 0 10px; border: none; border-radius: 10px;
+  color: #fff; background: rgba(255, 255, 255, .08); font: 500 12px system-ui, sans-serif; outline: none;
+}
+#zero-profiles .zero-profile-detail::placeholder { color: rgba(255, 255, 255, .42); }
+#zero-profiles .zero-profile-detail:focus { background: rgba(255, 255, 255, .14); box-shadow: inset 0 0 0 1.5px rgba(255, 255, 255, .48); }
 #zero-profiles .zero-profile-name::placeholder { color: rgba(255, 255, 255, .45); }
 #zero-profiles .zero-profile-name::selection { background: rgba(255, 255, 255, .3); color: #fff; }
 #zero-profiles .zero-profile-name:focus { background: rgba(255, 255, 255, .14) !important; box-shadow: inset 0 0 0 1.5px rgba(255, 255, 255, .55) !important; }
@@ -870,6 +885,28 @@
 #zero-profiles[confirming] .zero-profile-foot { display: none; }
 #zero-profiles .zero-profile-question { font: 500 12.5px/1.4 system-ui, sans-serif; color: rgba(255, 255, 255, .92); }
 @media (prefers-reduced-motion: reduce) { #zero-profiles, #zero-mode .zero-mode-knob { transition-duration: 1ms; } }
+
+/* En una pestaña nueva se ve de inmediato con qué perfil se va a buscar. */
+#zero-empty-profile {
+  position: fixed; z-index: 4; left: 50%; top: calc(50% - 106px); translate: -50% 0;
+  display: none; flex-direction: column; align-items: center; gap: 5px; min-width: 120px;
+  color: #fff; text-align: center; text-shadow: var(--zero-glass-halo); pointer-events: none;
+}
+:root[zero-empty] #zero-empty-profile { display: flex; }
+#zero-empty-profile :is(img, .zero-empty-profile-glyph) {
+  width: 46px; height: 46px; border-radius: 50%; object-fit: cover; display: grid; place-items: center;
+  color: #fff; background: var(--zero-profile-ink, #2fa59a); font: 700 16px system-ui, sans-serif;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, .24), inset 0 0 0 1px rgba(255, 255, 255, .45);
+}
+#zero-empty-profile [hidden] { display: none !important; }
+#zero-empty-profile .zero-empty-profile-glyph[data-color="blue"] { --zero-profile-ink: #4a7bd8; }
+#zero-empty-profile .zero-empty-profile-glyph[data-color="pink"] { --zero-profile-ink: #d65a9a; }
+#zero-empty-profile .zero-empty-profile-glyph[data-color="violet"] { --zero-profile-ink: #8a63d2; }
+#zero-empty-profile .zero-empty-profile-glyph[data-color="teal"] { --zero-profile-ink: #2fa59a; }
+#zero-empty-profile .zero-empty-profile-glyph[data-color="amber"] { --zero-profile-ink: #e3a03b; }
+#zero-empty-profile .zero-empty-profile-glyph[data-color="red"] { --zero-profile-ink: #d6574b; }
+#zero-empty-profile strong { font: 650 13px system-ui, sans-serif; }
+#zero-empty-profile small { max-width: 240px; font: 500 11px system-ui, sans-serif; opacity: .72; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 /* Los accesos directos: una pastilla con sus iconos (como los del raíl) y un «+» abajo. */
 #zero-dock > #zero-shortcuts { display: flex; flex-direction: column; gap: 4px; padding: 6px 5px; }
 #zero-shortcuts .zero-shortcut-list { display: flex; flex-direction: column; gap: 4px; }
@@ -1157,13 +1194,12 @@
 
 /* ---------------------------------------------------------------- la marca y los ajustes (zero-mark) */
 
-/* El logo «máscara en el cero», en blanco y muy tenue; al acercarse se enciende despacio. */
+/* El logo/ajustes es la última pastilla de la columna izquierda. */
 #zero-mark {
-  position: fixed; left: 22px; bottom: 22px; z-index: 6; /* separada de la curva de la esquina, como los botones */
-  appearance: none; box-sizing: content-box; width: 26px; height: 26px; min-width: 0; padding: 0; margin: 0;
-  border: none; border-radius: 50%; background: transparent; cursor: pointer;
-  color: #fff; opacity: .62;
-  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, .28));
+  position: relative; z-index: 2; flex: none;
+  appearance: none; box-sizing: border-box; width: 36px; height: 36px; min-width: 0; padding: 6px; margin: 0;
+  border: none; border-radius: 18px; cursor: pointer;
+  color: #fff; opacity: .78; background: var(--zero-glass-fill); box-shadow: var(--zero-glass-edge);
   transition: opacity 700ms var(--zero-soft), transform 700ms var(--zero-calm), color 600ms var(--zero-soft);
 }
 #zero-mark:hover, #zero-mark[open] { opacity: .95; transform: scale(1.06); }
@@ -1182,7 +1218,7 @@
 
 /* Los ajustes: una hoja de cristal esmerilado que brota de la marca. */
 #zero-settings {
-  position: fixed; left: 58px; bottom: 22px; z-index: 7; /* junto a la marca */
+  position: fixed; left: var(--zero-settings-x, 58px); top: var(--zero-settings-y, 80px); z-index: 7;
   box-sizing: border-box; width: 320px; max-height: calc(100% - 80px); overflow-y: auto; scrollbar-width: none;
   padding: 14px 14px 6px; border-radius: 22px;
   color: #1d2321; font: 500 12.5px system-ui, sans-serif;
@@ -1190,7 +1226,7 @@
   backdrop-filter: blur(24px) saturate(1.8);
   /* (y su anillo de luz, ::after) */
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, .95), inset 0 0 0 1px rgba(255, 255, 255, .55), 0 24px 60px rgba(0, 0, 0, .22);
-  transform-origin: -23px calc(100% - 13px); /* desde la marca */
+  transform-origin: -23px var(--zero-settings-origin-y, 50%); /* desde la pastilla de ajustes */
   opacity: 0; transform: scale(.94) translateY(6px); filter: blur(4px); pointer-events: none;
   /* Al cerrar, el contenido se va antes que la forma. */
   transition: opacity 280ms var(--zero-soft), transform var(--zero-t-morph) var(--zero-calm), filter 280ms var(--zero-soft);
@@ -1205,6 +1241,11 @@
 /* El texto pide su sitio; si con el segmento no cabe, el segmento baja a su línea, a la derecha. */
 #zero-settings .zero-row-text { flex: 1 1 160px; min-width: 0; }
 #zero-settings .zero-row > :is(.zero-segment, .zero-switch) { margin-inline-start: auto; }
+#zero-settings .zero-action-button {
+  appearance: none; height: 28px; padding: 0 12px; margin-inline-start: auto; border: none; border-radius: 999px;
+  color: inherit; background: rgba(29, 35, 33, .09); font: 600 12px system-ui, sans-serif; cursor: pointer;
+}
+#zero-settings .zero-action-button:hover { background: rgba(29, 35, 33, .16); }
 #zero-settings .zero-row-text small { display: none; }
 /* La «i» de ayuda: pequeña, junto al nombre; su explicación sale en una etiqueta al pasar el ratón. */
 #zero-settings .zero-info {
@@ -1570,13 +1611,257 @@
 /* ---------------------------------------------------------------- pantalla completa */
 
 /* Un vídeo (o lo que sea) a pantalla completa: toda la pantalla y nada de Zero encima. */
-:root[zero]:is([inDOMFullscreen], [inFullscreen]) #tabbrowser-tabpanels { margin: 0 !important; }
-:root[zero]:is([inDOMFullscreen], [inFullscreen]) #tabbrowser-tabpanels > .browserSidebarContainer { border-radius: 0 !important; box-shadow: none !important; }
-:root[zero]:is([inDOMFullscreen], [inFullscreen]) :is(#zero-rail, #zero-edge, #zero-mark, #zero-lights, #zero-grow, #zero-notch, #zero-pomo, #zero-settings, #zero-break, #zero-blocked, .zero-glass) { display: none !important; }
-/* Con F11 la isla se esconde arriba y baja al llevar el ratón al filo (como las barras de Gecko). */
-#main-window[zero][inFullscreen]:not([inDOMFullscreen]) #navigator-toolbox:not(:hover, [zero-island="typing"]) {
-  transform: translateY(-37px) !important; opacity: 0 !important;
+:root[zero][inDOMFullscreen] #tabbrowser-tabpanels { margin: 0 !important; }
+:root[zero][inDOMFullscreen] #tabbrowser-tabpanels > .browserSidebarContainer { border-radius: 0 !important; box-shadow: none !important; }
+:root[zero][inDOMFullscreen] :is(#zero-dock, #zero-rail, #zero-edge, #zero-mark, #zero-lights, #zero-grow, #zero-notch, #zero-pomo, #zero-settings, #zero-break, #zero-blocked, #zero-bg, #zero-pane, .zero-glass) { display: none !important; }
+/* La ventana a pantalla completa (el botón verde, Ctrl+Cmd+F, F11): Zero sigue igual, ocupando toda la
+   pantalla, con el fondo opaco y sin esquinas (Dani, 15-10: antes se escondía todo y quedaba la web sola). */
+
+/* ---------------------------------------------------------------- fondos y cristal ahumado (Dani, 15-10) */
+
+/* «Que sea más como concentración»: nada de colores de pompa ni de arcoíris. Las piezas son cristal
+   ahumado (oscuro y translúcido) sobre los fondos oscuros y cristal esmerilado claro sobre los claros
+   (zero-frame-ink), con un filo neutro. Y la ventana, con las esquinas de una ventana normal en macOS. */
+:root[zero] {
+  --zero-win-radius: 48px;
+  --zero-glass-fill: linear-gradient(180deg, rgba(255, 255, 255, .075), rgba(255, 255, 255, .025)), linear-gradient(rgba(22, 24, 29, .62), rgba(22, 24, 29, .62));
+  --zero-glass-edge: inset 0 1px 0 rgba(255, 255, 255, .07), 0 10px 30px rgba(0, 0, 0, .34), 0 1px 3px rgba(0, 0, 0, .24), 0 0 0 .5px rgba(0, 0, 0, .45);
+  --zero-glass-halo: 0 1px 1px rgba(0, 0, 0, .3);
+  --zero-rim: rgba(255, 255, 255, .16);
+  --zero-piece-hover: rgba(255, 255, 255, .1);
+  --zero-piece-text: #f2f3f5;
+  --zero-piece-quiet: rgba(242, 243, 245, .6);
+  --zero-sheet: rgba(24, 26, 31, .9);
 }
-#main-window[zero][inFullscreen]:not([inDOMFullscreen]) #navigator-toolbox {
-  transition: width var(--zero-t-morph) var(--zero-calm), transform var(--zero-t-morph) var(--zero-calm), opacity var(--zero-t-fade) var(--zero-soft) !important;
+:root[zero][zero-frame-ink] {
+  --zero-glass-fill: linear-gradient(180deg, rgba(255, 255, 255, .8), rgba(255, 255, 255, .64));
+  --zero-glass-edge: inset 0 1px 0 rgba(255, 255, 255, .9), 0 10px 28px rgba(18, 22, 28, .12), 0 1px 3px rgba(18, 22, 28, .08), 0 0 0 .5px rgba(18, 22, 28, .12);
+  --zero-glass-halo: none;
+  --zero-rim: rgba(255, 255, 255, .7);
+  --zero-piece-hover: rgba(29, 35, 33, .07);
+  --zero-piece-text: #1d2321;
+  --zero-piece-quiet: rgba(29, 35, 33, .55);
+  --zero-sheet: rgba(250, 250, 249, .94);
 }
+:root[zero][zero-os="mac"] { --zero-win-radius: 16px; }
+:root[zero]:is([inFullscreen], [sizemode="fullscreen"]) { --zero-win-radius: 0px; --zero-bg-opacity: 1 !important; }
+
+/* El filo de las piezas: una línea neutra que se apaga a media altura (antes, colores de pompa). */
+#main-window[zero] #nav-bar::after, #zero-rail::after, #zero-pomo::after, #zero-grow::after, #zero-settings::after, #zero-dock > .zero-pill::after {
+  border-color: var(--zero-rim) !important;
+}
+
+/* El fondo que pinta Zero: una capa detrás de todo con las esquinas de la ventana y su opacidad. Con menos
+   de 1 se ve lo de detrás (el cristal de macOS, que lo desenfoca: acrílico). */
+#zero-bg {
+  position: fixed; inset: 0; z-index: -2; display: none; pointer-events: none;
+  border-radius: var(--zero-win-radius);
+  opacity: var(--zero-bg-opacity, 1);
+  background-color: #07080b;
+  transition: opacity var(--zero-t-fade) var(--zero-soft), border-radius var(--zero-t-move) var(--zero-calm);
+}
+:root[zero]:is([zero-backdrop="space"], [zero-backdrop="mist"], [zero-backdrop="photo"]) #zero-bg { display: block; }
+:root[zero][zero-full] #zero-bg { border-radius: 0; }
+/* Espacio: casi negro, con una luz muy leve arriba a la izquierda y estrellas finas, pocas y quietas. */
+:root[zero][zero-backdrop="space"] #zero-bg {
+  background-image:
+    url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='520' height='520'><g fill='white'><circle cx='168.4' cy='78.4' r='0.61' fill-opacity='0.21'/><circle cx='278.7' cy='190.2' r='0.37' fill-opacity='0.37'/><circle cx='19.5' cy='225.5' r='0.38' fill-opacity='0.21'/><circle cx='220.7' cy='430.0' r='0.4' fill-opacity='0.26'/><circle cx='326.3' cy='492.8' r='0.58' fill-opacity='0.33'/><circle cx='507.7' cy='24.2' r='0.69' fill-opacity='0.29'/><circle cx='75.0' cy='61.3' r='0.47' fill-opacity='0.48'/><circle cx='94.0' cy='302.4' r='0.61' fill-opacity='0.32'/><circle cx='284.8' cy='32.7' r='0.37' fill-opacity='0.26'/><circle cx='353.8' cy='222.3' r='0.48' fill-opacity='0.4'/><circle cx='235.7' cy='155.9' r='0.67' fill-opacity='0.44'/><circle cx='126.9' cy='298.7' r='0.56' fill-opacity='0.5'/><circle cx='379.3' cy='149.7' r='0.74' fill-opacity='0.22'/><circle cx='217.4' cy='393.7' r='0.41' fill-opacity='0.36'/><circle cx='20.4' cy='347.5' r='0.66' fill-opacity='0.39'/><circle cx='455.2' cy='163.1' r='0.63' fill-opacity='0.4'/><circle cx='301.5' cy='237.2' r='0.69' fill-opacity='0.53'/><circle cx='246.5' cy='345.4' r='0.37' fill-opacity='0.44'/><circle cx='336.5' cy='516.4' r='0.68' fill-opacity='0.29'/><circle cx='200.6' cy='347.7' r='0.36' fill-opacity='0.35'/><circle cx='87.4' cy='60.9' r='0.37' fill-opacity='0.46'/><circle cx='67.3' cy='128.8' r='0.51' fill-opacity='0.5'/><circle cx='41.9' cy='233.6' r='0.57' fill-opacity='0.51'/><circle cx='426.0' cy='449.3' r='0.46' fill-opacity='0.33'/><circle cx='186.6' cy='459.8' r='0.73' fill-opacity='0.24'/><circle cx='91.6' cy='120.6' r='0.44' fill-opacity='0.36'/><circle cx='306.3' cy='136.6' r='0.35' fill-opacity='0.34'/><circle cx='192.0' cy='294.5' r='0.73' fill-opacity='0.44'/><circle cx='268.1' cy='321.1' r='0.62' fill-opacity='0.2'/><circle cx='467.8' cy='405.6' r='0.7' fill-opacity='0.48'/><circle cx='204.0' cy='207.5' r='0.39' fill-opacity='0.41'/><circle cx='32.4' cy='35.0' r='0.43' fill-opacity='0.24'/><circle cx='176.8' cy='27.3' r='0.35' fill-opacity='0.24'/><circle cx='52.8' cy='189.1' r='0.36' fill-opacity='0.5'/><circle cx='319.3' cy='77.2' r='0.45' fill-opacity='0.31'/><circle cx='189.4' cy='63.9' r='0.69' fill-opacity='0.55'/><circle cx='242.3' cy='251.6' r='0.38' fill-opacity='0.22'/><circle cx='178.2' cy='137.7' r='0.68' fill-opacity='0.24'/><circle cx='12.0' cy='494.5' r='0.56' fill-opacity='0.23'/><circle cx='282.4' cy='14.1' r='0.56' fill-opacity='0.54'/><circle cx='448.9' cy='362.0' r='0.45' fill-opacity='0.32'/><circle cx='86.9' cy='401.4' r='0.56' fill-opacity='0.47'/><circle cx='171.4' cy='116.0' r='0.67' fill-opacity='0.54'/><circle cx='443.4' cy='419.2' r='0.68' fill-opacity='0.45'/><circle cx='117.9' cy='269.2' r='0.49' fill-opacity='0.19'/><circle cx='14.5' cy='145.3' r='0.45' fill-opacity='0.44'/></g></svg>"),
+    url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='860' height='860'><g fill='white'><circle cx='582.3' cy='675.0' r='0.83' fill-opacity='0.49'/><circle cx='338.4' cy='857.3' r='0.73' fill-opacity='0.34'/><circle cx='224.5' cy='224.0' r='0.75' fill-opacity='0.39'/><circle cx='92.6' cy='279.9' r='0.74' fill-opacity='0.52'/><circle cx='173.4' cy='60.9' r='0.69' fill-opacity='0.51'/><circle cx='334.2' cy='630.8' r='0.96' fill-opacity='0.45'/><circle cx='85.4' cy='626.1' r='0.94' fill-opacity='0.45'/><circle cx='566.1' cy='257.2' r='1.01' fill-opacity='0.63'/><circle cx='681.1' cy='820.4' r='0.7' fill-opacity='0.51'/><circle cx='629.0' cy='689.3' r='0.78' fill-opacity='0.34'/><circle cx='538.6' cy='90.0' r='0.92' fill-opacity='0.28'/><circle cx='390.9' cy='412.6' r='0.65' fill-opacity='0.48'/><circle cx='430.1' cy='317.4' r='1.0' fill-opacity='0.64'/><circle cx='765.9' cy='210.6' r='0.61' fill-opacity='0.44'/><circle cx='97.7' cy='606.5' r='0.72' fill-opacity='0.33'/><circle cx='244.0' cy='346.9' r='0.93' fill-opacity='0.47'/><circle cx='259.0' cy='582.5' r='0.62' fill-opacity='0.37'/><circle cx='591.2' cy='646.8' r='0.65' fill-opacity='0.31'/><circle cx='435.0' cy='564.5' r='0.61' fill-opacity='0.46'/><circle cx='236.3' cy='73.2' r='0.68' fill-opacity='0.4'/><circle cx='401.7' cy='96.5' r='0.88' fill-opacity='0.65'/><circle cx='588.2' cy='58.5' r='0.89' fill-opacity='0.55'/></g></svg>"),
+    radial-gradient(120% 90% at 18% 0%, rgba(150, 165, 190, .09), transparent 55%),
+    radial-gradient(90% 70% at 100% 100%, rgba(120, 135, 160, .06), transparent 60%),
+    linear-gradient(180deg, #0a0c10, #06070a);
+  background-size: 520px 520px, 860px 860px, 100% 100%, 100% 100%, 100% 100%;
+  background-position: 0 0, 130px 210px, 0 0, 0 0, 0 0;
+}
+/* Niebla: la versión clara, gris perla con una luz suave. */
+:root[zero][zero-backdrop="mist"] #zero-bg {
+  background-color: #e9ebee;
+  background-image: radial-gradient(120% 90% at 20% 0%, rgba(255, 255, 255, .85), transparent 60%),
+                    linear-gradient(180deg, #eef0f2, #e2e5e9);
+}
+/* Una foto propia, con un velo oscuro leve para que se lea lo de encima. */
+:root[zero][zero-backdrop="photo"] #zero-bg {
+  background-image: linear-gradient(rgba(6, 8, 12, .3), rgba(6, 8, 12, .3)), var(--zero-custom-image, none);
+  background-size: cover; background-position: center;
+}
+/* Con un fondo pintado, la ventana de cristal del sistema (y sus brillos) queda debajo: sin la luz del canto. */
+:root[zero]:is([zero-backdrop="space"], [zero-backdrop="mist"], [zero-backdrop="photo"]) body::after { display: none !important; }
+:root[zero][zero-backdrop="system"]:not([zero-full]) :is(body, body::after) { border-radius: var(--zero-win-radius) !important; }
+
+/* La tarjeta de la web: un borde fino neutro (antes blanco de 1 px, que se veía como un marco). */
+:root[zero]:not([zero-full]) #tabbrowser-tabpanels > .browserSidebarContainer {
+  box-shadow: 0 18px 50px rgba(0, 0, 0, .3), 0 0 0 .5px rgba(255, 255, 255, .12) !important;
+}
+:root[zero][zero-frame-ink]:not([zero-full]) #tabbrowser-tabpanels > .browserSidebarContainer {
+  box-shadow: 0 18px 50px rgba(18, 22, 28, .14), 0 0 0 .5px rgba(18, 22, 28, .1) !important;
+}
+
+/* La isla, la columna y sus pastillas: el mismo cristal (ahumado u esmerilado). */
+#main-window[zero] #nav-bar { background: var(--zero-glass-fill) !important; box-shadow: var(--zero-glass-edge) !important; backdrop-filter: blur(18px) saturate(1.2) !important; }
+#zero-rail, #zero-dock > .zero-pill {
+  background-image: var(--zero-glass-fill) !important;
+  box-shadow: var(--zero-glass-edge) !important;
+  backdrop-filter: blur(18px) saturate(1.2);
+  color: var(--zero-piece-text);
+}
+/* El raíl abierto (con los títulos): el mismo cristal, más cubierto para que se lea sobre la web. */
+#zero-rail:is(:hover, :has(:focus-visible)) {
+  color: var(--zero-piece-text);
+  background-color: transparent;
+  background-image: linear-gradient(var(--zero-sheet), var(--zero-sheet)) !important;
+  box-shadow: var(--zero-glass-edge), 0 18px 44px rgba(0, 0, 0, .25) !important;
+}
+:root[zero]:not([zero-frame-ink]) #zero-rail:is(:hover, :has(:focus-visible)) .zero-item[selected] .zero-fav { box-shadow: 0 0 0 1.5px rgba(255, 255, 255, .85), 0 1px 3px rgba(0, 0, 0, .3); }
+:root[zero]:not([zero-frame-ink]) #zero-rail:is(:hover, :has(:focus-visible)) :is(.zero-space, .zero-new) .zero-fav { background: rgba(255, 255, 255, .1); color: var(--zero-piece-text); }
+:root[zero]:not([zero-frame-ink]) #zero-rail:is(:hover, :has(:focus-visible)) .zero-sep { background: rgba(255, 255, 255, .14); }
+:root[zero]:not([zero-frame-ink]) #zero-rail:hover .zero-tab .zero-close:hover { background-color: var(--zero-piece-hover); }
+#zero-rail:is(:hover, :has(:focus-visible)) .zero-item:hover { background-color: var(--zero-piece-hover) !important; }
+#zero-rail .zero-fav { background: rgba(255, 255, 255, .94); }
+:root[zero]:not([zero-frame-ink]) #zero-rail .zero-item[selected] .zero-fav { box-shadow: 0 0 0 1.5px rgba(255, 255, 255, .85), 0 1px 3px rgba(0, 0, 0, .3); }
+#zero-rail-tip { color: var(--zero-piece-text); background: var(--zero-sheet); box-shadow: var(--zero-glass-edge); }
+
+/* La marca (los ajustes), en la columna: un botón más, sin brillo propio. */
+:root[zero]:not([zero-full]) #zero-mark { color: var(--zero-piece-text); filter: none; opacity: .82; background: var(--zero-glass-fill); box-shadow: var(--zero-glass-edge); }
+:root[zero]:not([zero-full]) #zero-mark:is(:hover, [open]) { opacity: 1; transform: none; }
+
+/* Los botones de ampliar y dividir, del mismo cristal. */
+:root[zero]:not([zero-full]) #zero-grow:not([zero-ink]) { color: var(--zero-piece-text); text-shadow: none; background: var(--zero-glass-fill); }
+
+/* Los ajustes: una hoja del mismo cristal, bien cubierta. */
+:root[zero]:not([zero-frame-ink]) #zero-settings {
+  color: var(--zero-piece-text); background: var(--zero-sheet);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .08), 0 24px 60px rgba(0, 0, 0, .4), 0 0 0 .5px rgba(0, 0, 0, .5);
+}
+:root[zero]:not([zero-frame-ink]) #zero-settings .zero-row { border-top-color: rgba(255, 255, 255, .08); }
+:root[zero]:not([zero-frame-ink]) #zero-settings .zero-row:has(> .zero-slider) .zero-row-text { color: rgba(255, 255, 255, .8); }
+:root[zero]:not([zero-frame-ink]) #zero-settings .zero-switch { background: rgba(255, 255, 255, .18); }
+:root[zero]:not([zero-frame-ink]) #zero-settings .zero-switch[on] { background: #3a8f74; }
+:root[zero]:not([zero-frame-ink]) #zero-settings .zero-segment { background: rgba(255, 255, 255, .08); }
+:root[zero]:not([zero-frame-ink]) #zero-settings .zero-seg-thumb { background: rgba(255, 255, 255, .18); box-shadow: inset 0 1px 0 rgba(255, 255, 255, .2), 0 1px 3px rgba(0, 0, 0, .3); }
+:root[zero]:not([zero-frame-ink]) #zero-settings .zero-info { border-color: rgba(255, 255, 255, .4); color: rgba(255, 255, 255, .7); }
+:root[zero]:not([zero-frame-ink]) #zero-settings .zero-info:is(:hover, :focus-visible) { color: #1d2321; background: rgba(255, 255, 255, .85); }
+:root[zero]:not([zero-frame-ink]) #zero-settings .zero-slider::-moz-range-track { background: rgba(255, 255, 255, .2); }
+:root[zero]:not([zero-frame-ink]) #zero-settings .zero-list { color: #fff; background: rgba(255, 255, 255, .08); }
+:root[zero]:not([zero-frame-ink]) #zero-settings .zero-list::placeholder { color: rgba(255, 255, 255, .42); }
+:root[zero]:not([zero-frame-ink]) #zero-settings .zero-action-button { background: rgba(255, 255, 255, .1); }
+:root[zero]:not([zero-frame-ink]) #zero-settings .zero-action-button:hover { background: rgba(255, 255, 255, .16); }
+:root[zero]:not([zero-frame-ink]) #zero-settings-tip { color: #fff; background: rgba(24, 26, 31, .96); box-shadow: 0 10px 28px rgba(0, 0, 0, .35); }
+:root[zero][zero-frame-ink] #zero-settings { background: var(--zero-sheet); }
+
+/* Las sugerencias de la barra, del mismo cristal (y en tinta sobre la niebla). */
+#main-window[zero][zero-frame-ink] #urlbar .urlbarView:popover-open {
+  color: #1d2321 !important; text-shadow: none !important;
+  background: var(--zero-sheet) !important;
+  box-shadow: 0 18px 48px rgba(18, 22, 28, .16), 0 0 0 .5px rgba(18, 22, 28, .12) !important;
+  --urlbarview-background-color-hover: rgba(29, 35, 33, .06) !important;
+  --kb-selected: rgba(29, 35, 33, .08) !important; --kb-primary-container: rgba(29, 35, 33, .08) !important;
+  --kb-text: #1d2321 !important; --kitsune-text: #1d2321 !important; --kitsune-quiet: rgba(29, 35, 33, .6) !important;
+  --kitsune-rule: rgba(29, 35, 33, .1) !important; --kb-secondary: rgba(29, 35, 33, .62) !important; --kb-accent: #963d32 !important;
+  --urlbarview-text-color-selected: #1d2321 !important; --urlbarview-text-color-action: rgba(29, 35, 33, .6) !important;
+  --urlbarview-text-color-secondary: rgba(29, 35, 33, .6) !important; --urlbarview-separator-color: rgba(29, 35, 33, .1) !important;
+}
+#main-window[zero][zero-frame-ink] #urlbar .urlbarView:popover-open :is(.urlbarView-row, .urlbarView-title, .urlbarView-action, .urlbarView-url, .urlbarView-title-separator) {
+  color: #1d2321 !important; text-shadow: none !important; fill: #1d2321 !important;
+}
+#main-window[zero]:not([zero-frame-ink]) #urlbar .urlbarView:popover-open { background: var(--zero-sheet) !important; text-shadow: none !important; }
+
+/* Tu perfil sobre el buscador de la pestaña nueva, en tinta sobre la niebla. */
+:root[zero-frame-ink] #zero-empty-profile { color: #1d2321; text-shadow: none; }
+
+/* Con el cristal del sistema, detrás de las piezas no hay nada que desenfocar (la ventana es transparente y
+   el desenfoque lo pone macOS o el compositor): sin el de CSS, que en macOS dejaba una raya recta bajo la
+   isla y un eco del icono del buscador (Dani, 15-10). */
+:root[zero][zero-backdrop="system"] :is(#nav-bar, #zero-rail, #zero-dock > .zero-pill, #zero-mark, #zero-grow, #zero-settings, #zero-lights::before, #zero-engines, #urlbar .urlbarView) {
+  backdrop-filter: none !important;
+}
+
+/* ---------------------------------------------------------------- el sonido (zero-audio) */
+
+/* El altavoz, solo en su pastilla (sin «+»: ahí no se abren pestañas). Tachado con todo en silencio; con
+   algo sonando, un punto que late despacio. */
+#zero-shortcuts .zero-sound-button {
+  appearance: none; position: relative; box-sizing: border-box; width: 26px; height: 26px; min-width: 0; margin: 0; padding: 0; border: none; border-radius: 50%;
+  display: grid; place-items: center; background: transparent; color: var(--zero-piece-text); cursor: pointer;
+}
+#zero-shortcuts .zero-sound-button .zero-fav {
+  width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center;
+  background: transparent; box-shadow: none; transition: background-color 200ms var(--zero-soft);
+}
+#zero-shortcuts .zero-sound-button:is(:hover, [aria-expanded="true"]) .zero-fav { background: var(--zero-piece-hover); }
+#zero-shortcuts .zero-sound-button .zero-fav::before {
+  content: ""; width: 15px; height: 15px; background-color: currentColor;
+  mask: url("chrome://global/skin/media/audio.svg") center / contain no-repeat;
+}
+#zero-shortcuts .zero-sound-button[muted] .zero-fav::before { mask-image: url("chrome://global/skin/media/audio-muted.svg"); opacity: .7; }
+#zero-shortcuts .zero-sound-button::after {
+  content: ""; position: absolute; right: 1px; top: 1px; width: 6px; height: 6px; border-radius: 50%;
+  background: #3a8f74; opacity: 0; transform: scale(.6); transition: opacity 240ms var(--zero-soft), transform 240ms var(--zero-calm);
+}
+#zero-shortcuts .zero-sound-button[playing]::after { opacity: 1; transform: none; animation: zero-sound-dot 2.4s var(--zero-soft) infinite; }
+#zero-shortcuts .zero-sound-button[on] .zero-fav { background: var(--zero-piece-hover); }
+@keyframes zero-sound-dot { 50% { opacity: .45; } }
+
+/* El panel de sonido: una hoja del mismo cristal, junto a la columna. */
+#zero-sound {
+  position: fixed; z-index: 9; box-sizing: border-box; width: 300px; padding: 12px 12px 10px; border-radius: 18px;
+  color: var(--zero-piece-text); font: 500 12.5px system-ui, sans-serif;
+  background: var(--zero-sheet);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .08), 0 24px 60px rgba(0, 0, 0, .38), 0 0 0 .5px rgba(0, 0, 0, .45);
+  opacity: 0; scale: .96; translate: -6px 0; transform-origin: left center; pointer-events: none; visibility: hidden;
+  transition: opacity 200ms var(--zero-soft), scale 260ms var(--zero-calm), translate 260ms var(--zero-calm), visibility 0s linear 200ms;
+  -moz-window-dragging: no-drag;
+}
+:root[zero-frame-ink] #zero-sound { box-shadow: inset 0 1px 0 #fff, 0 24px 60px rgba(18, 22, 28, .16), 0 0 0 .5px rgba(18, 22, 28, .12); }
+#zero-sound[open] { opacity: 1; scale: 1; translate: 0 0; pointer-events: auto; visibility: visible; transition-delay: 0s; }
+#zero-sound header { display: flex; align-items: center; justify-content: space-between; margin: 0 2px 10px; }
+#zero-sound h4 { margin: 0; font: 600 14px system-ui, sans-serif; }
+#zero-sound h5 { margin: 12px 2px 6px; font: 600 10.5px system-ui, sans-serif; letter-spacing: .04em; text-transform: uppercase; color: var(--zero-piece-quiet); }
+#zero-sound :is(button) { appearance: none; margin: 0; border: none; color: inherit; font: inherit; cursor: pointer; }
+#zero-sound .zero-sound-all, #zero-sound .zero-sound-music-open {
+  height: 26px; padding: 0 11px; border-radius: 999px; background: var(--zero-piece-hover); font: 600 11.5px system-ui, sans-serif;
+  transition: background-color 200ms var(--zero-soft);
+}
+#zero-sound .zero-sound-all:hover:not(:disabled), #zero-sound .zero-sound-music-open:hover { background: rgba(127, 127, 127, .24); }
+#zero-sound .zero-sound-all:disabled { opacity: .4; cursor: default; }
+#zero-sound .zero-sound-all[on] { background: #3a8f74; color: #fff; }
+/* El volumen de Kitsune: el altavoz, la barra y el porcentaje. */
+#zero-sound .zero-sound-volume { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 12px; background: var(--zero-piece-hover); }
+#zero-sound .zero-sound-speaker { flex: none; width: 15px; height: 15px; background-color: currentColor; mask: url("chrome://global/skin/media/audio.svg") center / contain no-repeat; opacity: .8; }
+#zero-sound .zero-sound-percent { flex: none; width: 42px; white-space: nowrap; text-align: end; font: 600 11.5px system-ui, sans-serif; font-variant-numeric: tabular-nums; color: var(--zero-piece-quiet); }
+#zero-sound .zero-slider { appearance: none; flex: 1; min-width: 0; height: 20px; margin: 0; background: transparent; cursor: pointer; }
+#zero-sound .zero-slider::-moz-range-track { height: 4px; border-radius: 999px; background: rgba(127, 127, 127, .3); }
+#zero-sound .zero-slider::-moz-range-progress { height: 4px; border-radius: 999px; background: currentColor; }
+#zero-sound .zero-slider::-moz-range-thumb { width: 14px; height: 14px; border: none; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgba(0, 0, 0, .35), 0 0 0 .5px rgba(0, 0, 0, .1); transition: transform 200ms var(--zero-calm); }
+#zero-sound .zero-slider:active::-moz-range-thumb { transform: scale(1.15); }
+#zero-sound .zero-slider:focus-visible { outline: 2px solid #3a8f74; outline-offset: 2px; border-radius: 999px; }
+/* Lo que suena: una fila por pestaña (su icono, título y web, pausa y silenciar). */
+#zero-sound .zero-sound-list { display: flex; flex-direction: column; gap: 2px; max-height: 240px; overflow-y: auto; scrollbar-width: none; }
+#zero-sound .zero-sound-row { display: flex; align-items: center; gap: 8px; padding: 4px 4px 4px 6px; border-radius: 10px; transition: background-color 200ms var(--zero-soft); }
+#zero-sound .zero-sound-row:hover { background: var(--zero-piece-hover); }
+#zero-sound .zero-sound-fav { flex: none; width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; overflow: hidden; background: rgba(255, 255, 255, .94); }
+#zero-sound .zero-sound-fav img { width: 14px; height: 14px; }
+#zero-sound .zero-sound-name { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: flex-start; padding: 2px 0; background: transparent; text-align: start; }
+#zero-sound .zero-sound-name :is(b, small) { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#zero-sound .zero-sound-name b { font-weight: 600; }
+#zero-sound .zero-sound-name small { font-size: 11px; color: var(--zero-piece-quiet); }
+#zero-sound :is(.zero-sound-play, .zero-sound-mute) { flex: none; width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; background: transparent; transition: background-color 200ms var(--zero-soft); }
+#zero-sound :is(.zero-sound-play, .zero-sound-mute):hover { background: rgba(127, 127, 127, .2); }
+#zero-sound :is(.zero-sound-play, .zero-sound-mute)::before { content: ""; width: 13px; height: 13px; background-color: currentColor; mask: var(--zero-icon) center / contain no-repeat; }
+#zero-sound .zero-sound-play { --zero-icon: url("chrome://global/skin/media/play-fill.svg"); }
+#zero-sound .zero-sound-play[playing] { --zero-icon: url("chrome://global/skin/media/pause-fill.svg"); }
+#zero-sound .zero-sound-play[hidden] { display: none; }
+#zero-sound .zero-sound-mute { --zero-icon: url("chrome://global/skin/media/audio.svg"); }
+#zero-sound .zero-sound-mute[muted] { --zero-icon: url("chrome://global/skin/media/audio-muted.svg"); color: #e0806b; }
+#zero-sound .zero-sound-none { margin: 2px 4px 4px; color: var(--zero-piece-quiet); }
+/* La música: el servicio elegido y abrirlo (el reproductor de siempre, con su minipanel). */
+#zero-sound .zero-sound-music { display: flex; align-items: center; gap: 10px; margin-top: 10px; padding-top: 10px; border-top: 1px solid rgba(127, 127, 127, .18); }
+#zero-sound .zero-sound-note { flex: none; width: 22px; height: 22px; border-radius: 50%; background: var(--zero-piece-hover); position: relative; }
+#zero-sound .zero-sound-note::before { content: ""; position: absolute; inset: 5px; background-color: currentColor; mask: url("chrome://global/skin/media/audio.svg") center / contain no-repeat; opacity: .8; }
+#zero-sound .zero-sound-music > div { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+#zero-sound .zero-sound-music-name { font-size: 11px; color: var(--zero-piece-quiet); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+@media (prefers-reduced-motion: reduce) { #zero-sound, #zero-shortcuts .zero-sound-button::after { transition-duration: 1ms !important; animation: none !important; } }
+
+/* Las pastillas en tinta sobre la niebla: el «+» de los perfiles y el modo, que eran blancos. */
+:root[zero-frame-ink] #zero-profile > .zero-profile-add { color: #1d2321; background: rgba(29, 35, 33, .06); }
+:root[zero-frame-ink] #zero-profile > .zero-profile-add:hover { background: rgba(29, 35, 33, .12); }
+:root[zero-frame-ink] #zero-mode .zero-mode-knob { background: rgba(29, 35, 33, .22); box-shadow: inset 0 -1px 2px rgba(0, 0, 0, .12); }

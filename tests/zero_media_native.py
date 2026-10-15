@@ -76,6 +76,7 @@ const msg = document.getElementById('zero-island-msg');
 return { alert: toolbox.hasAttribute('zero-island-alert') ? msg.textContent.trim() : '', action: !!msg?.hasAttribute('action'),
          now: seen(now), playing: !!now?.hasAttribute('playing'),
          toggle: seen(document.querySelector('#zero-host .zero-now-toggle')), next: seen(document.querySelector('#zero-host .zero-now-next')),
+         mute: seen(document.querySelector('#zero-host .zero-now-mute')), volume: seen(document.querySelector('#zero-host .zero-now-volume')),
          selected: gBrowser.selectedTab.label };
 """
 
@@ -173,6 +174,15 @@ def main():
 
         chrome("gBrowser.selectedTab = gBrowser.tabs.find(t => t.label === 'Kioto')")
         until(lambda: island()['now'])
+        pointer([{'type': 'pointerMove', 'origin': element('#nav-bar'), 'x': 0, 'y': 0}])
+        until(lambda: island()['mute'] and island()['volume'])
+        chrome("""const input = document.querySelector('#zero-host .zero-now-volume'); input.value = '35'; input.dispatchEvent(new Event('input', { bubbles: true }));""")
+        until(lambda: chrome("return Services.prefs.getStringPref('media.volume_scale')") == '0.35')
+        click('#zero-host .zero-now-mute')
+        until(lambda: chrome("return gBrowser.tabs.some(t => t.label === 'siguiente' && t.hasAttribute('muted'))"))
+        click('#zero-host .zero-now-mute')
+        check('La isla ajusta el volumen de Kitsune y silencia la pestaña sin abrir otra')
+
         chrome("gBrowser.removeTab(gBrowser.tabs.find(t => t.label === 'siguiente'))")
         until(lambda: not island()['now'])
         check('Si se cierra la pestaña que sonaba, la onda se va')
