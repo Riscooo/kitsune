@@ -300,12 +300,12 @@ def main():
         chrome("Services.prefs.setStringPref('kitsune.zero.backdrop', 'auto')")
         chrome("document.getElementById('kitsune-zero-key').doCommand()")
         eventually(lambda: chrome("return !document.documentElement.hasAttribute('zero')"), timeout=5)
-        # Lo que toca en este ordenador: el cristal del sistema con niri y la regla de Zero; si no, la web.
+        # Lo que toca en este ordenador: el cristal del sistema con niri y la regla de Zero; si no (macOS incluido),
+        # el espacio con el tema oscuro y la niebla con el claro.
         expected = chrome("""const niri = !!Services.env.get('NIRI_SOCKET');
             const rule = Services.dirsvc.get('Home', Ci.nsIFile); rule.append('.config'); rule.append('niri'); rule.append('kitsune-zero.kdl');
-            const macGlass = Services.appinfo.OS === 'Darwin' && parseInt(Services.sysinfo.getProperty('version'), 10) >= 25
-              && Services.prefs.getBoolPref('kitsune.zero.macos-glass', true);
-            return macGlass || (niri && rule.exists()) ? 'system' : 'web';""")
+            if (Services.appinfo.OS !== 'Darwin' && niri && rule.exists()) return 'system';
+            return matchMedia('(prefers-color-scheme: dark)').matches ? 'space' : 'mist';""")
         chrome("""window.__fondos = []; window.__vigia = new MutationObserver(() => { const v = document.documentElement.getAttribute('zero-backdrop'); if (v) window.__fondos.push(v); });
             window.__vigia.observe(document.documentElement, { attributes: true, attributeFilter: ['zero-backdrop'] });
             document.getElementById('kitsune-zero-key').doCommand();""")

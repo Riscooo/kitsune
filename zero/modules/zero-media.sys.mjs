@@ -9,8 +9,6 @@
  * La tarjeta «lo que suena» de Kitsune vive en la barra de herramientas, que en Zero es la isla: Zero
  * no la usa (ni nada de Kitsune), va directo a Gecko.
  */
-import { volumeOf, setVolume } from './zero-audio.sys.mjs';
-
 const EVENTS = ['activated', 'deactivated', 'metadatachange', 'playbackstatechange', 'supportedkeyschange'];
 const state = new WeakMap(); // ventana → { tab, controller, said, … }
 
@@ -58,13 +56,10 @@ export function attach(win, ctx) {
       playing: controller.isPlaying, title, still: saver,
       canNext: [...(controller.supportedKeys ?? [])].includes('nexttrack'),
       muted: tab.hasAttribute('muted'),
-      volume: volumeOf(ctx.host),
       // Gecko 158 pide de dónde viene la pausa.
       toggle: () => { try { controller.isPlaying ? controller.pause('user') : controller.play(); } catch { /* ya no está */ } },
       next: () => { try { controller.nextTrack(); } catch { /* ya no está */ } },
       toggleMute: () => { try { tab.toggleMuteAudio(); win.setTimeout(refresh, 0); } catch { /* ya no está */ } },
-      // El volumen de Kitsune (el mismo que el del panel de sonido).
-      setVolume: value => { setVolume(ctx.host, value); refresh(); },
       go,
     });
     // Al empezar a sonar o con otra canción, un aviso breve (una vez por canción).

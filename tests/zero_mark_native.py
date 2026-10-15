@@ -3,7 +3,7 @@
 1. Los ajustes son la última pastilla de la columna izquierda y se ven con cualquier fondo.
 2. Un clic abre los ajustes (#zero-settings), que brotan de la marca; se cierran con un clic fuera o con Esc.
 3. «Ventanas nuevas» (como esta / en Zero / normales) cambia kitsune.zero.inherit y kitsune.zero.always,
-   y «Fondo» (transparente / espacio / foto / de la web) cambia kitsune.zero.backdrop y el aspecto al momento. «Pestañas» (con texto / solo
+   y «Fondo» (cristal / espacio / niebla / foto / de la web) cambia kitsune.zero.backdrop y el aspecto al momento. «Pestañas» (con texto / solo
    iconos, el raíl) cambia kitsune.zero.railIcons; la isla de arriba no tiene esa opción.
 4. No salen filas de fases sin hacer (pomodoro, silencio, sonidos…).
 5. Con la web ampliada no hay ajustes, como el pomodoro (Risco, 15-10): al acercarse al borde izquierdo
