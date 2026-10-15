@@ -90,7 +90,9 @@ function fill(win, st, tab, node) {
   const label = tab.label || '';
   const title = node.querySelector('.zero-tt');
   if (title.textContent !== label) title.textContent = label;
-  node.title = label;
+  // El nombre, para los lectores de pantalla; sin title: el bocadillo nativo tapaba el raíl abierto,
+  // que ya enseña los títulos.
+  if (node.getAttribute('aria-label') !== label) node.setAttribute('aria-label', label);
   let icon = null;
   try { icon = win.gBrowser.getIcon?.(tab) ?? tab.getAttribute('image'); } catch { /* sin icono */ }
   setFav(doc, node.querySelector('.zero-fav'), icon || null, initialOf(label), hueOf(siteOf(tab)));
@@ -139,7 +141,7 @@ function renderSpaces(win, st) {
   const nodes = list.map((space, index) => {
     const node = st.spacesBox.querySelector(`[data-space="${win.CSS.escape(space.id)}"]`) ?? item(doc, 'zero-space', { 'data-space': space.id });
     node.querySelector('.zero-tt').textContent = space.name;
-    node.title = space.name;
+    node.setAttribute('aria-label', space.name);
     const fav = node.querySelector('.zero-fav');
     const glyph = space.icon || initialOf(space.name);
     if (fav.textContent !== glyph) fav.textContent = glyph;
@@ -226,7 +228,7 @@ function fillGroup(win, st, group, node) {
   const count = group.tabs.filter(tab => !tab.closing && !tab.hidden).length;
   const title = node.querySelector('.zero-tt');
   if (title.textContent !== name) title.textContent = name;
-  node.title = name;
+  node.setAttribute('aria-label', name);
   node.toggleAttribute('collapsed', !!group.collapsed);
   node.setAttribute('aria-expanded', String(!group.collapsed));
   const glyph = group.collapsed ? String(count) : initialOf(name);
@@ -318,7 +320,7 @@ export function attach(win, ctx) {
   st.spacesBox = el(doc, 'div', { class: 'zero-spaces', role: 'tablist' });
   st.sep = el(doc, 'div', { class: 'zero-sep' });
   st.tabsBox = el(doc, 'div', { class: 'zero-tabs', role: 'tablist' });
-  st.add = item(doc, 'zero-new', { title: host.t('Nueva pestaña', 'New tab') });
+  st.add = item(doc, 'zero-new', { 'aria-label': host.t('Nueva pestaña', 'New tab') });
   st.add.querySelector('.zero-fav').textContent = '+';
   st.add.querySelector('.zero-tt').textContent = host.t('Nueva pestaña', 'New tab');
   st.rail = el(doc, 'nav', { id: 'zero-rail', 'aria-label': host.t('Pestañas', 'Tabs') }, [st.spacesBox, st.sep, st.tabsBox, st.add]);

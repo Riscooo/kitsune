@@ -22,6 +22,8 @@
     la web, se cierra. Un clic de ratón no lo deja abierto.
 14. Un favicon claro sobre transparente (como el de GitHub con el sistema en oscuro: el gato blanco) va
     en un círculo oscuro, que si no es blanco sobre blanco y no se ve; uno oscuro, en el claro de siempre.
+15. Sin bocadillos nativos encima del raíl abierto (que ya enseña los títulos): las filas llevan su nombre
+    en aria-label, no en title.
 
 --zero-del-repo: Zero sale de zero/ del repositorio (ver zero_harness.py).
 """
@@ -279,7 +281,7 @@ def main():
             return rows.map(r => r.classList.contains('zero-group')
               ? { group: r.querySelector('.zero-tt').textContent, fav: r.querySelector('.zero-fav').textContent, collapsed: r.hasAttribute('collapsed'),
                   bg: getComputedStyle(r.querySelector('.zero-fav')).backgroundColor }
-              : { tab: r.title, grouped: r.hasAttribute('grouped'), line: r.hasAttribute('grouped') ? getComputedStyle(r, '::after').backgroundColor : null });"""
+              : { tab: r.getAttribute('aria-label'), grouped: r.hasAttribute('grouped'), line: r.hasAttribute('grouped') ? getComputedStyle(r, '::after').backgroundColor : null });"""
         add_tab('/uji')
         add_tab('/ise')
         until(lambda: chrome("return gBrowser.visibleTabs.length") >= 5)
@@ -335,15 +337,20 @@ def main():
         add_tab('/gato-blanco')
         add_tab('/gato-negro')
         circle = """const out = {}; for (const row of document.querySelectorAll('#zero-rail .zero-tab')) {
-              if (!row.title.startsWith('Gato')) continue; const fav = row.querySelector('.zero-fav'); const img = fav.querySelector('img');
+              if (!row.getAttribute('aria-label')?.startsWith('Gato')) continue; const fav = row.querySelector('.zero-fav'); const img = fav.querySelector('img');
               const c = getComputedStyle(fav).backgroundColor.match(/[\\d.]+/g).map(Number);
-              out[row.title] = { loaded: !!img && img.complete && img.naturalWidth > 0, light: (c[0] + c[1] + c[2]) / 3 }; } return out;"""
+              out[row.getAttribute('aria-label')] = { loaded: !!img && img.complete && img.naturalWidth > 0, light: (c[0] + c[1] + c[2]) / 3 }; } return out;"""
         try:
             until(lambda: (c := chrome(circle)).get('Gato blanco', {}).get('loaded') and c.get('Gato negro', {}).get('loaded')
                   and c['Gato blanco']['light'] < 100 and c['Gato negro']['light'] > 200, timeout=10)
         except AssertionError:
             raise AssertionError(f'círculos de los favicon: {chrome(circle)}') from None
         check('Un favicon claro sobre transparente va en un círculo oscuro; uno oscuro, en el claro')
+
+        names = chrome("""return [...document.querySelectorAll('#zero-rail .zero-item:not([leaving])')].map(r => ({ title: r.getAttribute('title'), label: r.getAttribute('aria-label'), text: r.querySelector('.zero-tt').textContent }));""")
+        assert names and all(n['title'] is None and n['label'] for n in names), names
+        assert all(n['label'] == n['text'] for n in names if n['text'] not in ('', None)), names
+        check('Sin bocadillos nativos sobre el raíl: el nombre de cada fila va en aria-label')
         report['status'] = 'passed'
     finally:
         if driver: driver.close()

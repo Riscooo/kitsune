@@ -187,7 +187,7 @@ def main():
             window.__dani = gBrowser.addTab(arguments[0], { userContextId: id, triggeringPrincipal: Services.scriptSecurityManager.getSystemPrincipal() });
             gBrowser.selectedTab = window.__dani;""", [origin + '/dani'])
         whose = """const color = el => el && getComputedStyle(el).backgroundColor;
-            const row = n => [...document.querySelectorAll('#zero-rail .zero-tab')].find(r => r.title === gBrowser.visibleTabs[n].label);
+            const row = n => [...document.querySelectorAll('#zero-rail .zero-tab')].find(r => r.getAttribute('aria-label') === gBrowser.visibleTabs[n].label);
             const bar = r => r && getComputedStyle(r, '::before');
             const dot = document.querySelector('#zero-host .zero-user'); const d = dot?.getBoundingClientRect();
             const last = gBrowser.visibleTabs.length - 1;
