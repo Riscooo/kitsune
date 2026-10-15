@@ -1,4 +1,4 @@
-/* Kitsune Zero · la lámina alrededor de la ventana: una burbuja.
+/* Kitsune Zero · una lámina lisa, con el brillo de la película en el canto.
  *
  * Decisión de Risco (15-10): no un vidrio grueso que dobla lo de detrás, sino una pompa de jabón («rollo
  * burbuja, que es la clave de Opera Air y de Liquid Glass, por eso es liquid»). En una pompa, el borde es una
@@ -24,10 +24,11 @@ import { prefName, PREFS } from './zero-config.sys.mjs';
 
 const HTML = 'http://www.w3.org/1999/xhtml';
 const RADIUS = 48;   // esquinas de la ventana (= zero.css)
-const BAND = 30;     // la franja del borde de la pompa, en px CSS
+const BAND = 22;     // el canto se recoge hacia el filo; el resto de la lámina queda plano
 const CARD_RADIUS = 18; // las esquinas de la tarjeta (= zero.css)
-const FILM = 0.24;   // cuánto se ve la película en el filo: poco, como una pompa (no «luces de feria»)
-const DEPTH = 70;    // la lente del canto: en el filo enseña lo de hasta 70 px más adentro (= niri-vidrio)
+const FILM = 0.28;   // algo más de película en el filo, sin teñir el centro
+const LENS_BAND = 30; // la lente conserva su caída suave; el reflejo del filo es más estrecho
+const DEPTH = 70;    // la refracción ya probada: solo en el canto, con el centro plano
 
 const state = new WeakMap(); // ventana → { canvas, gl, draws, … }
 
@@ -46,7 +47,7 @@ uniform float uCardRadius, uCardAlpha;
 uniform sampler2D uPhoto; // la foto de la web (con su fondo), si está
 uniform float uPhotoOn;
 uniform vec4 uPhotoMap;   // de px CSS a la foto: (escala x, escala y, desplazamiento x, desplazamiento y)
-uniform float uDepth;
+uniform float uDepth, uLensBand;
 out vec4 outColor;
 
 vec3 photo(vec2 q) { return texture(uPhoto, clamp(q * uPhotoMap.xy + uPhotoMap.zw, vec2(0.0), vec2(1.0))).rgb; }
@@ -60,7 +61,7 @@ float box(vec2 p, vec4 r, float radius) {
 // El color de la película en un punto: su grosor cambia despacio a lo largo del borde.
 vec3 filmAt(vec2 p, float extra) {
   float t = 0.55 + 0.22 * sin((p.x + 1.3 * p.y) / 140.0) + 0.12 * sin(p.y / 97.0 - p.x / 213.0) + extra;
-  return mix(vec3(1.0), 0.5 + 0.5 * cos(6.2831 * (t + vec3(0.0, 0.33, 0.67))), 0.55);
+  return mix(vec3(1.0), 0.5 + 0.5 * cos(6.2831 * (t + vec3(0.0, 0.33, 0.67))), 0.48);
 }
 
 // Distancia al borde de un rectángulo redondeado (positiva dentro) y su normal hacia fuera.
@@ -102,17 +103,18 @@ void main() {
   // colores, como en una pompa de jabón (interferencia, aproximada con una paleta de cosenos).
   vec3 film = filmAt(p, 0.35 * u);
   // Y el filo mismo, una línea fina y limpia que hace de borde de la ventana (Risco, 15-10).
-  float a = uFilm * fresnel + 0.15 * clamp(1.8 - window, 0.0, 1.0);
+  float a = uFilm * fresnel + 0.18 * clamp(1.8 - window, 0.0, 1.0);
   // Los reflejos de la luz, suaves (una arriba a la izquierda y su eco abajo a la derecha).
   float onEdge = smoothstep(0.25, 0.65, u);
-  float glint = onEdge * (0.85 * blinn(N, normalize(vec3(-1.0, -1.25, 1.1)), 24.0) + 0.45 * blinn(N, normalize(vec3(1.0, 1.25, 1.1)), 30.0));
+  float glint = onEdge * (0.92 * blinn(N, normalize(vec3(-1.0, -1.25, 1.1)), 36.0) + 0.52 * blinn(N, normalize(vec3(1.0, 1.25, 1.1)), 44.0));
   float alpha = clamp((a + glint + cardA) * uStrength, 0.0, 1.0);
   vec3 color = min((film * a + vec3(glint) + cardC * cardA) * uStrength, vec3(alpha));   // premultiplicado
   if (!lens) { outColor = vec4(color, alpha); return; }
   // La foto de detrás, doblada en el canto: la pendiente del canto (superelipse, P = 3, hasta 4) dice
   // cuánto se desvía la mirada hacia dentro; el rojo un poco menos y el azul un poco más (dispersión).
-  float P = 3.0, w = pow(u, P);
-  float slope = u > 0.0 ? min(pow(u, P - 1.0) * pow(max(1.0 - w, 1e-4), 1.0 / P - 1.0), 4.0) / 4.0 : 0.0;
+  float lensU = clamp(1.0 - d / uLensBand, 0.0, 0.999);
+  float P = 3.0, w = pow(lensU, P);
+  float slope = lensU > 0.0 ? min(pow(lensU, P - 1.0) * pow(max(1.0 - w, 1e-4), 1.0 / P - 1.0), 4.0) / 4.0 : 0.0;
   vec2 bend = -n * uDepth * uStrength * slope;
   vec3 behind = vec3(photo(p + bend * 0.94).r, photo(p + bend).g, photo(p + bend * 1.06).b);
   outColor = vec4(behind * (1.0 - alpha) + color, 1.0);
@@ -143,7 +145,7 @@ function setup(canvas) {
   gl.vertexAttribPointer(at, 2, gl.FLOAT, false, 0, 0);
   const u = name => gl.getUniformLocation(program, name);
   const uniforms = Object.fromEntries(['uSize', 'uScale', 'uRadius', 'uBand', 'uFilm', 'uStrength', 'uCards', 'uCardCount', 'uCardRadius', 'uCardAlpha',
-    'uPhoto', 'uPhotoOn', 'uPhotoMap', 'uDepth'].map(n => [n, u(n)]));
+    'uPhoto', 'uPhotoOn', 'uPhotoMap', 'uDepth', 'uLensBand'].map(n => [n, u(n)]));
   const texture = gl.createTexture();
   gl.bindTexture(gl.TEXTURE_2D, texture);
   for (const [k, v] of [[gl.TEXTURE_MIN_FILTER, gl.LINEAR], [gl.TEXTURE_MAG_FILTER, gl.LINEAR], [gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE], [gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE]]) gl.texParameteri(gl.TEXTURE_2D, k, v);
@@ -200,6 +202,7 @@ function draw(win, st) {
     gl.uniform4f(u.uPhotoMap, 1 / dw, 1 / dh, -(W - dw) / 2 / dw, -(H - dh) / 2 / dh);
   }
   gl.uniform1f(u.uDepth, DEPTH);
+  gl.uniform1f(u.uLensBand, LENS_BAND);
   gl.clearColor(0, 0, 0, 0);
   gl.clear(gl.COLOR_BUFFER_BIT);
   gl.drawArrays(gl.TRIANGLES, 0, 3);

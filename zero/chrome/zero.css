@@ -2,19 +2,16 @@
    @-moz-document): todo cuelga de :root[zero], y al apagar se quita la hoja entera. */
 :root[zero] {
   --zero-on: 1;
-  /* El cristal de las piezas, tipo Liquid Glass (decisión de Risco, 15-10): sin velo en la ventana, son
-     las piezas las que se ven, como objetos de cristal grueso: un relleno claro con su brillo arriba, un
-     anillo de luz (::after, más vivo arriba a la izquierda y abajo a la derecha), sombreado por dentro
-     abajo (grosor) y una sombra fuera que lo separa de cualquier fondo. El texto blanco, con halo. */
-  /* (Con una sombra muy leve por dentro, como el cristal de Apple: el texto blanco se lee también sobre
-     fondos claros, y sigue siendo cristal transparente.) */
-  --zero-glass-fill: radial-gradient(130% 120% at 28% 0%, rgba(255, 255, 255, .26), rgba(255, 255, 255, .06) 55%, rgba(255, 255, 255, .03)),
-                     linear-gradient(180deg, rgba(18, 18, 24, .10), rgba(18, 18, 24, .16));
-  --zero-glass-edge: inset 0 1px 1px rgba(255, 255, 255, .5), inset 0 0 12px rgba(255, 255, 255, .14),
-                     inset 0 -9px 16px -10px rgba(0, 0, 0, .24),
-                     0 10px 28px rgba(0, 0, 0, .22), 0 2px 6px rgba(0, 0, 0, .16), 0 0 0 .5px rgba(0, 0, 0, .14);
-  --zero-glass-rim: linear-gradient(135deg, rgba(255, 255, 255, .95) 0%, rgba(255, 255, 255, .3) 26%, rgba(255, 255, 255, .06) 50%,
-                                    rgba(255, 255, 255, .28) 74%, rgba(255, 255, 255, .85) 100%);
+  /* Cristal sobre cristal: las piezas conservan su tamaño y sus botones circulares. El relieve está
+     en el canto y en una sombra corta sobre la lámina; el centro deja pasar lo que hay detrás. Los
+     reflejos son estáticos, compartidos también por las pastillas, sin fotos ni animaciones nuevas. */
+  --zero-glass-fill: radial-gradient(110% 90% at 18% 0%, rgba(255, 255, 255, .38), rgba(255, 255, 255, .14) 46%, rgba(255, 255, 255, .075) 78%),
+                     linear-gradient(180deg, rgba(18, 18, 24, .075), rgba(18, 18, 24, .14));
+  --zero-glass-edge: inset 0 1px .75px rgba(255, 255, 255, .78), inset 0 0 0 .5px rgba(255, 255, 255, .2),
+                     inset 0 -1px 1px rgba(0, 0, 0, .2), inset 0 -4px 8px -6px rgba(0, 0, 0, .32),
+                     0 2px 4px rgba(0, 0, 0, .22), 0 8px 22px rgba(0, 0, 0, .18), 0 0 0 .5px rgba(0, 0, 0, .16);
+  --zero-glass-rim: linear-gradient(135deg, rgba(255, 255, 255, .96) 0%, rgba(255, 255, 255, .38) 22%, rgba(255, 255, 255, .04) 48%,
+                                    rgba(255, 255, 255, .12) 64%, rgba(255, 255, 255, .86) 100%);
   --zero-glass-halo: 0 1px 2px rgba(0, 0, 0, .5), 0 0 12px rgba(0, 0, 0, .42);
   /* Curvas y tiempos de Zero: todo frena despacio, nada rebota ni salta. */
   --zero-calm: cubic-bezier(.32, .72, 0, 1);
@@ -724,12 +721,9 @@
   overflow-x: hidden; overflow-y: auto; scrollbar-width: none;
   color: #fff;
   background-color: transparent;
-  /* El cristal de las piezas, algo más presente en el raíl (Risco, 15-10): más luz y más sombra. */
-  background-image: radial-gradient(130% 120% at 28% 0%, rgba(255, 255, 255, .34), rgba(255, 255, 255, .12) 55%, rgba(255, 255, 255, .08)),
-                    linear-gradient(180deg, rgba(18, 18, 24, .12), rgba(18, 18, 24, .18));
+  background-image: var(--zero-glass-fill);
   backdrop-filter: blur(10px) saturate(1.7) brightness(1.06);
-  box-shadow: inset 0 1px 1px rgba(255, 255, 255, .5), inset 0 0 12px rgba(255, 255, 255, .16), inset 0 -9px 16px -10px rgba(0, 0, 0, .24),
-              0 10px 28px rgba(0, 0, 0, .3), 0 2px 6px rgba(0, 0, 0, .2), 0 0 0 .5px rgba(0, 0, 0, .22);
+  box-shadow: var(--zero-glass-edge);
   transition: width var(--zero-t-morph) var(--zero-calm) var(--zero-wait), transform var(--zero-t-move) var(--zero-calm), opacity var(--zero-t-ink) var(--zero-soft),
               background-color 520ms var(--zero-soft), box-shadow 520ms var(--zero-soft), color var(--zero-t-ink) var(--zero-soft);
 }
@@ -746,10 +740,9 @@
   appearance: none; position: relative; flex: none; box-sizing: border-box; width: 36px; min-width: 0; margin: 0; padding: 5px; border: none; border-radius: 18px;
   display: grid; place-items: center; color: #fff;
   background-color: transparent;
-  background-image: radial-gradient(130% 120% at 28% 0%, rgba(255, 255, 255, .34), rgba(255, 255, 255, .12) 55%, rgba(255, 255, 255, .08)),
-                    linear-gradient(180deg, rgba(18, 18, 24, .12), rgba(18, 18, 24, .18));
-  box-shadow: inset 0 1px 1px rgba(255, 255, 255, .5), inset 0 0 12px rgba(255, 255, 255, .16), inset 0 -9px 16px -10px rgba(0, 0, 0, .24),
-              0 10px 28px rgba(0, 0, 0, .3), 0 2px 6px rgba(0, 0, 0, .2), 0 0 0 .5px rgba(0, 0, 0, .22);
+  background-image: var(--zero-glass-fill);
+  backdrop-filter: blur(10px) saturate(1.7) brightness(1.06);
+  box-shadow: var(--zero-glass-edge);
   -moz-window-dragging: no-drag;
 }
 #zero-dock > .zero-pill::after {
