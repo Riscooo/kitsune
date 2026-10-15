@@ -59,6 +59,8 @@ TESTS = ('contrast_native', 'theme_native', 'appearance_native', 'newtab_native'
 LIMITS = ['-p', 'MemoryMax=65%', '-p', 'MemorySwapMax=0', '-p', 'Nice=19', '-p', 'IOSchedulingClass=idle', '-p', 'CPUWeight=idle',
           '-p', 'OOMScoreAdjust=900']
 ASSETS = {'linux': 'Linux-x86_64.tar.xz', 'windows': 'Windows-x64.exe', 'macos': 'macOS-AppleSilicon.dmg', 'macos-intel': 'macOS-Intel.dmg'}
+# Desde la 0.8 beta 3, cada versión trae también Kitsune Zero, el navegador aparte (Kitsune-Zero-<versión>-…).
+PRODUCTS = {'file': 'Kitsune', 'zero': 'Kitsune-Zero'}
 SYSTEMS = list(ASSETS)
 
 
@@ -131,8 +133,9 @@ def clean_main():
     return branch == 'main' and not dirty
 
 
-def newest(folder, pattern):
-    files = sorted(folder.glob(pattern), key=lambda path: path.stat().st_mtime, reverse=True)
+def newest(folder, pattern, without=None):
+    files = sorted((path for path in folder.glob(pattern) if not (without and without in path.name)),
+                   key=lambda path: path.stat().st_mtime, reverse=True)
     return files[0] if files else None
 
 
@@ -141,7 +144,8 @@ def release_notes(template, name, version, sums, day):
     if template:
         body = template.replace('{release}', name).replace('{gecko}', version).rstrip() + '\n'
     else:
-        body = f'Kitsune **{name}** con **Gecko {version}**, el motor de Firefox {version} con sus arreglos de seguridad.\n'
+        body = (f'Kitsune y Kitsune Zero **{name}** con **Gecko {version}**, el motor de Firefox {version} con sus arreglos de '
+                'seguridad.\n')
     sha = ''.join(f'- `{file}`: `{digest}`\n' for digest, file in (line.split(maxsplit=1) for line in sums.splitlines() if line.strip()))
     return (f'{body}\n**SHA-256**\n{sha}\nWeb: https://kitsune-navegador.vercel.app\n\n'
             'Kitsune usa Gecko, el motor de código abierto de Mozilla (licencia MPL 2.0), compilado con nuestra receta. '
@@ -252,19 +256,24 @@ def pipeline(args, version):
         if step in state['done']:
             continue
         log(f'Paquete para {system}…')
+        # Los dos productos: Kitsune y Kitsune Zero (su paquete sale de la misma compilación).
         if system == 'linux':
             ok = unit('paquete-linux', [sys.executable, str(ENGINE), 'package-linux', '--version', version], logfile, release=name)
             file = newest(out / 'linux', f'Kitsune-{name}-Linux-x86_64.tar.xz')
+            zero = newest(out / 'linux', f'Kitsune-Zero-{name}-Linux-x86_64.tar.xz')
         else:
             ok = unit(f'paquete-{system}', [sys.executable, str(ENGINE), 'build', '--version', version, '--target', system], logfile, release=name)
-            file = newest(out / system, '*.installer.exe' if system == 'windows' else '*.dmg')
-            if ok and file:
-                tool = ['tools/inspect_windows_installer.py'] if system == 'windows' else \
-                    ['tools/inspect_macos_dmg.py', '--arch', 'x86_64' if system == 'macos-intel' else 'arm64']
-                ok = subprocess.run([sys.executable, *tool, str(file)], cwd=ROOT, stdout=logfile.open('a'), stderr=subprocess.STDOUT).returncode == 0
-        if not ok or not file:
+            pattern = '*.installer.exe' if system == 'windows' else '*.dmg'
+            file, zero = newest(out / system, pattern, without='-zero-'), newest(out / system, f'*-zero-{pattern}')
+            for package, product in ((file, 'kitsune'), (zero, 'zero')):
+                if ok and package:
+                    tool = ['tools/inspect_windows_installer.py'] if system == 'windows' else \
+                        ['tools/inspect_macos_dmg.py', '--arch', 'x86_64' if system == 'macos-intel' else 'arm64']
+                    ok = subprocess.run([sys.executable, *tool, str(package), '--producto', product], cwd=ROOT,
+                                        stdout=logfile.open('a'), stderr=subprocess.STDOUT).returncode == 0
+        if not ok or not file or not zero:
             return stop(f'no se ha podido hacer el paquete de {system}')
-        finish(step, file=str(file))
+        finish(step, file=str(file), zero=str(zero))
     if args.borrador and 'borrador' not in state['done']:
         tag = f'v{name}'
         if subprocess.run(['gh', 'release', 'view', tag, '-R', REPO], capture_output=True).returncode == 0:
@@ -272,15 +281,18 @@ def pipeline(args, version):
         folder = Path(tempfile.mkdtemp(prefix='kitsune-version-'))
         files = []
         for system in systems:
-            target = folder / f'Kitsune-{name}-{ASSETS[system]}'
-            shutil.copyfile(state['done'][f'paquete-{system}']['file'], target)
-            files.append(target)
+            for key, prefix in PRODUCTS.items():
+                if key not in state['done'][f'paquete-{system}']:
+                    return stop(f'falta el paquete de {prefix} para {system}: vuelve a hacerlo (--desde-cero)')
+                target = folder / f'{prefix}-{name}-{ASSETS[system]}'
+                shutil.copyfile(state['done'][f'paquete-{system}'][key], target)
+                files.append(target)
         sums = folder / 'SHA256SUMS.txt'
         sums.write_text(''.join(f'{hashlib.sha256(path.read_bytes()).hexdigest()}  {path.name}\n' for path in files))
         notes = folder / 'notas.md'
         notes.write_text(release_notes(args.notas.read_text() if args.notas else None, name, version, sums.read_text(), datetime.date.today()))
         created = subprocess.run(['gh', 'release', 'create', tag, '-R', REPO, '--draft', '--prerelease', '--title',
-                                  f'Kitsune {name} · Gecko {version}', '--notes-file', str(notes), *map(str, files), str(sums)],
+                                  f'Kitsune y Kitsune Zero {name} · Gecko {version}', '--notes-file', str(notes), *map(str, files), str(sums)],
                                  capture_output=True, text=True)
         if created.returncode != 0:
             return stop('no se ha podido crear el borrador: ' + created.stderr.strip()[:300])

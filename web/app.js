@@ -47,10 +47,12 @@ toggle.addEventListener('click', () => {
 })
 label()
 
-function render({ version, files }) {
+function render({ version, files, zero }) {
   if (version) for (const node of document.querySelectorAll('[data-version]')) node.textContent = version
+  // Las tarjetas de Kitsune y las de Kitsune Zero (data-product="zero"), cada una con lo suyo.
+  const filesOf = card => card.dataset.product === 'zero' ? zero : files
   for (const card of document.querySelectorAll('.platform')) {
-    const file = files[card.dataset.platform]
+    const file = filesOf(card)[card.dataset.platform]
     const button = card.querySelector('.platform-button')
     if (!file) continue
     button.href = file.url
@@ -64,16 +66,18 @@ function render({ version, files }) {
       button.after(note)
     }
   }
-  // El Mac con Intel, como enlace en la tarjeta de macOS.
+  // El Mac con Intel, como enlace en la tarjeta de macOS (de Kitsune y de Kitsune Zero).
   for (const [key, extra] of Object.entries(EXTRAS)) {
-    const file = files[key]
-    const card = document.querySelector(`.platform[data-platform=${extra.card}]`)
-    if (!file || !card) continue
-    const link = document.createElement('a')
-    link.className = 'platform-alt'
-    link.href = file.url
-    link.textContent = TEXT.intel(file.size)
-    card.append(link)
+    for (const [selector, list] of [[':not([data-product])', files], ['[data-product=zero]', zero]]) {
+      const file = list[key]
+      const card = document.querySelector(`.platform[data-platform=${extra.card}]${selector}`)
+      if (!file || !card) continue
+      const link = document.createElement('a')
+      link.className = 'platform-alt'
+      link.href = file.url
+      link.textContent = TEXT.intel(file.size)
+      card.append(link)
+    }
   }
   const ready = Object.keys(files).filter(key => Object.hasOwn(PLATFORMS, key)).length
   if (ready) document.querySelector('#downloads-note').textContent = ready === Object.keys(PLATFORMS).length
@@ -85,7 +89,7 @@ function render({ version, files }) {
   const mainNote = document.querySelector('#download-main-note')
   if (mine) {
     mainLabel.textContent = TEXT.downloadFor(PLATFORMS[mine].name)
-    document.querySelector(`.platform[data-platform=${mine}]`)?.setAttribute('data-mine', 'true')
+    for (const card of document.querySelectorAll(`.platform[data-platform=${mine}]`)) card.setAttribute('data-mine', 'true')
   }
   const file = mine && files[mine]
   if (file) {

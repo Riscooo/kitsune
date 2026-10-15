@@ -454,7 +454,7 @@ BRANDING_NSI = {
 ZERO_BRANDING = HERE / "branding-zero"
 ZERO_NAME = "Kitsune Zero"
 ZERO_REMOTING = "kitsune-zero"
-ZERO_BUNDLE_ID = "org.kitsune.zero"
+ZERO_BUNDLE_ID = "io.github.riscooo.kitsune.zero"  # el de Kitsune, io.github.riscooo.kitsune, con «.zero»
 ZERO_BRANDING_NSI = {"BrandFullNameInternal": ZERO_NAME, "BrandFullName": ZERO_NAME}
 ZERO_BRAND_CONTENT = {"about-logo.png": "icon-192.png", "about-logo@2x.png": "icon-384.png", "about-logo.svg": "icon.svg"}
 ZERO_PREFS = """// Kitsune Zero: el motor de Kitsune como navegador aparte; todas sus ventanas son Zero.
@@ -1641,6 +1641,13 @@ def finish_windows_package(layout: Layout, version: str, source: Path, env, logf
         extras["kitsune/defaults/pref/kitsune-release.js"] = release_prefs(Path(folder))
         if product == "zero":
             extras["kitsune/defaults/pref/kitsune-product.js"] = zero_prefs(Path(folder) / "zero")
+            # Su nombre en todos los idiomas del motor (la marca de en-US ya es la suya; la de los demás, por si acaso).
+            omni = Path(folder) / "zero/omni.ja"
+            with zipfile.ZipFile(package) as original:
+                if "kitsune/browser/omni.ja" in original.namelist():
+                    omni.write_bytes(original.read("kitsune/browser/omni.ja"))
+                    zero_omni(omni)
+                    extras["kitsune/browser/omni.ja"] = omni
         # Se reescribe el .zip: lo de Gecko tal cual y lo de Kitsune encima.
         rewritten = package.with_suffix(".kitsune.zip")
         with zipfile.ZipFile(package) as original, zipfile.ZipFile(rewritten, "w", zipfile.ZIP_DEFLATED) as archive:

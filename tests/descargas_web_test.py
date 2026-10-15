@@ -46,6 +46,22 @@ class DownloadsTest(unittest.TestCase):
         with self.assertRaises(ValueError):
             descargas.downloads('0.8.0', assets('v0.8.0'))
 
+    def test_kitsune_zero_gets_its_own_part_of_the_list_when_the_release_has_it(self):
+        # Desde la 0.8 beta 3, Kitsune Zero es un navegador aparte: sus paquetes van en la clave «zero».
+        tag = 'v0.8.0-beta.3'
+        names = ['Linux-x86_64.tar.xz', 'macOS-AppleSilicon.dmg', 'Windows-x64.exe', 'macOS-Intel.dmg']
+        zero = [{'name': f'Kitsune-Zero-0.8.0-beta.3-{n}', 'size': 90 * 2 ** 20, 'url': f'{BASE}/{tag}/Kitsune-Zero-0.8.0-beta.3-{n}'} for n in names]
+        listing = descargas.downloads(tag, assets(tag) + zero)
+        self.assertEqual(set(listing['zero']), {'linux', 'macos', 'windows', 'macos-intel'})
+        self.assertEqual(listing['zero']['linux']['url'], f'{BASE}/{tag}/Kitsune-Zero-0.8.0-beta.3-Linux-x86_64.tar.xz')
+        self.assertEqual(listing['zero']['windows']['release'], '0.8.0-beta.3')
+        self.assertTrue(listing['zero']['macos']['note'].startswith('Beta · '))
+        self.assertEqual(listing['linux']['url'], f'{BASE}/{tag}/Kitsune-0.8.0-beta.3-Linux-x86_64.tar.xz')
+        self.assertNotIn('zero', descargas.downloads(tag, assets(tag)))
+        # Si trae algo de Zero, que lo traiga todo (menos el Mac con Intel).
+        with self.assertRaises(ValueError):
+            descargas.downloads(tag, assets(tag) + zero[:1])
+
 
 if __name__ == '__main__':
     unittest.main()

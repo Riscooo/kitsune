@@ -25,7 +25,7 @@ test('downloads only link to this site or GitHub, and missing ones stay «Próxi
   assert.equal(parsed.files.macos.size, '')
   assert.equal(parsed.files.linux, undefined)
   assert.deepEqual(parseDownloads({ windows: { url: 'javascript:alert(1)' } }, ORIGIN).files, {})
-  assert.deepEqual(parseDownloads(null, ORIGIN), { version: null, files: {} })
+  assert.deepEqual(parseDownloads(null, ORIGIN), { version: null, files: {}, zero: {} })
 })
 
 test('published downloads only point at releases of this repository, and the page has every section it links to', async () => {
@@ -69,4 +69,27 @@ test('the Intel Mac download is read too, as an extra link for the macOS card', 
   assert.equal(EXTRAS['macos-intel'].card, 'macos')
   const parsed = parseDownloads({ 'macos-intel': { url: 'https://github.com/Riscooo/kitsune/releases/download/v0.8.0/Kitsune-0.8.0-macOS-Intel.dmg', size: '110 MB' } }, ORIGIN)
   assert.equal(parsed.files['macos-intel'].size, '110 MB')
+})
+
+test('Kitsune Zero has its own downloads, from its own part of the list, and its own section in both pages', async () => {
+  const { parseDownloads } = await import('../web/descargas.mjs')
+  const base = 'https://github.com/Riscooo/kitsune/releases/download/v0.8.0-beta.3'
+  const parsed = parseDownloads({
+    version: '0.8 beta 3',
+    linux: { url: `${base}/Kitsune-0.8.0-beta.3-Linux-x86_64.tar.xz`, size: '90 MB' },
+    zero: { linux: { url: `${base}/Kitsune-Zero-0.8.0-beta.3-Linux-x86_64.tar.xz`, size: '91 MB' },
+            windows: { url: 'https://evil.example/zero.exe' },
+            'macos-intel': { url: `${base}/Kitsune-Zero-0.8.0-beta.3-macOS-Intel.dmg`, size: '118 MB' } },
+  }, ORIGIN)
+  assert.equal(parsed.files.linux.size, '90 MB')
+  assert.equal(parsed.zero.linux.url, `${base}/Kitsune-Zero-0.8.0-beta.3-Linux-x86_64.tar.xz`)
+  assert.equal(parsed.zero.windows, undefined)
+  assert.equal(parsed.zero['macos-intel'].size, '118 MB')
+  assert.deepEqual(parseDownloads({ linux: { url: `${base}/x` } }, ORIGIN).zero, {})
+  for (const page of ['../web/index.html', '../web/en/index.html']) {
+    const html = await readFile(new URL(page, import.meta.url), 'utf8')
+    assert.match(html, /id="zero"/, page)
+    for (const platform of ['windows', 'macos', 'linux']) assert.match(html, new RegExp(`data-platform="${platform}" data-product="zero"`), page)
+    assert.match(html, /\/assets\/capturas\/zero\.webp/, page)
+  }
 })

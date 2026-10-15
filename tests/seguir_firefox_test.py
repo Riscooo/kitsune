@@ -24,7 +24,7 @@ class ReleaseNotesTest(unittest.TestCase):
 
     def test_without_notes_there_is_still_a_line_and_the_sums(self):
         notes = seguir.release_notes(None, '0.8.1', '158.0.1', f"{'c' * 64}  K.dmg\n", datetime.date(2026, 11, 2))
-        self.assertTrue(notes.startswith('Kitsune **0.8.1** con **Gecko 158.0.1**'))
+        self.assertTrue(notes.startswith('Kitsune y Kitsune Zero **0.8.1** con **Gecko 158.0.1**'))
         self.assertIn(f"- `K.dmg`: `{'c' * 64}`", notes)
 
 

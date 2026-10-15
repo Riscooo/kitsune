@@ -6,10 +6,13 @@ lo de Kitsune: kitsune.cfg con su cargador, uBlock Origin firmado, el inicio
 integrado y el estilo dentro del motor, la marca propia, y si lleva la clave de
 Safe Browsing. Sale con error si falta algo.
 
-    python3 tools/inspect_windows_installer.py <instalador.exe>
+    python3 tools/inspect_windows_installer.py <instalador.exe> [--producto zero]
+
+Con --producto zero, que es Kitsune Zero (desde la 0.8 beta 3): su icono, sus ajustes (kitsune.product) y su marca.
 """
 from __future__ import annotations
 
+import argparse
 import hashlib
 import json
 from pathlib import Path
@@ -32,8 +35,10 @@ def largest_icon(path: Path) -> bytes:
     return data[offset:offset + size]
 
 
-def main(installer: Path) -> int:
+def main(installer: Path, product: str = "kitsune") -> int:
     problems, notes = [], []
+    branding = ROOT / ("install/branding-zero" if product == "zero" else "install/branding")
+    brand = "Kitsune Zero" if product == "zero" else "Kitsune"
     with tempfile.TemporaryDirectory() as folder:
         out = Path(folder)
         subprocess.run([str(SEVENZIP), "x", "-y", f"-o{out}", str(installer)], check=True, stdout=subprocess.DEVNULL)
@@ -67,11 +72,19 @@ def main(installer: Path) -> int:
                 if "inicio@kitsune" not in identity:
                     problems.append("la barra no reconoce el inicio integrado")
                 logo = "chrome/browser/content/branding/about-logo.png"
-                if logo not in names or archive.read(logo) != (ROOT / "install/branding/icon-192.png").read_bytes():
-                    problems.append("el logo del motor no es el de Kitsune")
+                if logo not in names or archive.read(logo) != (branding / "icon-192.png").read_bytes():
+                    problems.append(f"el logo del motor no es el de {brand}")
+                ftl = "localization/en-US/branding/brand.ftl"
+                if ftl in names and f"-brand-short-name = {brand}\n" not in archive.read(ftl).decode():
+                    problems.append(f"la marca del motor no dice «{brand}»")
         exe = core / "kitsune.exe"
-        if exe.is_file() and largest_icon(ROOT / "install/branding/windows/firefox.ico") not in exe.read_bytes():
-            problems.append("kitsune.exe no lleva el icono de Kitsune")
+        if exe.is_file() and largest_icon(branding / "windows/firefox.ico") not in exe.read_bytes():
+            problems.append(f"kitsune.exe no lleva el icono de {brand}")
+        product_js = core / "defaults/pref/kitsune-product.js"
+        if product == "zero" and (not product_js.is_file() or 'pref("kitsune.product", "zero");' not in product_js.read_text()):
+            problems.append("no dice que es Kitsune Zero (defaults/pref/kitsune-product.js)")
+        if product != "zero" and product_js.exists():
+            problems.append("lleva los ajustes de Kitsune Zero")
         if KEY.is_file():
             key = KEY.read_text().strip().encode()
             leaked = [path.relative_to(out) for path in out.rglob("*") if path.is_file() and key in path.read_bytes()]
@@ -92,4 +105,8 @@ def main(installer: Path) -> int:
 
 
 if __name__ == "__main__":
-    sys.exit(main(Path(sys.argv[1])))
+    parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser.add_argument("installer", type=Path)
+    parser.add_argument("--producto", choices=("kitsune", "zero"), default="kitsune")
+    args = parser.parse_args()
+    sys.exit(main(args.installer, args.producto))

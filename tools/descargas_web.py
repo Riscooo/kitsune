@@ -34,24 +34,32 @@ def label(release):
 
 
 def downloads(tag, assets):
-    """La lista de descargas de una versión a partir de sus archivos ({name, size, url})."""
+    """La lista de descargas de una versión a partir de sus archivos ({name, size, url}): la de Kitsune y, si la
+    versión lo trae (desde la 0.8 beta 3), la de Kitsune Zero en su clave «zero»."""
     if not TAG.fullmatch(tag):
         raise ValueError(f'etiqueta no válida: {tag}')
     release = tag[1:]
     beta = '-beta.' in release
-    result = {'version': label(release)}
-    for system, (suffix, note) in {**SYSTEMS, **OPTIONAL}.items():
-        name = f'Kitsune-{release}-{suffix}'
-        asset = next((item for item in assets if item.get('name') == name), None)
-        if asset is None and system in OPTIONAL:
-            continue
-        if asset is None:
-            raise ValueError(f'a la versión {tag} le falta {name}')
-        url = f'https://github.com/{REPO}/releases/download/{tag}/{name}'
-        if asset.get('url') != url:
-            raise ValueError(f'{name} no está donde debería: {asset.get("url")}')
-        result[system] = {'url': url, 'size': f'{round(asset["size"] / 2 ** 20)} MB',
-                          'note': ('Beta · ' if beta else '') + note, 'release': release}
+
+    def product(prefix):
+        listed = {}
+        for system, (suffix, note) in {**SYSTEMS, **OPTIONAL}.items():
+            name = f'{prefix}-{release}-{suffix}'
+            asset = next((item for item in assets if item.get('name') == name), None)
+            if asset is None and system in OPTIONAL:
+                continue
+            if asset is None:
+                raise ValueError(f'a la versión {tag} le falta {name}')
+            url = f'https://github.com/{REPO}/releases/download/{tag}/{name}'
+            if asset.get('url') != url:
+                raise ValueError(f'{name} no está donde debería: {asset.get("url")}')
+            listed[system] = {'url': url, 'size': f'{round(asset["size"] / 2 ** 20)} MB',
+                              'note': ('Beta · ' if beta else '') + note, 'release': release}
+        return listed
+
+    result = {'version': label(release), **product('Kitsune')}
+    if any(str(item.get('name', '')).startswith(f'Kitsune-Zero-{release}-') for item in assets):
+        result['zero'] = product('Kitsune-Zero')
     return result
 
 
@@ -73,7 +81,8 @@ def main():
         print(error, file=sys.stderr)
         return 1
     (ROOT / 'web/downloads.json').write_text(json.dumps(listing, indent=2, ensure_ascii=False) + '\n')
-    print(f'web/downloads.json → Kitsune {listing["version"]}. Falta publicar la web (vercel --prod desde web/).')
+    print(f'web/downloads.json → Kitsune {listing["version"]}' + (' y Kitsune Zero' if 'zero' in listing else '') +
+          '. La web se publica sola al subirla a main (Vercel).')
     return 0
 
 

@@ -910,8 +910,12 @@ class TargetTests(unittest.TestCase):
         (dist / "bin/uninstall").mkdir(parents=True)
         (dist / "bin/uninstall/helper.exe").write_bytes(b"MZ")
         package = dist / "kitsune-157.0.1.en-US.win64.zip"
+        omni = io.BytesIO()
+        with zipfile.ZipFile(omni, "w") as inner:
+            inner.writestr("localization/es-ES/branding/brand.ftl", "-brand-short-name = Kitsune\n")
         with zipfile.ZipFile(package, "w") as archive:
             archive.writestr("kitsune/kitsune.exe", b"MZ")
+            archive.writestr("kitsune/browser/omni.ja", omni.getvalue())
 
         def addons(layout, target, log):
             target.mkdir(parents=True, exist_ok=True)
@@ -923,6 +927,9 @@ class TargetTests(unittest.TestCase):
         self.assertEqual(installer.name, "kitsune-zero-157.0.1.en-US.win64.installer.exe")
         with zipfile.ZipFile(package) as archive:
             self.assertIn(b'pref("kitsune.product", "zero");', archive.read("kitsune/defaults/pref/kitsune-product.js"))
+            self.assertEqual(archive.namelist().count("kitsune/browser/omni.ja"), 1)
+            inner = zipfile.ZipFile(io.BytesIO(archive.read("kitsune/browser/omni.ja")))
+            self.assertEqual(inner.read("localization/es-ES/branding/brand.ftl"), b"-brand-short-name = Kitsune Zero\n")
         repackage = next(command for command in calls if "repackage" in command)
         self.assertEqual(repackage[repackage.index("-o") + 1], str(installer))
 
@@ -946,7 +953,7 @@ class TargetTests(unittest.TestCase):
         zero = dist / "kitsune-zero/Kitsune Zero.app/Contents"
         with (zero / "Info.plist").open("rb") as handle:
             info = plistlib.load(handle)
-        self.assertEqual((info["CFBundleName"], info["CFBundleDisplayName"], info["CFBundleIdentifier"]), ("Kitsune Zero", "Kitsune Zero", "org.kitsune.zero"))
+        self.assertEqual((info["CFBundleName"], info["CFBundleDisplayName"], info["CFBundleIdentifier"]), ("Kitsune Zero", "Kitsune Zero", "io.github.riscooo.kitsune.zero"))
         self.assertEqual((zero / "Resources/firefox.icns").read_bytes(), (ROOT / "install/branding-zero/macos/firefox.icns").read_bytes())
         self.assertIn('pref("kitsune.product", "zero");', (zero / "Resources/defaults/pref/kitsune-product.js").read_text())
         self.assertEqual(zipfile.ZipFile(zero / "Resources/browser/omni.ja").read("localization/es-ES/branding/brand.ftl").decode(),
