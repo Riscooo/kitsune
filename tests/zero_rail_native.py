@@ -30,6 +30,8 @@
     punto en su icono, como las fijadas de Kitsune; al elegirla, se va.
 18. Varias a la vez, como en la barra de pestañas: Ctrl + clic añade o quita una, Mayús + clic marca un
     tramo, y se ven marcadas; un clic normal deja solo esa.
+19. Una pestaña descargada de memoria (menú de pestaña → Descargar) lleva el icono apagado, como en la
+    barra de pestañas de Kitsune; al volver a ella, se enciende.
 
 --zero-del-repo: Zero sale de zero/ del repositorio (ver zero_harness.py).
 """
@@ -44,7 +46,7 @@ import time
 from browser_smoke import WebDriver, prepare_profile, eventually
 import zero_harness
 
-TITLES = {'/kioto': 'Kioto', '/nara': 'Nara', '/osaka': 'Osaka', '/kobe': 'Kobe', '/uji': 'Uji'}
+TITLES = {'/kioto': 'Kioto', '/nara': 'Nara', '/osaka': 'Osaka', '/kobe': 'Kobe', '/uji': 'Uji', '/descargada': 'Descargada'}
 
 
 # Un gato blanco sobre transparente (lo que pinta GitHub con el sistema en oscuro) y uno negro.
@@ -420,6 +422,22 @@ def main():
         except AssertionError:
             raise AssertionError(f'varias a la vez: {chrome(marked)}') from None
         check('Varias a la vez: Ctrl + clic añade o quita, Mayús + clic un tramo, y se ven marcadas')
+
+        chrome("gBrowser.selectedTab = gBrowser.visibleTabs.find(t => !t.pinned)")
+        chrome("const t = gBrowser.addTab(arguments[0], { triggeringPrincipal: Services.scriptSecurityManager.getSystemPrincipal() }); t.setAttribute('data-prueba', 'descargar')", [origin + '/descargada'])
+        eventually(lambda: chrome("const t = document.querySelector('tab[data-prueba]'); return !t.hasAttribute('busy') && t.label === 'Descargada'"), timeout=10)
+        faded = """const t = document.querySelector('tab[data-prueba]');
+            const row = [...document.querySelectorAll('#zero-rail .zero-tab')].find(r => r.getAttribute('aria-label') === t.label); if (!row) return null;
+            const f = getComputedStyle(row.querySelector('.zero-fav')); return { opacity: Number(f.opacity), filter: f.filter, pending: t.hasAttribute('pending') };"""
+        try:
+            assert chrome(faded)['opacity'] > 0.95, chrome(faded)
+            chrome("gBrowser.discardBrowser(document.querySelector('tab[data-prueba]'), true)")
+            eventually(lambda: (f := chrome(faded))['pending'] and f['opacity'] <= 0.6 and 'grayscale' in f['filter'], timeout=5)
+            chrome("gBrowser.selectedTab = document.querySelector('tab[data-prueba]')")
+            eventually(lambda: (f := chrome(faded)) and not f['pending'] and f['opacity'] > 0.95, timeout=8)
+        except AssertionError:
+            raise AssertionError(f'descargada: {chrome(faded)}') from None
+        check('Una pestaña descargada lleva el icono apagado; al volver a ella, se enciende')
         report['status'] = 'passed'
     finally:
         if driver: driver.close()

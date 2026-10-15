@@ -107,6 +107,10 @@ function fill(win, st, tab, node) {
   // fijadas de Kitsune. Al elegirla, Gecko lo quita.
   node.toggleAttribute('attention', tab.hasAttribute('attention') || tab.hasAttribute('titlechanged'));
   node.toggleAttribute('multiselected', !!tab.multiselected);
+  // Descargada de memoria: el icono apagado, como en la barra de pestañas (lo decide el CSS con las
+  // mismas preferencias de Gecko).
+  node.toggleAttribute('pending', tab.hasAttribute('pending'));
+  node.toggleAttribute('discarded', tab.hasAttribute('discarded'));
   // De qué grupo es: una raya con su color al otro lado del icono.
   node.toggleAttribute('grouped', !!tab.group);
   if (tab.group) node.style.setProperty('--zero-group', `var(--tab-group-${tab.group.color || 'blue'})`);
@@ -448,12 +452,12 @@ export function attach(win, ctx) {
     const node = st.items.get(event.target);
     if (node) fill(win, st, event.target, node);
   });
-  // «titlechanged» lo pone Gecko sin avisar (justo después del cambio de título), y «multiselected»
-  // también: se miran los atributos.
+  // «titlechanged» lo pone Gecko sin avisar (justo después del cambio de título), y «multiselected» y
+  // «pending» también: se miran los atributos.
   const attention = new win.MutationObserver(records => {
     for (const { target } of records) { const node = st.items.get(target); if (node) fill(win, st, target, node); }
   });
-  attention.observe(container, { subtree: true, attributes: true, attributeFilter: ['titlechanged', 'attention', 'multiselected'] });
+  attention.observe(container, { subtree: true, attributes: true, attributeFilter: ['titlechanged', 'attention', 'multiselected', 'pending', 'discarded'] });
   st.cleanups.push(() => attention.disconnect());
   const unwatch = host.spaces?.watch?.(win, () => { render(win, st); keepInView(true); });
   if (unwatch) st.cleanups.push(unwatch);

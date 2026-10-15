@@ -605,6 +605,13 @@
   box-shadow: 0 6px 18px rgba(0, 0, 0, .16);
 }
 /* Marcada junto con otras (Ctrl + clic, Mayús + clic): un anillo del color de Kitsune. */
+/* Descargada de memoria: el icono apagado, con las mismas preferencias que la barra de pestañas. */
+@media -moz-pref("browser.tabs.fadeOutUnloadedTabs") {
+  #zero-rail .zero-tab[pending] .zero-fav { filter: grayscale(100%); opacity: .5; transition: filter 1s, opacity 1s; }
+}
+@media -moz-pref("browser.tabs.fadeOutExplicitlyUnloadedTabs") {
+  #zero-rail .zero-tab[pending][discarded] .zero-fav { filter: grayscale(100%); opacity: .5; transition: filter 1s, opacity 1s; }
+}
 #zero-rail .zero-tab[multiselected] .zero-fav { box-shadow: 0 0 0 2px rgba(232, 116, 59, .95), 0 1px 3px rgba(0, 0, 0, .18) !important; }
 #zero-rail:is(:hover, :has(:focus-visible)) .zero-tab[multiselected] { background-color: rgba(232, 116, 59, .12) !important; }
 /* Una de fondo con algo nuevo (cambió su título o pide atención): un punto en su icono. */
