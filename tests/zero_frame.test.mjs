@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { dominantColor, backdropMode, desktopOf, GLASS_RULES, macGlass } from '../zero/modules/zero-frame.sys.mjs'
+import { dominantColor, backdropMode, desktopOf, GLASS_RULES, macGlass, macGlassOn } from '../zero/modules/zero-frame.sys.mjs'
 
 const block = (...parts) => {
   const bytes = []
@@ -58,4 +58,12 @@ test('on macOS, Apple Liquid Glass from macOS 26 (Darwin 25) on', () => {
   assert.equal(macGlass('Darwin', '24.6.0'), false)
   assert.equal(macGlass('Linux', '25.0.0'), false)
   assert.equal(macGlass('WINNT', '10.0'), false)
+})
+
+test('Apple Liquid Glass is off unless kitsune.zero.macos-glass turns it on (it failed on a real Mac, Risco 15-10)', () => {
+  const prefs = value => ({ getBoolPref: (name, fallback) => (name === 'kitsune.zero.macos-glass' && value !== undefined ? value : fallback) })
+  assert.equal(macGlassOn('Darwin', '25.0.0', prefs()), false)
+  assert.equal(macGlassOn('Darwin', '25.0.0', prefs(true)), true)
+  assert.equal(macGlassOn('Darwin', '24.6.0', prefs(true)), false)
+  assert.equal(macGlassOn('Darwin', '25.0.0', prefs(false)), false)
 })

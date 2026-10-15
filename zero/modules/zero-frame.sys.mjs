@@ -63,6 +63,12 @@ export function macGlass(os, kernel) {
   return os === 'Darwin' && Number.parseInt(String(kernel), 10) >= 25;
 }
 
+/** Y si se usa: apagado de serie (en un Mac de verdad no salió bien, Risco 15-10); solo con
+ *  kitsune.zero.macos-glass = true. Si no, Zero va con la foto de la web, como en Windows. */
+export function macGlassOn(os, kernel, prefs) {
+  return macGlass(os, kernel) && prefs.getBoolPref('kitsune.zero.macos-glass', false);
+}
+
 /** Lo que deja la regla de Kitsune en cada escritorio (en la carpeta de usuario): con ella, Zero usa lo de
  *  detrás de la ventana, que el compositor dobla. niri: su regla (y niri-vidrio, la refracción); Hyprland:
  *  la regla de hyprglass; KDE (kwin-effects-glass) y GNOME (Liquid Glass): la marca de zero/linux/cristal.py. */
@@ -89,9 +95,9 @@ const el = (doc, tag, attributes = {}, children = []) => {
 async function compositorEnv() {
   let desktop = null, rule = false;
   if (Services.appinfo.OS === 'Darwin') {
-    // macOS: lo de detrás lo pone el cristal de Apple, si lo hay (lo pone el motor al ponerse transparente
-    // la ventana, salvo con kitsune.zero.macos-glass = false).
-    try { rule = macGlass('Darwin', Services.sysinfo.getProperty('version')) && Services.prefs.getBoolPref('kitsune.zero.macos-glass', true); } catch { /* sin versión */ }
+    // macOS: lo de detrás lo pone el cristal de Apple, si lo hay y se ha encendido (lo pone el motor al
+    // ponerse transparente la ventana, con kitsune.zero.macos-glass = true).
+    try { rule = macGlassOn('Darwin', Services.sysinfo.getProperty('version'), Services.prefs); } catch { /* sin versión */ }
     return (knownEnv = { niri: false, desktop: 'macos', rule });
   }
   try { desktop = desktopOf(name => Services.env.get(name)); } catch { /* sin entorno */ }

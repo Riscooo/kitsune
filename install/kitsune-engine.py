@@ -112,8 +112,9 @@ TEXT_PATCHES = {
                                  '      gdk_window_invalidate_rect(window, nullptr, false);\n    }\n')],
     # Kitsune Zero en macOS 26 o posterior: con su ventana transparente, el cristal de Apple (Liquid Glass,
     # NSGlassEffectView) detrás de la vista de Gecko, que dobla lo de detrás de la ventana (Risco, 15-10). En
-    # ventanas principales (en Kitsune solo las de Zero son transparentes), salvo que se apague con
-    # kitsune.zero.macos-glass = false; al volver a opaca se quita.
+    # ventanas principales (en Kitsune solo las de Zero son transparentes) y solo con
+    # kitsune.zero.macos-glass = true: de serie, apagado (en un Mac de verdad no salió bien, Risco 15-10).
+    # Al volver a opaca se quita.
     "widget/cocoa/nsCocoaWindow.mm": [
         ('// This is called from nsMenuPopupFrame when making a popup transparent.\nvoid nsCocoaWindow::SetTransparencyMode(',
          '// Kitsune Zero (macOS 26+): el cristal de Apple detrás de la vista de Gecko, del tamaño de la ventana y\n'
@@ -150,7 +151,7 @@ TEXT_PATCHES = {
         ('      isTransparent ? NSColor.clearColor : NSColor.whiteColor;\n\n  NS_OBJC_END_TRY_IGNORE_BLOCK;\n}\n\nvoid nsCocoaWindow::Enable(bool aState) {}',
          '      isTransparent ? NSColor.clearColor : NSColor.whiteColor;\n'
          '  if (mWindowType == WindowType::TopLevel) {\n'
-         '    SetKitsuneGlass(mWindow, isTransparent && Preferences::GetBool("kitsune.zero.macos-glass", true));\n'
+         '    SetKitsuneGlass(mWindow, isTransparent && Preferences::GetBool("kitsune.zero.macos-glass", false));\n'
          '  }\n\n  NS_OBJC_END_TRY_IGNORE_BLOCK;\n}\n\nvoid nsCocoaWindow::Enable(bool aState) {}'),
     ],
     # Un enlace de otra app (Discord, el correo…): si Gecko no adivina el contenedor por las pestañas

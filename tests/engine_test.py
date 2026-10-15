@@ -327,6 +327,8 @@ class RecipeTests(unittest.TestCase):
         for piece in ("@available(macOS 26.0, *)", "NSGlassEffectView", "positioned:NSWindowBelow", "removeFromSuperview",
                       '"kitsune.zero.macos-glass"', "mWindowType == WindowType::TopLevel"):
             self.assertIn(piece, code)
+        # Apagado de serie: en un Mac de verdad no salió bien (Risco, 15-10); solo con el ajuste a true.
+        self.assertIn('Preferences::GetBool("kitsune.zero.macos-glass", false)', code)
         root = self.rebrand_tree()
         engine.rebrand_source(root)
         engine.rebrand_source(root)
