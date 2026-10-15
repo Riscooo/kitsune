@@ -13,6 +13,8 @@
    los ajustes abiertos.
 7. En reposo no despierta cada segundo lo que está apagado: con el pomodoro, el silencio y los sonidos
    apagados (de serie), ningún temporizador periódico; al encender el pomodoro, el suyo.
+8. Personalizar la barra (menú ≡ → Personalizar) aparta Zero mientras dura —sin barra a la vista no hay
+   nada que personalizar— y lo vuelve a poner al terminar; Ctrl+Alt+0 en medio no lo pone encima.
 
 --zero-del-repo: Zero sale de zero/ y de install/native del repositorio (ver zero_harness.py).
 """
@@ -91,6 +93,19 @@ def main():
         chrome("Services.prefs.clearUserPref('kitsune.zero.pomodoro')")
         eventually(lambda: chrome(periodic) == 0, timeout=5)
         check('En reposo no despierta cada segundo lo que está apagado')
+
+        customizing = "return { on: document.documentElement.hasAttribute('customizing'), zero: document.documentElement.hasAttribute('zero'), host: !!document.getElementById('zero-host') }"
+        chrome("gCustomizeMode.enter()")
+        try:
+            eventually(lambda: chrome(customizing) == {'on': True, 'zero': False, 'host': False}, timeout=10)
+            press_zero()
+            time.sleep(0.5)
+            assert chrome(customizing) == {'on': True, 'zero': False, 'host': False}, chrome(customizing)
+            chrome("gCustomizeMode.exit()")
+            eventually(lambda: chrome(customizing) == {'on': False, 'zero': True, 'host': True}, timeout=10)
+        except AssertionError:
+            raise AssertionError(f'personalizar: {chrome(customizing)}') from None
+        check('Personalizar aparta Zero mientras dura y lo vuelve a poner al terminar')
 
         windows = chrome(STATE, ['all'])
         assert sum(w['zero'] for w in windows) == 1, windows

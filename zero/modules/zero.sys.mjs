@@ -30,6 +30,7 @@ const decorated = new WeakSet();
 const starting = new WeakSet(); // ventanas que ya esperan a terminar de arrancar
 const early = new WeakSet();    // ventanas que ya se pintan en Zero y esperan a sus piezas
 const listeners = new WeakMap(); // ventana → Set de funciones (active) => …
+const aside = new WeakSet();     // ventanas que apartaron Zero para personalizar la barra
 
 const active = win => win.document.documentElement.hasAttribute('zero');
 
@@ -70,7 +71,9 @@ function fadeIn(win, ids, ms) {
 }
 const fadeOf = win => parseFloat(win.getComputedStyle(win.document.documentElement).getPropertyValue('--zero-t-fade')) || 0;
 
-function toggle(win, on = !active(win)) {
+function toggle(win, on = !active(win), { keep = false } = {}) {
+  // Personalizando la barra, Zero no se pone encima: vuelve solo al terminar (ver decorate).
+  if (on && win.document.documentElement.hasAttribute('customizing')) return;
   const waiting = early.delete(win);
   if (on === active(win) && !waiting) return;
   const ctx = {
@@ -104,7 +107,7 @@ function toggle(win, on = !active(win)) {
     }, first);
     fadeIn(win, ['navigator-toolbox', 'sidebar-main'], fade);
   }
-  remember(win, on);
+  if (!keep) remember(win, on);
   for (const fn of listeners.get(win) ?? []) { try { fn(on); } catch { /* una escucha rota no para a las demás */ } }
 }
 
@@ -147,6 +150,10 @@ async function decorate(win) {
   }
   decorated.add(win);
   host.keys?.add(win, 'kitsune-zero-key', '0', 'accel,alt', () => toggle(win));
+  // Personalizar la barra (menú ≡ → Personalizar) necesita verla: mientras dura, Zero se aparta (sin
+  // olvidarse para la próxima sesión) y vuelve al terminar.
+  win.gNavToolbox?.addEventListener('beforecustomization', () => { if (active(win)) { aside.add(win); toggle(win, false, { keep: true }); } });
+  win.gNavToolbox?.addEventListener('aftercustomization', () => { if (aside.delete(win)) toggle(win, true, { keep: true }); });
   const { always, inherit } = readPrefs(host.prefs, host.prefix);
   const wanted = always || remembered(win) || (inherit && !restored && from && active(from));
   if (wanted || early.has(win)) toggle(win, wanted);
