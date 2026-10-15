@@ -152,7 +152,10 @@
 }
 :root[zero] .browserContainer > findbar:is(:hover, :has(checkbox:focus-visible)) > .findbar-container > checkbox { max-height: 28px; margin-block: 2px 8px !important; opacity: 1; }
 :root[zero] .browserContainer:not(:has(> .for-bottom-host)) > findbar > .findbar-closebutton { align-self: flex-end !important; margin-bottom: 2px !important; border-radius: 50% !important; opacity: 1 !important; }
-:root[zero] .browserContainer:not(:has(> .for-bottom-host)) > findbar .findbar-textbox { border-radius: 14px !important; }
+/* El campo cede sitio a la cuenta («Más de 1000 coincidencias»): los dos en la misma línea. */
+:root[zero] .browserContainer:not(:has(> .for-bottom-host)) > findbar [anonid="findbar-textbox-wrapper"] { flex: 1 1 0 !important; min-width: 0 !important; }
+:root[zero] .browserContainer:not(:has(> .for-bottom-host)) > findbar .findbar-textbox { flex: 1 1 auto !important; width: auto !important; min-width: 7em !important; border-radius: 14px !important; }
+:root[zero] .browserContainer:not(:has(> .for-bottom-host)) > findbar .found-matches { flex: none !important; white-space: nowrap !important; margin-inline: 10px 6px !important; }
 :root[zero] .browserContainer:not(:has(> .for-bottom-host)) > findbar .findbar-textbox:focus { outline: none !important; border-color: rgba(127, 127, 127, .45) !important; }
 /* La dirección de un enlace sube por encima de la píldora mientras está abierta. */
 :root[zero] .browserContainer:has(> findbar:not([hidden])):not(:has(> .for-bottom-host)) #statuspanel-label { margin-bottom: 66px !important; }

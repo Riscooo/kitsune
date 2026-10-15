@@ -22,7 +22,7 @@
 11. Con el modo compacto de Kitsune (Ctrl+Alt+C), la isla sigue a la vista: Zero ya es lo mínimo, y
     escondida no volvía ni con el ratón arriba.
 12. Buscar en la página, como la isla: una píldora flotante abajo, centrada en la tarjeta y separada de
-    su borde, sobre la web sin encogerla; sus opciones (resaltar todo, mayúsculas…) asoman al pasar el
+    su borde, sobre la web sin encogerla, con el campo y la cuenta en una línea; sus opciones (resaltar todo, mayúsculas…) asoman al pasar el
     ratón por encima, no a todas horas. Con DevTools abajo, la barra de siempre (flotando taparía la
     consola).
 
@@ -266,8 +266,13 @@ def main():
             bar = driver.command('POST', '/element', {'using': 'css selector', 'value': '.deck-selected findbar'})
             driver.command('POST', '/actions', {'actions': [{'type': 'pointer', 'id': 'raton', 'parameters': {'pointerType': 'mouse'}, 'actions': [{'type': 'pointerMove', 'origin': bar, 'x': 0, 'y': 0}]}]})
             eventually(lambda: floating(f := chrome(find)) and all(f['options']), timeout=5)
+            # Con la cuenta más larga («Más de 1000 coincidencias»), el campo y la cuenta siguen en una línea.
+            line = """const fb = gBrowser.getCachedFindBar(); fb._foundMatches.hidden = false; fb._foundMatches.value = 'Más de 1000 coincidencias';
+                const mid = n => { const r = n.getBoundingClientRect(); return (r.top + r.bottom) / 2; };
+                return [mid(fb._findField), mid(fb._foundMatches), mid(fb.querySelector('.findbar-closebutton'))];"""
+            eventually(lambda: (m := chrome(line)) and abs(m[0] - m[1]) < 4 and abs(m[0] - m[2]) < 4, timeout=5)
         except AssertionError:
-            raise AssertionError(f'buscar: {chrome(find)} · la web medía {web} · encima {chrome("const r = gBrowser.getCachedFindBar().getBoundingClientRect(); const at = document.elementFromPoint((r.left + r.right) / 2, (r.top + r.bottom) / 2); return at && at.localName + '.' + at.className")}') from None
+            raise AssertionError(f'buscar: {chrome(find)} · línea {chrome(line)} · la web medía {web} · encima {chrome("const r = gBrowser.getCachedFindBar().getBoundingClientRect(); const at = document.elementFromPoint((r.left + r.right) / 2, (r.top + r.bottom) / 2); return at && at.localName + '.' + at.className")}') from None
         # Con DevTools abajo, flotando taparía la consola: la barra de siempre, entre la web y DevTools.
         chrome("const { gDevTools } = ChromeUtils.importESModule('resource://devtools/shared/loader/Loader.sys.mjs').require('devtools/client/framework/devtools'); gDevTools.showToolboxForTab(gBrowser.selectedTab, { hostType: 'bottom', toolId: 'webconsole' })")
         docked = """const fb = gBrowser.getCachedFindBar(); const s = fb.parentNode.querySelector('.for-bottom-host'); if (!s) return null;
