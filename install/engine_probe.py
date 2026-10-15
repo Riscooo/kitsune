@@ -176,6 +176,7 @@ const wait = (test, ms = 30000) => new Promise((resolve, reject) => {
   await wait(() => (win = Services.wm.getMostRecentWindow('navigator:browser')) && win.gBrowserInit.delayedStartupFinished);
   const brand = Services.strings.createBundle('chrome://branding/locale/brand.properties').GetStringFromName('brandShortName');
   return {name: Services.appinfo.name, version: Services.appinfo.version, brand,
+    product: Services.prefs.getStringPref('kitsune.product', 'kitsune'),
     userAgent: win.navigator.userAgent,
     nativeEntry: !!win.document.querySelector('script[src="chrome://browser/content/kitsune-bootstrap.js"]'),
     nativeModule: typeof ChromeUtils.importESModule('chrome://browser/content/kitsune-appearance.sys.mjs').KitsuneAppearance?.start === 'function',
@@ -190,6 +191,6 @@ const wait = (test, ms = 30000) => new Promise((resolve, reject) => {
 """
 
 
-def smoke(browser: Path, mode="estricto"):
-    value, _ = run_chrome_script(browser, SMOKE, {"KITSUNE_PRIVACY_MODE": mode}, asynchronous=True)
+def smoke(browser: Path, mode="estricto", user_prefs=None):
+    value, _ = run_chrome_script(browser, SMOKE, {"KITSUNE_PRIVACY_MODE": mode}, user_prefs=user_prefs, asynchronous=True)
     return value

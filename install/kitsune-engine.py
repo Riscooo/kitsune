@@ -1140,14 +1140,18 @@ def compile_package(layout: Layout, version: str, source: Path, build_fp: str, l
 
 # ------------------------------------------------------------------ install
 
-def smoke_check(binary: Path, version: str):
+def smoke_check(binary: Path, version: str, product: str = "kitsune"):
+    """Arranca el motor en un perfil vacío y mira que sea Kitsune (o Kitsune Zero: su marca y su producto)."""
     sys.path.insert(0, str(HERE))
     from engine_probe import smoke
-    result = smoke(binary)
+    zero = product == "zero"
+    # Kitsune Zero trae la primera vez el perfil de Kitsune: en la prueba, el de quien compila no se toca.
+    result = smoke(binary, user_prefs={"kitsune.zero.importProfile": False} if zero else None)
     problems = []
     if not isinstance(result, dict) or result.get("error"):
         raise EngineError(f"La prueba de humo no pudo ejecutarse: {result}")
-    expect = {"name": "Kitsune", "version": version, "brand": "Kitsune", "nativeEntry": True, "nativeModule": True,
+    expect = {"name": "Kitsune", "version": version, "brand": "Kitsune Zero" if zero else "Kitsune", "product": product,
+              "nativeEntry": True, "nativeModule": True,
               "policies": False, "fxaccounts": False, "privacyMode": "estricto", "signaturesRequired": True, "channel": "release",
               "telemetryExtended": False}
     problems = [f"{key}={result.get(key)!r}" for key, value in expect.items() if result.get(key) != value]
@@ -1784,7 +1788,7 @@ def package_linux(layout: Layout, version: str, log=print, run=subprocess.run, c
             (zero / "zero-linux" / name).chmod(0o644 if name.endswith(".kdl") else 0o755)
         log("Prueba de humo del paquete de Linux")
         check(root / "kitsune", version)
-        check(zero / "kitsune", version)
+        check(zero / "kitsune", version, product="zero")
         for folder, name in (("kitsune", archive), ("kitsune-zero", zero_linux_archive(out, release))):
             partial = name.with_name(name.name + ".part")
             packed = run(["tar", "--sort=name", "--owner=0", "--group=0", "--numeric-owner", "-cJf", str(partial),

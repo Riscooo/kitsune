@@ -82,11 +82,11 @@ class LinuxPackageTests(unittest.TestCase):
             def addons(layout, target, log):
                 target.mkdir(parents=True, exist_ok=True)
                 (target / "uBlock0@raymondhill.net.xpi").write_bytes(b"xpi")
-            archive = engine.package_linux(layout, "157.0.1", log=lambda *a: None, check=lambda binary, version: checked.append(binary.name),
+            archive = engine.package_linux(layout, "157.0.1", log=lambda *a: None, check=lambda binary, version, product="kitsune": checked.append((binary.parent.name, product)),
                                            addons=addons)
             release = engine.published_release()
             self.assertEqual(archive.name, f"Kitsune-{release}-Linux-x86_64.tar.xz")
-            self.assertEqual(checked, ["kitsune", "kitsune"])  # el de Kitsune y el de Kitsune Zero
+            self.assertEqual(checked, [("kitsune", "kitsune"), ("kitsune-zero", "zero")])  # el de Kitsune y el de Kitsune Zero
             with tarfile.open(archive) as handle:
                 names = set(handle.getnames())
                 members = {member.name: member for member in handle.getmembers()}
@@ -1060,18 +1060,32 @@ class L10nTests(unittest.TestCase):
 class SmokeCheckTests(unittest.TestCase):
     GOOD = {"name": "Kitsune", "version": "157.0.1", "brand": "Kitsune", "nativeEntry": True, "nativeModule": True,
             "policies": False, "fxaccounts": False, "privacyMode": "estricto", "signaturesRequired": True, "sandboxLevel": 6,
-            "channel": "release", "telemetryExtended": False,
+            "channel": "release", "telemetryExtended": False, "product": "kitsune",
             "userAgent": "Mozilla/5.0 (X11; Linux x86_64; rv:157.0) Gecko/20100101 Firefox/157.0"}
 
-    def check(self, **changes):
+    def check(self, kind="kitsune", **changes):
         from unittest import mock
         fake = types.ModuleType("engine_probe")
-        fake.smoke = lambda binary: {**self.GOOD, **changes}
+        self.prefs = None
+        def smoke(binary, user_prefs=None):
+            self.prefs = user_prefs
+            return {**self.GOOD, **changes}
+        fake.smoke = smoke
         with mock.patch.dict(sys.modules, {"engine_probe": fake}):
-            return engine.smoke_check(Path("/x/kitsune"), "157.0.1")
+            return engine.smoke_check(Path("/x/kitsune"), "157.0.1", product=kind)
 
     def test_good_engine_passes(self):
         self.assertEqual(self.check()["name"], "Kitsune")
+
+    def test_kitsune_zero_has_its_brand_and_product_and_does_not_bring_the_real_profile(self):
+        self.assertEqual(self.check("zero", brand="Kitsune Zero", product="zero")["brand"], "Kitsune Zero")
+        # La copia del perfil de Kitsune (la primera vez) leería el de quien compila: en la prueba, apagada.
+        self.assertEqual(self.prefs, {"kitsune.zero.importProfile": False})
+        for changes in ({"brand": "Kitsune", "product": "zero"}, {"brand": "Kitsune Zero", "product": "kitsune"}):
+            with self.assertRaises(engine.EngineError, msg=str(changes)):
+                self.check("zero", **changes)
+        with self.assertRaises(engine.EngineError):
+            self.check(brand="Kitsune", product="zero")  # Kitsune no es Zero
 
     def test_kitsune_user_agent_or_missing_protections_fail(self):
         for changes in ({"userAgent": "Mozilla/5.0 (X11; Linux x86_64; rv:157.0) Gecko/20100101 Kitsune/157.0.1"},
