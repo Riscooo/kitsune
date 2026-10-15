@@ -310,7 +310,7 @@ def main():
                 except AssertionError:
                     raise AssertionError(f'{name} con el sistema {"oscuro" if dark else "claro"}: {glass(selector, inset, text)}') from None
             pointer(chrome("const r = document.getElementById('zero-pomo').getBoundingClientRect(); return r.left + r.width / 2"), 20)
-            eventually(lambda: chrome("return document.getElementById('zero-pomo').getBoundingClientRect().width") > 160, timeout=5)
+            eventually(lambda: chrome("return document.getElementById('zero-pomo').getBoundingClientRect().width") > 120, timeout=5)
             try:
                 eventually(lambda: clear_glass(glass('#zero-pomo', (10, 3, 22, 7), '#zero-pomo .zero-pomo-label'), dark), timeout=5)
             except AssertionError:

@@ -141,12 +141,21 @@ function dropRing(st) {
   st.ring = null;
 }
 
+// A la vista, lo mínimo: la hora (o «Listo» esperando). Lo demás (la fase, el ciclo, qué hace el
+// anillo) lo dice el anillo a los lectores de pantalla y en su bocadillo; la fase, además, su color.
 const LABELS = {
-  work: (t, v) => `${clockText(v.left)} · ${t('Trabajo', 'Work')} ${v.cycle} ${t('de', 'of')} ${v.every}`,
-  short: (t, v) => `${clockText(v.left)} · ${t('Descanso', 'Break')}`,
-  long: (t, v) => `${clockText(v.left)} · ${t('Descanso largo', 'Long break')}`,
-  waiting: (t, v) => `${t('Listo', 'Ready')} · ${t('Trabajo', 'Work')} ${v.cycle} ${t('de', 'of')} ${v.every}`,
-  idle: (t, v) => `${clockText(v.left)} · ${t('Empezar', 'Start')}`,
+  work: (t, v) => clockText(v.left),
+  short: (t, v) => clockText(v.left),
+  long: (t, v) => clockText(v.left),
+  waiting: t => t('Listo', 'Ready'),
+  idle: (t, v) => clockText(v.left),
+};
+const SAYS = {
+  work: (t, v) => `${t('Trabajo', 'Work')} ${v.cycle} ${t('de', 'of')} ${v.every} · ${t('pausar', 'pause')}`,
+  short: t => `${t('Descanso', 'Break')} · ${t('pausar', 'pause')}`,
+  long: t => `${t('Descanso largo', 'Long break')} · ${t('pausar', 'pause')}`,
+  waiting: (t, v) => `${t('Listo', 'Ready')}: ${t('Trabajo', 'Work')} ${v.cycle} ${t('de', 'of')} ${v.every} · ${t('empezar', 'start')}`,
+  idle: t => t('Empezar', 'Start'),
 };
 
 function paintRing(win, st, v) {
@@ -158,9 +167,12 @@ function paintRing(win, st, v) {
   ring.toggleAttribute('paused', paused);
   const fraction = v.phase === 'idle' || v.phase === 'waiting' ? 1 : v.left / v.total;
   ring.style.setProperty('--zero-pomo-p', fraction.toFixed(4));
-  const label = paused ? `${clockText(v.left)} · ${t('En pausa', 'Paused')}` : LABELS[v.phase](t, v);
+  const label = paused ? clockText(v.left) : LABELS[v.phase](t, v);
   const node = ring.querySelector('.zero-pomo-label');
   if (node.textContent !== label) node.textContent = label;
+  const says = paused ? `${t('En pausa', 'Paused')} · ${t('seguir', 'resume')}` : SAYS[v.phase](t, v);
+  const button = ring.querySelector('.zero-pomo-ring');
+  if (button.getAttribute('aria-label') !== says) { button.setAttribute('aria-label', says); button.setAttribute('title', says); }
   // El tirador de la esquina (con la web ampliada) hace de barra de progreso.
   root.toggleAttribute('zero-pomo-running', v.running);
   root.style.setProperty('--zero-pomo-progress', (1 - fraction).toFixed(4));

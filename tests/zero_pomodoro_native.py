@@ -5,8 +5,9 @@ El tiempo se adelanta con el reloj del módulo (clock.now), para no esperar 25 m
 1. Apagado de serie: no hay anillo y en los ajustes solo sale el interruptor «Pomodoro».
 2. Al encenderlo sale el anillo arriba a la derecha, en el marco (sin tocar la tarjeta), y las filas
    de tiempos, descanso y guía.
-3. Un clic empieza: con el ratón encima se abre con «25:00 · Trabajo 1 de 4», saltar y reiniciar; el
-   anillo se va vaciando.
+3. Un clic empieza: con el ratón encima se abre, mínimo, con la hora y nada más («25:00», sin «Empezar» ni
+   «Trabajo 1 de 4», que dicen el anillo a los lectores de pantalla y su bocadillo), y saltar y reiniciar
+   como iconos; el anillo se va vaciando.
 4. Es uno para todas las ventanas: otra ventana en Zero enseña el mismo tiempo.
 5. El último minuto, el anillo respira («ending»), con opacidad y transform (sin repintar cada fotograma).
 6. Descanso suave: al acabar el trabajo la isla avisa y el anillo cambia de color.
@@ -53,6 +54,7 @@ const notch = document.getElementById('zero-notch');
 return {
   pomo: pomo ? { box: box(pomo), seen: seen(pomo), phase: pomo.getAttribute('phase'), running: pomo.hasAttribute('running'), ending: pomo.hasAttribute('ending'),
                  label: pomo.querySelector('.zero-pomo-label')?.textContent.trim() ?? '', labelSeen: seen(pomo.querySelector('.zero-pomo-label')),
+                 says: pomo.querySelector('.zero-pomo-ring')?.getAttribute('aria-label') ?? '',
                  progress: Number(getComputedStyle(pomo).getPropertyValue('--zero-pomo-p') || 'NaN') } : null,
   card: box(document.getElementById('tabbrowser-tabpanels')), W: innerWidth,
   rows: [...document.querySelectorAll('#zero-settings .zero-row')].map(r => r.textContent.trim()),
@@ -140,16 +142,20 @@ def main():
         chrome("document.getElementById('zero-mark').click()")  # cierra los ajustes
         check('Al encenderlo sale el anillo arriba a la derecha, en el marco, y las filas de tiempos, descanso y guía')
 
+        # Parado, con el ratón encima: solo la hora (sin «Empezar»).
+        pointer([{'type': 'pointerMove', 'origin': element('#zero-pomo'), 'x': 0, 'y': 0}])
+        until(lambda: state()['pomo']['labelSeen'] and state()['pomo']['label'] == '25:00' and 'Empezar' in state()['pomo']['says'])
+        away()
         click('#zero-pomo .zero-pomo-ring')
         until(lambda: state()['pomo']['running'] and state()['pomo']['phase'] == 'work')
         pointer([{'type': 'pointerMove', 'origin': element('#zero-pomo'), 'x': 0, 'y': 0}])
-        until(lambda: state()['pomo']['labelSeen'] and state()['pomo']['label'].startswith(('25:00', '24:5')) and 'Trabajo 1 de 4' in state()['pomo']['label'])
+        until(lambda: state()['pomo']['labelSeen'] and state()['pomo']['label'] in ('25:00', '24:59', '24:58', '24:57') and 'Trabajo 1 de 4' in state()['pomo']['says'])
         assert chrome("return ['skip', 'reset'].every(a => document.querySelector(`#zero-pomo [data-action=${a}]`))")
         first = state()['pomo']['progress']
         forward(10 * MIN)
-        until(lambda: state()['pomo']['progress'] < first - 0.3 and state()['pomo']['label'].startswith(('15:00', '14:5')))
+        until(lambda: state()['pomo']['progress'] < first - 0.3 and state()['pomo']['label'].startswith(('15:00', '14:5')) and '·' not in state()['pomo']['label'])
         away()
-        check('Un clic empieza; con el ratón encima, «25:00 · Trabajo 1 de 4», saltar y reiniciar; el anillo se vacía')
+        check('Un clic empieza; con el ratón encima, solo la hora, saltar y reiniciar como iconos; el anillo se vacía')
 
         chrome("window.__otra = OpenBrowserWindow();")
         until(lambda: chrome("return !!window.__otra.gBrowserInit?.delayedStartupFinished && !!window.__otra.document.getElementById('kitsune-zero-key')"), timeout=15)

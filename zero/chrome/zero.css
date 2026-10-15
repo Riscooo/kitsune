@@ -946,7 +946,9 @@
   box-shadow: var(--zero-glass-edge);
   transition: width var(--zero-t-morph) var(--zero-calm) var(--zero-wait), opacity var(--zero-t-fade) var(--zero-soft), transform var(--zero-t-morph) var(--zero-calm), color var(--zero-t-ink) var(--zero-soft);
 }
-#zero-pomo:is(:hover, :focus-within) { width: 222px; transition-delay: 0ms; }
+#zero-pomo:is(:hover, :focus-within) { width: 140px; transition-delay: 0ms; }
+/* En pausa, la hora a media luz (sin decir «En pausa»: lo dice el anillo). */
+#zero-pomo[paused] .zero-pomo-label { opacity: .55; }
 #zero-pomo:is([phase="short"], [phase="long"]) { --zero-pomo-color: rgba(176, 236, 212, .98); }
 #zero-pomo[zero-ink] { color: #1d2321; text-shadow: none; }
 #zero-pomo .zero-pomo-label {
