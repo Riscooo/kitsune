@@ -5,7 +5,10 @@
    el vidrio del canto se ve alrededor de toda la ventana también con una web, Risco 15-10).
 3. Con la vista dividida de 2, son dos tarjetas separadas por 10 px.
 4. Ampliar la deja a 0 px y radio 0; dejar de ampliar la devuelve. Mientras se anima, la web cambia
-   de tamaño una sola vez (la animación es de transformación, no de márgenes).
+   de tamaño una sola vez (la animación es de transformación, no de márgenes), sin deformarse (la misma
+   escala en horizontal y en vertical) y sin enseñar la web a medio repintar (Risco, 15-10: «los textos se
+   deforman en 1 ms y hay 1, 2 o 3 fps que se rayan»): al empezar va encima una foto de cómo se veía, que se
+   funde cuando la web ya tiene su tamaño nuevo, y al acabar no queda.
 5. Los botones de ventana van en fila arriba a la izquierda, sin pegarse al borde (a 12 px o más de la
    curva de la esquina); el marco se arrastra y la web no.
    Con la web en tarjeta, los de ampliar y dividir van en el marco, a su derecha: no tapan la web.
@@ -174,9 +177,24 @@ def main():
             document.querySelector('#zero-grow button[data-action=full]').click();""", [], asynchronous=True)
         assert len(sizes) <= 2, sizes
         eventually(lambda: frame()['full'] and card_at(frame(), 0, 0, 0, 0, 0.5) and frame()['radius'] == '0px', timeout=5)
-        chrome("document.querySelector('#zero-grow button[data-action=full]').click()")
+        # Dejar de ampliar, fotograma a fotograma: la escala de la tarjeta y la foto de encima.
+        driver.context('chrome')
+        rec = driver.script("""const done = arguments[arguments.length - 1]; const out = []; const t0 = performance.now();
+            const p = document.getElementById('tabbrowser-tabpanels');
+            const step = () => { const m = new DOMMatrix(getComputedStyle(p).transform === 'none' ? '' : getComputedStyle(p).transform);
+              const photo = document.getElementById('zero-flip-photo');
+              out.push({ t: performance.now() - t0, sx: m.a, sy: m.d, photo: photo ? Number(getComputedStyle(photo).opacity) : null });
+              if (performance.now() - t0 < 1100) requestAnimationFrame(step); else done(out); };
+            document.querySelector('#zero-grow button[data-action=full]').click();
+            requestAnimationFrame(step);""", [], asynchronous=True)
+        moving = [f for f in rec if abs(f['sx'] - 1) > 0.001 or abs(f['sy'] - 1) > 0.001]
+        skew = max((abs(f['sx'] - f['sy']) for f in moving), default=0)
+        assert moving and skew <= 0.002, f'al dejar de ampliar la web se deforma (escalas distintas en x e y: {skew:.4f})'
+        first = next(f for f in rec if f['photo'] is not None or f is moving[0])
+        assert first['photo'] is not None and first['photo'] >= 0.95, f'al empezar no va la foto encima: {rec[:4]}'
+        assert rec[-1]['photo'] is None, f'la foto se queda: {rec[-1]}'
         eventually(lambda: not frame()['full'] and card_at(frame(), 50, 46, 26, 26, 0.5) and frame()['radius'] == '18px', timeout=5)
-        check('Ampliar la deja a 0 px y radio 0; dejar de ampliar la devuelve')
+        check('Ampliar la deja a 0 px y radio 0; dejar de ampliar la devuelve, sin deformar ni enseñar la web a medio repintar')
 
         f = frame()
         lights = f['lights']

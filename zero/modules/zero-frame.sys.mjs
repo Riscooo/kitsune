@@ -205,19 +205,67 @@ export function flip(win, change, first = null) {
   if (!first.width || !last.width || ms < 2 || win.matchMedia('(prefers-reduced-motion: reduce)').matches) return null;
   const dx = first.left - last.left, dy = first.top - last.top, sx = first.width / last.width, sy = first.height / last.height;
   if (Math.abs(dx) + Math.abs(dy) < 0.5 && Math.abs(sx - 1) < 0.001 && Math.abs(sy - 1) < 0.001) return null;
-  const animation = panels.animate([
-    { transformOrigin: '0 0', transform: `translate(${dx}px, ${dy}px) scale(${sx}, ${sy})` },
-    { transformOrigin: '0 0', transform: 'none' },
-  ], { duration: ms, easing: 'cubic-bezier(.32, .72, 0, 1)' });
+  // Sin deformar la web (Risco, 15-10: «los textos se deforman»): la misma escala en los dos ejes, la que
+  // cubre donde estaba, centrada; lo que sobra se recorta (y si estaba en toda la ventana, ya lo recorta el
+  // borde de la ventana, y así no se recorta su sombra al volver a ser tarjeta).
+  const s = Math.max(sx, sy);
+  const tx = first.left + first.width / 2 - (last.left + last.width * s / 2);
+  const ty = first.top + first.height / 2 - (last.top + last.height * s / 2);
+  const ix = Math.max(0, (last.width - first.width / s) / 2), iy = Math.max(0, (last.height - first.height / s) / 2);
+  const whole = first.left <= 0.5 && first.top <= 0.5 && first.right >= win.innerWidth - 0.5 && first.bottom >= win.innerHeight - 0.5;
+  const from = { transformOrigin: '0 0', transform: `translate(${tx}px, ${ty}px) scale(${s})` };
+  const to = { transformOrigin: '0 0', transform: 'none' };
+  if (!whole && (ix > 0.5 || iy > 0.5)) { from.clipPath = `inset(${iy}px ${ix}px)`; to.clipPath = 'inset(0px 0px)'; }
+  const animation = panels.animate([from, to], { duration: ms, easing: 'cubic-bezier(.32, .72, 0, 1)' });
   win.dispatchEvent(new win.CustomEvent('zero-move', { detail: { ms } }));
   return animation;
 }
 
-function setFull(win, st, on) {
+/** Una foto de cómo se ve la web ahora (para taparla mientras se repinta con su tamaño nuevo), o null si
+ *  no llega a tiempo (no se espera más de 120 ms). */
+async function photoOf(win) {
+  const browser = win.gBrowser?.selectedBrowser;
+  const global = browser?.browsingContext?.currentWindowGlobal;
+  if (!global || !browser.clientWidth) return null;
+  try {
+    return await Promise.race([global.drawSnapshot(null, 0.5, 'white'), new Promise(done => win.setTimeout(() => done(null), 120))]);
+  } catch { return null; }
+}
+
+/** La foto, encima de la web dentro de su tarjeta (viaja y se recorta con ella), mientras la web se
+ *  repinta con su tamaño nuevo: luego se funde y se quita. Sin ella, los primeros fotogramas enseñaban la
+ *  web vieja estirada («hay 1, 2 o 3 fps que se rayan», Risco 15-10). */
+function carryPhoto(win, bitmap) {
+  const doc = win.document;
+  const stack = win.gBrowser.selectedBrowser.closest('.browserStack');
+  if (!stack || !bitmap) { bitmap?.close?.(); return; }
+  doc.getElementById('zero-flip-photo')?.remove();
+  const canvas = doc.createElementNS(HTML, 'canvas');
+  canvas.id = 'zero-flip-photo';
+  const r = stack.getBoundingClientRect(), k = win.devicePixelRatio || 1;
+  canvas.width = Math.max(1, Math.round(r.width * k)); canvas.height = Math.max(1, Math.round(r.height * k));
+  // Que cubra su caja sin deformarse (como «cover»).
+  const scale = Math.max(canvas.width / bitmap.width, canvas.height / bitmap.height);
+  const w = bitmap.width * scale, h = bitmap.height * scale;
+  canvas.getContext('2d').drawImage(bitmap, (canvas.width - w) / 2, (canvas.height - h) / 2, w, h);
+  bitmap.close?.();
+  stack.append(canvas);
+  canvas.animate([{ opacity: 1 }, { opacity: 1, offset: 0.4 }, { opacity: 0 }], { duration: 280, easing: 'ease-out' })
+    .finished.then(() => canvas.remove(), () => canvas.remove());
+}
+
+async function setFull(win, st, on) {
   const root = win.document.documentElement;
+  const turn = st.fullTurn = (st.fullTurn ?? 0) + 1;
+  // Al cambiar de verdad (y a la vista), primero la foto de cómo se ve; si mientras tanto se ha pedido
+  // otra cosa, esta se queda en nada.
+  const changing = root.hasAttribute('zero-full') !== on && !win.document.hidden && !win.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const bitmap = changing ? await photoOf(win) : null;
+  if (turn !== st.fullTurn || !state.has(win)) { bitmap?.close?.(); return; }
   // Esc solo sirve (para dejar de ampliar) con la web ampliada; si no, ni se mira.
   if (on) st.esc?.removeAttribute('disabled'); else st.esc?.setAttribute('disabled', 'true');
   const animation = flip(win, () => root.toggleAttribute('zero-full', on));
+  if (animation) carryPhoto(win, bitmap); else bitmap?.close?.();
   animation?.finished.then(() => placeGrow(win, st), () => {});
   const button = st.grow.querySelector('[data-action=full]');
   button.toggleAttribute('on', on); // su icono, del CSS (centrado; un carácter de texto no lo estaba)
@@ -382,6 +430,7 @@ export function detach(win) {
   state.delete(win);
   transparent.delete(win);
   syncOpaque();
+  win.document.getElementById('zero-flip-photo')?.remove(); // la foto de un ampliar a medias
   win.clearTimeout(st.timer);
   for (const undo of st.cleanups.reverse()) { try { undo(); } catch { /* ya no estaba */ } }
   const root = win.document.documentElement;

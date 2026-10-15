@@ -886,6 +886,11 @@
 
 /* ---------------------------------------------------------------- cristal en vivo (zero-glass) */
 
+/* Al ampliar o dejar de ampliar, la foto de cómo se veía la web, encima de ella (dentro de su tarjeta)
+   mientras se repinta con su tamaño nuevo (la pone zero-frame). */
+:root[zero] .browserStack:has(> #zero-flip-photo) { position: relative; }
+#zero-flip-photo { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 2; pointer-events: none; }
+
 /* La foto desenfocada de la web, justo debajo de cada pieza de cristal (la coloca zero-glass). */
 .zero-glass { position: fixed; margin: 0; padding: 0; pointer-events: none; }
 .zero-glass[hidden] { display: none !important; }

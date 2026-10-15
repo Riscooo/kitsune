@@ -127,7 +127,7 @@ def main():
         gone = driver.script("""const done = arguments[arguments.length - 1];
             gURLBar.blur(); gBrowser.selectedBrowser.loadURI(Services.io.newURI(arguments[0]), { triggeringPrincipal: Services.scriptSecurityManager.getSystemPrincipal() });
             setTimeout(() => done(Number(getComputedStyle(document.querySelector('#urlbar > .urlbar-input-container')).opacity)), 60);""", [origin + '/kioto'], asynchronous=True)
-        assert gone < 0.1, f'lo escrito sigue a la vista al subir la isla (se cruzaría con el dominio): {gone}'
+        assert gone < 0.1, f'lo escrito sigue a la vista al subir la isla (se cruzaría con el dominio): {gone} · ' + str(chrome("return [document.getElementById('navigator-toolbox').getAttribute('zero-island'), document.documentElement.hasAttribute('zero-leaving-empty'), document.documentElement.hasAttribute('zero-empty'), document.activeElement?.id, gBrowser.selectedBrowser.currentURI.spec]"))
         until(lambda: state()['moving'] or at_top(state()), timeout=3)
         moved = state()['moving']
         until(lambda: at_top(state()))
