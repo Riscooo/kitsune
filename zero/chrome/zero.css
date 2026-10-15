@@ -85,6 +85,14 @@
               radial-gradient(190px 190px at 0 100%, #000, transparent), radial-gradient(190px 190px at 100% 100%, #000, transparent);
 }
 
+/* Con el escritorio detrás, nada con un fondo del todo opaco: Gecko le pasa al compositor como «opaco» lo que
+   tiene un fondo de color opaco, y en Wayland GTK solo lo aplica cuando repinta su ventana (al cambiar el
+   foco). Con la web ampliada y luego una pestaña vacía, la ventana se quedaba «opaca» con lo de detrás ya
+   transparente: negro (Risco, 15-10; reproducido en un niri anidado con el registro de Wayland). Un alfa
+   de 254/255 no se ve. */
+:root[zero][zero-backdrop="system"] .browserContainer { background-color: rgb(from var(--tabpanel-background-color) r g b / .996) !important; }
+:root[zero][zero-backdrop="system"] .zero-profile-bubble { background-color: rgb(from var(--zero-profile-ink, #2fa59a) r g b / .996); }
+
 /* Sin desenfoque del compositor: detrás, una foto diminuta de la web, estirada y desenfocada. */
 :root[zero][zero-backdrop="web"] {
   background-color: #23272b !important;

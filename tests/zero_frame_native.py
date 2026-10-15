@@ -41,9 +41,11 @@
     lo suyo se queda ampliada); con un vídeo a pantalla completa, Esc saca del vídeo y, en la misma
     pulsación, deja de ampliar. Y un atajo, Ctrl+Alt+F (se puede cambiar en «Atajos de teclado…»), que
     amplía y deja de ampliar.
-16. Con la ventana transparente (el fondo del sistema), Kitsune no le dice al compositor que partes de la
-    ventana son opacas (Wayland): al desampliar tras cambiar de app esa información se quedaba vieja y lo
-    transparente salía negro (Risco, 15-10). Es para la sesión (no se guarda) y al salir de Zero vuelve.
+16. Con la ventana transparente (el fondo del sistema), nada en la ventana tiene un fondo opaco, ni con la
+    tarjeta ni ampliada: Gecko le dice al compositor qué partes son opacas (los fondos de color opacos de
+    la ventana) y en Wayland GTK solo lo pasa al repintar su ventana (al cambiar el foco). Con la web
+    ampliada y luego una pestaña vacía, la ventana se quedaba «opaca» con lo de detrás transparente: negro
+    (Risco, 15-10; reproducido en un niri anidado con el registro de Wayland).
 
 --zero-del-repo: Zero sale de zero/ del repositorio (ver zero_harness.py).
 """
@@ -509,14 +511,38 @@ def main():
         eventually(lambda: not chrome("return document.documentElement.hasAttribute('inDOMFullscreen')") and not full(), timeout=5)
         check('Esc deja de ampliar (si la web no lo usa) y, con un vídeo a pantalla completa, sale de las dos; Ctrl+Alt+F amplía y deja de ampliar')
 
-        opaque = "return [Services.prefs.getDefaultBranch('').getBoolPref('widget.wayland.opaque-region.enabled', true), Services.prefs.prefHasUserValue('widget.wayland.opaque-region.enabled')]"
+        # Los fondos de color opacos de la ventana que Gecko le pasa al compositor como opacos: los que no
+        # están dentro de algo con opacidad, filtro, máscara, mezcla o una transformación que no sea solo
+        # moverse, ni dentro de algo con desplazamiento (WebRenderCommandBuilder::AllowComputingOpaqueRegionAcross).
+        opaque = """const wrapped = el => {
+            for (let n = el; n && n !== document.documentElement; n = n.parentElement) {
+              const c = getComputedStyle(n);
+              if (Number(c.opacity) < 1 || c.filter !== 'none' || c.backdropFilter !== 'none' || c.maskImage !== 'none' || c.clipPath !== 'none' || c.mixBlendMode !== 'normal') return true;
+              if (c.transform !== 'none' && !/^matrix\\(1, 0, 0, 1, /.test(c.transform)) return true;
+              if (n !== el && /auto|scroll|hidden/.test(c.overflowX + c.overflowY)) return true;
+            }
+            return false;
+          };
+          const out = [];
+          for (const el of document.querySelectorAll('*')) {
+            const cs = getComputedStyle(el), r = el.getBoundingClientRect();
+            if (r.width < 2 || r.height < 2 || cs.display === 'none' || cs.visibility === 'hidden' || wrapped(el)) continue;
+            const m = cs.backgroundColor.match(/rgba?\\(([^)]+)\\)/);
+            const alpha = m ? Number(m[1].split(/[ ,\\/]+/).filter(Boolean)[3] ?? 1) : 0;
+            if (alpha >= 1) out.push(`${el.localName}${el.id ? '#' + el.id : ''}.${String(el.className).split(' ')[0]} ${cs.backgroundColor} ${Math.round(r.width)}x${Math.round(r.height)}`);
+          }
+          return out;"""
         chrome("Services.prefs.setStringPref('kitsune.zero.backdrop', 'system')")
-        eventually(lambda: chrome(opaque) == [False, False], timeout=5)
-        chrome("document.getElementById('kitsune-zero-key').doCommand()")
-        eventually(lambda: chrome("return !document.documentElement.hasAttribute('zero')") and chrome(opaque) == [True, False], timeout=5)
-        chrome("document.getElementById('kitsune-zero-key').doCommand()")
-        eventually(lambda: chrome(opaque) == [False, False], timeout=5)
-        check('Con la ventana transparente, sin regiones opacas para el compositor (solo en la sesión; al salir, vuelve)')
+        eventually(lambda: chrome("return document.documentElement.getAttribute('zero-backdrop')") == 'system', timeout=5)
+        try:
+            eventually(lambda: chrome(opaque) == [], timeout=5)
+            chrome("document.getElementById('kitsune-zero-full-key').doCommand()")
+            eventually(lambda: full() and chrome(opaque) == [], timeout=5)
+            chrome("document.getElementById('kitsune-zero-full-key').doCommand()")
+            eventually(lambda: not full() and chrome(opaque) == [], timeout=5)
+        except AssertionError:
+            raise AssertionError(f'fondos opacos: {chrome(opaque)} · ampliada {full()}') from None
+        check('Con la ventana transparente, nada en ella tiene fondo opaco (ni ampliada): la ventana no se queda «opaca» en negro')
         report['status'] = 'passed'
     finally:
         if driver: driver.close()
