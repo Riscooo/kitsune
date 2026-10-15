@@ -232,6 +232,8 @@ seguir a mano en Zero, con su aspecto:
   naranja, rojo), aunque sea otra pestaña; con la isla abierta se pulsa y lleva a esa pestaña. En el
   raíl, el punto va en el icono de esa pestaña.
 - **La primera vez**: al acabar de entrar, la isla dice un momento cómo volver (Ctrl+Alt+0; ⌘⌥0 en Mac).
+- **En el menú ≡ de Kitsune**: «Kitsune Zero» con su atajo; dentro de Zero, «Salir de Kitsune Zero».
+- **Diálogos de toda la ventana** (borrar el historial…): flotan bajo la isla, no la tapan.
 
 ### Rendimiento (medido)
 
