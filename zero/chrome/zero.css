@@ -791,6 +791,25 @@
 #zero-profiles .zero-profiles-plus { width: 24px; text-align: center; font-size: 17px; font-weight: 400; opacity: .8; }
 #zero-profiles > button[data-action="image"] { padding-inline-start: 40px; }
 @media (prefers-reduced-motion: reduce) { #zero-profiles, #zero-mode .zero-mode-knob { transition-duration: 1ms; } }
+/* Los accesos directos: una pastilla con sus iconos (como los del raíl) y un «+» abajo. */
+#zero-dock > #zero-shortcuts { display: flex; flex-direction: column; gap: 4px; padding: 6px 5px; }
+#zero-shortcuts .zero-shortcut-list { display: flex; flex-direction: column; gap: 4px; }
+#zero-shortcuts :is(.zero-shortcut, .zero-shortcut-add) {
+  appearance: none; box-sizing: border-box; width: 26px; height: 26px; min-width: 0; margin: 0; padding: 0; border: none; border-radius: 50%;
+  display: grid; place-items: center; background: transparent; cursor: pointer;
+}
+#zero-shortcuts .zero-fav {
+  width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; overflow: hidden;
+  font: 700 10.5px system-ui, sans-serif; color: #1d2321;
+  background: rgba(255, 255, 255, .92);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .35), inset 0 -2px 4px rgba(0, 0, 0, .12), 0 1px 3px rgba(0, 0, 0, .18);
+  transition: transform 200ms var(--zero-calm);
+}
+#zero-shortcuts .zero-fav img { width: 16px; height: 16px; }
+#zero-shortcuts .zero-shortcut:hover .zero-fav { transform: scale(1.12); }
+#zero-shortcuts .zero-shortcut-add .zero-fav { background: rgba(255, 255, 255, .14); color: #fff; font-size: 14px; font-weight: 500; box-shadow: none; }
+#zero-shortcuts .zero-shortcut-add:hover .zero-fav { background: rgba(255, 255, 255, .24); }
+#zero-shortcuts[dropping] { box-shadow: inset 0 0 0 1.5px rgba(255, 255, 255, .8), 0 10px 30px rgba(0, 0, 0, .18); }
 
 #zero-rail [hidden] { display: none !important; }
 #zero-rail .zero-sep { flex: none; height: 1px; margin: 3px 6px; background: rgba(255, 255, 255, .3); transition: background-color var(--zero-t-ink) var(--zero-soft); }
