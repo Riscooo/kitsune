@@ -32,6 +32,10 @@
     texto, blanco con un halo con el sistema en oscuro y en tinta (≥ 3:1) en claro. El panel de ajustes
     se lee (≥ 4,5:1) con blanco o negro detrás: cristal ahumado en oscuro, claro en claro; la marca de
     Kitsune se ve (≥ 0,85).
+15. Salir de la web ampliada (Risco, 15-10): con Esc, si la web no lo usa (una web que lo usa para cerrar
+    lo suyo se queda ampliada); con un vídeo a pantalla completa, Esc saca del vídeo y, en la misma
+    pulsación, deja de ampliar. Y un atajo, Ctrl+Alt+F (se puede cambiar en «Atajos de teclado…»), que
+    amplía y deja de ampliar.
 
 --zero-del-repo: Zero sale de zero/ del repositorio (ver zero_harness.py).
 """
@@ -53,6 +57,12 @@ PAGES = {
     # Roja arriba y azul más abajo: abierta en #azul, lo que se ve es azul.
     '/abajo': '<!doctype html><meta charset=utf-8><title>Abajo</title><body style="margin:0"><div style="height:2400px;background:#c8553d"></div>'
               '<div id=azul style="height:3000px;background:#2f5fb8"></div>',
+    # Una web que usa Esc para cerrar lo suyo (un diálogo).
+    '/esc': '<!doctype html><meta charset=utf-8><title>Esc</title><body style="margin:0;background:#fbfaf7">'
+            '<script>addEventListener("keydown", e => { if (e.key === "Escape") { e.preventDefault(); document.title = "cerrado"; } })</script>',
+    '/video': '<!doctype html><meta charset=utf-8><title>Video</title><body style="margin:0;background:#111">'
+              '<div id=v style="width:400px;height:220px;background:#123"></div>'
+              '<button id=b onclick="document.getElementById(\'v\').requestFullscreen()">Pantalla completa</button>',
 }
 
 
@@ -412,6 +422,46 @@ def main():
         chrome("Services.prefs.clearUserPref('kitsune.zero.pomodoro')")
         chrome("Services.prefs.clearUserPref('ui.systemUsesDarkTheme')")
         check('Con el fondo del sistema, Zero es una lámina de cristal redondeada y sus piezas de cristal transparente')
+
+        # Salir de la web ampliada: Esc (pulsado con la web delante, como de verdad) y el atajo.
+        full = lambda: chrome("return document.documentElement.hasAttribute('zero-full')")
+        def esc():
+            chrome("gBrowser.selectedBrowser.focus()")
+            driver.context('chrome')
+            driver.command('POST', '/actions', {'actions': [{'type': 'key', 'id': 'teclado', 'actions': [{'type': 'keyDown', 'value': '\ue00c'}, {'type': 'keyUp', 'value': '\ue00c'}]}]})
+        assert chrome("return document.getElementById('kitsune-zero-full-key')?.getAttribute('modifiers')") == 'accel,alt', 'falta el atajo de ampliar'
+        def ctrl_alt_f():
+            chrome("gBrowser.selectedBrowser.focus()")
+            driver.context('chrome')
+            down = [{'type': 'keyDown', 'value': k} for k in ('\ue009', '\ue00a', 'f')]
+            up = [{'type': 'keyUp', 'value': k} for k in ('f', '\ue00a', '\ue009')]
+            driver.command('POST', '/actions', {'actions': [{'type': 'key', 'id': 'teclado', 'actions': down + up}]})
+            driver.command('DELETE', '/actions')
+        ctrl_alt_f()
+        eventually(full, timeout=5)
+        ctrl_alt_f()
+        eventually(lambda: not full(), timeout=5)
+        ctrl_alt_f()
+        eventually(full, timeout=5)
+        esc()
+        eventually(lambda: not full(), timeout=5)
+        driver.navigate(origin + '/esc')
+        chrome("document.getElementById('kitsune-zero-full-key').doCommand()")
+        eventually(full, timeout=5)
+        esc()
+        driver.context('content')
+        eventually(lambda: driver.script('return document.title') == 'cerrado', timeout=5)
+        time.sleep(0.6)
+        assert full(), 'la web usó Esc (cerraba lo suyo) y aun así dejó de ampliar'
+        driver.navigate(origin + '/video')
+        assert full()
+        driver.context('content')
+        element = driver.command('POST', '/element', {'using': 'css selector', 'value': '#b'})
+        driver.command('POST', f"/element/{list(element.values())[0]}/click", {})
+        eventually(lambda: chrome("return document.documentElement.hasAttribute('inDOMFullscreen')"), timeout=5)
+        esc()
+        eventually(lambda: not chrome("return document.documentElement.hasAttribute('inDOMFullscreen')") and not full(), timeout=5)
+        check('Esc deja de ampliar (si la web no lo usa) y, con un vídeo a pantalla completa, sale de las dos; Ctrl+Alt+F amplía y deja de ampliar')
         report['status'] = 'passed'
     finally:
         if driver: driver.close()

@@ -12,15 +12,16 @@ const t = (spanish, english) => {
 const ZERO = 'chrome://browser/content/zero/zero.sys.mjs';
 let started = false;
 
-/** Un atajo de Zero en su keyset. Gecko lee un <keyset> solo al conectarlo: se vuelve a conectar. */
+/** Un atajo de Zero en su keyset (una tecla, o una con nombre: «VK_ESCAPE»). Gecko lee un <keyset> solo
+ *  al conectarlo: se vuelve a conectar. */
 function addKey(win, id, key, modifiers, run) {
   const doc = win.document;
   if (doc.getElementById(id)) return;
   const keyset = doc.getElementById('kitsune-zero-keys') ?? Object.assign(doc.createXULElement('keyset'), { id: 'kitsune-zero-keys' });
   const node = doc.createXULElement('key');
   node.id = id;
-  node.setAttribute('key', key);
-  node.setAttribute('modifiers', modifiers);
+  node.setAttribute(key.startsWith('VK_') ? 'keycode' : 'key', key);
+  if (modifiers) node.setAttribute('modifiers', modifiers);
   node.addEventListener('command', run);
   keyset.remove();
   keyset.append(node);

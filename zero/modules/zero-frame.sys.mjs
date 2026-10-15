@@ -198,12 +198,20 @@ export function flip(win, change, first = null) {
 
 function setFull(win, st, on) {
   const root = win.document.documentElement;
+  // Esc solo sirve (para dejar de ampliar) con la web ampliada; si no, ni se mira.
+  if (on) st.esc?.removeAttribute('disabled'); else st.esc?.setAttribute('disabled', 'true');
   const animation = flip(win, () => root.toggleAttribute('zero-full', on));
   animation?.finished.then(() => placeGrow(win, st), () => {});
   const button = st.grow.querySelector('[data-action=full]');
   button.toggleAttribute('on', on); // su icono, del CSS (centrado; un carácter de texto no lo estaba)
   button.title = on ? st.host.t('Dejar de ampliar', 'Restore') : st.host.t('Ampliar', 'Fill the window');
   placeGrow(win, st);
+}
+
+/** Ampliar la web o dejar de ampliarla (el atajo, Ctrl+Alt+F). */
+export function toggleFull(win, on) {
+  const st = state.get(win);
+  if (st) setFull(win, st, on ?? !win.document.documentElement.hasAttribute('zero-full'));
 }
 
 export function attach(win, ctx) {
@@ -240,6 +248,17 @@ export function attach(win, ctx) {
   st.notch = el(doc, 'div', { id: 'zero-notch', 'aria-hidden': 'true' });
   doc.body.append(lights, st.grow, st.backdrop, st.notch);
   st.cleanups.push(() => { lights.remove(); st.grow.remove(); st.backdrop.remove(); st.notch.remove(); });
+  // Esc deja de ampliar (Risco, 15-10). Es un atajo de la ventana, como los de Gecko: con la web delante,
+  // Gecko le pasa la tecla primero y solo lo ejecuta si la web no la ha usado (para cerrar lo suyo).
+  host.keys?.add(win, 'kitsune-zero-esc-key', 'VK_ESCAPE', '', () => { if (root.hasAttribute('zero-full')) setFull(win, st, false); });
+  st.esc = doc.getElementById('kitsune-zero-esc-key');
+  st.cleanups.push(() => st.esc?.setAttribute('disabled', 'true'));
+  // Con un vídeo a pantalla completa, Esc lo saca (eso lo hace Gecko, antes que nadie) y, en la misma
+  // pulsación, deja de ampliar: se vuelve a la ventana tal cual, sin pasar por la web ampliada.
+  listen(win, 'keydown', event => {
+    if (event.key !== 'Escape' || event.ctrlKey || event.altKey || event.metaKey || event.shiftKey) return;
+    if (root.hasAttribute('zero-full') && (doc.fullscreenElement || root.hasAttribute('inDOMFullscreen'))) setFull(win, st, false);
+  }, { mozSystemGroup: true, capture: true });
   setFull(win, st, false);
 
   let frame = 0;

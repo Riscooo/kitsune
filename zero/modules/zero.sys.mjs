@@ -159,6 +159,8 @@ async function decorate(win) {
   }
   decorated.add(win);
   host.keys?.add(win, 'kitsune-zero-key', '0', 'accel,alt', () => toggle(win));
+  // Ampliar la web y dejar de ampliarla (Risco, 15-10); se cambia en «Atajos de teclado…».
+  host.keys?.add(win, 'kitsune-zero-full-key', 'F', 'accel,alt', () => { if (active(win)) frame.toggleFull(win); });
   // Personalizar la barra (menú ≡ → Personalizar) necesita verla: mientras dura, Zero se aparta (sin
   // olvidarse para la próxima sesión) y vuelve al terminar.
   win.gNavToolbox?.addEventListener('beforecustomization', () => { if (active(win)) { aside.add(win); toggle(win, false, { keep: true }); } });
