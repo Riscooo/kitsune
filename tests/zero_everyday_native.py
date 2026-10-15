@@ -8,7 +8,8 @@
 5. La barra lateral de Gecko (historial, marcadores, la de una extensión) sale como otra tarjeta junto a
    la web, que se aparta; también al otro lado; al cerrarla, la web vuelve a su sitio.
 6. Una barra de aviso (una ventana emergente bloqueada…) sale bajo la isla, centrada, ancha y redondeada,
-   no aplastada dentro de la isla.
+   no aplastada dentro de la isla; también la de toda la ventana (la versión nueva de Kitsune). Sin la
+   franja de color de Gecko en su borde izquierdo, que es recta y asomaba por la esquina redonda.
 7. Un diálogo de la pestaña (imprimir) cabe entero en la tarjeta: Gecko lo sube 5 px para que cuelgue
    de la barra, y en Zero la tarjeta le recortaría las esquinas de arriba.
 8. La dirección de un enlace (al pasar por encima) sale como una píldora separada de la esquina de la
@@ -154,15 +155,25 @@ def main():
         check('La barra lateral sale como otra tarjeta junto a la web, a un lado o al otro, y al cerrarla la web vuelve')
 
         chrome("""const box = gBrowser.getNotificationBox(); box.appendNotification('zero-prueba', { label: 'Kitsune ha impedido que esta web abra una ventana emergente.', priority: box.PRIORITY_WARNING_MEDIUM }, [{ label: 'Opciones', callback() { return true; } }]);""")
-        bar = """const n = gBrowser.getNotificationBox().getNotificationWithValue('zero-prueba'); if (!n) return null; const r = n.getBoundingClientRect(); const i = document.getElementById('nav-bar').getBoundingClientRect();
-            return { l: r.left, r: r.right, t: r.top, h: r.height, w: r.width, W: innerWidth, islandBottom: i.bottom, radius: parseFloat(getComputedStyle(n).borderTopLeftRadius) };"""
+        bar = """const n = (arguments[0] ? gNotificationBox : gBrowser.getNotificationBox()).getNotificationWithValue('zero-prueba'); if (!n) return null; const r = n.getBoundingClientRect(); const i = document.getElementById('nav-bar').getBoundingClientRect();
+            const stripe = getComputedStyle(n, '::before');
+            return { l: r.left, r: r.right, t: r.top, h: r.height, w: r.width, W: innerWidth, islandBottom: i.bottom, radius: parseFloat(getComputedStyle(n).borderTopLeftRadius),
+                     stripe: stripe.display !== 'none' && stripe.content !== 'none' && parseFloat(stripe.width) > 0 };"""
+        def card(n):
+            return (n and n['w'] >= min(560, n['W'] - 140) - 1 and n['h'] <= 90 and n['islandBottom'] <= n['t'] <= n['islandBottom'] + 30
+                    and abs((n['l'] + n['r']) / 2 - n['W'] / 2) <= 2 and n['radius'] >= 10 and not n['stripe'])
         try:
-            eventually(lambda: (n := chrome(bar)) and n['w'] >= min(560, n['W'] - 140) - 1 and n['h'] <= 90 and n['islandBottom'] <= n['t'] <= n['islandBottom'] + 30
-                       and abs((n['l'] + n['r']) / 2 - n['W'] / 2) <= 2 and n['radius'] >= 10, timeout=5)
+            eventually(lambda: card(chrome(bar, [False])), timeout=5)
         except AssertionError:
-            raise AssertionError(f'barra de aviso: {chrome(bar)}') from None
+            raise AssertionError(f'barra de aviso: {chrome(bar, [False])}') from None
         chrome("gBrowser.getNotificationBox().removeAllNotifications(true)")
-        check('Una barra de aviso sale bajo la isla, centrada, ancha y redondeada')
+        chrome("""gNotificationBox.appendNotification('zero-prueba', { label: 'Hay una versión nueva de Kitsune.', priority: gNotificationBox.PRIORITY_INFO_MEDIUM }, [{ label: 'Reiniciar ahora', callback() { return true; } }]);""")
+        try:
+            eventually(lambda: card(chrome(bar, [True])), timeout=5)
+        except AssertionError:
+            raise AssertionError(f'barra de aviso de la ventana: {chrome(bar, [True])}') from None
+        chrome("gNotificationBox.removeAllNotifications(true)")
+        check('Una barra de aviso (de la pestaña o de la ventana) sale bajo la isla, centrada, ancha y redondeada, sin franja recta')
 
         chrome("PrintUtils.startPrintWindow(gBrowser.selectedBrowser.browsingContext)")
         sheet = """const box = [...document.querySelectorAll('.dialogBox')].find(n => n.getBoundingClientRect().height > 100); if (!box) return null;

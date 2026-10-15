@@ -282,6 +282,9 @@
   border-radius: 14px !important;
   box-shadow: 0 10px 30px rgba(0, 0, 0, .16), 0 0 0 1px rgba(255, 255, 255, .45) !important;
 }
+/* Sin la franja de color de Gecko en el borde izquierdo: es recta y asomaba por la esquina redonda
+   (el icono ya dice de qué tipo es el aviso). */
+#main-window[zero] #notifications-toolbar notification-message::before { display: none !important; }
 
 /* Cristal casi transparente, como en la maqueta: el brillo del borde dibuja la forma. */
 #main-window[zero] #nav-bar {
