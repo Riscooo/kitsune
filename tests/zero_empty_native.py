@@ -11,7 +11,9 @@ centro de la pantalla como buscador; al buscar, la isla sube a su sitio con una 
    Risco 15-10), y el icono del buscador delante;
    la isla es el campo (sin otra píldora dentro, también escribiendo) y de cristal (sin foto de la
    página de inicio escondida debajo).
-   Los botones de ampliar no salen (no hay nada que ampliar).
+   Los botones de ampliar no salen (no hay nada que ampliar). Y detrás de la G no asoma nada: con las
+   pestañas al lado (como Risco), la firma de Kitsune (su logo en la barra) se colaba debajo y la G se veía
+   «como duplicada» (Risco, 15-10); ni ahí ni arriba, con una web.
 2. Al ir a una web, la isla sube a su sitio con una animación (no de golpe) y la tarjeta vuelve; lo
    escrito se va al momento (no se cruza con el dominio, que entra al llegar arriba).
 3. Una pestaña nueva (Ctrl+T) vuelve a ser vacía: la isla baja al centro y la tarjeta se va.
@@ -66,6 +68,8 @@ return {
   fieldBox: (() => { const f = getComputedStyle(field); return { bg: f.backgroundColor, margin: parseFloat(f.marginLeft) }; })(),
   moving: toolbox.getAnimations().some(a => a.playState === 'running'),
   typing: toolbox.getAttribute('zero-island') === 'typing',
+  brand: (b => b.display !== 'none' && b.content !== 'none' && b.backgroundImage.includes('kitsune'))(getComputedStyle(nav, '::before')),
+  tabsHidden: toolbox.hasAttribute('tabs-hidden'),
 };
 """
 
@@ -78,6 +82,8 @@ def main():
     root = Path(tempfile.mkdtemp(prefix='kitsune-zero-vacia-'))
     evidence = root / 'evidence'; evidence.mkdir()
     profile, _ = prepare_profile(root)
+    with (profile / 'user.js').open('a') as prefs:  # las pestañas al lado, como Risco: la barra lleva la firma de Kitsune
+        prefs.write('user_pref("sidebar.revamp", true);\nuser_pref("sidebar.verticalTabs", true);\n')
     server = http.server.ThreadingHTTPServer(('127.0.0.1', 0), Handler)
     threading.Thread(target=server.serve_forever, daemon=True).start()
     origin = f'http://127.0.0.1:{server.server_port}'
@@ -105,10 +111,11 @@ def main():
         size = s['island']['w'] >= 500 if wide else 220 <= s['island']['w'] <= 300
         return s['empty'] and abs(s['island']['middle'] - s['H'] / 2) < 40 and size and s['island']['h'] >= 38 \
             and s['card'] < 0.05 and s['field'] > 0.9 and s['placeholder'] in ('rgba(0, 0, 0, 0)', 'transparent') and s['engine'] and s['engine']['shown'] and s['grow'] < 0.05 \
-            and not s['glass'] and s['fieldBox']['bg'] in ('rgba(0, 0, 0, 0)', 'transparent') and s['fieldBox']['margin'] < 1
+            and not s['glass'] and s['fieldBox']['bg'] in ('rgba(0, 0, 0, 0)', 'transparent') and s['fieldBox']['margin'] < 1 \
+            and s['tabsHidden'] and not s['brand']
 
     def at_top(s):
-        return not s['empty'] and s['island']['top'] <= 10 and s['island']['h'] <= 34 and s['card'] > 0.95
+        return not s['empty'] and s['island']['top'] <= 10 and s['island']['h'] <= 34 and s['card'] > 0.95 and not s['brand']
 
     try:
         driver = WebDriver(profile, evidence, browser=args.browser)

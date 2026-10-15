@@ -599,9 +599,13 @@
   --zero-island-w: 600px !important;
   transition: width 680ms cubic-bezier(.22, 1, .36, 1), top var(--zero-t-move) var(--zero-calm), height var(--zero-t-move) var(--zero-calm) !important;
 }
+/* La firma de Kitsune (su logo en la barra cuando las pestañas van al lado, kitsune-header.css) no va en Zero:
+   asomaba detrás de la G del buscador y la G se veía «como duplicada» (Risco, 15-10). El ::before de la
+   barra queda para el destello. */
+#main-window[zero] #navigator-toolbox > #nav-bar::before { content: none !important; }
 /* Y, mientras crece, un destello de luz que la cruza una vez, como un reflejo pasando por el vidrio. */
 #main-window[zero][zero-empty] #navigator-toolbox[zero-island="typing"] #nav-bar::before {
-  content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
+  content: "" !important; position: absolute; height: auto; margin: 0; inset: 0; border-radius: inherit; pointer-events: none;
   background: linear-gradient(105deg, transparent 0%, rgba(255, 255, 255, 0) 35%, rgba(255, 255, 255, .28) 50%, rgba(255, 255, 255, 0) 65%, transparent 100%) no-repeat;
   background-size: 45% 100%;
   animation: zero-sweep 900ms cubic-bezier(.4, 0, .2, 1) 120ms 1 both;
