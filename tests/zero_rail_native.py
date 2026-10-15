@@ -24,6 +24,8 @@
     en un círculo oscuro, que si no es blanco sobre blanco y no se ve; uno oscuro, en el claro de siempre.
 15. Sin bocadillos nativos encima del raíl abierto (que ya enseña los títulos): las filas llevan su nombre
     en aria-label, no en title.
+16. Un enlace soltado en el raíl se abre en una pestaña nueva, como en la barra de pestañas de Kitsune;
+    uno «javascript:», no.
 
 --zero-del-repo: Zero sale de zero/ del repositorio (ver zero_harness.py).
 """
@@ -33,6 +35,7 @@ import json
 from pathlib import Path
 import tempfile
 import threading
+import time
 
 from browser_smoke import WebDriver, prepare_profile, eventually
 import zero_harness
@@ -351,6 +354,21 @@ def main():
         assert names and all(n['title'] is None and n['label'] for n in names), names
         assert all(n['label'] == n['text'] for n in names if n['text'] not in ('', None)), names
         check('Sin bocadillos nativos sobre el raíl: el nombre de cada fila va en aria-label')
+
+        drop = """const dt = new DataTransfer(); dt.setData('text/uri-list', arguments[0]); dt.setData('text/plain', arguments[0]);
+            const rail = document.getElementById('zero-rail');
+            const over = new DragEvent('dragover', { bubbles: true, cancelable: true, dataTransfer: dt });
+            rail.dispatchEvent(over);
+            rail.dispatchEvent(new DragEvent('drop', { bubbles: true, cancelable: true, dataTransfer: dt }));
+            return over.defaultPrevented;"""
+        count = "return gBrowser.tabs.length"
+        before = chrome(count)
+        assert chrome(drop, [origin + '/uji']), 'el raíl debería aceptar el enlace'
+        until(lambda: chrome(count) == before + 1 and chrome("return gBrowser.tabs.some(t => t.linkedBrowser.currentURI.spec.endsWith('/uji'))"), timeout=10)
+        chrome(drop, ['javascript:alert(1)'])
+        time.sleep(1)
+        assert chrome(count) == before + 1, 'un javascript: no debería abrirse'
+        check('Un enlace soltado en el raíl se abre en una pestaña nueva (javascript:, no)')
         report['status'] = 'passed'
     finally:
         if driver: driver.close()

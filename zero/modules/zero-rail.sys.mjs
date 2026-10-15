@@ -357,6 +357,26 @@ export function attach(win, ctx) {
     if (tab && !tab.closing) { event.preventDefault(); close(tab); }
   });
   st.rail.addEventListener('mousedown', event => { if (event.button === 1) event.preventDefault(); }); // sin autodesplazamiento
+  // Un enlace (o un texto con una dirección) soltado en el raíl se abre en una pestaña nueva, como en la
+  // barra de pestañas de Kitsune, con los permisos de quien lo suelta. javascript: y data:, no.
+  st.rail.addEventListener('dragover', event => {
+    if (Services.droppedLinkHandler.canDropLink(event, true)) { event.preventDefault(); st.rail.setAttribute('dropping', ''); }
+  });
+  st.rail.addEventListener('dragleave', event => { if (!st.rail.contains(event.relatedTarget)) st.rail.removeAttribute('dropping'); });
+  st.rail.addEventListener('drop', event => {
+    st.rail.removeAttribute('dropping');
+    let links = [];
+    try { links = Services.droppedLinkHandler.dropLinks(event, true); } catch { /* nada que abrir */ }
+    if (!links?.length) return;
+    event.preventDefault();
+    win.gBrowser.loadTabs(links.map(link => link.url), {
+      inBackground: Services.prefs.getBoolPref('browser.tabs.loadInBackground', true) !== event.shiftKey,
+      allowThirdPartyFixup: true,
+      userContextId: win.gBrowser.selectedTab.getAttribute('usercontextid'),
+      triggeringPrincipal: Services.droppedLinkHandler.getTriggeringPrincipal(event),
+      policyContainer: Services.droppedLinkHandler.getPolicyContainer(event),
+    });
+  });
   // Clic derecho en una pestaña: el menú de pestaña de Gecko (recargar, fijar, mover a otro espacio…).
   st.rail.addEventListener('contextmenu', event => {
     const node = event.target.closest('.zero-tab');
