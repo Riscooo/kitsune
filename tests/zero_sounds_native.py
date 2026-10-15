@@ -7,6 +7,9 @@
 4. Subir la lluvia la hace sonar (ganancia = nivel al cuadrado) y las demás siguen calladas.
 5. En el descanso del pomodoro se callan, y al acabar vuelven.
 6. Apagarlo calla todo.
+7. Las barras se arrastran con el ratón de verdad (antes el panel se rehacía a cada paso y la barra se
+   iba de debajo del ratón): el bosque, arrastrado hasta la mitad, se queda a la mitad, y la barra que se
+   arrastra es la misma de principio a fin.
 
 --zero-del-repo: Zero sale de zero/ del repositorio (ver zero_harness.py).
 """
@@ -95,6 +98,24 @@ def main():
         forward(5 * MIN + 2000)
         until(lambda: debug()['gains'].get('lluvia', 0) > 0.3)
         check('En el descanso se callan, y al acabar vuelven')
+
+        # Arrastrar el bosque con el ratón, de la izquierda hasta la mitad, en pasos.
+        chrome("document.querySelector('#zero-settings input[data-pref=\"sounds.bosque\"]').__mia = true")
+        driver.context('chrome')
+        bar = driver.command('POST', '/element', {'using': 'css selector', 'value': '#zero-settings input[data-pref="sounds.bosque"]'})
+        width = chrome("return document.querySelector('#zero-settings input[data-pref=\"sounds.bosque\"]').getBoundingClientRect().width")
+        start = -width / 2 + 8
+        steps = [{'type': 'pointerMove', 'origin': bar, 'x': int(start), 'y': 0}, {'type': 'pointerDown', 'button': 0}]
+        steps += [{'type': 'pointerMove', 'origin': bar, 'x': int(start + (0 - start) * i / 10), 'y': 0, 'duration': 30} for i in range(1, 11)]
+        steps += [{'type': 'pointerUp', 'button': 0}]
+        driver.command('POST', '/actions', {'actions': [{'type': 'pointer', 'id': 'raton', 'parameters': {'pointerType': 'mouse'}, 'actions': steps}]})
+        driver.command('DELETE', '/actions')
+        level = "return [JSON.parse(Services.prefs.getStringPref('kitsune.zero.sounds.levels', '{}')).bosque ?? 0, document.querySelector('#zero-settings input[data-pref=\"sounds.bosque\"]')?.__mia === true]"
+        try:
+            until(lambda: (l := chrome(level)) and 0.4 <= l[0] <= 0.6 and l[1], timeout=5)
+        except AssertionError:
+            raise AssertionError(f'arrastrar el bosque: {chrome(level)}') from None
+        check('Las barras se arrastran con el ratón: el bosque, hasta la mitad, se queda a la mitad')
 
         chrome("Services.prefs.setBoolPref('kitsune.zero.sounds', false)")
         until(lambda: all(v < 0.01 for v in debug()['gains'].values()))

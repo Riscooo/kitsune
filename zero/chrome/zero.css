@@ -1094,14 +1094,20 @@
 /* Las capas, en una línea cada una y más juntas: el nombre a la izquierda y la barra el resto. */
 #zero-settings .zero-row:has(> .zero-slider) { flex-wrap: nowrap; padding-block: 3px; border-top-color: transparent; }
 #zero-settings .zero-row:has(> .zero-slider) .zero-row-text { flex: 0 0 76px; font-weight: 500; color: rgba(29, 35, 33, .78); }
-#zero-settings .zero-slider::-moz-range-track { height: 4px; border-radius: 999px; background: rgba(29, 35, 33, .12); }
-#zero-settings .zero-slider::-moz-range-progress { height: 4px; border-radius: 999px; background: #3a8f74; }
+/* Una línea fina; la bolita sale al pasar el ratón por la fila (o al llegar con el teclado). Toda la
+   fila de 20 px se puede agarrar, no solo la línea. */
+#zero-settings .zero-slider::-moz-range-track { height: 2px; border-radius: 999px; background: rgba(29, 35, 33, .14); transition: height 240ms var(--zero-calm); }
+#zero-settings .zero-slider::-moz-range-progress { height: 2px; border-radius: 999px; background: #3a8f74; transition: height 240ms var(--zero-calm); }
+#zero-settings .zero-row:hover .zero-slider::-moz-range-track,
+#zero-settings .zero-row:hover .zero-slider::-moz-range-progress { height: 3px; }
 #zero-settings .zero-slider::-moz-range-thumb {
-  width: 16px; height: 16px; border: none; border-radius: 50%; background: #fff;
+  width: 14px; height: 14px; border: none; border-radius: 50%; background: #fff;
   box-shadow: 0 1px 3px rgba(0, 0, 0, .3), 0 0 0 .5px rgba(0, 0, 0, .08);
-  transition: transform 200ms var(--zero-calm);
+  transform: scale(0); opacity: 0;
+  transition: transform 260ms var(--zero-calm), opacity 200ms var(--zero-soft);
 }
-#zero-settings .zero-slider:active::-moz-range-thumb { transform: scale(1.15); }
+#zero-settings .zero-row:hover .zero-slider::-moz-range-thumb, #zero-settings .zero-slider:focus-visible::-moz-range-thumb { transform: scale(1); opacity: 1; }
+#zero-settings .zero-slider:active::-moz-range-thumb { transform: scale(1.15); opacity: 1; }
 #zero-settings .zero-slider:focus-visible { outline: 2px solid #3a8f74; outline-offset: 2px; border-radius: 999px; }
 
 /* ---------------------------------------------------------------- actividades en la isla (descargas) */
