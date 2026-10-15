@@ -297,6 +297,19 @@ class RecipeTests(unittest.TestCase):
         header = "".join(new for _, new in engine.TEXT_PATCHES["widget/gtk/nsLookAndFeel.h"])
         self.assertIn("mRoundedCornerProviderRadius = -1", header)
 
+    def test_wayland_opaque_region_reaches_the_compositor_at_once(self):
+        # GDK solo aplica a su wl_surface la región opaca que le pasa Gecko cuando repinta su ventana (al
+        # cambiar el foco): en Kitsune Zero, transparente, una región vieja dejaba negro lo que ya era
+        # transparente (Risco, 15-10). Como hace Gecko con la región de entrada: se le pide repintar.
+        [(old, new)] = engine.TEXT_PATCHES["widget/gtk/nsWindow.cpp"]
+        self.assertIn("mSurface->SetOpaqueRegion(mOpaqueRegion.ToUnknownRegion());", old)
+        self.assertIn("gdk_window_invalidate_rect(window, nullptr, false);", new)
+        self.assertLess(new.index("SetOpaqueRegion"), new.index("gdk_window_invalidate_rect"))
+        root = self.rebrand_tree()
+        engine.rebrand_source(root)
+        engine.rebrand_source(root)
+        self.assertEqual((root / "widget/gtk/nsWindow.cpp").read_text().count("gdk_window_invalidate_rect"), 1)
+
     def test_a_missing_gecko_illustration_stops_the_recipe(self):
         root = self.rebrand_tree()
         (root / engine.MASCOT_POSES["guardia"][0]).unlink()

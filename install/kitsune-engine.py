@@ -101,6 +101,15 @@ TEXT_PATCHES = {
     # Las ventanas en mosaico (niri con tiled-state) sin el marco de GTK: en Kitsune Zero, transparente,
     # su sombra y su borde de 1 px enmarcaban el vacío (ver zero/linux/kitsune-zero.kdl).
     "widget/gtk/nsLookAndFeel.cpp": [('  mRoundedCornerProviderRadius = radius;\n  if (!radius) {\n    return ClearRoundedCornerProvider();\n  }\n  mRoundedCornerProvider = dont_AddRef(gtk_css_provider_new());\n  nsPrintfCString string(\n      "window.csd decoration {"\n      "border-bottom-right-radius: %dpx;"\n      "border-bottom-left-radius: %dpx;"\n      "}\\n",\n      radius, radius);', '  mRoundedCornerProviderRadius = radius;\n  // Kitsune: el proveedor se crea siempre (también sin esquinas redondeadas) porque además quita el\n  // marco de GTK (sombra y borde de 1 px) a las ventanas en mosaico (niri con tiled-state): en\n  // Kitsune Zero, una ventana transparente, enmarcaba el vacío.\n  ClearRoundedCornerProvider();\n  mRoundedCornerProvider = dont_AddRef(gtk_css_provider_new());\n  nsPrintfCString string(\n      "window.csd decoration {"\n      "border-bottom-right-radius: %dpx;"\n      "border-bottom-left-radius: %dpx;"\n      "}\\n"\n      "window.csd.tiled decoration, window.csd.tiled-top decoration,"\n      " window.csd.tiled-bottom decoration, window.csd.tiled-left decoration,"\n      " window.csd.tiled-right decoration {"\n      "box-shadow: none; border: none; margin: 0;"\n      "}\\n",\n      radius, radius);')],
+    # En Wayland, GDK solo aplica a su wl_surface la región opaca que le pasa Gecko cuando repinta su
+    # ventana (al cambiar el foco): en Kitsune Zero, una ventana transparente, una región vieja dejaba
+    # negro lo que ya era transparente (Risco, 15-10). Como Gecko ya hace con la región de entrada
+    # (nsWindow::SetInputRegion), se le pide repintar para que la aplique al momento.
+    "widget/gtk/nsWindow.cpp": [('    if (GdkIsWaylandDisplay()) {\n      mSurface->SetOpaqueRegion(mOpaqueRegion.ToUnknownRegion());\n    }\n',
+                                 '    if (GdkIsWaylandDisplay()) {\n      mSurface->SetOpaqueRegion(mOpaqueRegion.ToUnknownRegion());\n'
+                                 '      // Kitsune: GDK solo pasa la región opaca a su wl_surface al repintar la GdkWindow (como la\n'
+                                 '      // de entrada, ver SetInputRegion); sin esto se quedaba vieja hasta el siguiente cambio de foco.\n'
+                                 '      gdk_window_invalidate_rect(window, nullptr, false);\n    }\n')],
     "widget/gtk/nsLookAndFeel.h": [('  int32_t mRoundedCornerProviderRadius = 0;', '  int32_t mRoundedCornerProviderRadius = -1;  // Kitsune: así el proveedor se crea siempre')],
     # Las barras de aviso llevaban el degradado de la marca Firefox: óxido y jade de Kitsune.
     "toolkit/content/widgets/infobar.css": [
