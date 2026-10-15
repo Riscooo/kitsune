@@ -88,6 +88,126 @@ const isApp = () => { try { return Services.prefs.getStringPref('kitsune.product
 
 const host = () => ({ t, prefs: Services.prefs, prefix: 'kitsune.zero.', app: isApp(), keys: { add: addKey }, spaces, saver, tabs, users });
 
+// ---------------------------------------------------------------- traer el perfil de Kitsune (la primera vez)
+
+// Kitsune Zero es otro navegador, con su perfil (Gecko da uno propio a cada instalación). La primera vez trae una copia
+// del de Kitsune (Risco, 15-10): sesiones iniciadas, pestañas, contraseñas y perfiles de Zero; luego cada uno va por su
+// lado. Solo con kitsune.zero.importProfile (lo pone el paquete de Zero); kitsune.zero.profileImport dice cómo quedó:
+// 'waiting' (Kitsune estaba abierto: se intenta al volver a abrir), 'done', 'none' (no había) o 'kept' (sin traerlo).
+const IMPORT_ON = 'kitsune.zero.importProfile';
+const IMPORT = 'kitsune.zero.profileImport';
+
+/** Lo que no se copia: cachés, bloqueos e informes que el navegador rehace solo. */
+export const SKIP_FILES = new Set(['cache2', 'startupCache', 'shader-cache', 'thumbnails', 'crashes', 'minidumps', 'saved-telemetry-pings',
+  'datareporting', 'safebrowsing', 'lock', '.parentlock', 'parent.lock', 'jumpListCache', 'OfflineCache']);
+
+/** De los perfiles que hay, el que se trae: el último usado, con historial, que no sea el de Zero. */
+export function pickProfile(candidates) {
+  return candidates.filter(item => item.places && !item.current).sort((a, b) => b.used - a.used)[0] ?? null;
+}
+
+/** El proceso que tiene un perfil abierto en Linux (su «lock» apunta a «ip:+pid»), o null. */
+export function lockPid(target) {
+  const match = /:\+(\d+)$/.exec(String(target ?? ''));
+  return match ? Number(match[1]) : null;
+}
+
+/** Los perfiles de Kitsune de este equipo: el del Kitsune de Risco (Linux, su lanzador) y los de profiles.ini. */
+async function kitsuneProfiles(service) {
+  const here = Services.dirsvc.get('ProfD', Ci.nsIFile);
+  const found = [];
+  const add = async (dir, profile) => {
+    try {
+      if (!dir?.exists() || dir.equals(here) || !(await IOUtils.exists(PathUtils.join(dir.path, 'places.sqlite')))) return;
+      const prefs = await IOUtils.stat(PathUtils.join(dir.path, 'prefs.js')).catch(() => null);
+      found.push({ dir, profile, places: true, current: false, used: prefs?.lastModified ?? 0 });
+    } catch { /* no se puede leer */ }
+  };
+  if (Services.appinfo.OS === 'Linux') {
+    const data = Services.env.get('XDG_DATA_HOME') || PathUtils.join(Services.dirsvc.get('Home', Ci.nsIFile).path, '.local', 'share');
+    const dir = Cc['@mozilla.org/file/local;1'].createInstance(Ci.nsIFile);
+    dir.initWithPath(PathUtils.join(data, 'kitsune-browser', 'profile'));
+    await add(dir, null);
+  }
+  for (const profile of service.profiles) await add(profile.rootDir, profile);
+  return found;
+}
+
+/** ¿Lo tiene abierto un Kitsune? En Linux, el «lock» con su proceso; si no, intentando bloquearlo. */
+function openElsewhere(source) {
+  if (source.profile) {
+    try { return { lock: source.profile.lock({}) }; } catch { return null; }
+  }
+  const lock = source.dir.clone();
+  lock.append('lock');
+  try {
+    if (!lock.isSymlink()) return { lock: null };
+    const pid = lockPid(lock.target);
+    const proc = Cc['@mozilla.org/file/local;1'].createInstance(Ci.nsIFile);
+    proc.initWithPath(`/proc/${pid}`);
+    return pid && proc.exists() ? null : { lock: null };
+  } catch { return { lock: null }; }
+}
+
+async function copyProfile(from, to) {
+  await IOUtils.makeDirectory(to, { createAncestors: true, permissions: 0o700 });
+  for (const child of await IOUtils.getChildren(from)) {
+    if (SKIP_FILES.has(PathUtils.filename(child))) continue;
+    await IOUtils.copy(child, PathUtils.join(to, PathUtils.filename(child)), { recursive: true });
+  }
+  // El perfil copiado ya está traído: que no lo vuelva a intentar.
+  const prefs = PathUtils.join(to, 'prefs.js');
+  const text = (await IOUtils.readUTF8(prefs).catch(() => '')).replace(new RegExp(`^user_pref\\("${IMPORT.replace(/\./g, '\\.')}".*$`, 'gm'), '');
+  await IOUtils.writeUTF8(prefs, `${text.trimEnd()}\nuser_pref("${IMPORT}", "done");\n`);
+}
+
+function notice(win, id, label, buttons = []) {
+  try {
+    const box = win.gNotificationBox;
+    box.getNotificationWithValue(id)?.close();
+    void box.appendNotification(id, { label, priority: box.PRIORITY_INFO_HIGH }, buttons);
+  } catch { /* sin barra de avisos */ }
+}
+
+/** La primera vez de Kitsune Zero: copia el perfil de Kitsune, lo pone de serie y abre Kitsune Zero con él. Con
+ *  `options` (las pruebas, que no deben tocar el profiles.ini de verdad): force, firstRun, profiles (en lugar de los
+ *  del equipo), root (la carpeta donde va la copia), register (en lugar del servicio de perfiles) y launch (en lugar
+ *  de abrir Kitsune Zero con él y cerrar este). */
+async function bringKitsuneProfile(win, options = {}) {
+  if (!options.force && !Services.prefs.getBoolPref(IMPORT_ON, false)) return null;
+  const state = Services.prefs.getStringPref(IMPORT, '');
+  if (state && state !== 'waiting') return null;
+  const service = Cc['@mozilla.org/toolkit/profile-service;1'].getService(Ci.nsIToolkitProfileService);
+  if (!state && !(options.firstRun ?? service.isFirstRun)) { Services.prefs.setStringPref(IMPORT, 'kept'); return null; }
+  const source = pickProfile(options.profiles ?? await kitsuneProfiles(service));
+  if (!source) { Services.prefs.setStringPref(IMPORT, 'none'); return null; }
+  const held = openElsewhere(source);
+  if (!held) {
+    Services.prefs.setStringPref(IMPORT, 'waiting');
+    notice(win, 'kitsune-zero-import', t('Para traer tu perfil de Kitsune (sesiones, pestañas y contraseñas), cierra Kitsune y vuelve a abrir Kitsune Zero.',
+      'To bring your Kitsune profile (sign-ins, tabs and passwords), close Kitsune and open Kitsune Zero again.'),
+      [{ label: t('Empezar sin él', 'Start without it'), callback: () => { Services.prefs.setStringPref(IMPORT, 'kept'); } }]);
+    return 'waiting';
+  }
+  notice(win, 'kitsune-zero-import', t('Trayendo tu perfil de Kitsune…', 'Bringing your Kitsune profile…'));
+  const target = options.root ?? Services.dirsvc.get('DefProfRt', Ci.nsIFile);
+  target.append(`${Math.random().toString(36).slice(2, 10)}.kitsune-zero`);
+  try {
+    await copyProfile(source.dir.path, target.path);
+  } finally {
+    try { held.lock?.unlock(); } catch { /* ya se soltó */ }
+  }
+  const profile = options.register ? options.register(target) : service.createUniqueProfile(target, 'Kitsune Zero', 'kitsune-zero');
+  if (!options.register) {
+    try { service.defaultProfile = profile; } catch { /* esta compilación no deja cambiarlo: se abre igual */ }
+    await service.asyncFlush();
+  }
+  Services.prefs.setStringPref(IMPORT, 'done');
+  if (options.launch) options.launch(profile);
+  else { Services.startup.createInstanceWithProfile(profile); Services.startup.quit(Ci.nsIAppStartup.eAttemptQuit); }
+  return target.path;
+}
+
 /** «Kitsune Zero» en el menú ≡ de Kitsune (con Retoques… y Copia…), con su atajo a la vista: entra, y
  *  dentro de Zero la misma fila dice «Salir de Kitsune Zero» y sale. */
 const withMenu = new WeakSet();
@@ -119,9 +239,14 @@ function addMenuRow(win, Zero) {
 }
 
 export const KitsuneZeroHost = {
+  /** Para las pruebas: traer un perfil de Kitsune como la primera vez (ver bringKitsuneProfile). */
+  bringProfile: (win, options) => bringKitsuneProfile(win, options),
   decorate(win) {
     const { Zero } = ChromeUtils.importESModule(ZERO);
-    if (!started) { Zero.start(host()); started = true; }
+    if (!started) {
+      Zero.start(host()); started = true;
+      if (isApp()) void bringKitsuneProfile(win).catch(error => console.error('Kitsune Zero: no se pudo traer el perfil de Kitsune', error));
+    }
     if (!isApp()) addMenuRow(win, Zero);
     return Zero.decorate(win);
   },
