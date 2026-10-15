@@ -191,22 +191,23 @@
   box-shadow: inset 0 0 0 .5px rgba(0, 0, 0, .15);
   transition: background-color 320ms var(--zero-soft), transform 320ms var(--zero-calm);
 }
-/* Con la web ampliada, los de ventana se guardan con los de ampliar en la esquina de arriba a la
-   derecha (zero-frame, CORNER): una píldora de cristal que sale al acercarse. */
+/* Con la web ampliada se quedan en su sitio, escondidos, y salen al llevar el puntero al filo de arriba
+   encima de ellos (decisión de Risco, 15-10); sobre la web, con una píldora de cristal detrás (que no
+   cambia su caja: siguen exactamente donde estaban). */
 :root[zero-full] #zero-lights {
-  left: var(--zero-lights-x, 15px); top: var(--zero-lights-y, 16px);
-  padding: 9px 10px; border-radius: 999px;
-  background: rgba(30, 33, 36, .32);
-  backdrop-filter: blur(12px) saturate(1.7);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .7), inset 0 0 0 1px rgba(255, 255, 255, .22), 0 8px 24px rgba(0, 0, 0, .18);
   opacity: 0; transform: translateY(-3px) scale(.96); filter: blur(2px); pointer-events: none;
   transition: opacity var(--zero-t-fade) var(--zero-soft), transform var(--zero-t-morph) var(--zero-calm), filter var(--zero-t-fade) var(--zero-soft);
 }
+:root[zero-full] #zero-lights::before {
+  content: ""; position: absolute; inset: -9px -10px; z-index: -1; border-radius: 999px;
+  background: var(--zero-glass-fill); backdrop-filter: blur(12px) saturate(1.7); box-shadow: var(--zero-glass-edge);
+}
 :root[zero-full] #zero-lights.near { opacity: 1; transform: none; filter: none; pointer-events: auto; transition-delay: 60ms; }
 
-/* El tirador: lo único que queda con la web ampliada, una rayita pegada al filo de arriba. */
+/* El tirador: lo único que queda con la web ampliada, una rayita pegada al filo de arriba, en el centro
+   (donde sale la isla). */
 #zero-notch {
-  position: fixed; top: 1px; right: 12px; z-index: 6;
+  position: fixed; top: 1px; left: calc(50% - 18px); z-index: 6;
   width: 36px; height: 4px; border-radius: 999px; pointer-events: none;
   background: rgba(255, 255, 255, .8);
   box-shadow: 0 0 0 .5px rgba(0, 0, 0, .3), 0 1px 4px rgba(0, 0, 0, .22);
@@ -224,7 +225,7 @@
 #zero-grow {
   position: fixed; z-index: 6;
   left: var(--zero-grow-x, 60px); top: var(--zero-grow-y, 56px);
-  height: 30px; padding: 0 3px; border-radius: 999px;
+  height: 32px; padding: 0 3px; border-radius: 999px;
   display: flex; align-items: center; gap: 2px;
   color: #fff; text-shadow: var(--zero-glass-halo);
   background: var(--zero-glass-fill);
@@ -236,10 +237,21 @@
 }
 #zero-grow.near { opacity: 1; transform: none; filter: none; pointer-events: auto; transition-delay: 180ms, 180ms, 180ms, 0ms, 0ms; }
 #zero-grow > button {
-  appearance: none; min-width: 0; width: 26px; height: 24px; padding: 0; margin: 0; border: none; border-radius: 999px;
-  background: transparent; color: inherit; font: 13px system-ui, sans-serif;
+  appearance: none; display: grid; place-items: center; min-width: 0; width: 26px; height: 26px; padding: 0; margin: 0; border: none; border-radius: 50%;
+  background: transparent; color: inherit;
   transition: background-color 200ms var(--zero-soft);
 }
+/* Iconos dibujados (centrados de verdad; los caracteres de texto no lo estaban). */
+#zero-grow > button::before {
+  content: ""; width: 14px; height: 14px; background-color: currentColor;
+  mask: var(--zero-grow-icon) center / 14px no-repeat;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, .35));
+}
+#zero-grow > button[data-action="full"] { --zero-grow-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='black' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M9.5 2.5h4v4M13.5 2.5 9 7M6.5 13.5h-4v-4M2.5 13.5 7 9'/%3E%3C/svg%3E"); }
+#zero-grow > button[data-action="full"][on] { --zero-grow-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='black' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M13 7H9V3M9 7l5-5M3 9h4v4M7 9l-5 5'/%3E%3C/svg%3E"); }
+#zero-grow > button[data-action="split"] { --zero-grow-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='black' stroke-width='1.6'%3E%3Crect x='2' y='3' width='12' height='10' rx='2.2'/%3E%3Cpath d='M8 3v10'/%3E%3C/svg%3E"); }
+/* Se arrastran a donde se quiera: mientras, siguen al ratón sin transición. */
+#zero-grow[dragging] { cursor: grabbing; transition: none !important; }
 #zero-grow > button:hover { background-color: rgba(255, 255, 255, .2); }
 
 /* ---------------------------------------------------------------- la isla (zero-island) */
@@ -270,11 +282,12 @@
    mínimo (y la tarjeta guarda su hueco), así que se queda a la vista. */
 #main-window[zero][kitsune-compact] #navigator-toolbox { transform: none !important; opacity: 1 !important; margin-bottom: 0 !important; }
 
-/* Con la web ampliada y la esquina abierta, en una ventana estrecha la isla tampoco la pisa: su borde
-   derecho, antes del pomodoro (que va a la izquierda de los botones de ventana, a 52 px con su hueco). */
-#main-window[zero][zero-full][zero-corner-open] #navigator-toolbox {
-  width: min(var(--zero-island-w, 176px), 100vw - 152px, 2 * var(--zero-corner-left, 100vw) - 104px - 100vw) !important;
+/* Con la web ampliada, la isla se esconde por arriba y sale con el puntero en el filo de arriba, en el
+   centro (zero-peek), o mientras se usa (escribiendo, abierta, con un aviso o sin nada abierto). */
+#main-window[zero][zero-full]:not([zero-peek], [zero-empty]) #navigator-toolbox:not([zero-island="typing"], [zero-island="open"], [zero-island-alert]) {
+  top: -48px !important; opacity: 0 !important; pointer-events: none !important;
 }
+#main-window[zero][zero-full] #navigator-toolbox { transition: width var(--zero-t-morph) var(--zero-calm) var(--zero-wait), top var(--zero-t-move) var(--zero-calm), height var(--zero-t-move) var(--zero-calm), opacity var(--zero-t-fade) var(--zero-soft) !important; }
 #main-window[zero] #navigator-toolbox:is([zero-island], [zero-island-alert]) { transition-delay: 0ms !important; }
 #main-window[zero] #navigator-toolbox[zero-island="open"] { --zero-island-w: 400px !important; }
 #main-window[zero] #navigator-toolbox[zero-island-alert] { --zero-island-w: 470px !important; }
@@ -1037,22 +1050,8 @@
 @keyframes zero-pomo-glow { 50% { opacity: 1; transform: scale(1.08); } }
 @keyframes zero-pomo-wait { 50% { opacity: .45; } }
 
-/* Con la web ampliada se guarda en la esquina, a la izquierda de los botones de ventana, y sale con
-   ellos; abierto, crece hacia la izquierda para no taparlos. */
-:root[zero-full] #zero-pomo {
-  top: 6px; right: calc(100% - var(--zero-corner-left, 100%) + 6px);
-  opacity: 0; transform: translateY(-3px) scale(.96); pointer-events: none;
-}
-:root[zero-full][zero-corner-open] #zero-pomo { opacity: 1; transform: none; pointer-events: auto; transition-delay: 0ms, 40ms, 40ms, 0ms; }
-
-/* El tirador, como barra de progreso mientras corre. */
-#zero-notch::after {
-  content: ""; position: absolute; inset: 0 auto 0 0; width: calc(var(--zero-pomo-progress, 0) * 100%);
-  border-radius: inherit; background: rgba(232, 116, 59, .95); opacity: 0;
-  transition: width 1000ms linear, opacity var(--zero-t-fade) var(--zero-soft);
-}
-:root[zero-pomo-running] #zero-notch::after { opacity: 1; }
-:root:is([zero-pomo-phase="short"], [zero-pomo-phase="long"]) #zero-notch::after { background: rgba(58, 143, 116, .95); }
+/* Con la web ampliada no está (decisión de Risco, 15-10): el tiempo sigue corriendo. */
+:root[zero-full] #zero-pomo { display: none !important; }
 
 /* El descanso estricto (y la web vetada): un cristal tapa las webs (la tarjeta), no las piezas de Zero. */
 :is(#zero-break, #zero-blocked) {

@@ -173,10 +173,6 @@ function paintRing(win, st, v) {
   const says = paused ? `${t('En pausa', 'Paused')} · ${t('seguir', 'resume')}` : SAYS[v.phase](t, v);
   const button = ring.querySelector('.zero-pomo-ring');
   if (button.getAttribute('aria-label') !== says) { button.setAttribute('aria-label', says); button.setAttribute('title', says); }
-  // El tirador de la esquina (con la web ampliada) hace de barra de progreso.
-  root.toggleAttribute('zero-pomo-running', v.running);
-  root.style.setProperty('--zero-pomo-progress', (1 - fraction).toFixed(4));
-  root.setAttribute('zero-pomo-phase', v.phase);
 }
 
 // ---------------------------------------------------------------- el descanso estricto

@@ -10,17 +10,17 @@
 6. Con el fondo de la web, detrás hay una foto de la web y la raíz ya no es transparente.
 7. El velo del marco (alrededor de la tarjeta) toma el color de la web (rojo con una página roja).
 8. Y el de lo que se ve, no el del principio de la página (azul con una página abierta en su parte azul).
-9. Con la web ampliada, en reposo solo queda un tirador fino pegado al filo de arriba, en la esquina
-   derecha (la zona que menos usan las webs, según tools/zonas_web.py): ni los botones de ventana ni
-   los de ampliar tapan la web.
-10. Al acercarse a esa esquina salen juntos los de ventana y los de ampliar y dividir, y al irse se
-    vuelven a guardar.
+9. Con la web ampliada, en reposo no queda nada encima de la web: ni la isla, ni los botones de ventana, ni
+   los de ampliar, ni el pomodoro; solo un tirador fino pegado al filo de arriba, en el centro (la isla).
+10. Cada cosa se queda donde estaba, escondida, y sale al llevar el puntero al filo de arriba encima de su
+    sitio (decisión de Risco, 15-10): los de ventana arriba a la izquierda, los de ampliar a su derecha
+    y la isla en el centro; al irse, se vuelven a guardar. El pomodoro no sale con la web ampliada.
 11. Con el fondo de la web, si el marco queda claro, lo que va encima (el dominio de la isla) pasa a
     tinta; si queda oscuro, vuelve a blanco.
 12. Con el fondo «auto», al entrar en Zero el fondo es desde el principio el que toca (con niri y su
     regla, el cristal del sistema): no pasa un momento por la foto de la web (un parpadeo oscuro).
-13. En una ventana estrecha, con la web ampliada y la esquina abierta (botones de ventana, ampliar y el
-    pomodoro), la isla no se monta sobre la esquina.
+13. Los botones de ampliar se pueden arrastrar a donde se quiera y se quedan allí (también al salir y
+    volver a entrar en Zero); sus iconos, centrados en botones redondos.
 14. Con el fondo del sistema, Zero es transparente y sus piezas son de cristal claro (tipo Liquid Glass,
     decisión de Risco del 15-10): sobre blanco, la isla, el pomodoro abierto y los botones de ampliar se
     ven claros (sin tinte oscuro); el marco no lleva velo de color; el panel de ajustes es transparente.
@@ -194,38 +194,48 @@ def main():
 
         corner = """const seen = id => { const el = document.getElementById(id); if (!el) return null; const r = el.getBoundingClientRect(); const cs = getComputedStyle(el);
               return { x: r.left, y: r.top, right: r.right, bottom: r.bottom, w: r.width, h: r.height, on: Number(cs.opacity) > 0.5 && cs.visibility !== 'hidden' }; };
-            return { W: innerWidth, notch: seen('zero-notch'), lights: seen('zero-lights'), grow: seen('zero-grow'), full: document.documentElement.hasAttribute('zero-full') };"""
+            return { W: innerWidth, notch: seen('zero-notch'), lights: seen('zero-lights'), grow: seen('zero-grow'), island: seen('navigator-toolbox'),
+                     pomo: (p => !!p && p.on && p.w > 0)(seen('zero-pomo')), full: document.documentElement.hasAttribute('zero-full') };"""
         def pointer(x, y):
             driver.context('chrome')
             driver.command('POST', '/actions', {'actions': [{'type': 'pointer', 'id': 'raton', 'parameters': {'pointerType': 'mouse'},
                                                              'actions': [{'type': 'pointerMove', 'origin': 'viewport', 'x': x, 'y': y}]}]})
+        chrome("Services.prefs.setBoolPref('kitsune.zero.pomodoro', true)")
+        eventually(lambda: chrome("return !!document.getElementById('zero-pomo')"), timeout=5)
+        before = chrome(corner)  # dónde están con la tarjeta
         chrome("document.querySelector('#zero-grow button[data-action=full]').click()")
         pointer(700, 600)
         def resting():
             c = chrome(corner)
             n = c['notch']
-            return (c['full'] and n and n['on'] and n['h'] <= 6 and n['y'] <= 1 and c['W'] - n['right'] <= 16
-                    and not c['lights']['on'] and not c['grow']['on'])
+            return (c['full'] and n and n['on'] and n['h'] <= 6 and n['y'] <= 1 and abs((n['x'] + n['right']) / 2 - c['W'] / 2) <= 2
+                    and not c['lights']['on'] and not c['grow']['on'] and not c['island']['on'] and not c['pomo'])
         try:
             eventually(resting, timeout=5)
         except AssertionError:
             raise AssertionError(chrome(corner)) from None
-        check('Con la web ampliada, en reposo solo queda un tirador fino en el filo de arriba, a la derecha')
+        check('Con la web ampliada, en reposo no queda nada encima de la web, salvo un tirador fino arriba en el centro')
 
-        c = chrome(corner)
-        pointer(c['W'] - 30, 4)
-        def revealed():
+        def reveal(name, x):
+            pointer(int(x), 3)
+            try:
+                eventually(lambda: (c := chrome(corner))[name]['on'], timeout=5)
+            except AssertionError:
+                raise AssertionError(f'{name} no sale: {chrome(corner)}') from None
             c = chrome(corner)
-            return (c['lights']['on'] and c['grow']['on'] and not c['notch']['on']
-                    and c['lights']['x'] > c['W'] / 2 and c['grow']['x'] > c['W'] / 2 and c['lights']['y'] < 40 and c['grow']['y'] < 40)
-        try:
-            eventually(revealed, timeout=5)
-        except AssertionError:
-            raise AssertionError(chrome(corner)) from None
-        pointer(700, 600)
-        eventually(resting, timeout=5)
-        check('Al acercarse a la esquina salen juntos los de ventana y los de ampliar, y luego se guardan')
-        chrome("document.querySelector('#zero-grow button[data-action=full]').click()")
+            assert not c['pomo'], c
+            pointer(700, 600)
+            eventually(resting, timeout=5)
+            return c
+        # Los de ventana, en su sitio (arriba a la izquierda), sin moverse de donde estaban con la tarjeta.
+        c = reveal('lights', (before['lights']['x'] + before['lights']['right']) / 2)
+        assert abs(c['lights']['x'] - before['lights']['x']) <= 2 and c['lights']['y'] < 40, (before['lights'], c['lights'])
+        c = reveal('grow', (before['grow']['x'] + before['grow']['right']) / 2)
+        assert abs(c['grow']['x'] - before['grow']['x']) <= 2 and c['grow']['x'] < c['W'] / 2, (before['grow'], c['grow'])
+        c = reveal('island', c['W'] / 2)
+        assert c['island']['y'] < 20 and abs((c['island']['x'] + c['island']['right']) / 2 - c['W'] / 2) <= 2, c['island']
+        check('Cada cosa se queda en su sitio, escondida, y sale con el puntero en el filo de arriba encima de ella; el pomodoro, no')
+        chrome("document.querySelector('#zero-grow button[data-action=full]').click(); Services.prefs.clearUserPref('kitsune.zero.pomodoro')")
 
         ink = """const c = getComputedStyle(document.querySelector('#zero-host .zero-host-text')).color.match(/[\\d.]+/g).map(Number);
             return { attr: document.documentElement.hasAttribute('zero-frame-ink'), light: (c[0] + c[1] + c[2]) / 3 };"""
@@ -251,25 +261,33 @@ def main():
         assert seen and all(v == expected for v in seen), (expected, seen)
         check('Con el fondo «auto», al entrar en Zero el fondo es desde el principio el que toca')
 
-        chrome("Services.prefs.setBoolPref('kitsune.zero.pomodoro', true)")
-        eventually(lambda: chrome("return !!document.getElementById('zero-pomo')"), timeout=5)
-        driver.command('POST', '/window/rect', {'width': 500, 'height': 800})
-        eventually(lambda: chrome("return innerWidth") <= 500, timeout=5)
-        chrome("document.querySelector('#zero-grow button[data-action=full]').click()")
-        eventually(lambda: chrome("return document.documentElement.hasAttribute('zero-full')"), timeout=5)
-        W = chrome("return innerWidth")
-        pointer(W - 20, 4)
-        clash = """const box = id => document.getElementById(id).getBoundingClientRect(); const n = box('nav-bar');
-            const left = Math.min(...['zero-pomo', 'zero-lights', 'zero-grow'].map(id => box(id).left));
-            return { open: document.documentElement.hasAttribute('zero-corner-open'), island: [n.left, n.right], corner: left, ok: n.right <= left - 8 };"""
+        # Arrastrar los de ampliar 300 px a la derecha y 200 abajo: se quedan allí, también al volver a entrar.
+        pointer(60, 60)  # con la tarjeta salen al acercarse a su rincón
+        eventually(lambda: chrome(corner)['grow']['on'], timeout=5)
+        g = chrome(corner)['grow']
+        driver.context('chrome')
+        driver.command('POST', '/actions', {'actions': [{'type': 'pointer', 'id': 'raton', 'parameters': {'pointerType': 'mouse'}, 'actions': [
+            {'type': 'pointerMove', 'origin': 'viewport', 'x': int(g['x'] + 4), 'y': int(g['y'] + g['h'] / 2)}, {'type': 'pointerDown', 'button': 0}]
+            + [{'type': 'pointerMove', 'origin': 'viewport', 'x': int(g['x'] + 4 + 30 * i), 'y': int(g['y'] + g['h'] / 2 + 20 * i), 'duration': 20} for i in range(1, 11)]
+            + [{'type': 'pointerUp', 'button': 0}]}]})
+        driver.command('DELETE', '/actions')
+        moved = lambda: (m := chrome(corner)['grow']) and abs(m['x'] - (g['x'] + 300)) <= 6 and abs(m['y'] - (g['y'] + 200)) <= 6
         try:
-            eventually(lambda: (c := chrome(clash))['open'] and c['ok'], timeout=5)
+            eventually(moved, timeout=5)
         except AssertionError:
-            raise AssertionError(f'esquina en ventana estrecha: {chrome(clash)}') from None
-        pointer(200, 400)
-        chrome("document.querySelector('#zero-grow button[data-action=full]').click(); Services.prefs.clearUserPref('kitsune.zero.pomodoro');")
-        driver.command('POST', '/window/rect', {'width': 1540, 'height': 1000})
-        check('En una ventana estrecha, con la esquina abierta, la isla no se monta sobre ella')
+            raise AssertionError(f'arrastrar: antes {g}, ahora {chrome(corner)["grow"]}') from None
+        assert not chrome("return document.documentElement.hasAttribute('zero-full')"), 'arrastrar no es pulsar'
+        chrome("document.getElementById('kitsune-zero-key').doCommand()")
+        eventually(lambda: chrome("return !document.documentElement.hasAttribute('zero')"), timeout=5)
+        chrome("document.getElementById('kitsune-zero-key').doCommand()")
+        eventually(lambda: chrome("return !!document.getElementById('zero-grow')"), timeout=5)
+        pointer(int(g['x'] + 300 + g['w'] / 2), int(g['y'] + 200 + g['h'] / 2))
+        eventually(moved, timeout=5)
+        round_ok = chrome("return [...document.querySelectorAll('#zero-grow > button')].every(b => { const r = b.getBoundingClientRect(); return Math.abs(r.width - r.height) < 1; })")
+        assert round_ok, 'botones de ampliar redondos'
+        chrome("Services.prefs.clearUserPref('kitsune.zero.growAt')")
+        pointer(700, 600)
+        check('Los botones de ampliar se arrastran a donde se quiera y se quedan allí')
 
         # Sin pantalla no hay compositor: detrás de la ventana, blanco (el peor caso para el texto blanco).
         from PIL import Image

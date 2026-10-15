@@ -8,6 +8,7 @@
  * - Velo: el color dominante de la web, muy leve, que cambia despacio con cada página.
  */
 import { lightOf, inkFor } from './zero-light.mjs';
+import { PREFS, prefName } from './zero-config.sys.mjs';
 
 /** El color que manda en una foto (RGBA): ni el papel blanco ni el texto negro, salvo que no haya más. */
 export function dominantColor(bytes) {
@@ -135,35 +136,38 @@ function applyBackdrop(win, st) {
   paintColors(win, st);
 }
 
-/** Dónde van los botones de ampliar y dividir. Con la tarjeta, en el marco, a la derecha de los de
- *  ventana: no tapan la web. Con la web ampliada no queda marco y van encima, en la zona de arriba que
- *  menos usan las webs (ver FULL_SPOT). */
-function placeGrow(win, st) {
-  const doc = win.document, root = doc.documentElement;
-  const card = doc.getElementById('tabbrowser-tabpanels').getBoundingClientRect();
-  const height = st.grow.getBoundingClientRect().height || 30;
-  if (root.hasAttribute('zero-full')) {
-    // Arriba a la derecha, juntos: los de ampliar pegados al borde y los de ventana a su izquierda.
-    const grow = st.grow.getBoundingClientRect(), lights = st.lights.getBoundingClientRect();
-    const growX = win.innerWidth - CORNER.right - grow.width;
-    st.grow.style.setProperty('--zero-grow-x', `${Math.round(growX)}px`);
-    st.grow.style.setProperty('--zero-grow-y', `${CORNER.top}px`);
-    st.lights.style.setProperty('--zero-lights-x', `${Math.round(growX - CORNER.gap - lights.width)}px`);
-    // Lo que se quiera poner en la esquina (el pomodoro) va a la izquierda de los de ventana.
-    root.style.setProperty('--zero-corner-left', `${Math.round(growX - CORNER.gap - lights.width)}px`);
-    st.lights.style.setProperty('--zero-lights-y', `${Math.round(CORNER.top + (grow.height - lights.height) / 2)}px`);
-  } else {
-    const lights = doc.getElementById('zero-lights')?.getBoundingClientRect();
-    st.grow.style.setProperty('--zero-grow-x', `${Math.round((lights?.right ?? 62) + 14)}px`);
-    st.grow.style.setProperty('--zero-grow-y', `${Math.max(2, Math.round((card.top - height) / 2))}px`);
-  }
+/** Dónde dejó quien usa Zero los botones de ampliar (arrastrándolos), en fracciones de la ventana. */
+function savedGrow(st) {
+  try {
+    const at = JSON.parse(st.host.prefs.getStringPref(prefName(st.host.prefix, PREFS.growAt), '') || 'null');
+    return at && Number.isFinite(at.x) && Number.isFinite(at.y) ? at : null;
+  } catch { return null; }
 }
 
-// Con la web ampliada no queda marco: los botones de ventana y los de ampliar se guardan en un tirador
-// fino pegado al filo de arriba, en la esquina derecha, y salen al acercarse. Es la zona que menos usan
-// las webs (tools/zonas_web.py, 52 webs a dos anchos): ahí un tirador de 36 × 6 solo toca algo en el
-// 9,6 % de ellas; donde estaban (arriba a la izquierda), los de ampliar tapaban algo en el 58,7 %.
-const CORNER = { top: 6, right: 8, gap: 6 };
+/** Dónde van los botones de ampliar y dividir: donde los dejó quien usa Zero o, si no, en el marco, a
+ *  la derecha de los de ventana (no tapan la web). Con la web ampliada se quedan en su sitio,
+ *  escondidos (decisión de Risco, 15-10). */
+function placeGrow(win, st) {
+  const box = st.grow.getBoundingClientRect();
+  const width = box.width || 62, height = box.height || 32;
+  const at = savedGrow(st);
+  let x, y;
+  if (at) {
+    x = Math.min(Math.max(4, at.x * win.innerWidth), win.innerWidth - width - 4);
+    y = Math.min(Math.max(2, at.y * win.innerHeight), win.innerHeight - height - 2);
+  } else {
+    const lights = st.lights.getBoundingClientRect();
+    x = (lights.right || 62) + 14;
+    y = Math.max(2, (FRAME_TOP - height) / 2);
+  }
+  st.grow.style.setProperty('--zero-grow-x', `${Math.round(x)}px`);
+  st.grow.style.setProperty('--zero-grow-y', `${Math.round(y)}px`);
+}
+
+// Lo alto del marco sobre la tarjeta (su margen de arriba): ahí, centrados, los botones del marco.
+const FRAME_TOP = 46;
+// Con la web ampliada, cada cosa sale al llevar el puntero al filo de arriba, encima de su sitio.
+const EDGE = 6;
 
 /** Cambia el sitio de la tarjeta (ampliar, entrar en Zero) sin redimensionar la web en cada
  *  fotograma: la web toma su tamaño nuevo una sola vez y la tarjeta viaja desde donde estaba con una
@@ -196,7 +200,7 @@ function setFull(win, st, on) {
   const animation = flip(win, () => root.toggleAttribute('zero-full', on));
   animation?.finished.then(() => placeGrow(win, st), () => {});
   const button = st.grow.querySelector('[data-action=full]');
-  button.textContent = on ? '⤡' : '⤢';
+  button.toggleAttribute('on', on); // su icono, del CSS (centrado; un carácter de texto no lo estaba)
   button.title = on ? st.host.t('Dejar de ampliar', 'Restore') : st.host.t('Ampliar', 'Fill the window');
   placeGrow(win, st);
 }
@@ -223,9 +227,10 @@ export function attach(win, ctx) {
   // Ampliar / dejar de ampliar, y dividir: aparecen al acercarse a la esquina de la tarjeta.
   st.grow = el(doc, 'div', { id: 'zero-grow' }, [
     el(doc, 'button', { 'data-action': 'full' }),
-    el(doc, 'button', { 'data-action': 'split', title: host.t('Dividir', 'Split') }, ['◫']),
+    el(doc, 'button', { 'data-action': 'split', title: host.t('Dividir', 'Split'), 'aria-label': host.t('Dividir', 'Split') }),
   ]);
   st.grow.addEventListener('click', event => {
+    if (st.dragged) { st.dragged = false; return; } // venía de arrastrarlos, no de pulsar
     const action = event.target.closest('button')?.dataset.action;
     if (action === 'full') setFull(win, st, !root.hasAttribute('zero-full'));
     else if (action === 'split') win.BrowserCommands?.addTabSplitView?.();
@@ -242,19 +247,68 @@ export function attach(win, ctx) {
     frame = win.requestAnimationFrame(() => {
       frame = 0;
       const card = doc.getElementById('tabbrowser-tabpanels').getBoundingClientRect();
-      const on = el => { const r = el.getBoundingClientRect(); return event.clientX >= r.left - 6 && event.clientX <= r.right + 6 && event.clientY >= r.top - 6 && event.clientY <= r.bottom + 6; };
+      const on = (el, pad = 6) => { const r = el.getBoundingClientRect(); return event.clientX >= r.left - pad && event.clientX <= r.right + pad && event.clientY >= r.top - pad && event.clientY <= r.bottom + pad; };
       const full = root.hasAttribute('zero-full');
-      // Salen al acercarse: con la tarjeta, a su rincón de arriba a la izquierda; con la web ampliada,
-      // a la esquina de arriba a la derecha (o estando encima de ellos).
-      const near = full
-        ? (event.clientX >= win.innerWidth - 240 && event.clientY <= 56) || (st.grow.classList.contains('near') && (on(st.grow) || on(lights)))
-        : (event.clientX <= card.left + 150 && event.clientY <= card.top + 60) || on(st.grow);
-      st.grow.classList.toggle('near', near);
-      lights.classList.toggle('near', full && near);
-      st.notch.classList.toggle('away', near);
-      root.toggleAttribute('zero-corner-open', full && near);
+      const grow = st.grow.getBoundingClientRect();
+      const kept = el => el.classList.contains('near') && on(el, 14);
+      let growNear, lightsNear = false, peek = false;
+      if (full) {
+        // Cada cosa sale al llevar el puntero al filo de arriba encima de su sitio, y se queda mientras
+        // se está encima; los de ampliar, si se dejaron más abajo, al acercarse a ellos.
+        const top = event.clientY <= EDGE;
+        const over = (r, pad = 24) => event.clientX >= r.left - pad && event.clientX <= r.right + pad;
+        growNear = (grow.top < FRAME_TOP ? top && over(grow) : on(st.grow, 40)) || kept(st.grow);
+        lightsNear = (top && over(lights.getBoundingClientRect())) || kept(lights);
+        const nav = doc.getElementById('nav-bar');
+        peek = (top && Math.abs(event.clientX - win.innerWidth / 2) <= 300) || (root.hasAttribute('zero-peek') && !!nav && on(nav, 16));
+      } else {
+        growNear = savedGrow(st) ? on(st.grow, 40) : (event.clientX <= card.left + 150 && event.clientY <= card.top + 60) || on(st.grow);
+      }
+      if (st.grow.hasAttribute('dragging')) growNear = true;
+      st.grow.classList.toggle('near', growNear);
+      lights.classList.toggle('near', full && lightsNear);
+      root.toggleAttribute('zero-peek', full && peek);
+      st.notch.classList.toggle('away', peek);
     });
   });
+  // Los de ampliar se arrastran a donde se quiera (pasados 6 px; menos, es pulsar) y se quedan allí.
+  // Mientras está pulsado se escucha toda la ventana: el primer paso ya puede caer fuera de ellos.
+  let drag = null;
+  const follow = event => {
+    if (!drag || event.pointerId !== drag.id) return;
+    if (!drag.active) {
+      if (Math.hypot(event.clientX - drag.x0, event.clientY - drag.y0) < 6) return;
+      drag.active = true;
+      st.grow.setAttribute('dragging', '');
+    }
+    const x = Math.min(Math.max(4, event.clientX - drag.dx), win.innerWidth - drag.w - 4);
+    const y = Math.min(Math.max(2, event.clientY - drag.dy), win.innerHeight - drag.h - 2);
+    st.grow.style.setProperty('--zero-grow-x', `${Math.round(x)}px`);
+    st.grow.style.setProperty('--zero-grow-y', `${Math.round(y)}px`);
+  };
+  const drop = event => {
+    if (!drag || (event.pointerId !== undefined && event.pointerId !== drag.id)) return;
+    const done = drag; drag = null;
+    win.removeEventListener('pointermove', follow, true);
+    win.removeEventListener('pointerup', drop, true);
+    win.removeEventListener('pointercancel', drop, true);
+    if (!done.active) return;
+    st.grow.removeAttribute('dragging');
+    st.dragged = true; // y el clic que llega detrás no amplía
+    win.setTimeout(() => { st.dragged = false; }, 0);
+    const r = st.grow.getBoundingClientRect();
+    try { host.prefs.setStringPref(prefName(host.prefix, PREFS.growAt), JSON.stringify({ x: +(r.left / win.innerWidth).toFixed(4), y: +(r.top / win.innerHeight).toFixed(4) })); } catch { /* sin ajustes */ }
+  };
+  st.grow.addEventListener('pointerdown', event => {
+    if (event.button !== 0) return;
+    const r = st.grow.getBoundingClientRect();
+    drag = { id: event.pointerId, dx: event.clientX - r.left, dy: event.clientY - r.top, x0: event.clientX, y0: event.clientY, w: r.width, h: r.height, active: false };
+    win.addEventListener('pointermove', follow, true);
+    win.addEventListener('pointerup', drop, true);
+    win.addEventListener('pointercancel', drop, true);
+  });
+  st.cleanups.push(() => { win.removeEventListener('pointermove', follow, true); win.removeEventListener('pointerup', drop, true); win.removeEventListener('pointercancel', drop, true); });
+
   listen(win, 'resize', () => placeGrow(win, st));
   const panels = doc.getElementById('tabbrowser-tabpanels');
   listen(panels, 'transitionend', () => placeGrow(win, st));
@@ -292,6 +346,6 @@ export function detach(win) {
   win.clearTimeout(st.timer);
   for (const undo of st.cleanups.reverse()) { try { undo(); } catch { /* ya no estaba */ } }
   const root = win.document.documentElement;
-  for (const name of ['zero-full', 'zero-backdrop', 'zero-corner-open', 'zero-frame-ink']) root.removeAttribute(name);
-  for (const name of ['--zero-tint', '--zero-backdrop-image', '--zero-corner-left']) root.style.removeProperty(name);
+  for (const name of ['zero-full', 'zero-backdrop', 'zero-peek', 'zero-frame-ink']) root.removeAttribute(name);
+  for (const name of ['--zero-tint', '--zero-backdrop-image']) root.style.removeProperty(name);
 }
