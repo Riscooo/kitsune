@@ -200,7 +200,8 @@ Lo que Gecko pone en sitios que Zero esconde (la barra de pestañas, la de direc
 seguir a mano en Zero, con su aspecto:
 - **Barra lateral** (historial, marcadores, extensiones): otra tarjeta junto a la web, a su lado de
   siempre; la web se aparta. Las pestañas verticales de Gecko siguen fuera (las hace el raíl).
-- **Barras de aviso** (ventana emergente bloqueada…): tarjetas bajo la isla, centradas.
+- **Barras de aviso** (ventana emergente bloqueada…, y las de toda la ventana): tarjetas bajo la isla,
+  centradas, sin la franja de color de Gecko.
 - **Diálogos de la pestaña** (imprimir): enteros dentro de la tarjeta.
 - **La dirección de un enlace**: una píldora separada de la esquina.
 - **Las sugerencias al escribir**: con cristal en vivo debajo, como la isla.
@@ -227,6 +228,8 @@ seguir a mano en Zero, con su aspecto:
   abajo, la barra de siempre (flotando taparía la consola).
 - **Personalizar la barra** (menú ≡): Zero se aparta mientras dura y vuelve al terminar.
 - **Pestañas descargadas de memoria**: el icono apagado en el raíl, como en la barra de pestañas.
+- **Cámara, micrófono o pantalla en uso**: un punto tras el dominio en la isla, como el de iOS (verde,
+  naranja, rojo), aunque sea otra pestaña; y en el raíl, en el icono de esa pestaña.
 
 ## Pruebas
 
