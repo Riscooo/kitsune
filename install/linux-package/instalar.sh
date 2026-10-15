@@ -54,4 +54,11 @@ Exec="${destino}/kitsune" --private-window
 DESKTOP
 update-desktop-database "${data}/applications" >/dev/null 2>&1 || :
 gtk-update-icon-cache -q -t "${data}/icons/hicolor" >/dev/null 2>&1 || :
+# Kitsune Zero: la regla de su ventana de cristal en niri 26.04+ y, si su complemento ya está, en
+# Hyprland (hyprglass) y GNOME (Liquid Glass); en KDE solo explica qué haría (cristal.py poner --forzar).
+# Sin nada de eso, Zero pone detrás una foto de la web, que su borde dobla como una lente.
+if [ -d "${destino}/zero-linux" ]; then
+    sh "${destino}/zero-linux/install-niri.sh" >/dev/null 2>&1 || :
+    if command -v python3 >/dev/null 2>&1; then python3 "${destino}/zero-linux/cristal.py" poner || :; fi
+fi
 printf '%s\n' "Kitsune está instalado en ${destino}." 'Ya lo tienes en el menú de aplicaciones.'

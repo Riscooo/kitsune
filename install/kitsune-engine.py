@@ -1601,6 +1601,8 @@ def finish_macos_package(layout: Layout, version: str, source: Path, env, logfil
 # Kitsune para descargar en Linux: el motor de Linux de esta receta, como los de Windows y macOS.
 LINUX_PACKAGE = HERE / "linux-package"
 LINUX_PACKAGE_FILES = ("instalar.sh", "desinstalar.sh")
+# Kitsune Zero: la regla de su ventana de cristal en niri y, con su complemento, en Hyprland y GNOME.
+ZERO_LINUX_FILES = ("install-niri.sh", "kitsune-zero.kdl", "cristal.py")
 
 
 def package_linux(layout: Layout, version: str, log=print, run=subprocess.run, check=smoke_check,
@@ -1631,6 +1633,10 @@ def package_linux(layout: Layout, version: str, log=print, run=subprocess.run, c
         for name in LINUX_PACKAGE_FILES:
             shutil.copyfile(LINUX_PACKAGE / name, root / name)
             (root / name).chmod(0o755)
+        (root / "zero-linux").mkdir()
+        for name in ZERO_LINUX_FILES:
+            shutil.copyfile(ZERO / "linux" / name, root / "zero-linux" / name)
+            (root / "zero-linux" / name).chmod(0o644 if name.endswith(".kdl") else 0o755)
         log("Prueba de humo del paquete de Linux")
         check(root / "kitsune", version)
         partial = archive.with_name(archive.name + ".part")

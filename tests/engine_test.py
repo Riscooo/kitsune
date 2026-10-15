@@ -93,6 +93,14 @@ class LinuxPackageTests(unittest.TestCase):
             self.assertEqual(members["kitsune/instalar.sh"].mode & 0o777, 0o755)
             self.assertEqual((members["kitsune/instalar.sh"].uid, members["kitsune/instalar.sh"].uname), (0, ""))
             self.assertFalse(list((layout.cache / "packages/linux").glob("*.part")))
+            # Kitsune Zero: la regla de su ventana de cristal en niri y, con su complemento, en Hyprland y
+            # GNOME (cristal.py); el instalador las pone y el desinstalador quita lo de cristal.py.
+            for name in ("kitsune/zero-linux/install-niri.sh", "kitsune/zero-linux/kitsune-zero.kdl", "kitsune/zero-linux/cristal.py"):
+                self.assertIn(name, names)
+            installer = (engine.LINUX_PACKAGE / "instalar.sh").read_text()
+            self.assertIn('zero-linux/install-niri.sh', installer)
+            self.assertIn('zero-linux/cristal.py" poner', installer)
+            self.assertIn('zero-linux/cristal.py" quitar', (engine.LINUX_PACKAGE / "desinstalar.sh").read_text())
 
     def test_without_the_engine_built_there_is_no_linux_package(self):
         with tempfile.TemporaryDirectory() as folder:
