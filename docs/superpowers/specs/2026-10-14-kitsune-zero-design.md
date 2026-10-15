@@ -229,7 +229,18 @@ seguir a mano en Zero, con su aspecto:
 - **Personalizar la barra** (menú ≡): Zero se aparta mientras dura y vuelve al terminar.
 - **Pestañas descargadas de memoria**: el icono apagado en el raíl, como en la barra de pestañas.
 - **Cámara, micrófono o pantalla en uso**: un punto tras el dominio en la isla, como el de iOS (verde,
-  naranja, rojo), aunque sea otra pestaña; y en el raíl, en el icono de esa pestaña.
+  naranja, rojo), aunque sea otra pestaña; con la isla abierta se pulsa y lleva a esa pestaña. En el
+  raíl, el punto va en el icono de esa pestaña.
+- **La primera vez**: al acabar de entrar, la isla dice un momento cómo volver (Ctrl+Alt+0; ⌘⌥0 en Mac).
+
+### Rendimiento (medido)
+
+- Elegir pestaña repinta solo las dos filas del raíl que cambian (Gecko las avisa) y la isla una vez por
+  tanda de avisos: con 150 pestañas, 2,5 ms, como sin Zero (antes 7,7).
+- Lo que se anima sin fin (el pulso del altavoz, el respirar del pomodoro, la onda de la música) solo
+  anima opacidad y transform, que mueve el compositor sin repintar.
+- Ventana real a 240 Hz: mediana 4 ms en todo; lo más pesado, abrir el raíl con 30 pestañas (p95 12 ms,
+  pico 13–16 ms), por animar su ancho.
 
 ## Pruebas
 
