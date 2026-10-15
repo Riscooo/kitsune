@@ -212,6 +212,11 @@ seguir a mano en Zero, con su aspecto:
 - **Lo que suena en otra pestaña** (la tarjeta de Kitsune vive en la barra de herramientas): en la
   isla, como la música en la Dynamic Island — un aviso al empezar o cambiar de canción, una onda junto
   al dominio y, abierta, pausa y siguiente.
+- **Se lee haya lo que haya detrás**: con el cristal del sistema, Zero no puede saber qué hay detrás de
+  la ventana (lo pinta el compositor). La isla, el pomodoro y los botones de ampliar llevan un tinte del
+  modo del sistema (oscuro con texto blanco; claro con texto en tinta, y el marco en tinta), como los
+  materiales de macOS; el marco sigue casi transparente. Los favicon claros sobre transparente van en
+  un círculo oscuro, y el descanso y la web vetada pasan de 4,5:1 sobre una web blanca.
 - **Ventanas nuevas**: nacen como la ventana desde la que se abren (fila «Ventanas nuevas: como esta
   · en Zero · normales» en los ajustes); la que nace en Zero ya se pinta en Zero desde el primer
   fotograma. Una ventana que restaura la sesión vuelve como era.
