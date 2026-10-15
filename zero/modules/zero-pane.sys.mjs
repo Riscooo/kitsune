@@ -26,7 +26,7 @@ const HTML = 'http://www.w3.org/1999/xhtml';
 const RADIUS = 48;   // esquinas de la ventana (= zero.css)
 const BAND = 22;     // el canto se recoge hacia el filo; el resto de la lámina queda plano
 const CARD_RADIUS = 18; // las esquinas de la tarjeta (= zero.css)
-const FILM = 0.28;   // algo más de película en el filo, sin teñir el centro
+const FILM = 0.32;   // halo nacarado junto al filo blanco del boceto, sin teñir el centro
 const LENS_BAND = 30; // la lente conserva su caída suave; el reflejo del filo es más estrecho
 const DEPTH = 70;    // la refracción ya probada: solo en el canto, con el centro plano
 
@@ -90,8 +90,8 @@ void main() {
     if (i >= uCardCount) break;
     float dc = box(p, uCards[i], uCardRadius);
     if (dc < 0.0 || dc > 8.0) continue;
-    float k = uCardAlpha * (0.5 * (1.0 - smoothstep(0.6, 2.2, dc)) + 0.08 * exp(-dc / 2.5));
-    cardA = max(cardA, k); cardC = filmAt(p, 0.2);
+    float k = uCardAlpha * (0.76 * (1.0 - smoothstep(0.6, 2.2, dc)) + 0.1 * exp(-dc / 2.5));
+    cardA = max(cardA, k); cardC = mix(vec3(1.0), filmAt(p, 0.2), 0.6);
   }
   float d = min(inner(p, max(uRadius, uBand), n), window);
   float u = clamp(1.0 - d / uBand, 0.0, 0.999);         // 0 dentro, 1 en el filo
@@ -102,13 +102,18 @@ void main() {
   // La película: su grosor cambia despacio a lo largo del borde (y crece hacia el filo); de él salen los
   // colores, como en una pompa de jabón (interferencia, aproximada con una paleta de cosenos).
   vec3 film = filmAt(p, 0.35 * u);
-  // Y el filo mismo, una línea fina y limpia que hace de borde de la ventana (Risco, 15-10).
-  float a = uFilm * fresnel + 0.18 * clamp(1.8 - window, 0.0, 1.0);
+  // El boceto aprobado tiene un filo blanco continuo de 2–3 px, no solo el Fresnel tenue.
+  // Bajo él asoma la película nacarada; su luz cae sin escalones y a 22 px el centro está limpio.
+  float rim = 0.97 * (1.0 - smoothstep(2.2, 4.4, window));
+  float pearl = uFilm * (fresnel + 0.6 * exp(-window / 4.0) + 1.2 * exp(-pow((window - 4.2) / 1.6, 2.0)))
+    * (1.0 - smoothstep(14.0, uBand, window));
   // Los reflejos de la luz, suaves (una arriba a la izquierda y su eco abajo a la derecha).
   float onEdge = smoothstep(0.25, 0.65, u);
   float glint = onEdge * (0.92 * blinn(N, normalize(vec3(-1.0, -1.25, 1.1)), 36.0) + 0.52 * blinn(N, normalize(vec3(1.0, 1.25, 1.1)), 44.0));
-  float alpha = clamp((a + glint + cardA) * uStrength, 0.0, 1.0);
-  vec3 color = min((film * a + vec3(glint) + cardC * cardA) * uStrength, vec3(alpha));   // premultiplicado
+  float edgeA = rim + pearl * (1.0 - rim);
+  vec3 edgeC = mix(vec3(1.0), film, 0.04) * rim + film * pearl * (1.0 - rim);
+  float alpha = clamp((edgeA + glint + cardA) * uStrength, 0.0, 1.0);
+  vec3 color = min((edgeC + vec3(glint) + cardC * cardA) * uStrength, vec3(alpha));   // premultiplicado
   if (!lens) { outColor = vec4(color, alpha); return; }
   // La foto de detrás, doblada en el canto: la pendiente del canto (superelipse, P = 3, hasta 4) dice
   // cuánto se desvía la mirada hacia dentro; el rojo un poco menos y el azul un poco más (dispersión).

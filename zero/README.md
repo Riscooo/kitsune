@@ -37,7 +37,8 @@ la ventana a Zero y la devuelve, con las mismas pestañas. Diseño completo en
   Dos curvas (`--zero-calm` para forma y sitio, `--zero-soft` para opacidad y color) y los tiempos
   en variables, que «reducir movimiento» pone a cero.
 - El acabado mantiene la lámina plana y las píldoras y botones de su tamaño original. El canto de
-  la lámina concentra el reflejo nacarado en 22 px; su lente conserva una caída de 30 px, para que
+  la lámina tiene el filo blanco continuo de 2–3 px del boceto aprobado, con un halo nacarado que se
+  extingue en 22 px; su lente conserva una caída de 30 px, para que
   la refracción no termine en una franja. Las piezas comparten el relleno, el filo y la sombra corta
   (`--zero-glass-fill`, `--zero-glass-rim`, `--zero-glass-edge`): cristal sobre cristal, también en
   las pastillas de perfiles, modos, música y accesos. No añade capturas ni animaciones al cristal.

@@ -7,11 +7,11 @@ cualquier Linux: la dibuja Kitsune (WebGL), y no necesita ver lo de detrás.
 
 1. Al entrar en Zero, detrás de todo (la tarjeta y las piezas) hay una lámina que cubre la ventana; con la
    web ampliada no está, y al dejar de ampliar vuelve.
-2. Su filo es una película de pompa, sobre lo que haya detrás (un gris oscuro liso, solo para la foto): con
-   algo de color (irisada, no una raya blanca) pero contenida, como una pompa de verdad («menos notorio…
-   no luces de feria», Risco 15-10), que hace de borde: está en el filo (a 6 px hacia dentro ya ha caído a
-   menos de un tercio, «que hicieran de borde… más limpio») y no vuelve a subir; más adentro, nada (sin
-   velo). Con kitsune.zero.glass.strength = 0 no hay nada. Igual con el fondo de la web.
+2. Su filo sigue el boceto que Risco pide reproducir fielmente (15-10): blanco luminoso y continuo de
+   2–3 px, con un halo nacarado corto. Sobre un gris oscuro, los primeros dos píxeles se acercan al blanco;
+   a 6 px la luz ha caído a menos de un tercio y más adentro no queda velo. Se comprueban los cuatro
+   lados para que el borde no desaparezca a media altura. Con kitsune.zero.glass.strength = 0 no hay
+   nada. Igual con el fondo de la web.
 3. Quieta no se repinta (no cuesta nada mientras no cambie el tamaño o la fuerza).
 4. Ese filo hace de borde de la ventana, bien definido (Risco, 15-10: «que hicieran de borde»), y también de
    la tarjeta de la web: pegado a ella por fuera, en lugar de su línea blanca. Y las piezas (isla, raíl,
@@ -144,13 +144,24 @@ def main():
                 # El borde de la tarjeta: lo que añade la pompa justo fuera de ella.
                 card_add = max(sum(abs(a - b) for a, b in zip(r, o)) / 3 for r, o in zip(rim_card, off_card))
                 assert card_add >= 6, f'{mode}: la tarjeta no lleva el borde de pompa ({rim_card} / sin {off_card})'
-                assert 10 <= chroma <= 36 and 12 <= lift <= 26 and inner <= lift / 3 and rise <= 3 and clean, \
-                    f'{mode}: el filo no es una película de pompa que hace de borde (color {chroma}, luz {lift:.0f} en el filo y {inner:.0f} a 6 px, rebota {rise}, dentro {rim[40]} / sin {off[40]})'
+                # El velo del color de la web queda encima de la lámina: atenúa su blanco un 20 %.
+                # Incluso con él, el nuevo filo debe levantar al menos 150 niveles sobre el gris.
+                # El halo sí conserva color de película; el núcleo blanco se comprueba aparte debajo.
+                assert chroma <= 64 and 150 <= lift <= 213 and inner <= lift / 3 and rise <= 3 and clean, \
+                    f'{mode}: el filo no reproduce el boceto luminoso (color {chroma}, luz {lift:.0f} en el filo y {inner:.0f} a 6 px, rebota {rise}, dentro {rim[40]} / sin {off[40]})'
+                img = Image.open(evidence / f'pompa-{mode}.png').convert('RGB')
+                W, H, k = chrome('return [innerWidth, innerHeight, devicePixelRatio]')
+                # Puntos fuera de los botones y la tarjeta: un mismo filo en los cuatro lados.
+                # La sombra de contacto de la tarjeta atenúa más el canto inferior.
+                for name, x, y in [('izquierda', 1, H * .22), ('derecha', W - 2, H * .78),
+                                   ('arriba', W * .3, 1), ('abajo', W * .7, H - 2)]:
+                    pixel = img.getpixel((int(x * k), int(y * k)))
+                    assert min(pixel) >= 180 and max(pixel) - min(pixel) <= 36, f'{mode}: el filo se pierde en {name}: {pixel}'
         finally:
             chrome("Services.prefs.clearUserPref('kitsune.zero.glass.strength')")
             chrome("Services.prefs.setStringPref('kitsune.zero.backdrop', 'system')")
             chrome("window.windowUtils.removeSheetUsingURIString(arguments[0], window.windowUtils.AGENT_SHEET)", [dark])
-        check('El filo es una película de pompa: irisada, se funde hacia dentro y el centro queda limpio')
+        check('El filo blanco del boceto sigue los cuatro lados, cae hacia dentro y deja el centro limpio')
         ring = chrome("return getComputedStyle(document.querySelector('#tabbrowser-tabpanels > .deck-selected')).boxShadow")
         assert '0px 0px 0px 1px' not in ring, f'la tarjeta sigue con su línea blanca: {ring}'
         rims = chrome("""return ['nav-bar', 'zero-rail', 'zero-grow', 'zero-pomo'].map(id => document.getElementById(id)).filter(Boolean).map(el => {

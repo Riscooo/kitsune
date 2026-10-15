@@ -5,13 +5,14 @@
   /* Cristal sobre cristal: las piezas conservan su tamaño y sus botones circulares. El relieve está
      en el canto y en una sombra corta sobre la lámina; el centro deja pasar lo que hay detrás. Los
      reflejos son estáticos, compartidos también por las pastillas, sin fotos ni animaciones nuevas. */
-  --zero-glass-fill: radial-gradient(110% 90% at 18% 0%, rgba(255, 255, 255, .38), rgba(255, 255, 255, .14) 46%, rgba(255, 255, 255, .075) 78%),
-                     linear-gradient(180deg, rgba(18, 18, 24, .075), rgba(18, 18, 24, .14));
-  --zero-glass-edge: inset 0 1px .75px rgba(255, 255, 255, .78), inset 0 0 0 .5px rgba(255, 255, 255, .2),
-                     inset 0 -1px 1px rgba(0, 0, 0, .2), inset 0 -4px 8px -6px rgba(0, 0, 0, .32),
-                     0 2px 4px rgba(0, 0, 0, .22), 0 8px 22px rgba(0, 0, 0, .18), 0 0 0 .5px rgba(0, 0, 0, .16);
-  --zero-glass-rim: linear-gradient(135deg, rgba(255, 255, 255, .96) 0%, rgba(255, 255, 255, .38) 22%, rgba(255, 255, 255, .04) 48%,
-                                    rgba(255, 255, 255, .12) 64%, rgba(255, 255, 255, .86) 100%);
+  --zero-glass-fill: radial-gradient(110% 90% at 18% 0%, rgba(255, 255, 255, .5), rgba(255, 255, 255, .23) 46%, rgba(255, 255, 255, .16) 78%),
+                     linear-gradient(180deg, rgba(18, 18, 24, .025), rgba(18, 18, 24, .085));
+  --zero-glass-edge: inset 0 1.5px 1.25px rgba(255, 255, 255, .95), inset 0 0 0 .75px rgba(255, 255, 255, .45),
+                     inset 0 -1px 1.5px rgba(255, 255, 255, .32), inset 0 -4px 8px -6px rgba(0, 0, 0, .3),
+                     0 2px 4px rgba(0, 0, 0, .22), 0 6px 16px rgba(0, 0, 0, .16), 0 0 0 .5px rgba(0, 0, 0, .18);
+  --zero-glass-rim: linear-gradient(135deg, rgba(255, 255, 255, 1) 0%, rgba(255, 255, 255, .72) 22%, rgba(255, 255, 255, .5) 48%,
+                                    rgba(255, 255, 255, .62) 64%, rgba(255, 255, 255, 1) 100%);
+  --zero-glass-button: inset 0 1px .75px rgba(255, 255, 255, .5), inset 0 0 0 .5px rgba(255, 255, 255, .2), 0 1px 2px rgba(0, 0, 0, .14);
   --zero-glass-halo: 0 1px 2px rgba(0, 0, 0, .5), 0 0 12px rgba(0, 0, 0, .42);
   /* Curvas y tiempos de Zero: todo frena despacio, nada rebota ni salta. */
   --zero-calm: cubic-bezier(.32, .72, 0, 1);
@@ -36,14 +37,14 @@
   }
 }
 
-/* El anillo de luz del cristal: un borde de 1 px que se apaga a media altura (vivo arriba a la izquierda y
-   abajo a la derecha). Es un borde de verdad, no un anillo recortado con máscara: a escala 1 aquello se
+/* El anillo de luz del cristal: un filo continuo, más vivo arriba a la izquierda y abajo a la derecha.
+   Es un borde de verdad, no un anillo recortado con máscara: a escala 1 aquello se
    veía a píxeles (Risco, 15-10). */
 #main-window[zero] #nav-bar::after, #zero-rail::after, #zero-pomo::after, #zero-grow::after, #zero-settings::after {
   content: ""; position: absolute; inset: 0; box-sizing: border-box; border-radius: inherit; pointer-events: none;
   /* Con los colores de una pompa (Risco, 15-10: el filo de la pompa, de borde de todo), muy suaves: cada
      lado un tono y, en las esquinas, se mezclan. */
-  border: 1px solid; border-color: rgba(255, 222, 240, .95) rgba(204, 238, 255, .95) rgba(218, 255, 228, .9) rgba(255, 240, 206, .95);
+  border: 1.25px solid; border-color: rgba(255, 238, 247, .98) rgba(229, 246, 255, .98) rgba(237, 255, 242, .98) rgba(255, 248, 231, .98);
   mask-image: var(--zero-glass-rim);
 }
 
@@ -71,8 +72,8 @@
 #zero-pane[hidden] { display: none; }
 :root[zero][zero-backdrop="system"]:not([zero-full]) body { border-radius: 48px !important; }
 :root[zero][zero-backdrop="system"]:not([zero-full], [zero-pane]) body {
-  box-shadow: inset 0 0 3px 1px rgba(255, 255, 255, .06), inset 0 0 12px 2px rgba(255, 255, 255, .08),
-              inset 0 0 28px 4px rgba(255, 255, 255, .045) !important;
+  box-shadow: inset 0 0 1px 2px rgba(255, 255, 255, .9), inset 0 0 5px 3px rgba(255, 255, 255, .35),
+              inset 0 0 14px 3px rgba(228, 236, 255, .14) !important;
 }
 /* Los reflejos: un brillo suave en el canto, vivo en las esquinas y que se apaga a media altura. */
 :root[zero][zero-backdrop="system"]:not([zero-full], [zero-pane]) body::after {
@@ -610,7 +611,7 @@
 @keyframes zero-sweep { from { background-position: -80% 0; opacity: 1; } 85% { opacity: 1; } to { background-position: 180% 0; opacity: 0; } }
 #main-window[zero][zero-empty] #nav-bar {
   height: 44px !important; min-height: 44px !important; max-height: 44px !important; padding-inline: 6px !important;
-  box-shadow: var(--zero-glass-edge), 0 18px 48px rgba(0, 0, 0, .28) !important;
+  box-shadow: var(--zero-glass-edge), 0 6px 18px rgba(0, 0, 0, .14) !important;
 }
 #main-window[zero][zero-empty] #navigator-toolbox #urlbar > .urlbar-input-container {
   opacity: 1 !important; margin-inline: 0 !important; padding-inline-start: 32px !important; background-color: transparent !important;
@@ -747,7 +748,7 @@
 }
 #zero-dock > .zero-pill::after {
   content: ""; position: absolute; inset: 0; box-sizing: border-box; border-radius: inherit; pointer-events: none;
-  border: 1px solid; border-color: rgba(255, 222, 240, .95) rgba(204, 238, 255, .95) rgba(218, 255, 228, .9) rgba(255, 240, 206, .95);
+  border: 1.25px solid; border-color: rgba(255, 238, 247, .98) rgba(229, 246, 255, .98) rgba(237, 255, 242, .98) rgba(255, 248, 231, .98);
   mask-image: var(--zero-glass-rim);
 }
 /* La bolita de un perfil: su imagen, o su icono o su inicial sobre su tinta. */
@@ -771,7 +772,8 @@
 #zero-dock > #zero-mode { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 5px; }
 #zero-mode > button {
   appearance: none; box-sizing: border-box; width: 26px; height: 26px; min-width: 0; margin: 0; padding: 0; border: none; border-radius: 50%;
-  display: grid; place-items: center; cursor: pointer; color: #fff; background-color: transparent;
+  display: grid; place-items: center; cursor: pointer; color: #fff; background-color: rgba(255, 255, 255, .1);
+  box-shadow: var(--zero-glass-button);
   transition: background-color var(--zero-t-fade) var(--zero-soft), color var(--zero-t-fade) var(--zero-soft), scale 200ms var(--zero-calm);
 }
 #zero-mode > button::before {
@@ -803,7 +805,8 @@
 #zero-profile > .zero-profile-add {
   appearance: none; box-sizing: border-box; width: 22px; height: 22px; min-width: 0; margin: 0; padding: 0 0 2px; border: none; border-radius: 50%;
   display: grid; place-items: center; color: #fff; font: 400 16px/1 system-ui, sans-serif; cursor: pointer;
-  background: rgba(255, 255, 255, .14); opacity: .7;
+  background: rgba(255, 255, 255, .14); opacity: .85;
+  box-shadow: var(--zero-glass-button);
   transition: opacity var(--zero-t-fade) var(--zero-soft), background-color var(--zero-t-fade) var(--zero-soft), scale var(--zero-t-morph) var(--zero-calm);
 }
 #zero-profile > .zero-profile-add:hover { opacity: 1; background: rgba(255, 255, 255, .26); scale: 1.08; }
@@ -895,13 +898,13 @@
 }
 #zero-shortcuts .zero-fav img { width: 16px; height: 16px; }
 #zero-shortcuts .zero-shortcut:hover .zero-fav { transform: scale(1.12); }
-#zero-shortcuts .zero-shortcut-add .zero-fav { background: rgba(255, 255, 255, .14); color: #fff; font-size: 14px; font-weight: 500; box-shadow: none; }
+#zero-shortcuts .zero-shortcut-add .zero-fav { background: rgba(255, 255, 255, .14); color: #fff; font-size: 14px; font-weight: 500; box-shadow: var(--zero-glass-button); }
 #zero-shortcuts .zero-shortcut-add:hover .zero-fav { background: rgba(255, 255, 255, .24); }
 #zero-shortcuts[dropping] { box-shadow: inset 0 0 0 1.5px rgba(255, 255, 255, .8), 0 10px 30px rgba(0, 0, 0, .18); }
 /* La música: su botón (en su pastilla, encima de la de los accesos directos), la lista de servicios, el panel
    con el reproductor y el minipanel flotante, todo de cristal ahumado (se lee sobre cualquier fondo). */
 #zero-dock > #zero-music-pill { padding: 5px; }
-#zero-music-pill .zero-music .zero-fav { background: rgba(255, 255, 255, .14); box-shadow: none; transition: transform 200ms var(--zero-calm), background-color var(--zero-t-fade) var(--zero-soft); }
+#zero-music-pill .zero-music .zero-fav { background: rgba(255, 255, 255, .14); box-shadow: var(--zero-glass-button); transition: transform 200ms var(--zero-calm), background-color var(--zero-t-fade) var(--zero-soft); }
 #zero-music-pill .zero-music:hover .zero-fav { transform: scale(1.12); background-color: rgba(255, 255, 255, .24); }
 #zero-music-pill .zero-music .zero-fav::before {
   content: ""; width: 14px; height: 14px; background-color: #fff;
