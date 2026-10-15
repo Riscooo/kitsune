@@ -17,7 +17,8 @@
    color junto al icono; en la isla, un punto de su color antes del dominio, que con la isla abierta
    dice su nombre. La del usuario base no lleva nada.
 10. En una ventana privada, la isla lleva el antifaz de navegación privada delante del dominio (en Zero
-    no está la barra de pestañas, donde Gecko lo pone); en una normal, no.
+    no está la barra de pestañas, donde Gecko lo pone); en una normal, no. Con «solo iconos» y la música
+    sonando, todo cabe en la isla.
 
 --zero-del-repo: Zero sale de zero/ del repositorio (ver zero_harness.py).
 """
@@ -213,8 +214,22 @@ def main():
             eventually(lambda: (m := chrome(mask, [True])) and 'private' in m['image'] and m['w'] >= 12, timeout=5)
         except AssertionError:
             raise AssertionError(f'privada: {chrome(mask, [True])}') from None
+        # Con «solo iconos» y la música sonando, el antifaz y lo demás caben (la isla crece lo justo).
+        chrome("""Services.prefs.setBoolPref('kitsune.zero.islandIcons', true);
+            ChromeUtils.importESModule('chrome://browser/content/zero/zero-island.sys.mjs').nowPlaying(window.__privada, { playing: true, title: 'x', canNext: false, toggle() {}, next() {}, go() {} });""")
+        fits = """const w = window.__privada; const d = w.document; const n = d.getElementById('nav-bar').getBoundingClientRect(); const h = d.getElementById('zero-host');
+            const parts = [...h.children].filter(c => c.getBoundingClientRect().width > 0 && w.getComputedStyle(c).display !== 'none').map(c => { const r = c.getBoundingClientRect(); return [c.className, r.left, r.right]; });
+            const first = parts.length ? Math.min(...parts.map(p => p[1])) : 0; const mask = parseFloat(w.getComputedStyle(h, '::before').width) || 0;
+            const gap = parseFloat(w.getComputedStyle(h).columnGap) || 0;
+            return { island: [n.left, n.right], parts, maskLeft: first - gap - mask,
+                     ok: parts.length >= 2 && first - gap - mask >= n.left + 4 && parts.every(([, l, r]) => r <= n.right - 4) };"""
+        try:
+            eventually(lambda: chrome(fits)['ok'], timeout=5)
+        except AssertionError:
+            raise AssertionError(f'privada con solo iconos: {chrome(fits)}') from None
+        chrome("Services.prefs.setBoolPref('kitsune.zero.islandIcons', false)")
         chrome("window.__privada.close(); delete window.__privada;")
-        check('En una ventana privada, la isla lleva el antifaz delante del dominio')
+        check('En una ventana privada, la isla lleva el antifaz delante del dominio (y con «solo iconos», cabe)')
         report['status'] = 'passed'
     finally:
         if driver: driver.close()

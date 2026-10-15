@@ -28,6 +28,8 @@
     música) y con Intro hacen lo suyo (el candado abre la información de la web).
 17. En una ventana estrecha (una columna de niri), la isla no pisa los botones de ventana ni se sale:
     abierta, con un aviso o escribiendo, encoge para caber, centrada; las sugerencias, igual.
+18. Con «solo iconos», si además lleva el punto de un usuario y la onda de la música, la isla crece lo
+    justo para que quepan (no se recortan).
 
 --zero-del-repo: Zero sale de zero/ del repositorio (ver zero_harness.py).
 """
@@ -355,6 +357,21 @@ def main():
         driver.command('POST', '/window/rect', {'width': 1540, 'height': 1000})
         until(lambda: chrome("return innerWidth") == 1540 and sized(176), timeout=5)
         check('En una ventana estrecha la isla encoge para caber, centrada, sin pisar los botones de ventana')
+
+        chrome("""Services.prefs.setBoolPref('kitsune.zero.islandIcons', true);
+            const id = ContextualIdentityService.create('Dani', 'fingerprint', 'pink').userContextId;
+            window.__dani = gBrowser.selectedTab = gBrowser.addTab(arguments[0], { userContextId: id, triggeringPrincipal: Services.scriptSecurityManager.getSystemPrincipal() });""", [origin + '/kioto'])
+        chrome("ChromeUtils.importESModule('chrome://browser/content/zero/zero-island.sys.mjs').nowPlaying(window, { playing: true, title: 'Kitsune no yomeiri', canNext: false, toggle() {}, next() {}, go() {} })")
+        inside = """const n = document.getElementById('nav-bar').getBoundingClientRect(); const h = document.getElementById('zero-host');
+            const parts = [...h.children].filter(c => c.getBoundingClientRect().width > 0 && getComputedStyle(c).display !== 'none').map(c => { const r = c.getBoundingClientRect(); return [c.className, r.left, r.right]; });
+            return { island: [n.left, n.right], parts, ok: parts.length >= 3 && parts.every(([, l, r]) => l >= n.left + 4 && r <= n.right - 4) };"""
+        try:
+            until(lambda: chrome(inside)['ok'], timeout=5)
+        except AssertionError:
+            raise AssertionError(f'solo iconos con usuario y música: {chrome(inside)}') from None
+        chrome("ChromeUtils.importESModule('chrome://browser/content/zero/zero-island.sys.mjs').nowPlaying(window, null); gBrowser.removeTab(window.__dani); delete window.__dani; Services.prefs.setBoolPref('kitsune.zero.islandIcons', false);")
+        until(lambda: sized(176), timeout=5)
+        check('Con «solo iconos», el punto del usuario y la onda de la música caben (la isla crece lo justo)')
 
         chrome("ChromeUtils.importESModule('chrome://browser/content/zero/zero-island.sys.mjs').alert(window, 'Tres avisos esperando', 'te los enseño en el descanso', 1500, 'quiet')")
         until(lambda: sized(470) and clear_of_card(), timeout=5)
