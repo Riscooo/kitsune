@@ -1,0 +1,346 @@
+From 7bd5bf738f0e481123b7651079ba50a2ddffe02e Mon Sep 17 00:00:00 2001
+From: Risco <elminirsk@gmail.com>
+Date: Thu, 15 Oct 2026 14:01:26 +0200
+Subject: [PATCH] =?UTF-8?q?Refracci=C3=B3n=20en=20el=20canto=20de=20las=20?=
+ =?UTF-8?q?ventanas=20con=20background-effect=20(refraction-width,=20refra?=
+ =?UTF-8?q?ction-depth)?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Para Kitsune Zero: como un vidrio de canto redondo, el fondo (xray) se lee desplazado en el canto
+(perfil de superelipse, Snell n≈1,5 con algo de dispersión por color).
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ niri-config/src/appearance.rs                 | 19 ++++
+ niri-config/src/lib.rs                        |  8 ++
+ src/render_helpers/background_effect.rs       |  9 ++
+ src/render_helpers/framebuffer_effect.rs      |  3 +-
+ src/render_helpers/shaders/mod.rs             |  3 +-
+ .../shaders/refract_and_clip.frag             | 94 +++++++++++++++++++
+ src/render_helpers/xray.rs                    |  8 +-
+ 7 files changed, 141 insertions(+), 3 deletions(-)
+ create mode 100644 src/render_helpers/shaders/refract_and_clip.frag
+
+diff --git a/niri-config/src/appearance.rs b/niri-config/src/appearance.rs
+index a1c83271..bcc54a38 100644
+--- a/niri-config/src/appearance.rs
++++ b/niri-config/src/appearance.rs
+@@ -1065,6 +1065,12 @@ pub struct BackgroundEffectRule {
+     pub noise: Option<FloatOrInt<0, 1000>>,
+     #[knuffel(child, unwrap(argument))]
+     pub saturation: Option<FloatOrInt<0, 1000>>,
++    /// Width of the rounded glass edge that refracts the backdrop, in logical pixels.
++    #[knuffel(child, unwrap(argument))]
++    pub refraction_width: Option<FloatOrInt<0, 1000>>,
++    /// Thickness of that glass (how far the backdrop is displaced), in logical pixels.
++    #[knuffel(child, unwrap(argument))]
++    pub refraction_depth: Option<FloatOrInt<0, 1000>>,
+ }
+ 
+ /// Resolved background effect rule.
+@@ -1087,6 +1093,11 @@ pub struct BackgroundEffect {
+ 
+     pub noise: Option<f64>,
+     pub saturation: Option<f64>,
++
++    /// Refraction of the backdrop at the edges, like a pane of glass with a rounded edge: width of
++    /// the edge and depth of the glass, in logical pixels. Implies xray.
++    pub refraction_width: Option<f64>,
++    pub refraction_depth: Option<f64>,
+ }
+ 
+ impl MergeWith<BackgroundEffectRule> for BackgroundEffect {
+@@ -1100,6 +1111,14 @@ impl MergeWith<BackgroundEffectRule> for BackgroundEffect {
+         if let Some(x) = part.saturation {
+             self.saturation = Some(x.0);
+         }
++
++        if let Some(x) = part.refraction_width {
++            self.refraction_width = Some(x.0);
++        }
++
++        if let Some(x) = part.refraction_depth {
++            self.refraction_depth = Some(x.0);
++        }
+     }
+ }
+ 
+diff --git a/niri-config/src/lib.rs b/niri-config/src/lib.rs
+index 329b7669..86b13154 100644
+--- a/niri-config/src/lib.rs
++++ b/niri-config/src/lib.rs
+@@ -1877,6 +1877,8 @@ mod tests {
+                         blur: None,
+                         noise: None,
+                         saturation: None,
++                        refraction_width: None,
++                        refraction_depth: None,
+                     },
+                     popups: PopupsRule {
+                         opacity: None,
+@@ -1886,6 +1888,8 @@ mod tests {
+                             blur: None,
+                             noise: None,
+                             saturation: None,
++                            refraction_width: None,
++                            refraction_depth: None,
+                         },
+                     },
+                 },
+@@ -1928,6 +1932,8 @@ mod tests {
+                         blur: None,
+                         noise: None,
+                         saturation: None,
++                        refraction_width: None,
++                        refraction_depth: None,
+                     },
+                     popups: PopupsRule {
+                         opacity: None,
+@@ -1937,6 +1943,8 @@ mod tests {
+                             blur: None,
+                             noise: None,
+                             saturation: None,
++                            refraction_width: None,
++                            refraction_depth: None,
+                         },
+                     },
+                 },
+diff --git a/src/render_helpers/background_effect.rs b/src/render_helpers/background_effect.rs
+index d148b6c1..37cabfe0 100644
+--- a/src/render_helpers/background_effect.rs
++++ b/src/render_helpers/background_effect.rs
+@@ -36,11 +36,14 @@ pub struct Options {
+     pub xray: bool,
+     pub noise: Option<f64>,
+     pub saturation: Option<f64>,
++    /// Width and depth of the refracting glass edge (0 = none).
++    pub refraction: [f32; 2],
+ }
+ 
+ impl Options {
+     fn is_visible(&self) -> bool {
+         self.xray
++            || self.refraction[0] > 0.
+             || self.blur
+             || self.noise.is_some_and(|x| x > 0.)
+             || self.saturation.is_some_and(|x| x != 1.)
+@@ -121,11 +124,16 @@ impl BackgroundEffect {
+             effect.blur == Some(true)
+         };
+ 
++        let refraction = [
++            effect.refraction_width.unwrap_or(0.) as f32,
++            effect.refraction_depth.unwrap_or(0.) as f32,
++        ];
+         let mut options = Options {
+             blur,
+             xray: effect.xray == Some(true),
+             noise: effect.noise,
+             saturation: effect.saturation,
++            refraction,
+         };
+ 
+         // If we have some background effect but xray wasn't explicitly set, default it to true
+@@ -193,6 +201,7 @@ impl BackgroundEffect {
+                 blur,
+                 noise,
+                 saturation,
++                self.options.refraction,
+                 &mut |elem| push(elem.into()),
+             );
+         } else {
+diff --git a/src/render_helpers/framebuffer_effect.rs b/src/render_helpers/framebuffer_effect.rs
+index 4dc529db..82ac28f5 100644
+--- a/src/render_helpers/framebuffer_effect.rs
++++ b/src/render_helpers/framebuffer_effect.rs
+@@ -98,7 +98,7 @@ impl FramebufferEffectElement {
+         &self,
+         crop: Rectangle<f64, Logical>,
+         transform: Transform,
+-    ) -> [Uniform<'static>; 7] {
++    ) -> [Uniform<'static>; 8] {
+         let offset = crop.loc - (self.clip_geo.loc - self.geometry.loc);
+         let offset = Vec2::new(offset.x as f32, offset.y as f32);
+         let crop_size = Vec2::new(crop.size.w as f32, crop.size.h as f32);
+@@ -124,6 +124,7 @@ impl FramebufferEffectElement {
+             Uniform::new("noise", self.noise),
+             Uniform::new("saturation", self.saturation),
+             Uniform::new("bg_color", [0f32, 0., 0., 0.]),
++            Uniform::new("refraction", [0f32, 0.]),
+         ]
+     }
+ }
+diff --git a/src/render_helpers/shaders/mod.rs b/src/render_helpers/shaders/mod.rs
+index 7be9b159..ad03416c 100644
+--- a/src/render_helpers/shaders/mod.rs
++++ b/src/render_helpers/shaders/mod.rs
+@@ -107,7 +107,7 @@ impl Shaders {
+         let postprocess_and_clip = renderer
+             .compile_custom_texture_shader(
+                 concat!(
+-                    include_str!("clipped_surface.frag"),
++                    include_str!("refract_and_clip.frag"),
+                     include_str!("rounding_alpha.frag"),
+                     include_str!("postprocess.frag"),
+                 ),
+@@ -119,6 +119,7 @@ impl Shaders {
+                     UniformName::new("noise", UniformType::_1f),
+                     UniformName::new("saturation", UniformType::_1f),
+                     UniformName::new("bg_color", UniformType::_4f),
++                    UniformName::new("refraction", UniformType::_2f),
+                 ],
+             )
+             .map_err(|err| {
+diff --git a/src/render_helpers/shaders/refract_and_clip.frag b/src/render_helpers/shaders/refract_and_clip.frag
+new file mode 100644
+index 00000000..09bdad47
+--- /dev/null
++++ b/src/render_helpers/shaders/refract_and_clip.frag
+@@ -0,0 +1,94 @@
++#version 100
++
++//_DEFINES_
++
++#if defined(EXTERNAL)
++#extension GL_OES_EGL_image_external : require
++#endif
++
++precision highp float;
++#if defined(EXTERNAL)
++uniform samplerExternalOES tex;
++#else
++uniform sampler2D tex;
++#endif
++
++uniform float alpha;
++varying vec2 v_coords;
++
++#if defined(DEBUG_FLAGS)
++uniform float tint;
++#endif
++
++uniform float niri_scale;
++
++uniform vec2 geo_size;
++uniform vec4 corner_radius;
++uniform mat3 input_to_geo;
++
++// Refraction at the edges, like a pane of glass with a rounded edge: x = width of the edge, y = depth
++// of the glass, both in logical pixels (0 = none). The edge profile is a superellipse (1 - u^3)^(1/3):
++// it starts almost flat and curves at the end, so the bend fades in without a visible line. The view
++// goes straight down, refracts at the surface (Snell, n ~ 1.5, a little different per color) and
++// travels `depth` to the backdrop.
++uniform vec2 refraction;
++
++float niri_rounding_alpha(vec2 coords, vec2 size, vec4 corner_radius);
++vec4 postprocess(vec4 color);
++
++vec2 refracted(vec3 N, float eta, vec2 to_tex) {
++    vec3 T = refract(vec3(0.0, 0.0, -1.0), N, eta);
++    return T.xy / abs(T.z) * refraction.y / geo_size * to_tex;
++}
++
++void main() {
++    vec3 coords_geo = input_to_geo * vec3(v_coords, 1.0);
++
++    vec4 color;
++    if (refraction.x > 0.0 && refraction.y > 0.0) {
++        vec2 p = coords_geo.xy * geo_size;
++        float r = max(max(corner_radius.x, corner_radius.y), max(corner_radius.z, corner_radius.w));
++        // Follow corners at least as round as the edge is wide, so the bend turns smoothly.
++        float rf = max(r, refraction.x);
++        vec2 c = geo_size * 0.5;
++        vec2 q = abs(p - c) - (c - rf);
++        vec2 o = max(q, 0.0);
++        float len = length(o);
++        vec2 axis = q.x >= q.y ? vec2(1.0, 0.0) : vec2(0.0, 1.0);
++        vec2 n = (len > 0.0 ? o / len : axis) * sign(p - c);
++        float d = rf - (len + min(max(q.x, q.y), 0.0));
++        float u = clamp(1.0 - d / refraction.x, 0.0, 0.999);
++        float slope = min(u * u * pow(1.0 - u * u * u, -2.0 / 3.0), 4.0);
++        vec3 N = normalize(vec3(n * slope, 1.0));
++        // From geometry-normalized offsets to texture coordinates.
++        vec2 to_tex = vec2(1.0 / input_to_geo[0][0], 1.0 / input_to_geo[1][1]);
++        vec4 g = texture2D(tex, v_coords + refracted(N, 1.0 / 1.50, to_tex));
++        color = vec4(texture2D(tex, v_coords + refracted(N, 1.0 / 1.475, to_tex)).r, g.g,
++                     texture2D(tex, v_coords + refracted(N, 1.0 / 1.525, to_tex)).b, g.a);
++    } else {
++        color = texture2D(tex, v_coords);
++    }
++#if defined(NO_ALPHA)
++    color = vec4(color.rgb, 1.0);
++#endif
++
++    color = postprocess(color);
++
++    if (coords_geo.x < 0.0 || 1.0 < coords_geo.x || coords_geo.y < 0.0 || 1.0 < coords_geo.y) {
++        // Clip outside geometry.
++        color = vec4(0.0);
++    } else {
++        // Apply corner rounding inside geometry.
++        color = color * niri_rounding_alpha(coords_geo.xy * geo_size, geo_size, corner_radius);
++    }
++
++    // Apply final alpha and tint.
++    color = color * alpha;
++
++#if defined(DEBUG_FLAGS)
++    if (tint == 1.0)
++        color = vec4(0.0, 0.2, 0.0, 0.2) + color * 0.8;
++#endif
++
++    gl_FragColor = color;
++}
+diff --git a/src/render_helpers/xray.rs b/src/render_helpers/xray.rs
+index f4b4f861..50da93ee 100644
+--- a/src/render_helpers/xray.rs
++++ b/src/render_helpers/xray.rs
+@@ -80,6 +80,8 @@ pub struct XrayElement {
+     noise: f32,
+     saturation: f32,
+     bg_color: Color32F,
++    /// Width and depth of the refracting glass edge, in logical pixels (0 = none).
++    refraction: [f32; 2],
+     program: Option<GlesTexProgram>,
+ }
+ 
+@@ -102,6 +104,7 @@ impl Xray {
+         blur: bool,
+         noise: f32,
+         saturation: f32,
++        refraction: [f32; 2],
+         push: &mut dyn FnMut(XrayElement),
+     ) {
+         let program = Shaders::get(ctx.renderer).postprocess_and_clip.clone();
+@@ -201,6 +204,7 @@ impl Xray {
+                     noise,
+                     saturation,
+                     bg_color: *bg_color,
++                    refraction,
+                     program: program.clone(),
+                 };
+                 push(elem);
+@@ -251,6 +255,7 @@ impl Xray {
+                 noise,
+                 saturation,
+                 bg_color: self.backdrop_color,
++                refraction,
+                 program: program.clone(),
+             };
+             push(elem);
+@@ -259,8 +264,9 @@ impl Xray {
+ }
+ 
+ impl XrayElement {
+-    fn compute_uniforms(&self) -> [Uniform<'static>; 7] {
++    fn compute_uniforms(&self) -> [Uniform<'static>; 8] {
+         [
++            Uniform::new("refraction", self.refraction),
+             Uniform::new("niri_scale", self.scale),
+             Uniform::new("geo_size", <[f32; 2]>::from(self.clip_geo_size)),
+             Uniform::new("corner_radius", <[f32; 4]>::from(self.corner_radius)),
+-- 
+2.55.0
+

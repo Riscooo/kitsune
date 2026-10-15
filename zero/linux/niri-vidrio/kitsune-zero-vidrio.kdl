@@ -1,0 +1,12 @@
+// Kitsune Zero: la refracción del escritorio en el canto de su ventana, como un vidrio de canto redondo
+// (decisión de Risco, 15-10). Solo con el niri parcheado (niri-vidrio): lo incluye y lo quita su
+// servicio al empezar y al cerrar la sesión, para que el niri de siempre no vea opciones que no entiende.
+// Fuera de Zero la ventana de Kitsune es opaca, así que esto no se nota.
+window-rule {
+    match app-id="^kitsune(-browser|-p-[0-9a-f]+)?$"
+    background-effect {
+        xray true
+        refraction-width 34
+        refraction-depth 70
+    }
+}
