@@ -1,7 +1,7 @@
 """Kitsune Zero · la marca de agua y los ajustes, en el motor real (perfil temporal, sin ventana en pantalla).
 
-1. La marca está abajo a la izquierda (a 13 px y 16 px de los bordes) y se ve: con el sistema en oscuro, en
-   blanco y con opacidad 0,62; en claro (el marco pasa a tinta), en tinta a 0,5.
+1. La marca está abajo a la izquierda (a 13 px y 16 px de los bordes) y se ve: con el fondo del sistema
+   (Zero transparente), blanca, sin disco y a 0,92, con el sistema en oscuro y en claro.
 2. Un clic abre los ajustes (#zero-settings), que brotan de la marca; se cierran con un clic fuera o con Esc.
 3. «Ventanas nuevas» (como esta / en Zero / normales) cambia kitsune.zero.inherit y kitsune.zero.always,
    y «Fondo» (del sistema / de la web) cambia kitsune.zero.backdrop y el aspecto al momento. «Pestañas» (con texto / solo
@@ -120,12 +120,12 @@ def main():
         pointer([{'type': 'pointerMove', 'origin': 'viewport', 'x': 800, 'y': 400}])
 
         until(lambda: (m := mark())['mark'] is not None and abs(m['mark']['x'] - 13) <= 1 and abs(m['H'] - m['mark']['bottom'] - 16) <= 1
-              and m['color'] == 'rgb(255, 255, 255)' and abs(m['opacity'] - 0.62) < 0.01)
+              and m['color'] == 'rgb(255, 255, 255)' and abs(m['opacity'] - 0.92) < 0.01)
         # Con el sistema en claro (y el cristal del sistema), el marco pasa a tinta y la marca también.
         chrome("Services.prefs.setIntPref('ui.systemUsesDarkTheme', 0)")
-        until(lambda: (m := mark())['color'] == 'rgb(29, 35, 33)' and abs(m['opacity'] - 0.5) < 0.01)
+        until(lambda: (m := mark())['color'] == 'rgb(255, 255, 255)' and abs(m['opacity'] - 0.92) < 0.01)
         chrome("Services.prefs.clearUserPref('ui.systemUsesDarkTheme')")
-        check('La marca está abajo a la izquierda y se ve: blanca a 0,62 con el sistema en oscuro, en tinta a 0,5 en claro')
+        check('La marca está abajo a la izquierda y se ve: blanca a 0,92 con el fondo del sistema, en oscuro y en claro')
 
         click('#zero-mark')
         until(lambda: mark()['open'] and mark()['panelOpacity'] == 1)

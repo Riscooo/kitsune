@@ -14,7 +14,7 @@ El tiempo se adelanta con el reloj del módulo (clock.now), para no esperar 25 m
 7. Al acabar el descanso, la isla dice «¿Seguimos?» y el anillo espera a que se pulse.
 8. Descanso estricto: un cristal tapa la web (no la isla ni el raíl) con la guía y el tiempo; soltar
    «Mantén para saltar» antes de tiempo no salta y mantenerlo 1,5 s sí.
-9. Con la web ampliada el anillo se guarda: el tirador hace de barra de progreso.
+9. Con la web ampliada el anillo no está (decisión de Risco, 15-10); el tiempo sigue y vuelve al salir.
 10. Apagarlo quita todo.
 11. Un clic en el texto del tiempo no pausa (solo el anillo empieza o pausa), y con el teclado el
     anillo se abre igual que con el ratón.
@@ -212,10 +212,10 @@ def main():
         until(lambda: state()['pomo']['running'])
         forward(5 * MIN)  # con algo de progreso que enseñar
         chrome("document.querySelector('#zero-grow button[data-action=full]').click()")
-        until(lambda: state()['full'] and not state()['pomo']['seen'] and state()['notch']['seen'] and state()['notch']['fill'] not in ('auto', '0px'))
+        until(lambda: state()['full'] and not state()['pomo']['seen'] and state()['pomo']['box']['w'] == 0)
         chrome("document.querySelector('#zero-grow button[data-action=full]').click()")
-        until(lambda: not state()['full'] and state()['pomo']['seen'])
-        check('Con la web ampliada el anillo se guarda y el tirador hace de barra de progreso')
+        until(lambda: not state()['full'] and state()['pomo']['seen'] and state()['pomo']['running'])
+        check('Con la web ampliada el anillo no está; el tiempo sigue y vuelve al salir')
 
         pointer([{'type': 'pointerMove', 'origin': element('#zero-pomo'), 'x': 0, 'y': 0}])
         until(lambda: state()['pomo']['labelSeen'])

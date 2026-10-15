@@ -118,6 +118,9 @@ def main():
         chrome("document.getElementById('kitsune-zero-key').doCommand()")
         until(lambda: glass()['canvas'] is not None)
         chrome("document.querySelector('#zero-grow button[data-action=full]').click()")
+        # Con la web ampliada la isla se esconde (sale con el puntero arriba o al escribir): escribiendo, se
+        # queda a la vista sobre la web.
+        chrome("gURLBar.focus()")
         until(lambda: (g := glass())['full'] and placed(g) and g['light'] is not None and g['light'] < 0.25 and not g['ink'])
         check('Con la web ampliada y la página negra arriba, el cristal de la isla está en su sitio y es oscuro')
 
