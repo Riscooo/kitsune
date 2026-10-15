@@ -23,12 +23,13 @@ export const PREFS = Object.freeze({
   soundsPause: 'sounds.pauseInBreak', // callarse en los descansos del pomodoro
   welcomed: 'welcomed',               // ya se dijo una vez cómo volver de Zero
   railIcons: 'railIcons',             // el raíl con solo iconos (sin ensancharse ni títulos)
+  hints: 'hints',                     // la «i» de ayuda junto a las opciones de los ajustes
 });
 
 export const DEFAULTS = Object.freeze({ always: false, inherit: true, backdrop: 'auto', islandIcons: false,
   pomodoro: false, pomodoroPreset: '25', pomodoroBreak: 'soft', pomodoroGuide: 'breathe', pomodoroState: '',
   silence: false, silenceNotify: true, silenceBlock: true, silenceBlocked: '', silenceOnlyWork: false, silenceScroll: true,
-  sounds: false, soundsLevels: '{"lluvia":0.5}', soundsPause: true, welcomed: false, railIcons: false });
+  sounds: false, soundsLevels: '{"lluvia":0.5}', soundsPause: true, welcomed: false, railIcons: false, hints: true });
 
 export const prefName = (prefix, key) => `${prefix}${key}`;
 

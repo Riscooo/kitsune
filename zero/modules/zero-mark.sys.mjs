@@ -75,12 +75,22 @@ function zeroSection(win, host) {
         set: value => prefs.setBoolPref(prefName(prefix, PREFS.railIcons), value === 'icons'),
         watch: watchPref(PREFS.railIcons),
       },
+      {
+        // Quien ya sabe qué hace cada cosa no necesita la «i».
+        kind: 'switch', id: PREFS.hints,
+        label: host.t('La «i» de ayuda', 'The help «i»'),
+        get: () => { try { return prefs.getBoolPref(prefName(prefix, PREFS.hints), true); } catch { return true; } },
+        set: on => prefs.setBoolPref(prefName(prefix, PREFS.hints), !!on),
+        watch: watchPref(PREFS.hints),
+      },
     ],
   };
 }
 
 function rowNode(doc, row, undo) {
-  const text = el(doc, 'span', { class: 'zero-row-text' }, [row.label, ...(row.detail ? [el(doc, 'small', {}, [row.detail])] : [])]);
+  // Sin texto debajo: la explicación, en una «i» junto al nombre (sale al pasar el ratón; ver attach).
+  const info = row.detail ? [el(doc, 'span', { class: 'zero-info', role: 'img', tabindex: '0', 'aria-label': row.detail })] : [];
+  const text = el(doc, 'span', { class: 'zero-row-text' }, [row.label, ...info]);
   let control, sync;
   if (row.kind === 'switch') {
     control = el(doc, 'button', { type: 'button', class: 'zero-switch', role: 'switch', 'data-pref': row.id, 'aria-label': row.label });
@@ -216,6 +226,7 @@ function setOpen(win, st, open) {
   st.mark.toggleAttribute('open', open);
   st.mark.setAttribute('aria-expanded', String(open));
   if (open) placeThumbs(st.rows);
+  else st.tip?.removeAttribute('shown');
 }
 
 export function attach(win, ctx) {
@@ -235,6 +246,30 @@ export function attach(win, ctx) {
   doc.body.append(st.mark, st.panel);
   st.cleanups.push(() => { st.mark.remove(); st.panel.remove(); });
   renderRows(win, st);
+
+  // La explicación de cada «i», en una etiqueta de cristal junto a ella; y quitarlas todas.
+  st.tip = el(doc, 'div', { id: 'zero-settings-tip', 'aria-hidden': 'true' });
+  doc.body.append(st.tip);
+  st.cleanups.push(() => st.tip.remove());
+  const showTip = target => {
+    const info = target?.closest?.('.zero-info');
+    if (!info) { st.tip.removeAttribute('shown'); return; }
+    // Fuera del panel, a su derecha (dentro taparía los botones de la fila).
+    const r = info.getBoundingClientRect(), panel = st.panel.getBoundingClientRect();
+    st.tip.textContent = info.getAttribute('aria-label');
+    st.tip.style.left = `${panel.right + 10}px`;
+    st.tip.style.top = `${r.top + r.height / 2}px`;
+    st.tip.setAttribute('shown', '');
+  };
+  for (const type of ['mouseover', 'focusin']) st.panel.addEventListener(type, event => showTip(event.target));
+  st.panel.addEventListener('mouseout', event => { if (!event.relatedTarget?.closest?.('.zero-info')) showTip(null); });
+  st.panel.addEventListener('focusout', () => showTip(null));
+  const hintsPref = prefName(host.prefix, PREFS.hints);
+  const hints = () => { let on = true; try { on = host.prefs.getBoolPref(hintsPref, true); } catch { /* de serie */ } st.panel.toggleAttribute('no-hints', !on); if (!on) showTip(null); };
+  const hintsObserver = { observe: hints };
+  host.prefs.addObserver(hintsPref, hintsObserver);
+  st.cleanups.push(() => host.prefs.removeObserver(hintsPref, hintsObserver));
+  hints();
 
   st.mark.addEventListener('click', () => setOpen(win, st, !st.panel.hasAttribute('open')));
   // Un clic fuera (también sobre la web) o Esc lo cierran.

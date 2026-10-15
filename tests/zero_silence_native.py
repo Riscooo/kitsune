@@ -112,7 +112,9 @@ def main():
         until(lambda: any(r.startswith('Silencio') for r in state()['rows']) and chrome("return getComputedStyle(document.getElementById('zero-settings')).opacity") == '1')
         rows = state()['rows']
         silence = next(r for r in rows if r.startswith('Silencio'))
-        assert 'Kitsune' in silence and not any(r.startswith(('Avisos', 'Webs vetadas', 'Solo currar', 'Aviso de scroll')) for r in rows), rows
+        # Su explicación (que lo de las cookies y el autoplay ya lo hace Kitsune) va en su «i».
+        why = chrome("return document.querySelector('#zero-settings [data-pref=silence]').closest('.zero-row').querySelector('.zero-info')?.getAttribute('aria-label') ?? ''")
+        assert silence.startswith('Silencio') and 'Kitsune' in why and not any(r.startswith(('Avisos', 'Webs vetadas', 'Solo currar', 'Aviso de scroll')) for r in rows), rows
         check('Apagado de serie: solo el interruptor «Silencio», con lo que ya hace Kitsune')
 
         click('#zero-settings [data-pref="silence"]')

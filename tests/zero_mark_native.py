@@ -8,6 +8,8 @@
    iconos, el raíl) cambia kitsune.zero.railIcons; la isla de arriba no tiene esa opción.
 4. No salen filas de fases sin hacer (pomodoro, silencio, sonidos…).
 5. Con la web ampliada la marca se aparta, y vuelve al acercarse al borde izquierdo.
+7. Sin textos descriptivos bajo las opciones: las que lo tienen llevan una «i» que, con el ratón encima,
+   lo dice en una etiqueta junto a ella; la fila «La i de ayuda» las quita todas (y las vuelve a poner).
 6. Los ajustes no repiten el atajo en la cabecera. Nada pasa de golpe: al encender una opción, sus filas
    entran con una animación (y al apagarla se van igual); el interruptor que se pulsa es el mismo (no se
    rehace) y su bolita recorre el camino; en un segmento, la pastilla de la elegida se desliza hasta ella.
@@ -155,7 +157,7 @@ def main():
         rows = mark()['rows']
         # Las de Zero (ventanas nuevas, fondo, isla) y los interruptores del pomodoro, el silencio y los
         # sonidos, apagados: sin sus opciones.
-        assert len(rows) == 6 and [r.split(' ')[0][:8] for r in rows[3:]] == ['Pomodoro', 'Silencio', 'SonidosG'], rows
+        assert len(rows) == 7 and [r.split(' ')[0][:8] for r in rows[4:]] == ['Pomodoro', 'Silencio', 'Sonidos'], rows
         assert not any(word in ' '.join(rows) for word in ('Tiempos', 'Webs vetadas', 'Aviso de scroll', 'Lluvia')), rows
         assert chrome("return !document.querySelector('#zero-settings [data-pref=islandIcons]')"), 'la isla de arriba no lleva «solo iconos»'
         click('#zero-settings [data-pref="railIcons"] [data-value="icons"]')
@@ -202,9 +204,35 @@ def main():
               const animated = leaving.filter(r => r.getAnimations().some(a => a.playState === 'running')).length;
               setTimeout(() => done({ before, leaving: leaving.length, animated, after: document.querySelectorAll('#zero-settings .zero-row').length, live: count() }), 800);
             }, 60);""", [], asynchronous=True)
-        assert gone['leaving'] >= 2 and gone['animated'] == gone['leaving'] and gone['after'] == gone['live'] == 6, gone
+        assert gone['leaving'] >= 2 and gone['animated'] == gone['leaving'] and gone['after'] == gone['live'] == 7, gone
         chrome("Services.prefs.clearUserPref('kitsune.zero.pomodoro.preset')")
         check('Sin el atajo en la cabecera; las filas entran y se van con animación, el interruptor y el segmento se deslizan')
+
+        chrome("Services.prefs.setBoolPref('kitsune.zero.pomodoro', true)")
+        until(lambda: chrome("return !!document.querySelector('#zero-settings [data-pref=\"pomodoro.preset\"]')"), timeout=5)
+        # Con las filas ya quietas (entran con una animación).
+        until(lambda: chrome("return document.querySelectorAll('#zero-settings .zero-row').length && [...document.querySelectorAll('#zero-settings .zero-row')].every(r => !r.getAnimations().length)"), timeout=5)
+        hints = """const panel = document.getElementById('zero-settings');
+            const smalls = [...panel.querySelectorAll('.zero-row-text small')].filter(n => n.getBoundingClientRect().height > 0).length;
+            const infos = [...panel.querySelectorAll('.zero-info')].filter(n => n.getBoundingClientRect().width > 0);
+            const tip = document.getElementById('zero-settings-tip');
+            return { smalls, infos: infos.length, tip: tip && { text: tip.textContent, shown: Number(getComputedStyle(tip).opacity) > 0.9 } };"""
+        h = chrome(hints)
+        assert h['smalls'] == 0 and h['infos'] >= 2, h
+        detail = chrome("return document.querySelector('#zero-settings [data-pref=pomodoro]').closest('.zero-row').querySelector('.zero-info').getAttribute('aria-label')")
+        assert detail, 'la i del pomodoro dice algo'
+        driver.context('chrome')
+        info = driver.command('POST', '/element', {'using': 'css selector', 'value': '#zero-settings .zero-row:has([data-pref=pomodoro]) .zero-info'})
+        pointer([{'type': 'pointerMove', 'origin': info, 'x': 0, 'y': 0}])
+        until(lambda: (t := chrome(hints)['tip']) and t['shown'] and t['text'] == detail, timeout=5)
+        pointer([{'type': 'pointerMove', 'origin': 'viewport', 'x': 1200, 'y': 400}])
+        until(lambda: not chrome(hints)['tip']['shown'], timeout=5)
+        click('#zero-settings [data-pref="hints"]')
+        until(lambda: chrome(hints)['infos'] == 0 and chrome("return Services.prefs.getBoolPref('kitsune.zero.hints', true)") is False, timeout=5)
+        click('#zero-settings [data-pref="hints"]')
+        until(lambda: chrome(hints)['infos'] >= 2, timeout=5)
+        chrome("Services.prefs.clearUserPref('kitsune.zero.hints'); Services.prefs.clearUserPref('kitsune.zero.pomodoro')")
+        check('Sin textos bajo las opciones: una «i» con la explicación al pasar el ratón, que se puede quitar')
         keys('')
         until(lambda: not mark()['open'])
 

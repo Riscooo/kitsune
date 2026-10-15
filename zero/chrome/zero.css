@@ -618,7 +618,7 @@
   padding: 4px 10px; border-radius: 999px; pointer-events: none;
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
   color: #1d2321; font: 500 12px system-ui, sans-serif;
-  background: rgba(246, 245, 241, .82); backdrop-filter: blur(18px) saturate(1.6);
+  background: rgba(246, 245, 241, .97);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, .95), 0 8px 24px rgba(0, 0, 0, .16);
   opacity: 0;
   transition: opacity 180ms var(--zero-soft), transform 260ms var(--zero-calm), top 160ms var(--zero-calm);
@@ -821,7 +821,29 @@
 /* El texto pide su sitio; si con el segmento no cabe, el segmento baja a su línea, a la derecha. */
 #zero-settings .zero-row-text { flex: 1 1 160px; min-width: 0; }
 #zero-settings .zero-row > :is(.zero-segment, .zero-switch) { margin-inline-start: auto; }
-#zero-settings .zero-row-text small { display: block; margin-top: 1px; color: rgba(29, 35, 33, .55); font-size: 11px; font-weight: 400; }
+#zero-settings .zero-row-text small { display: none; }
+/* La «i» de ayuda: pequeña, junto al nombre; su explicación sale en una etiqueta al pasar el ratón. */
+#zero-settings .zero-info {
+  display: inline-grid; place-items: center; vertical-align: 1px; box-sizing: border-box;
+  width: 13px; height: 13px; margin-inline-start: 6px; border-radius: 50%; cursor: help;
+  border: 1px solid rgba(29, 35, 33, .28); color: rgba(29, 35, 33, .55);
+  font: italic 600 8.5px/1 Georgia, serif;
+  transition: color 200ms var(--zero-soft), border-color 200ms var(--zero-soft), background-color 200ms var(--zero-soft);
+}
+#zero-settings .zero-info::before { content: "i"; }
+#zero-settings .zero-info:is(:hover, :focus-visible) { color: #fff; border-color: transparent; background: rgba(29, 35, 33, .55); outline: none; }
+#zero-settings[no-hints] .zero-info { display: none; }
+#zero-settings-tip {
+  position: fixed; z-index: 9; transform: translate(-4px, -50%); max-width: 240px;
+  padding: 6px 10px; border-radius: 12px; pointer-events: none;
+  color: #1d2321; font: 500 11.5px/1.35 system-ui, sans-serif;
+  /* Casi opaca: sale sobre la web, que el desenfoque de CSS no ve (la pinta otro proceso). */
+  background: rgba(250, 249, 246, .98);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .95), 0 10px 28px rgba(0, 0, 0, .18);
+  opacity: 0;
+  transition: opacity 180ms var(--zero-soft), transform 260ms var(--zero-calm);
+}
+#zero-settings-tip[shown] { opacity: 1; transform: translate(0, -50%); }
 
 /* Interruptor y segmento, como los de la maqueta. */
 #zero-settings .zero-switch {
