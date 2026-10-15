@@ -15,6 +15,9 @@ tinta sobre lo claro y a blanco sobre lo oscuro.
 9. Un salto de scroll más allá del margen de la foto no deja el cristal vacío ni un fotograma.
 10. Las sugerencias al escribir llevan su cristal debajo (sin él se leía la web a través), pegado a ellas
     también cuando crecen.
+11. En el filo de la pieza, la web se ve doblada como por el canto de un cristal (Risco, 15-10: «una
+    pequeña pero muy sutil distorsión como hace Apple»): en una franja fina (≤ 6 px) la foto es nítida y
+    trae lo que hay justo fuera; más adentro, el cristal sigue como siempre.
 
 --zero-del-repo: Zero sale de zero/ del repositorio (ver zero_harness.py).
 """
@@ -32,13 +35,17 @@ import zero_harness
 PAGE = ('<!doctype html><meta charset=utf-8><title>Noche y día</title>'
         '<body style="margin:0"><div style="height:1600px;background:#000"></div><div style="height:4000px;background:#fff"></div>')
 
+# Rayas verticales finas: desenfocadas son un gris liso; nítidas, se ven.
+STRIPES = ('<!doctype html><meta charset=utf-8><title>Rayas</title>'
+           '<body style="margin:0;height:4000px;background:repeating-linear-gradient(90deg,#000 0 4px,#fff 4px 8px)">')
+
 
 class Handler(http.server.BaseHTTPRequestHandler):
     def do_GET(self):
         self.send_response(200)
         self.send_header('Content-Type', 'text/html; charset=utf-8')
         self.end_headers()
-        self.wfile.write(PAGE.encode())
+        self.wfile.write((STRIPES if self.path == '/rayas' else PAGE).encode())
 
     def log_message(self, *args):
         pass
@@ -228,6 +235,24 @@ def main():
         chrome("gURLBar.view.panel.style.minHeight = ''; gURLBar.view.close(); gURLBar.handleRevert(); gBrowser.selectedBrowser.focus();")
         until(lambda: (u := chrome(under))['glass'] is None)
         check('Las sugerencias al escribir llevan su cristal debajo, pegado a ellas también cuando crecen')
+
+        # La lente del filo: el contraste de las rayas, fila a fila del cristal de la isla.
+        driver.navigate(origin + '/rayas')
+        chrome("gURLBar.focus()")
+        rows = """const c = document.getElementById('zero-glass-nav-bar');
+            if (!c || c.hidden || !c.height) return null;
+            const d = c.getContext('2d').getImageData(0, 0, c.width, c.height).data, k = c.height / c.getBoundingClientRect().height;
+            const spread = y => { const v = []; for (let x = Math.floor(c.width * .25); x < c.width * .75; x++) { const i = (Math.floor(y) * c.width + x) * 4; v.push((d[i] + d[i + 1] + d[i + 2]) / 3); }
+              const m = v.reduce((a, b) => a + b, 0) / v.length; return Math.sqrt(v.reduce((a, b) => a + (b - m) ** 2, 0) / v.length); };
+            return { edge: Math.max(spread(0), spread(1)), inside: spread(8 * k), middle: spread(c.height / 2), k };"""
+        def lens():
+            r = chrome(rows)
+            return r and r['edge'] >= r['middle'] + 25 and r['inside'] <= r['middle'] + 8
+        try:
+            until(lens, timeout=8)
+        except AssertionError:
+            raise AssertionError(f'lente del filo: {chrome(rows)}') from None
+        check('En el filo de la pieza, la web se ve doblada como por el canto de un cristal; más adentro, como siempre')
         report['status'] = 'passed'
     finally:
         if driver: driver.close()

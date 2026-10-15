@@ -15,6 +15,10 @@
  * - hay foto nueva solo si la web ha cambiado (teclas, una carga, otra pestaña, un vídeo sonando, el
  *   ratón sobre la web) o si el scroll ha salido del margen; como mucho, unas 15 por segundo.
  * Todo se para 1,5 s después de lo último que se movió. Con el modo ahorro, a 15 fps.
+ *
+ * En el filo, una lente (Risco, 15-10: «una pequeña pero muy sutil distorsión como hace Apple»): en una
+ * franja de 5 px la foto va nítida y apretada, con lo que hay justo fuera de la pieza, como el canto de
+ * un cristal que dobla la luz; más adentro, el cristal de siempre.
  */
 import { lightOf, inkFor } from './zero-light.mjs';
 const { setTimeout, clearTimeout } = ChromeUtils.importESModule('resource://gre/modules/Timer.sys.mjs');
@@ -27,6 +31,7 @@ const SLACK = 240;       // margen extra arriba y abajo: el scroll desplaza la f
 const SHOT_GAP = 66;     // ms mínimos entre dos fotos de una misma pieza (~15 por segundo)
 const MOUSE_GAP = 250;   // el ratón sobre la web cuenta como cambio como mucho cada 250 ms
 const TAIL = 1500;       // ms que sigue vivo tras lo último que se movió
+const LENS = 5;          // px del filo que doblan la web (la lente)
 const SAVER_FRAME = 66;  // ~15 fps en modo ahorro
 const ACTOR = 'KitsuneZeroGlass';
 
@@ -150,7 +155,10 @@ async function shoot(win, eng, pane, browser, rect, reach, at) {
     ctx.filter = `blur(${BLUR * SCALE}px) saturate(1.7)`;
     // Un poco más grande que la foto: así el desenfoque no oscurece los bordes.
     ctx.drawImage(bitmap, -2, -2, bitmap.width + 4, bitmap.height + 4);
-    pane.shots.set(browser, { canvas: blurred, doc, k, version });
+    // Y nítida, para la lente del filo.
+    const sharp = new win.OffscreenCanvas(bitmap.width, bitmap.height);
+    sharp.getContext('2d').drawImage(bitmap, 0, 0);
+    pane.shots.set(browser, { canvas: blurred, sharp, doc, k, version });
     eng.snapshots += 1;
     eng.lastShot = { w: Math.round(area.width), h: Math.round(area.height) };
   } finally {
@@ -225,13 +233,15 @@ function frame(win, eng, element, pane, browsers) {
     if (!covers(shot, need)) waiting = true; // un salto más allá del margen: llega otra foto enseguida
     // La foto, desplazada con el scroll: se recorta justo lo que hay debajo ahora.
     draws.push([shot.canvas, (need.x - shot.doc.x) * shot.k, (need.y - shot.doc.y) * shot.k, need.w * shot.k, need.h * shot.k,
-      (part.left - r.left) * SCALE, (part.top - r.top) * SCALE, part.width * SCALE, part.height * SCALE]);
+      (part.left - r.left) * SCALE, (part.top - r.top) * SCALE, part.width * SCALE, part.height * SCALE, shot.sharp, zoom]);
   }
   // Mientras llega la foto de un salto, se queda lo que había (borrarlo dejaría un instante sin cristal).
   if (waiting && !resized && !canvas.hidden) return true;
   if (!draws.length) return hide(element, pane), false;
   ctx.clearRect(0, 0, width, height);
-  for (const args of draws) ctx.drawImage(...args);
+  for (const args of draws) ctx.drawImage(...args.slice(0, 9));
+  // La lente, si toda la pieza está sobre una sola web (lo normal).
+  if (draws.length === 1) lens(ctx, draws[0], width, height);
   canvas.hidden = false;
   // La luz, de vez en cuando (no cambia de un fotograma a otro).
   if (eng.ticks % 6 === 0 || pane.ink === undefined) {
@@ -239,6 +249,25 @@ function frame(win, eng, element, pane, browsers) {
     element.toggleAttribute('zero-ink', pane.ink === 'ink');
   }
   return true;
+}
+
+/** El filo de la pieza, como el canto de un cristal: en cada lado, una franja de LENS px con la foto nítida
+ *  de lo que hay debajo y justo fuera (el doble de ancho, apretado en la franja). Solo en los lados que
+ *  tienen la web debajo hasta el borde. */
+function lens(ctx, [, sx, sy, sw, sh, dx, dy, dw, dh, sharp, zoom], width, height) {
+  if (!sharp) return;
+  const kx = sw / dw, ky = sh / dh;             // píxeles de la foto por píxel del lienzo
+  const band = LENS * SCALE;                    // la franja, en píxeles del lienzo
+  const bx = band * kx * 2, by = band * ky * 2;  // lo que cabe en ella: debajo y otro tanto fuera
+  const near = (a, b) => Math.abs(a - b) < 0.5;
+  if (dw < band * 4 || dh < band * 4 || !zoom) return;
+  ctx.save();
+  ctx.globalAlpha = 0.9;
+  if (near(dy, 0)) ctx.drawImage(sharp, sx, sy - by / 2, sw, by, dx, 0, dw, band);
+  if (near(dy + dh, height)) ctx.drawImage(sharp, sx, sy + sh - by / 2, sw, by, dx, height - band, dw, band);
+  if (near(dx, 0)) ctx.drawImage(sharp, sx - bx / 2, sy, bx, sh, 0, dy, band, dh);
+  if (near(dx + dw, width)) ctx.drawImage(sharp, sx + sw - bx / 2, sy, bx, sh, width - band, dy, band, dh);
+  ctx.restore();
 }
 
 /** ¿Hay algo que se mueve solo? Un vídeo o un audio sonando en una web que se ve. */
