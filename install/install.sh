@@ -55,6 +55,9 @@ rm -rf "${root:?}/zero"
 mv "${root}/zero.new" "${root}/zero"
 # Y en niri 26.04+, la regla que desenfoca lo que hay detrás de su ventana de cristal (con copia de config.kdl).
 sh "${repo}/zero/linux/install-niri.sh" || printf '%s\n' 'No se ha podido añadir la regla de niri de Kitsune Zero; Zero usará el fondo del color de la web.' >&2
+# En Hyprland (hyprglass) y GNOME (Liquid Glass), si su complemento ya está, la regla de cristal de Kitsune;
+# en KDE solo explica qué haría (cristal.py poner --forzar). Sin complemento, Zero usa la foto de la web.
+python3 "${repo}/zero/linux/cristal.py" poner || true
 
 # Inicio y plantillas limpias.
 rm -rf "${root:?}/start.new"

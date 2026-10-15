@@ -2,9 +2,10 @@
  * ventana y el velo del color de la web.
  *
  * - Ventana de cristal: con Zero, la raíz y el resto del marco son transparentes y Gecko pasa la
- *   ventana a transparente él solo (nsLayoutUtils::GetFrameTransparency). El desenfoque de lo que hay
- *   detrás lo pone el compositor (niri 26.04+, con zero/linux/kitsune-zero.kdl). Sin él, «fondo de la
- *   web»: una foto diminuta de la web, muy desenfocada, detrás de todo.
+ *   ventana a transparente él solo (nsLayoutUtils::GetFrameTransparency). Lo de detrás lo dobla el
+ *   compositor, con la regla de Kitsune de su escritorio (GLASS_RULES: niri, Hyprland, KDE, GNOME; ver
+ *   zero/linux). Sin ella, «fondo de la web»: una foto de la web, desenfocada, detrás de todo, que el canto
+ *   de la lámina dobla como una lente (zero-pane).
  * - Velo: el color dominante de la web, muy leve, que cambia despacio con cada página.
  */
 import { lightOf, inkFor } from './zero-light.mjs';
@@ -38,17 +39,36 @@ export function dominantColor(bytes) {
   return `#${hex(best.r)}${hex(best.g)}${hex(best.b)}`;
 }
 
-/** Cristal del sistema (desenfoque del compositor) o fondo del color de la web. */
+/** Cristal del sistema (lo de detrás, con lo que le ponga el compositor) o fondo del color de la web. */
 export function backdropMode(pref, env = {}) {
   if (pref === 'web') return 'web';
   if (pref === 'system') return 'system';
-  return env.niri && env.rule ? 'system' : 'web';
+  return env.rule ? 'system' : 'web';
 }
+
+/** El escritorio de la sesión, de los que tienen cristal para Kitsune (su regla: GLASS_RULES), o null. */
+export function desktopOf(get) {
+  const desktops = String(get('XDG_CURRENT_DESKTOP') ?? '').toLowerCase().split(':');
+  if (get('NIRI_SOCKET')) return 'niri';
+  if (get('HYPRLAND_INSTANCE_SIGNATURE')) return 'hyprland';
+  if (get('KDE_SESSION_VERSION') || desktops.includes('kde')) return 'kde';
+  if (desktops.includes('gnome')) return 'gnome';
+  return null;
+}
+
+/** Lo que deja la regla de Kitsune en cada escritorio (en la carpeta de usuario): con ella, Zero usa lo de
+ *  detrás de la ventana, que el compositor dobla. niri: su regla (y niri-vidrio, la refracción); Hyprland:
+ *  la regla de hyprglass; KDE (kwin-effects-glass) y GNOME (Liquid Glass): la marca de zero/linux/cristal.py. */
+export const GLASS_RULES = Object.freeze({
+  niri: ['.config/niri/kitsune-zero.kdl'],
+  hyprland: ['.config/hypr/kitsune-zero.conf', '.config/hypr/kitsune-zero.lua'],
+  kde: ['.config/kitsune-zero/kde'],
+  gnome: ['.config/kitsune-zero/gnome'],
+});
 
 // ---------------------------------------------------------------- la pieza (Gecko)
 
 const HTML = 'http://www.w3.org/1999/xhtml';
-const NIRI_RULE = '.config/niri/kitsune-zero.kdl';
 const state = new WeakMap(); // ventana → { cleanups, … }
 
 const el = (doc, tag, attributes = {}, children = []) => {
@@ -58,12 +78,15 @@ const el = (doc, tag, attributes = {}, children = []) => {
   return node;
 };
 
-/** ¿Hay quien desenfoque detrás de la ventana? niri 26.04+ con la regla de Zero instalada. */
+/** ¿Hay quien ponga el cristal detrás de la ventana? Un escritorio con la regla de Kitsune instalada. */
 async function compositorEnv() {
-  let niri = false, rule = false;
-  try { niri = !!Services.env.get('NIRI_SOCKET'); } catch { /* sin entorno */ }
-  try { rule = niri && await IOUtils.exists(PathUtils.join(Services.dirsvc.get('Home', Ci.nsIFile).path, ...NIRI_RULE.split('/'))); } catch { /* sin archivo */ }
-  return (knownEnv = { niri, rule });
+  let desktop = null, rule = false;
+  try { desktop = desktopOf(name => Services.env.get(name)); } catch { /* sin entorno */ }
+  try {
+    const home = Services.dirsvc.get('Home', Ci.nsIFile).path;
+    for (const file of GLASS_RULES[desktop] ?? []) if (await IOUtils.exists(PathUtils.join(home, ...file.split('/')))) { rule = true; break; }
+  } catch { /* sin archivo */ }
+  return (knownEnv = { niri: desktop === 'niri', desktop, rule });
 }
 
 // Lo último que se supo del compositor: así, al entrar en Zero, el fondo es desde el principio el que
@@ -273,7 +296,7 @@ export function toggleFull(win, on) {
 
 export function attach(win, ctx) {
   const doc = win.document, root = doc.documentElement, { host } = ctx;
-  const st = { host, env: knownEnv ?? { niri: false, rule: false }, cleanups: [] };
+  const st = { host, env: knownEnv ?? { niri: false, desktop: null, rule: false }, cleanups: [] };
   state.set(win, st);
   const listen = (target, type, fn, options) => { target.addEventListener(type, fn, options); st.cleanups.push(() => target.removeEventListener(type, fn, options)); };
 
@@ -411,7 +434,7 @@ export function attach(win, ctx) {
   st.cleanups.push(() => scheme.removeEventListener('change', onScheme));
   // Se vuelve a mirar (la regla de niri se puede haber instalado o quitado), y solo se repinta si cambia.
   compositorEnv().then(env => {
-    if (state.get(win) !== st || (env.niri === st.env.niri && env.rule === st.env.rule)) return;
+    if (state.get(win) !== st || (env.desktop === st.env.desktop && env.rule === st.env.rule)) return;
     st.env = env; applyBackdrop(win, st);
   }).catch(() => {});
 }

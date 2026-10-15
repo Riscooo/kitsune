@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { dominantColor, backdropMode } from '../zero/modules/zero-frame.sys.mjs'
+import { dominantColor, backdropMode, desktopOf, GLASS_RULES } from '../zero/modules/zero-frame.sys.mjs'
 
 const block = (...parts) => {
   const bytes = []
@@ -30,4 +30,24 @@ test('the system glass is used only when the compositor can blur behind Kitsune'
   assert.equal(backdropMode('web', { niri: true, rule: true }), 'web')
   assert.equal(backdropMode('system', { niri: false }), 'system')
   assert.equal(backdropMode('raro', { niri: true, rule: true }), 'system')
+})
+
+test('the desktop comes from the session: niri, Hyprland, KDE or GNOME', () => {
+  const env = vars => name => vars[name] ?? ''
+  assert.equal(desktopOf(env({ NIRI_SOCKET: '/run/user/1000/niri.sock', XDG_CURRENT_DESKTOP: 'niri' })), 'niri')
+  assert.equal(desktopOf(env({ HYPRLAND_INSTANCE_SIGNATURE: 'abc', XDG_CURRENT_DESKTOP: 'Hyprland' })), 'hyprland')
+  assert.equal(desktopOf(env({ KDE_SESSION_VERSION: '6', XDG_CURRENT_DESKTOP: 'KDE' })), 'kde')
+  assert.equal(desktopOf(env({ XDG_CURRENT_DESKTOP: 'ubuntu:GNOME' })), 'gnome')
+  assert.equal(desktopOf(env({ XDG_CURRENT_DESKTOP: 'sway' })), null)
+  assert.equal(desktopOf(env({})), null)
+})
+
+test('the desktop glass is used with the Kitsune rule of any desktop that has one', () => {
+  for (const desktop of ['niri', 'hyprland', 'kde', 'gnome']) {
+    assert.equal(backdropMode('auto', { desktop, rule: true }), 'system')
+    assert.equal(backdropMode('auto', { desktop, rule: false }), 'web')
+  }
+  assert.equal(backdropMode('auto', { desktop: null, rule: false }), 'web')
+  assert.deepEqual(Object.keys(GLASS_RULES).sort(), ['gnome', 'hyprland', 'kde', 'niri'])
+  assert.deepEqual(GLASS_RULES.niri, ['.config/niri/kitsune-zero.kdl'])
 })
