@@ -36,6 +36,7 @@ import json
 from pathlib import Path
 import tempfile
 import threading
+import time
 
 from browser_smoke import WebDriver, prepare_profile, eventually
 import zero_harness
@@ -303,6 +304,15 @@ def main():
             return { position: getComputedStyle(fb).position, open: !fb.hidden, bottom: fb.getBoundingClientRect().bottom, splitter: s.getBoundingClientRect().top };"""
         try:
             eventually(lambda: (k := chrome(docked)) and k['open'] and k['position'] == 'static', timeout=15)
+            # Y al pasar el ratón no cambia (lo de asomar las opciones es de la píldora).
+            where = "const fb = gBrowser.getCachedFindBar(); const c = fb.querySelector('checkbox').getBoundingClientRect(); return [fb.getBoundingClientRect().height, c.top, c.height]"
+            tall = chrome(where)
+            driver.context('chrome')
+            bar = driver.command('POST', '/element', {'using': 'css selector', 'value': '.deck-selected findbar'})
+            driver.command('POST', '/actions', {'actions': [{'type': 'pointer', 'id': 'raton', 'parameters': {'pointerType': 'mouse'}, 'actions': [{'type': 'pointerMove', 'origin': bar, 'x': 0, 'y': 0}]}]})
+            time.sleep(1)
+            after = chrome(where)
+            assert all(abs(x - y) < 1 for x, y in zip(after, tall)), (tall, after)
         except AssertionError:
             raise AssertionError(f'buscar con DevTools abajo: {chrome(docked)}') from None
         chrome("const { gDevTools } = ChromeUtils.importESModule('resource://devtools/shared/loader/Loader.sys.mjs').require('devtools/client/framework/devtools'); gDevTools.closeToolboxForTab(gBrowser.selectedTab)")
