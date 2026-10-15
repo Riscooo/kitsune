@@ -3,7 +3,8 @@
 1. Las piezas de Zero solo usan dos curvas: «llegar» (forma y sitio) y «aparecer» (opacidad y color).
 2. Al cerrar, el contenido se va antes que la forma (la isla y el raíl encogen un poco después).
 3. Al abrir, primero la forma y luego el contenido (140 ms después).
-4. Al salir de Zero la web vuelve a su sitio viajando, como al entrar (no de golpe).
+4. Al salir de Zero la web vuelve a su sitio viajando, como al entrar (no de golpe). Y nada aparece de
+   golpe: al entrar, la isla y el raíl llegan con un fundido; al salir, las barras de Kitsune también.
 5. Con «reducir movimiento», todo lo de Zero es instantáneo.
 
 --zero-del-repo: Zero sale de zero/ del repositorio (ver zero_harness.py).
@@ -99,13 +100,16 @@ def main():
           return a ? { ms: a.effect.getComputedTiming().duration, state: a.playState } : null; }"""
         # (La de entrar dura 720 ms: se espera a que la tarjeta esté quieta.)
         eventually(lambda: chrome("return document.getElementById('tabbrowser-tabpanels').getAnimations().length === 0"), timeout=5)
+        fading = """return arguments[0].map(id => { const el = document.getElementById(id); return !!el && el.getAnimations().some(a => a.effect?.getKeyframes?.().some(k => k.opacity !== undefined && Number(k.opacity) < 0.5)); });"""
         chrome("document.getElementById('kitsune-zero-key').doCommand()")
         out = chrome(travel)
         assert out and out['ms'] > 200, out
+        assert all(chrome(fading, [['navigator-toolbox']])), 'al salir, las barras de Kitsune deberían llegar con un fundido'
         eventually(lambda: chrome("return !document.documentElement.hasAttribute('zero') && !document.getElementById('zero-mark')"), timeout=5)
         chrome("document.getElementById('kitsune-zero-key').doCommand()")
+        assert all(chrome(fading, [['navigator-toolbox', 'zero-rail', 'zero-lights']])), 'al entrar, la isla, el raíl y los botones deberían llegar con un fundido'
         eventually(lambda: chrome("return !!document.getElementById('zero-mark')"), timeout=5)
-        check('Al salir de Zero la web vuelve a su sitio viajando, como al entrar')
+        check('Al salir la web vuelve viajando, como al entrar, y nada aparece de golpe (fundidos al entrar y al salir)')
 
         chrome("Services.prefs.setIntPref('ui.prefersReducedMotion', 1)")
         eventually(lambda: chrome("return matchMedia('(prefers-reduced-motion: reduce)').matches"), timeout=5)

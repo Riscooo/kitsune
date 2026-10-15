@@ -62,6 +62,14 @@ function sheet(win, on) {
   } catch { /* ya estaba (o ya no estaba) */ }
 }
 
+/** Que nada aparezca de golpe: lo que llega (las piezas al entrar, las barras de Kitsune al salir)
+ *  entra con un fundido corto, el de «aparecer» de Zero. Con «reducir movimiento», nada. */
+function fadeIn(win, ids, ms) {
+  if (ms < 2 || win.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  for (const id of ids) win.document.getElementById(id)?.animate([{ opacity: 0 }, { opacity: 1 }], { duration: ms, easing: 'cubic-bezier(.4, 0, .2, 1)' });
+}
+const fadeOf = win => parseFloat(win.getComputedStyle(win.document.documentElement).getPropertyValue('--zero-t-fade')) || 0;
+
 function toggle(win, on = !active(win)) {
   const waiting = early.delete(win);
   if (on === active(win) && !waiting) return;
@@ -82,7 +90,9 @@ function toggle(win, on = !active(win)) {
     // con el aspecto de Zero, no hay viaje: solo llegan las piezas.
     if (!waiting) frame.flip(win, () => { win.document.documentElement.setAttribute('zero', ''); sheet(win, true); });
     for (const p of pieces) { try { p.attach(win, ctx); } catch (error) { console.error('Kitsune Zero:', error); } }
+    fadeIn(win, ['navigator-toolbox', 'zero-rail', 'zero-lights', 'zero-mark', 'zero-pomo'], fadeOf(win));
   } else {
+    const fade = fadeOf(win);
     // La web vuelve a su sitio viajando, como al entrar: desde donde se ve ahora (antes de quitar las
     // piezas, que con la web ampliada también la mueven).
     const first = win.document.getElementById('tabbrowser-tabpanels')?.getBoundingClientRect();
@@ -92,6 +102,7 @@ function toggle(win, on = !active(win)) {
       for (const name of ['zero', 'zero-backdrop']) win.document.documentElement.removeAttribute(name);
       sheet(win, false);
     }, first);
+    fadeIn(win, ['navigator-toolbox', 'sidebar-main'], fade);
   }
   remember(win, on);
   for (const fn of listeners.get(win) ?? []) { try { fn(on); } catch { /* una escucha rota no para a las demás */ } }
