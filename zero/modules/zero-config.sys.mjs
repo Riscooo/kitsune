@@ -25,6 +25,7 @@ export const PREFS = Object.freeze({
   railIcons: 'railIcons',             // el raíl con solo iconos (sin ensancharse ni títulos)
   hints: 'hints',                     // la «i» de ayuda junto a las opciones de los ajustes
   growAt: 'growAt',                   // dónde se dejaron los botones de ampliar (JSON {x, y}, de 0 a 1)
+  glassStrength: 'glass.strength',    // la fuerza de la lámina de vidrio (doblez y brillos), de 0 a 100 o más
 });
 
 export const DEFAULTS = Object.freeze({ always: false, inherit: true, backdrop: 'auto', islandIcons: false,

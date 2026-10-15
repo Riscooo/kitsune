@@ -367,7 +367,9 @@ def main():
                 'glow': (sum(left[1:6]) / 5, sum(right[1:6]) / 5), 'behind': left[30],
                 # Se funde: desde el filo hacia dentro, la luz no vuelve a subir (ni línea ni franja).
                 'rise': max(left[i + 1] - left[i] for i in range(3, 39)),
-                'corner': max(row(0, 3, 44)), 'middle': max(row(0, 3, H * 0.5)),
+                # El reflejo de la esquina de abajo a la derecha, en su diagonal (la curva de 48 px la cruza
+                # a 14 px del rincón); arriba a la izquierda están los botones de ventana.
+                'corner': max(row(W - t, W - t + 1, H - t)[0] for t in range(14, 23)), 'middle': max(row(0, 3, H * 0.5)),
             }
         chrome("window.windowUtils.loadSheetUsingURIString(arguments[0], window.windowUtils.AGENT_SHEET)", [dark_sheet])
         try:

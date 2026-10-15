@@ -10,6 +10,7 @@
  */
 import { readPrefs, PREFS, prefName, shortcutText } from './zero-config.sys.mjs';
 import * as frame from './zero-frame.sys.mjs';
+import * as pane from './zero-pane.sys.mjs';
 import * as island from './zero-island.sys.mjs';
 import * as rail from './zero-rail.sys.mjs';
 import * as mark from './zero-mark.sys.mjs';
@@ -24,8 +25,9 @@ const SHEET = 'chrome://browser/content/zero/zero.css';
 const REMEMBER = 'kitsune-zero';
 let host = null;
 // Las piezas de Zero, en orden: al encender se ponen así y al apagar se quitan al revés.
-// El cristal en vivo va el último: se pone detrás de las piezas que ya están.
-const pieces = [frame, island, rail, mark, pomodoro, silence, sounds, downloads, media, glass];
+// La lámina va la primera (detrás de todo, y así recibe ya la primera foto del marco); el cristal en
+// vivo, el último: se pone detrás de las piezas que ya están.
+const pieces = [pane, frame, island, rail, mark, pomodoro, silence, sounds, downloads, media, glass];
 const decorated = new WeakSet();
 const starting = new WeakSet(); // ventanas que ya esperan a terminar de arrancar
 const early = new WeakSet();    // ventanas que ya se pintan en Zero y esperan a sus piezas

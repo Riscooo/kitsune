@@ -64,15 +64,19 @@
    ventana con las esquinas redondeadas y el canto de un cristal puesto encima. Nada de líneas ni de franjas
    con límites (captura 46: «segmentado, no se fusiona»): una luz que nace del filo y se funde hacia
    dentro, y reflejos suaves en las cuatro esquinas por igual. Por dentro, transparente. Encima, las
-   piezas: cristal sobre cristal. Con la web ampliada la web llena la ventana: sin lámina. Lo de doblar el
-   fondo en el canto no se puede desde aquí: el escritorio lo pinta otro (el compositor o el fondo). */
-:root[zero][zero-backdrop="system"]:not([zero-full]) body {
-  border-radius: 48px !important;
+   piezas: cristal sobre cristal. Con la web ampliada la web llena la ventana: sin lámina. Las esquinas, de
+   48 px (el canto de la lámina no puede ser más ancho que su curva). */
+/* La lámina de vidrio (zero-pane): un lienzo detrás de todo que dobla lo de detrás en el canto y pone sus
+   brillos. Sin WebGL no está, y queda la luz de aquí abajo. */
+#zero-pane { position: fixed; inset: 0; width: 100%; height: 100%; z-index: -1; pointer-events: none; }
+#zero-pane[hidden] { display: none; }
+:root[zero][zero-backdrop="system"]:not([zero-full]) body { border-radius: 48px !important; }
+:root[zero][zero-backdrop="system"]:not([zero-full], [zero-pane]) body {
   box-shadow: inset 0 0 3px 1px rgba(255, 255, 255, .06), inset 0 0 12px 2px rgba(255, 255, 255, .08),
               inset 0 0 28px 4px rgba(255, 255, 255, .045) !important;
 }
 /* Los reflejos: un brillo suave en el canto, vivo en las esquinas y que se apaga a media altura. */
-:root[zero][zero-backdrop="system"]:not([zero-full]) body::after {
+:root[zero][zero-backdrop="system"]:not([zero-full], [zero-pane]) body::after {
   content: ""; position: fixed; inset: 0; z-index: -1; border-radius: 48px; pointer-events: none;
   box-shadow: inset 0 0 2px 1px rgba(255, 255, 255, .7), inset 0 0 9px 1px rgba(255, 255, 255, .22);
   mask-image: radial-gradient(190px 190px at 0 0, #000, transparent), radial-gradient(190px 190px at 100% 0, #000, transparent),
