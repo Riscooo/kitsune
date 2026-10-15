@@ -23,7 +23,7 @@
     pomodoro), la isla no se monta sobre la esquina.
 14. Con el cristal del sistema no se sabe qué hay detrás de la ventana: la isla lleva un tinte según el
     modo del sistema y su texto se lee hasta sobre blanco (≥ 3:1): oscuro y texto blanco con el sistema en
-    oscuro; claro y texto en tinta con el sistema en claro.
+    oscuro; claro y texto en tinta con el sistema en claro. Igual el pomodoro abierto.
 
 --zero-del-repo: Zero sale de zero/ del repositorio (ver zero_harness.py).
 """
@@ -289,6 +289,19 @@ def main():
             text = [int(x) for x in box[5][box[5].index('(') + 1:-1].split(',')[:3]]
             light, dark = max(background, lum(text)), min(background, lum(text))
             return (light + 0.05) / (dark + 0.05), text
+        # Y el pomodoro abierto, que también va sobre el marco.
+        chrome("Services.prefs.setBoolPref('kitsune.zero.pomodoro', true)")
+        eventually(lambda: chrome("return !!document.getElementById('zero-pomo')"), timeout=5)
+        def pomo_contrast():
+            box = chrome("const p = document.getElementById('zero-pomo'); const r = p.getBoundingClientRect(); const c = getComputedStyle(p.querySelector('.zero-pomo-label')).color; return [r.left, r.top, r.right, r.bottom, devicePixelRatio, c]")
+            shot = Image.open(driver.screenshot('pomodoro-sistema.png', chrome=True)).convert('RGB')
+            k = box[4]
+            strip = shot.crop((int((box[0] + 10) * k), int((box[1] + 3) * k), int((box[0] + 22) * k), int((box[1] + 7) * k)))
+            values = sorted(lum(c) for c in strip.getdata())
+            background = values[len(values) // 2]
+            text = [int(x) for x in box[5][box[5].index('(') + 1:-1].split(',')[:3]]
+            light, dark = max(background, lum(text)), min(background, lum(text))
+            return (light + 0.05) / (dark + 0.05), text
         for dark in (1, 0):
             chrome(f"Services.prefs.setIntPref('ui.systemUsesDarkTheme', {dark})")
             eventually(lambda: chrome("return matchMedia('(prefers-color-scheme: dark)').matches") == bool(dark), timeout=5)
@@ -297,6 +310,15 @@ def main():
             except AssertionError:
                 ratio, text = island_contrast()
                 raise AssertionError(f'isla con el sistema {"oscuro" if dark else "claro"}: contraste {ratio:.1f}:1, texto {text}') from None
+            pointer(chrome("const r = document.getElementById('zero-pomo').getBoundingClientRect(); return r.left + r.width / 2"), 20)
+            eventually(lambda: chrome("return document.getElementById('zero-pomo').getBoundingClientRect().width") > 200, timeout=5)
+            try:
+                eventually(lambda: pomo_contrast()[0] >= 3.0, timeout=5)
+            except AssertionError:
+                ratio, text = pomo_contrast()
+                raise AssertionError(f'pomodoro con el sistema {"oscuro" if dark else "claro"}: contraste {ratio:.1f}:1, texto {text}') from None
+            pointer(700, 600)
+        chrome("Services.prefs.clearUserPref('kitsune.zero.pomodoro')")
         chrome("Services.prefs.clearUserPref('ui.systemUsesDarkTheme')")
         check('Con el cristal del sistema, la isla lleva un tinte según el modo y su texto se lee hasta sobre blanco')
         report['status'] = 'passed'
