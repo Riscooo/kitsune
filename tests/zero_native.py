@@ -163,9 +163,12 @@ def main():
             raise AssertionError(f'menú ≡: {error}') from None
         check('Zero está en el menú ≡ con su atajo; dentro, la misma fila sale')
 
-        errors = """return Services.console.getMessageArray().filter(m => m instanceof Ci.nsIScriptError && !(m.flags & Ci.nsIScriptError.warningFlag)
-            && /zero/i.test(m.sourceName + ' ' + m.errorMessage)).map(m => m.errorMessage.slice(0, 160) + ' @ ' + m.sourceName.split('/').pop() + ':' + m.lineNumber);"""
-        chrome("Services.console.reset()")
+        # Los errores de la consola y los que Zero apunta él mismo («Kitsune Zero: …», al caerse una pieza).
+        errors = """const own = Cc['@mozilla.org/consoleAPI-storage;1'].getService(Ci.nsIConsoleAPIStorage).getEvents()
+              .filter(e => e.level === 'error' && String(e.arguments?.[0] ?? '').startsWith('Kitsune Zero')).map(e => e.arguments.map(a => String(a?.message ?? a)).join(' ').slice(0, 160));
+            return Services.console.getMessageArray().filter(m => m instanceof Ci.nsIScriptError && !(m.flags & Ci.nsIScriptError.warningFlag)
+              && /zero/i.test(m.sourceName + ' ' + m.errorMessage)).map(m => m.errorMessage.slice(0, 160) + ' @ ' + m.sourceName.split('/').pop() + ':' + m.lineNumber).concat(own);"""
+        chrome("Services.console.reset(); Cc['@mozilla.org/consoleAPI-storage;1'].getService(Ci.nsIConsoleAPIStorage).clearEvents()")
         chrome("gBrowser.selectedBrowser.loadURI(Services.io.newURI('data:text/html,<body style=height:5000px>zorro'), { triggeringPrincipal: Services.scriptSecurityManager.getSystemPrincipal() })")
         time.sleep(1)
         for _ in range(3):

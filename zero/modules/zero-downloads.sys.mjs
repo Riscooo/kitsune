@@ -58,5 +58,6 @@ export function detach(win) {
   if (!st) return;
   state.delete(win);
   st.alive = false;
-  st.list?.removeView(st.view).catch?.(() => {});
+  // En Gecko 158 removeView ya no devuelve una promesa (antes sí): se acepta lo uno y lo otro.
+  try { Promise.resolve(st.list?.removeView(st.view)).catch(() => {}); } catch { /* ya no estaba */ }
 }

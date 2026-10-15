@@ -13,7 +13,7 @@
  * ([{ value, label }], para segment), placeholder? (para list), get() → valor, set(valor),
  * watch?(fn) → dejar, when?() → si sale }.
  */
-import { prefName, PREFS, readPrefs, shortcutText } from './zero-config.sys.mjs';
+import { prefName, PREFS, readPrefs } from './zero-config.sys.mjs';
 
 const HTML = 'http://www.w3.org/1999/xhtml';
 const state = new WeakMap();      // ventana → { cleanups, mark, panel, … }
@@ -78,7 +78,7 @@ function zeroSection(win, host) {
   };
 }
 
-function rowNode(doc, row, st) {
+function rowNode(doc, row, undo) {
   const text = el(doc, 'span', { class: 'zero-row-text' }, [row.label, ...(row.detail ? [el(doc, 'small', {}, [row.detail])] : [])]);
   let control, sync;
   if (row.kind === 'switch') {
@@ -98,16 +98,29 @@ function rowNode(doc, row, st) {
     control.addEventListener('change', commit);
     control.addEventListener('keydown', event => { if (event.key === 'Enter') { event.preventDefault(); commit(); } });
   } else {
+    // La elegida lleva una pastilla que se desliza hasta ella (no salta de una a otra).
+    const thumb = el(doc, 'span', { class: 'zero-seg-thumb', 'aria-hidden': 'true', still: '' });
     control = el(doc, 'span', { class: 'zero-segment', role: 'radiogroup', 'data-pref': row.id, 'aria-label': row.label },
-      row.options.map(option => el(doc, 'button', { type: 'button', role: 'radio', 'data-value': option.value }, [option.label])));
+      [thumb, ...row.options.map(option => el(doc, 'button', { type: 'button', role: 'radio', 'data-value': option.value }, [option.label]))]);
+    const place = still => {
+      const on = control.querySelector('button[on]');
+      if (!on || !on.offsetWidth) { thumb.toggleAttribute('hidden', true); return; }
+      thumb.toggleAttribute('hidden', false);
+      thumb.toggleAttribute('still', still);
+      thumb.style.width = `${on.offsetWidth}px`;
+      thumb.style.transform = `translateX(${on.offsetLeft}px)`;
+    };
     sync = () => {
       const value = row.get();
-      for (const button of control.children) {
+      for (const button of control.querySelectorAll('button')) {
         const on = button.dataset.value === value;
         button.toggleAttribute('on', on);
         button.setAttribute('aria-checked', String(on));
       }
+      place(false);
     };
+    // Al abrirse el panel o entrar la fila, se coloca sin viaje (ver setOpen y renderRows).
+    control.zeroPlace = place;
     control.addEventListener('click', event => {
       const button = event.target.closest('[data-value]');
       if (button) { row.set(button.dataset.value); sync(); }
@@ -115,28 +128,93 @@ function rowNode(doc, row, st) {
   }
   sync();
   const unwatch = row.watch?.(sync);
-  if (unwatch) (st.rowCleanups ?? st.cleanups).push(unwatch);
+  if (unwatch) undo.push(unwatch);
   return el(doc, 'div', { class: 'zero-row' }, [text, control]);
 }
 
+const calm = 'cubic-bezier(.32, .72, 0, 1)';
+const quiet = win => win.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/** Una fila que llega: se abre su hueco y su contenido entra un poco después (nada de golpe). */
+function enter(win, node) {
+  if (quiet(win)) return;
+  const cs = win.getComputedStyle(node);
+  const height = node.getBoundingClientRect().height;
+  node.style.overflow = 'clip';
+  node.animate([
+    { height: '0px', paddingTop: '0px', paddingBottom: '0px', opacity: 0, transform: 'translateY(-6px)' },
+    { opacity: 0, offset: .25 },
+    { height: `${height}px`, paddingTop: cs.paddingTop, paddingBottom: cs.paddingBottom, opacity: 1, transform: 'none' },
+  ], { duration: 460, easing: calm }).finished.then(() => { node.style.overflow = ''; }, () => { node.style.overflow = ''; });
+}
+
+/** Una fila que se va: su contenido se va antes y luego se cierra su hueco. */
+function leave(win, node) {
+  node.setAttribute('leaving', '');
+  if (quiet(win)) { node.remove(); return; }
+  const cs = win.getComputedStyle(node);
+  const height = node.getBoundingClientRect().height;
+  node.style.overflow = 'clip';
+  node.animate([
+    { height: `${height}px`, paddingTop: cs.paddingTop, paddingBottom: cs.paddingBottom, opacity: 1, transform: 'none' },
+    { opacity: 0, offset: .45 },
+    { height: '0px', paddingTop: '0px', paddingBottom: '0px', opacity: 0, transform: 'translateY(-6px)', borderTopColor: 'transparent' },
+  ], { duration: 380, easing: calm, fill: 'forwards' }).finished.then(() => node.remove(), () => node.remove());
+}
+
+/** Pone las filas que tocan sin rehacer las que ya están: las nuevas entran y las que sobran se van
+ *  (con animación si el panel está a la vista), y un interruptor pulsado sigue siendo el mismo. */
 function renderRows(win, st) {
   const doc = win.document;
-  for (const undo of st.rowCleanups ?? []) { try { undo(); } catch { /* ya no estaba */ } }
-  st.rowCleanups = [];
-  const all = [zeroSection(win, st.host), ...(sections.get(win) ?? [])];
+  for (const undo of st.sectionCleanups ?? []) { try { undo(); } catch { /* ya no estaba */ } }
+  st.sectionCleanups = [];
+  st.live ??= new Map(); // sección:fila → { node, section, undo }
+  st.zeroSection ??= zeroSection(win, st.host);
+  const all = [st.zeroSection, ...(sections.get(win) ?? [])];
   const shown = row => { try { return row.when ? !!row.when() : true; } catch { return true; } };
-  st.rows.replaceChildren(...all.flatMap(section => section.rows.filter(shown).map(row => rowNode(doc, row, st))));
+  const wanted = all.flatMap(section => section.rows.filter(shown).map(row => ({ key: `${section.id}:${row.id}`, row, section })));
+  const visible = st.panel.hasAttribute('open');
+  const drop = (key, item, animate) => {
+    st.live.delete(key);
+    for (const undo of item.undo) { try { undo(); } catch { /* ya no estaba */ } }
+    if (animate) leave(win, item.node); else item.node.remove();
+  };
+  const keep = new Set(wanted.map(({ key }) => key));
+  for (const [key, item] of st.live) if (!keep.has(key)) drop(key, item, visible);
+  // Una sección puesta de nuevo (otra vez la misma fase) rehace sus filas, sin animación (antes de
+  // recorrer: así el recorrido no tropieza con filas que ya no están).
+  for (const { key, section } of wanted) { const item = st.live.get(key); if (item && item.section !== section) drop(key, item, false); }
+  let cursor = st.rows.firstChild;
+  for (const { key, row, section } of wanted) {
+    let item = st.live.get(key);
+    const fresh = !item;
+    if (fresh) {
+      item = { section, undo: [] };
+      item.node = rowNode(doc, row, item.undo);
+      st.live.set(key, item);
+    }
+    while (cursor?.hasAttribute('leaving')) cursor = cursor.nextSibling;
+    if (cursor === item.node) { cursor = cursor.nextSibling; continue; }
+    st.rows.insertBefore(item.node, cursor);
+    if (fresh && visible) { placeThumbs(item.node); enter(win, item.node); }
+  }
   // Las secciones que cambian de filas (el pomodoro enseña sus tiempos solo encendido).
   for (const section of all) {
     const undo = section.watch?.(() => win.setTimeout(() => { if (state.get(win) === st) renderRows(win, st); }, 0));
-    if (undo) st.rowCleanups.push(undo);
+    if (undo) st.sectionCleanups.push(undo);
   }
+}
+
+/** Coloca sin viaje las pastillas de los segmentos (necesitan el panel a la vista para medirse). */
+function placeThumbs(root) {
+  for (const segment of root.querySelectorAll('.zero-segment')) segment.zeroPlace?.(true);
 }
 
 function setOpen(win, st, open) {
   st.panel.toggleAttribute('open', open);
   st.mark.toggleAttribute('open', open);
   st.mark.setAttribute('aria-expanded', String(open));
+  if (open) placeThumbs(st.rows);
 }
 
 export function attach(win, ctx) {
@@ -145,14 +223,12 @@ export function attach(win, ctx) {
   state.set(win, st);
   const listen = (target, type, fn, options) => { target.addEventListener(type, fn, options); st.cleanups.push(() => target.removeEventListener(type, fn, options)); };
   const title = host.t('Ajustes de Kitsune Zero', 'Kitsune Zero settings');
-  const keys = shortcutText(Services.appinfo.OS);
 
   st.mark = el(doc, 'button', { type: 'button', id: 'zero-mark', title, 'aria-label': title, 'aria-expanded': 'false', 'aria-controls': 'zero-settings' },
     [el(doc, 'span', { class: 'zero-logo', 'aria-hidden': 'true' })]);
   st.rows = el(doc, 'div', { class: 'zero-rows' });
   st.panel = el(doc, 'section', { id: 'zero-settings', role: 'dialog', 'aria-label': title }, [
-    el(doc, 'h4', {}, [el(doc, 'span', { class: 'zero-logo', 'aria-hidden': 'true' }), 'Kitsune Zero',
-      el(doc, 'small', {}, [host.t(`${keys} entra y sale`, `${keys} to enter and leave`)])]),
+    el(doc, 'h4', {}, [el(doc, 'span', { class: 'zero-logo', 'aria-hidden': 'true' }), 'Kitsune Zero']),
     st.rows,
   ]);
   doc.body.append(st.mark, st.panel);
@@ -173,7 +249,8 @@ export function detach(win) {
   const st = state.get(win);
   if (!st) return;
   state.delete(win);
-  for (const undo of [...st.cleanups.reverse(), ...(st.rowCleanups ?? [])]) { try { undo(); } catch { /* ya no estaba */ } }
+  const rows = [...(st.live?.values() ?? [])].flatMap(item => item.undo);
+  for (const undo of [...st.cleanups.reverse(), ...(st.sectionCleanups ?? []), ...rows]) { try { undo(); } catch { /* ya no estaba */ } }
 }
 
 /** Para las fases 2 a 4: añaden su sección de ajustes (en las ventanas en Zero, al momento). */

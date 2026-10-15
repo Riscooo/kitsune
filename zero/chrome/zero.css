@@ -763,11 +763,11 @@
   position: fixed; left: 13px; bottom: 16px; z-index: 6;
   appearance: none; box-sizing: content-box; width: 24px; height: 24px; min-width: 0; padding: 0; margin: 0;
   border: none; border-radius: 50%; background: transparent; cursor: pointer;
-  color: #fff; opacity: .34;
+  color: #fff; opacity: .62;
   filter: drop-shadow(0 1px 2px rgba(0, 0, 0, .28));
   transition: opacity 700ms var(--zero-soft), transform 700ms var(--zero-calm), color 600ms var(--zero-soft);
 }
-#zero-mark:hover, #zero-mark[open] { opacity: .92; transform: scale(1.06); }
+#zero-mark:hover, #zero-mark[open] { opacity: .95; transform: scale(1.06); }
 #zero-mark:focus-visible { outline: 2px solid rgba(255, 255, 255, .7); outline-offset: 3px; }
 .zero-logo {
   display: inline-block; flex: none; width: 24px; height: 24px;
@@ -800,7 +800,6 @@
 }
 #zero-settings h4 { margin: 2px 2px 10px; font: 600 14px system-ui, sans-serif; display: flex; align-items: center; gap: 8px; }
 #zero-settings h4 .zero-logo { width: 18px; height: 18px; }
-#zero-settings h4 small { margin-inline-start: auto; font: 500 10.5px system-ui, sans-serif; color: rgba(29, 35, 33, .5); }
 #zero-settings .zero-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 10px; padding: 8px 2px; border-top: 1px solid rgba(29, 35, 33, .08); }
 /* El texto pide su sitio; si con el segmento no cabe, el segmento baja a su línea, a la derecha. */
 #zero-settings .zero-row-text { flex: 1 1 160px; min-width: 0; }
@@ -815,19 +814,30 @@
   transition: background-color 360ms var(--zero-soft);
 }
 #zero-settings .zero-switch::after {
-  content: ""; position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; border-radius: 50%;
+  content: ""; position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; border-radius: 999px;
   background: #fff; box-shadow: 0 1px 3px rgba(0, 0, 0, .25);
-  transition: transform 420ms var(--zero-calm);
+  transition: transform 420ms var(--zero-calm), width 220ms var(--zero-calm);
 }
 #zero-settings .zero-switch[on] { background: #3a8f74; }
 #zero-settings .zero-switch[on]::after { transform: translateX(14px); }
-#zero-settings .zero-segment { display: flex; flex: none; padding: 2px; border-radius: 999px; background: rgba(29, 35, 33, .08); }
+/* Al pulsarlo, la bolita se estira un poco hacia donde va (como en iOS). */
+#zero-settings .zero-switch:active::after { width: 20px; }
+#zero-settings .zero-switch[on]:active::after { transform: translateX(10px); }
+#zero-settings .zero-segment { position: relative; display: flex; flex: none; padding: 2px; border-radius: 999px; background: rgba(29, 35, 33, .08); }
 #zero-settings .zero-segment > button {
-  appearance: none; min-width: 0; margin: 0; padding: 3px 10px; border: none; border-radius: 999px; cursor: pointer;
+  appearance: none; position: relative; z-index: 1; min-width: 0; margin: 0; padding: 3px 10px; border: none; border-radius: 999px; cursor: pointer;
   background: transparent; color: inherit; font: 500 11.5px system-ui, sans-serif;
-  transition: background-color 360ms var(--zero-soft), box-shadow 360ms var(--zero-soft);
+  opacity: .72; transition: opacity 360ms var(--zero-soft);
 }
-#zero-settings .zero-segment > button[on] { background: #fff; box-shadow: 0 1px 3px rgba(0, 0, 0, .14); }
+#zero-settings .zero-segment > button[on] { opacity: 1; }
+/* La pastilla de la elegida: se desliza de una a otra. */
+#zero-settings .zero-seg-thumb {
+  position: absolute; top: 2px; bottom: 2px; left: 0; border-radius: 999px; pointer-events: none;
+  background: #fff; box-shadow: 0 1px 3px rgba(0, 0, 0, .14);
+  transition: transform 420ms var(--zero-calm), width 420ms var(--zero-calm);
+}
+#zero-settings .zero-seg-thumb[still] { transition: none; }
+#zero-settings .zero-seg-thumb[hidden] { display: none; }
 #zero-settings :is(.zero-switch, .zero-segment > button):focus-visible { outline: 2px solid #3a8f74; outline-offset: 2px; }
 
 /* ---------------------------------------------------------------- la isla con solo iconos */
@@ -1040,8 +1050,8 @@
 :root[zero-frame-ink]:not([zero-full]) #zero-lights > button { background-color: rgba(29, 35, 33, .28); box-shadow: none; }
 :root[zero-frame-ink]:not([zero-full]) #zero-grow:not([zero-ink]) { color: #1d2321; background: rgba(255, 255, 255, .45); }
 :root[zero-frame-ink]:not([zero-full]) #zero-grow > button:hover { background-color: rgba(29, 35, 33, .1); }
-:root[zero-frame-ink]:not([zero-full]) #zero-mark { color: #1d2321; opacity: .26; filter: none; }
-:root[zero-frame-ink]:not([zero-full]) #zero-mark:is(:hover, [open]) { opacity: .8; }
+:root[zero-frame-ink]:not([zero-full]) #zero-mark { color: #1d2321; opacity: .5; filter: none; }
+:root[zero-frame-ink]:not([zero-full]) #zero-mark:is(:hover, [open]) { opacity: .85; }
 
 /* ---------------------------------------------------------------- el silencio (zero-silence) */
 

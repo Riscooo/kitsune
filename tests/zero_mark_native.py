@@ -1,13 +1,16 @@
 """Kitsune Zero · la marca de agua y los ajustes, en el motor real (perfil temporal, sin ventana en pantalla).
 
-1. La marca está abajo a la izquierda (a 13 px y 16 px de los bordes): con el sistema en oscuro, en blanco
-   y con opacidad 0,34; en claro (el marco pasa a tinta), en tinta.
+1. La marca está abajo a la izquierda (a 13 px y 16 px de los bordes) y se ve: con el sistema en oscuro, en
+   blanco y con opacidad 0,62; en claro (el marco pasa a tinta), en tinta a 0,5.
 2. Un clic abre los ajustes (#zero-settings), que brotan de la marca; se cierran con un clic fuera o con Esc.
 3. «Ventanas nuevas» (como esta / en Zero / normales) cambia kitsune.zero.inherit y kitsune.zero.always,
    y «Fondo» (del sistema / de la web) cambia kitsune.zero.backdrop y el aspecto al momento. «Isla» (con texto / solo iconos) cambia
    kitsune.zero.islandIcons.
 4. No salen filas de fases sin hacer (pomodoro, silencio, sonidos…).
 5. Con la web ampliada la marca se aparta, y vuelve al acercarse al borde izquierdo.
+6. Los ajustes no repiten el atajo en la cabecera. Nada pasa de golpe: al encender una opción, sus filas
+   entran con una animación (y al apagarla se van igual); el interruptor que se pulsa es el mismo (no se
+   rehace) y su bolita recorre el camino; en un segmento, la pastilla de la elegida se desliza hasta ella.
 
 --zero-del-repo: Zero sale de zero/ del repositorio (ver zero_harness.py).
 """
@@ -17,6 +20,7 @@ import json
 from pathlib import Path
 import tempfile
 import threading
+import time
 
 from browser_smoke import WebDriver, prepare_profile, eventually
 import zero_harness
@@ -110,14 +114,16 @@ def main():
         eventually(lambda: chrome("return !!document.getElementById('kitsune-zero-key')"), timeout=10)
         chrome("Services.prefs.setIntPref('ui.systemUsesDarkTheme', 1)")
         chrome("document.getElementById('kitsune-zero-key').doCommand()")
+        # El puntero, lejos de la marca (sin moverlo, su sitio es cualquiera y puede quedar encima de ella).
+        pointer([{'type': 'pointerMove', 'origin': 'viewport', 'x': 800, 'y': 400}])
 
         until(lambda: (m := mark())['mark'] is not None and abs(m['mark']['x'] - 13) <= 1 and abs(m['H'] - m['mark']['bottom'] - 16) <= 1
-              and m['color'] == 'rgb(255, 255, 255)' and abs(m['opacity'] - 0.34) < 0.01)
+              and m['color'] == 'rgb(255, 255, 255)' and abs(m['opacity'] - 0.62) < 0.01)
         # Con el sistema en claro (y el cristal del sistema), el marco pasa a tinta y la marca también.
         chrome("Services.prefs.setIntPref('ui.systemUsesDarkTheme', 0)")
-        until(lambda: (m := mark())['color'] == 'rgb(29, 35, 33)' and abs(m['opacity'] - 0.26) < 0.01)
+        until(lambda: (m := mark())['color'] == 'rgb(29, 35, 33)' and abs(m['opacity'] - 0.5) < 0.01)
         chrome("Services.prefs.clearUserPref('ui.systemUsesDarkTheme')")
-        check('La marca está abajo a la izquierda: blanca a 0,34 con el sistema en oscuro, en tinta en claro')
+        check('La marca está abajo a la izquierda y se ve: blanca a 0,62 con el sistema en oscuro, en tinta a 0,5 en claro')
 
         click('#zero-mark')
         until(lambda: mark()['open'] and mark()['panelOpacity'] == 1)
@@ -156,6 +162,48 @@ def main():
         click('#zero-settings [data-pref="islandIcons"] [data-value="text"]')
         until(lambda: chrome("return Services.prefs.getBoolPref('kitsune.zero.islandIcons', false)") is False)
         check('No salen filas de fases sin hacer')
+
+        head = chrome("return document.querySelector('#zero-settings h4').textContent")
+        assert 'Ctrl' not in head and '⌘' not in head, head
+        driver.context('chrome')
+        turned = driver.script("""const done = arguments[arguments.length - 1];
+            const sw = document.querySelector('#zero-settings [data-pref=pomodoro]'); sw.__mio = true;
+            const before = [...document.querySelectorAll('#zero-settings .zero-row')]; before.forEach(r => r.__vieja = true);
+            sw.click();
+            setTimeout(() => {
+              const now = document.querySelector('#zero-settings [data-pref=pomodoro]');
+              const rows = [...document.querySelectorAll('#zero-settings .zero-row')];
+              const fresh = rows.filter(r => !r.__vieja);
+              done({ same: now?.__mio === true, kept: before.every(r => r.isConnected), fresh: fresh.length,
+                     moving: fresh.filter(r => r.getAnimations().some(a => a.playState === 'running')).length,
+                     knob: document.getAnimations().some(a => a.effect?.target === now && a.effect.pseudoElement === '::after' && a.playState === 'running') });
+            }, 80);""", [], asynchronous=True)
+        assert turned['same'] and turned['kept'] and turned['fresh'] >= 2 and turned['moving'] == turned['fresh'] and turned['knob'], turned
+        time.sleep(0.8)
+        driver.context('chrome')
+        slid = driver.script("""const done = arguments[arguments.length - 1];
+            const seg = document.querySelector('#zero-settings [data-pref="pomodoro.preset"]'); const thumb = seg?.querySelector('.zero-seg-thumb');
+            if (!thumb) return done({ moving: false, thumb: false });
+            const target = seg.querySelector('[data-value="50"]'); target.click();
+            setTimeout(() => {
+              const moving = thumb.getAnimations().some(a => a.playState === 'running');
+              setTimeout(() => { const t = thumb.getBoundingClientRect(), b = target.getBoundingClientRect();
+                done({ moving, left: t.left - b.left, width: t.width - b.width }); }, 700);
+            }, 60);""", [], asynchronous=True)
+        assert slid['moving'] and abs(slid['left']) < 1 and abs(slid['width']) < 1, slid
+        driver.context('chrome')
+        gone = driver.script("""const done = arguments[arguments.length - 1];
+            const count = () => document.querySelectorAll('#zero-settings .zero-row:not([leaving])').length;
+            const before = document.querySelectorAll('#zero-settings .zero-row').length;
+            document.querySelector('#zero-settings [data-pref=pomodoro]').click();
+            setTimeout(() => {
+              const leaving = [...document.querySelectorAll('#zero-settings .zero-row[leaving]')];
+              const animated = leaving.filter(r => r.getAnimations().some(a => a.playState === 'running')).length;
+              setTimeout(() => done({ before, leaving: leaving.length, animated, after: document.querySelectorAll('#zero-settings .zero-row').length, live: count() }), 800);
+            }, 60);""", [], asynchronous=True)
+        assert gone['leaving'] >= 2 and gone['animated'] == gone['leaving'] and gone['after'] == gone['live'] == 6, gone
+        chrome("Services.prefs.clearUserPref('kitsune.zero.pomodoro.preset')")
+        check('Sin el atajo en la cabecera; las filas entran y se van con animación, el interruptor y el segmento se deslizan')
         keys('')
         until(lambda: not mark()['open'])
 
