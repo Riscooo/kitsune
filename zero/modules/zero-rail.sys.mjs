@@ -51,12 +51,32 @@ function tabItem(doc, host) {
 }
 
 /** El icono: el favicon en un círculo claro, o la inicial sobre su color. */
+/** ¿Es un icono claro sobre transparente (como el gato de GitHub con el sistema en oscuro)? Sobre el
+ *  círculo claro no se vería: entonces va en uno oscuro. Se mira el icono tal como se pinta (16 × 16);
+ *  si no se puede leer (una imagen de otro origen), se deja como está. */
+function lightIcon(doc, img) {
+  try {
+    const canvas = el(doc, 'canvas', { width: '16', height: '16' });
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(img, 0, 0, 16, 16);
+    const data = ctx.getImageData(0, 0, 16, 16).data;
+    let light = 0, opaque = 0;
+    for (let i = 0; i < data.length; i += 4) {
+      if (data[i + 3] < 100) continue;
+      opaque++;
+      light += (data[i] + data[i + 1] + data[i + 2]) / 3;
+    }
+    return opaque > 0 && opaque < 0.85 * 256 && light / opaque > 200;
+  } catch { return null; }
+}
+
 function setFav(doc, fav, icon, letter, hue) {
   if (icon) {
     let img = fav.querySelector('img');
     if (!img) {
       img = el(doc, 'img', { alt: '' });
       img.addEventListener('error', () => { fav.dataset.broken = img.src; setFav(doc, fav, null, letter, hue); });
+      img.addEventListener('load', () => { const light = lightIcon(doc, img); if (light !== null) fav.toggleAttribute('light-icon', light); });
       fav.replaceChildren(img);
     }
     if (fav.dataset.broken === icon) return setFav(doc, fav, null, letter, hue);
@@ -65,6 +85,7 @@ function setFav(doc, fav, icon, letter, hue) {
     fav.style.removeProperty('--zero-fav-hue');
   } else {
     if (fav.textContent !== letter || fav.querySelector('img')) fav.replaceChildren(letter);
+    fav.removeAttribute('light-icon');
     fav.setAttribute('letter', '');
     fav.style.setProperty('--zero-fav-hue', String(hue));
   }

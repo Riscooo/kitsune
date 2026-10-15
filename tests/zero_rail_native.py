@@ -20,6 +20,8 @@
     raíl también se entera.
 13. Con el teclado (Tab por sus filas) el raíl se abre con los títulos, como con el ratón; al volver a
     la web, se cierra. Un clic de ratón no lo deja abierto.
+14. Un favicon claro sobre transparente (como el de GitHub con el sistema en oscuro: el gato blanco) va
+    en un círculo oscuro, que si no es blanco sobre blanco y no se ve; uno oscuro, en el claro de siempre.
 
 --zero-del-repo: Zero sale de zero/ del repositorio (ver zero_harness.py).
 """
@@ -36,8 +38,26 @@ import zero_harness
 TITLES = {'/kioto': 'Kioto', '/nara': 'Nara', '/osaka': 'Osaka', '/kobe': 'Kobe', '/uji': 'Uji'}
 
 
+# Un gato blanco sobre transparente (lo que pinta GitHub con el sistema en oscuro) y uno negro.
+ICONS = {'/blanco.svg': '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><circle cx="8" cy="8" r="5" fill="#fff"/></svg>',
+         '/negro.svg': '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><circle cx="8" cy="8" r="5" fill="#111"/></svg>'}
+
+
 class Handler(http.server.BaseHTTPRequestHandler):
     def do_GET(self):
+        if self.path in ICONS:
+            self.send_response(200)
+            self.send_header('Content-Type', 'image/svg+xml')
+            self.end_headers()
+            self.wfile.write(ICONS[self.path].encode())
+            return
+        if self.path in ('/gato-blanco', '/gato-negro'):
+            color = self.path.split('-')[1]
+            self.send_response(200)
+            self.send_header('Content-Type', 'text/html; charset=utf-8')
+            self.end_headers()
+            self.wfile.write(f'<!doctype html><meta charset=utf-8><title>Gato {color}</title><link rel=icon href="/{color}.svg"><h1>Gato</h1>'.encode())
+            return
         self.send_response(200)
         self.send_header('Content-Type', 'text/html; charset=utf-8')
         self.end_headers()
@@ -311,6 +331,19 @@ def main():
         chrome("gBrowser.selectedBrowser.focus()")
         until(lambda: chrome(width) < 40, timeout=5)
         check('Con el teclado el raíl se abre con los títulos; al volver a la web se cierra, y un clic no lo deja abierto')
+
+        add_tab('/gato-blanco')
+        add_tab('/gato-negro')
+        circle = """const out = {}; for (const row of document.querySelectorAll('#zero-rail .zero-tab')) {
+              if (!row.title.startsWith('Gato')) continue; const fav = row.querySelector('.zero-fav'); const img = fav.querySelector('img');
+              const c = getComputedStyle(fav).backgroundColor.match(/[\\d.]+/g).map(Number);
+              out[row.title] = { loaded: !!img && img.complete && img.naturalWidth > 0, light: (c[0] + c[1] + c[2]) / 3 }; } return out;"""
+        try:
+            until(lambda: (c := chrome(circle)).get('Gato blanco', {}).get('loaded') and c.get('Gato negro', {}).get('loaded')
+                  and c['Gato blanco']['light'] < 100 and c['Gato negro']['light'] > 200, timeout=10)
+        except AssertionError:
+            raise AssertionError(f'círculos de los favicon: {chrome(circle)}') from None
+        check('Un favicon claro sobre transparente va en un círculo oscuro; uno oscuro, en el claro')
         report['status'] = 'passed'
     finally:
         if driver: driver.close()
