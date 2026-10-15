@@ -264,7 +264,7 @@
   border: none !important; box-shadow: none !important;
   background: transparent !important;
   -moz-window-dragging: no-drag !important;
-  transition: width var(--zero-t-morph) var(--zero-calm) var(--zero-wait) !important; /* al cerrar, el contenido se va antes que la forma */
+  transition: width var(--zero-t-morph) var(--zero-calm) var(--zero-wait), top var(--zero-t-move) var(--zero-calm), height var(--zero-t-move) var(--zero-calm) !important; /* al cerrar, el contenido se va antes que la forma */
 }
 /* El modo compacto de Kitsune (Ctrl+Alt+C) esconde las barras hacia arriba; en Zero la isla ya es lo
    mínimo (y la tarjeta guarda su hueco), así que se queda a la vista. */
@@ -321,7 +321,7 @@
 #main-window[zero] #nav-bar-customization-target { height: 32px !important; padding: 0 !important; gap: 0 !important; align-items: center !important; }
 
 /* Solo atrás, adelante, recargar, la dirección, las extensiones (si Gecko las enseña) y el menú; lo demás, fuera de Zero. */
-#main-window[zero] #nav-bar > :not(#nav-bar-customization-target, #PanelUI-button, #unified-extensions-button, #zero-host, #zero-island-msg, #zero-island-progress, .zero-anchor, .zero-load, toolbartabstop),
+#main-window[zero] #nav-bar > :not(#nav-bar-customization-target, #PanelUI-button, #unified-extensions-button, #zero-host, #zero-island-msg, #zero-island-progress, .zero-anchor, .zero-load, .zero-engine, toolbartabstop),
 #main-window[zero] #nav-bar-customization-target > :not(#back-button, #forward-button, #stop-reload-button, #urlbar-container, #unified-extensions-button) { display: none !important; }
 
 /* Los botones: fuera en reposo; al abrirse la isla entran cuando ya ha empezado a crecer (forma
@@ -377,7 +377,7 @@
 #main-window[zero] #urlbar > .urlbar-input-container > #identity-box { max-width: 0 !important; overflow: clip !important; margin: 0 !important; padding: 0 !important; opacity: 0 !important; }
 #main-window[zero] #urlbar-input { color: #fff !important; font: 500 12.5px system-ui, sans-serif !important; }
 #main-window[zero] #urlbar-input::placeholder { color: rgba(255, 255, 255, .62) !important; opacity: 1 !important; }
-#main-window[zero] #navigator-toolbox[zero-island="typing"] #urlbar > .urlbar-input-container {
+#main-window[zero]:not([zero-empty]) #navigator-toolbox[zero-island="typing"] #urlbar > .urlbar-input-container {
   opacity: 1 !important; margin-inline: 37px !important; /* como en la maqueta: un campo a 40 px de los bordes */
   background-color: rgba(255, 255, 255, .16) !important;
 }
@@ -513,6 +513,40 @@
    como una hoja de cristal aparte. Gecko las ancla al campo con anclaje de CSS, y la isla no sirve
    de ancla porque las contiene: van fijas, centradas como ella. Sobre la web el desenfoque de CSS no
    ve nada (la web la pinta otro proceso), así que el cristal es más denso para que se lea. */
+/* ---------------------------------------------------------------- sin nada abierto (zero-empty) */
+
+/* Decisión de Risco (15-10): con la pestaña nueva o la de inicio no hay tarjeta ni página de inicio: el
+   fondo transparente, el raíl y la isla en el centro de la ventana como buscador (más ancha y algo más
+   alta, con el icono del buscador y el campo a la vista). Al buscar, la isla sube a su sitio y la tarjeta
+   vuelve; las dos cosas viajan (top y opacidad), nada salta. */
+#main-window[zero][zero-empty] #navigator-toolbox:not([zero-island-alert]) {
+  --zero-island-w: 600px !important;
+  top: calc(50vh - 22px) !important; height: 44px !important;
+}
+#main-window[zero][zero-empty] #nav-bar { height: 44px !important; min-height: 44px !important; max-height: 44px !important; padding-inline: 6px !important; }
+#main-window[zero][zero-empty] #navigator-toolbox #urlbar > .urlbar-input-container {
+  opacity: 1 !important; margin-inline: 0 !important; padding-inline-start: 32px !important; background-color: transparent !important;
+}
+#main-window[zero][zero-empty] #urlbar-input { font-size: 14px !important; }
+#main-window[zero][zero-empty] #zero-host { opacity: 0 !important; }
+/* Sin nada abierto no hay atrás, adelante ni recargar: fuera (sin hueco), y el texto empieza tras la G. */
+#main-window[zero][zero-empty] #nav-bar :is(#back-button, #forward-button, #stop-reload-button, #unified-extensions-button, #PanelUI-button) { display: none !important; }
+#main-window[zero] #nav-bar > .zero-engine {
+  position: absolute !important; left: 18px !important; top: 50% !important; width: 18px !important; height: 18px !important; margin-top: -9px !important;
+  border-radius: 4px !important; pointer-events: none !important; opacity: 0 !important;
+  transition: opacity var(--zero-t-fade) var(--zero-soft) !important;
+}
+#main-window[zero][zero-empty] #nav-bar > .zero-engine[src] { opacity: 1 !important; transition-delay: var(--zero-enter) !important; }
+#main-window[zero] #tabbrowser-tabpanels { transition: opacity var(--zero-t-fade) var(--zero-soft), scale var(--zero-t-move) var(--zero-calm); }
+#main-window[zero][zero-empty] #tabbrowser-tabpanels { opacity: 0 !important; scale: .985; pointer-events: none !important; }
+#main-window[zero][zero-empty] #zero-grow { opacity: 0 !important; pointer-events: none !important; }
+/* Las sugerencias, bajo la isla también en el centro, y del mismo cristal (sin web debajo no hay foto). */
+#main-window[zero][zero-empty] #urlbar .urlbarView:popover-open {
+  inset: calc(50vh + 22px + 8px) 0 auto 0 !important; width: min(600px, 100vw - 152px) !important;
+  background: var(--zero-glass-fill) !important; box-shadow: var(--zero-glass-edge) !important;
+  color: #fff !important; text-shadow: var(--zero-glass-halo) !important;
+}
+
 #main-window[zero] #urlbar .urlbarView:popover-open {
   position-area: none !important;
   inset: calc(7px + 32px + 8px) 0 auto 0 !important;
@@ -761,7 +795,7 @@
 .zero-glass[hidden] { display: none !important; }
 
 /* Texto que se adapta a lo que tiene detrás: tinta sobre lo claro (con un fundido de 420 ms). */
-#main-window[zero] #nav-bar { transition: color var(--zero-t-ink) var(--zero-soft), text-shadow var(--zero-t-ink) var(--zero-soft) !important; }
+#main-window[zero] #nav-bar { transition: color var(--zero-t-ink) var(--zero-soft), text-shadow var(--zero-t-ink) var(--zero-soft), height var(--zero-t-move) var(--zero-calm), min-height var(--zero-t-move) var(--zero-calm), max-height var(--zero-t-move) var(--zero-calm) !important; }
 #main-window[zero] #nav-bar .toolbarbutton-icon { transition: fill var(--zero-t-ink) var(--zero-soft), background-color 200ms var(--zero-soft) !important; }
 #main-window[zero] #urlbar-input { transition: color var(--zero-t-ink) var(--zero-soft) !important; }
 #main-window[zero] #nav-bar[zero-ink] {
@@ -774,7 +808,7 @@
 }
 #main-window[zero] #nav-bar[zero-ink] :is(#zero-host, #zero-island-msg, #urlbar-input) { color: #1d2321 !important; }
 #main-window[zero] #nav-bar[zero-ink] #urlbar-input::placeholder { color: rgba(29, 35, 33, .55) !important; }
-#main-window[zero] #navigator-toolbox[zero-island="typing"] #nav-bar[zero-ink] #urlbar > .urlbar-input-container { background-color: rgba(29, 35, 33, .08) !important; }
+#main-window[zero]:not([zero-empty]) #navigator-toolbox[zero-island="typing"] #nav-bar[zero-ink] #urlbar > .urlbar-input-container { background-color: rgba(29, 35, 33, .08) !important; }
 #zero-rail[zero-ink], #zero-grow[zero-ink] { color: #1d2321; }
 #zero-rail[zero-ink] .zero-sep { background: rgba(29, 35, 33, .18); }
 #zero-rail[zero-ink] :is(.zero-space, .zero-new) .zero-fav { background: rgba(29, 35, 33, .08); color: #1d2321; }
@@ -1081,7 +1115,7 @@
   --toolbarbutton-active-background: rgba(29, 35, 33, .16) !important;
 }
 #main-window[zero][zero-frame-ink]:not([zero-full]) #nav-bar:not([zero-ink]) :is(#zero-host, #zero-island-msg, #urlbar-input) { color: #1d2321 !important; text-shadow: none !important; }
-#main-window[zero][zero-frame-ink]:not([zero-full]) #navigator-toolbox[zero-island="typing"] #nav-bar:not([zero-ink]) #urlbar > .urlbar-input-container { background-color: rgba(29, 35, 33, .08) !important; }
+#main-window[zero][zero-frame-ink]:not([zero-full], [zero-empty]) #navigator-toolbox[zero-island="typing"] #nav-bar:not([zero-ink]) #urlbar > .urlbar-input-container { background-color: rgba(29, 35, 33, .08) !important; }
 :root[zero-frame-ink]:not([zero-full]) #zero-pomo:not([zero-ink]) { color: #1d2321; text-shadow: none; }
 :root[zero-frame-ink]:not([zero-full]) #zero-pomo:not([zero-ink]) .zero-pomo-ring::before { background: conic-gradient(rgba(200, 85, 61, .9) 0 calc(var(--zero-pomo-p, 1) * 100%), rgba(29, 35, 33, .14) 0); }
 :root[zero-frame-ink]:not([zero-full]) #zero-pomo:is([phase="short"], [phase="long"]):not([zero-ink]) .zero-pomo-ring::before { background: conic-gradient(rgba(58, 143, 116, .95) 0 calc(var(--zero-pomo-p, 1) * 100%), rgba(29, 35, 33, .14) 0); }

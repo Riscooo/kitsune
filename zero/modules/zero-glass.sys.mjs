@@ -123,7 +123,8 @@ const union = (a, b) => box(Math.min(a.left, b.left), Math.min(a.top, b.top), Ma
 /** Las webs que se ven: la de la pestaña elegida y, con la vista dividida, las de al lado. */
 function webs(win) {
   const panels = win.document.getElementById('tabbrowser-tabpanels');
-  if (!panels) return [];
+  // Sin nada abierto (zero-empty) la tarjeta está escondida: debajo de las piezas no hay web.
+  if (!panels || win.document.documentElement.hasAttribute('zero-empty')) return [];
   return [...panels.querySelectorAll('.browserSidebarContainer')]
     .filter(panel => panel.classList.contains('deck-selected') || panel.classList.contains('split-view-panel-active'))
     .map(panel => panel.querySelector('browser[type="content"]'))

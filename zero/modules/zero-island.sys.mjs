@@ -34,6 +34,22 @@ function label(win) {
   return { text: win.gBrowser.selectedTab.label || '', site: null };
 }
 
+// Las páginas que cuentan como «nada abierto»: la nueva pestaña y la de inicio (las de Gecko o las que
+// ponga el navegador, como el inicio de Kitsune) y las en blanco.
+const BLANK = new Set(['', 'about:blank', 'about:newtab', 'about:home', 'about:privatebrowsing']);
+export function isEmptyPage(win, spec) {
+  if (BLANK.has(spec)) return true;
+  try {
+    const { AboutNewTab } = ChromeUtils.importESModule('resource:///modules/AboutNewTab.sys.mjs');
+    if (spec === AboutNewTab.newTabURL) return true;
+  } catch { /* sin pestaña nueva propia */ }
+  try {
+    const { HomePage } = ChromeUtils.importESModule('resource:///modules/HomePage.sys.mjs');
+    if (HomePage.get(win).split('|').includes(spec)) return true;
+  } catch { /* sin página de inicio */ }
+  return false;
+}
+
 /** Lo más delicado que comparte alguna pestaña de la ventana —la pantalla, la cámara o el micrófono— y
  *  qué pestaña es (Gecko lo marca en «sharing»; ventana, aplicación o pestaña cuentan como pantalla). */
 export function sharingOf(win) {
@@ -139,6 +155,34 @@ export function attach(win, ctx = {}) {
   navbar.append(st.anchor);
   st.cleanups.push(() => st.anchor.remove());
 
+  // Sin nada abierto (la pestaña nueva o la de inicio): sin tarjeta, la isla baja al centro como buscador
+  // (zero-empty en la raíz; lo demás es CSS). Deja de estarlo en cuanto empieza a cargar otra web.
+  st.loading = new WeakMap(); // navegador → lo que está cargando (para no esperar a que llegue)
+  const root = doc.documentElement;
+  const setEmpty = () => {
+    if (state.get(win) !== st) return;
+    const browser = win.gBrowser.selectedBrowser;
+    const target = st.loading.get(browser) ?? browser.currentURI?.spec ?? '';
+    root.toggleAttribute('zero-empty', isEmptyPage(win, target));
+  };
+  st.cleanups.push(() => root.removeAttribute('zero-empty'));
+  // El buscador de siempre, con su icono delante del campo.
+  const engine = el(doc, 'img', { class: 'zero-engine', alt: '' });
+  navbar.append(engine);
+  st.cleanups.push(() => engine.remove());
+  // (En Gecko 158 el servicio de búsqueda es un módulo; antes, Services.search.)
+  const paintEngine = () => {
+    let search = null;
+    try { search = ChromeUtils.importESModule('moz-src:///toolkit/components/search/SearchService.sys.mjs').SearchService; } catch { search = Services.search ?? null; }
+    try {
+      Promise.resolve(search?.getDefault()).then(e => e?.getIconURL?.(32)).then(url => { if (url) engine.setAttribute('src', url); }, () => {});
+    } catch { /* sin buscador */ }
+  };
+  paintEngine();
+  const engines = { observe: paintEngine };
+  Services.obs.addObserver(engines, 'browser-search-engine-modified');
+  st.cleanups.push(() => Services.obs.removeObserver(engines, 'browser-search-engine-modified'));
+
   // Mientras carga la web que se ve: una línea fina en el borde de abajo de la isla, que avanza con lo
   // que dice Gecko (y, si no dice nada, despacio hacia el final) y se va al terminar.
   const load = el(doc, 'span', { class: 'zero-load', 'aria-hidden': 'true' });
@@ -164,8 +208,17 @@ export function attach(win, ctx = {}) {
   const loader = {
     onStateChange(webProgress, request, flags) {
       if (!webProgress?.isTopLevel || !(flags & WPL.STATE_IS_NETWORK)) return;
-      if (flags & WPL.STATE_START) start();
-      else if (flags & WPL.STATE_STOP) stop();
+      const browser = win.gBrowser.selectedBrowser;
+      if (flags & WPL.STATE_START) {
+        let name = ''; try { name = request?.name ?? ''; } catch { /* sin nombre */ }
+        if (name) st.loading.set(browser, name);
+        setEmpty();
+        start();
+      } else if (flags & WPL.STATE_STOP) {
+        st.loading.delete(browser);
+        setEmpty();
+        stop();
+      }
     },
     onProgressChange(webProgress, request, curSelf, maxSelf, curTotal, maxTotal) {
       if (webProgress?.isTopLevel && maxTotal > 0 && load.hasAttribute('on')) setLoad(true, 0.08 + 0.9 * (curTotal / maxTotal));
@@ -174,7 +227,8 @@ export function attach(win, ctx = {}) {
   win.gBrowser.addProgressListener(loader);
   st.cleanups.push(() => win.gBrowser.removeProgressListener(loader));
   // Otra pestaña: la línea es la suya (cargando o no).
-  listen(win.gBrowser.tabContainer, 'TabSelect', () => { if (win.gBrowser.selectedTab.hasAttribute('busy')) start(); else { win.clearInterval(st.creep); load.removeAttribute('on'); st.loadP = 0; } });
+  listen(win.gBrowser.tabContainer, 'TabSelect', () => { setEmpty(); if (win.gBrowser.selectedTab.hasAttribute('busy')) start(); else { win.clearInterval(st.creep); load.removeAttribute('on'); st.loadP = 0; } });
+  setEmpty();
   for (const part of [lock, icon]) part.addEventListener('click', siteInfo);
 
   // Lo que se puede hacer con esta web, solo cuando toca (como en la Dynamic Island): leerla en la
@@ -232,7 +286,7 @@ export function attach(win, ctx = {}) {
   listen(win.gBrowser.tabContainer, 'TabSelect', soon);
   // De las demás pestañas, a la isla solo le importa si usan la cámara o el micrófono.
   listen(win.gBrowser.tabContainer, 'TabAttrModified', event => { if (event.target.selected || event.detail?.changed?.includes('sharing')) soon(); });
-  const progress = { onLocationChange: soon };
+  const progress = { onLocationChange: () => { setEmpty(); soon(); } };
   win.gBrowser.addProgressListener(progress);
   st.cleanups.push(() => win.gBrowser.removeProgressListener(progress));
 

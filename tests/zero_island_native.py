@@ -481,6 +481,9 @@ def main():
         chrome("Services.prefs.clearUserPref('ui.prefersReducedMotion'); gBrowser.removeTabs(window.__webs); delete window.__webs;")
         assert same['moving'] == 0 and other_web['moving'] >= 1 and 'localhost' in other_web['text'] and quiet['moving'] == 0, (same, other_web, quiet)
         check('Al pasar a otra web, el dominio de la isla entra con un fundido (no entre pestañas de la misma web)')
+        # De vuelta a la pestaña con web (una en blanco es «nada abierto» y pone la isla en el centro).
+        chrome("gBrowser.selectedTab = gBrowser.tabs[0]")
+        until(lambda: not chrome("return document.documentElement.hasAttribute('zero-empty')"), timeout=5)
 
         chrome("ChromeUtils.importESModule('chrome://browser/content/zero/zero-island.sys.mjs').alert(window, 'Tres avisos esperando', 'te los enseño en el descanso', 1500, 'quiet')")
         until(lambda: sized(470) and clear_of_card(), timeout=5)
