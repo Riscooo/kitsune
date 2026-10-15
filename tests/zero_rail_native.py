@@ -6,7 +6,8 @@
 4. Pasa de 36 a 186 de ancho con el ratón encima, y los títulos entran escalonados (28 ms).
 5. Con el ratón encima, el icono más cercano es el que más crece (efecto Dock).
 6. Con la web ampliada se aparta (opacidad 0) y vuelve al acercarse al borde izquierdo.
-7. Con dos espacios o más, arriba salen sus iconos y un clic cambia de espacio.
+7. Los espacios son ahora los perfiles, en su propia pastilla (zero_profiles_native): en el raíl solo van las
+   pestañas, las del espacio en el que se está.
 8. La vista rápida de Kitsune no sale en el raíl (es de paso) y flota encima de la tarjeta.
 9. Con el raíl abierto, la fila bajo el ratón enseña una × que cierra esa pestaña sin elegirla; con el
    raíl cerrado no sale.
@@ -106,7 +107,8 @@ const box = el => { const r = el?.getBoundingClientRect(); return r ? { x: r.x, 
 const rail = document.getElementById('zero-rail');
 const tabs = [...rail?.querySelectorAll('.zero-tab') ?? []];
 return {
-  rail: box(rail), opacity: rail ? Number(getComputedStyle(rail).opacity) : null,
+  // (Con la web ampliada se aparta la columna de pastillas entera, con el raíl dentro.)
+  rail: box(rail), opacity: rail ? Number(getComputedStyle(document.getElementById('zero-dock') ?? rail).opacity) : null,
   tabs: tabs.map(item => {
     const fav = item.querySelector('.zero-fav'); const cs = getComputedStyle(fav);
     return { title: item.querySelector('.zero-tt')?.textContent ?? '', on: item.hasAttribute('selected'), pinned: item.hasAttribute('pinned'),
@@ -230,11 +232,11 @@ def main():
             const { KitsuneSpaces } = ChromeUtils.importESModule('chrome://browser/content/kitsune-spaces.sys.mjs');
             KitsuneSpaces.create({ name: 'Para luego', color: 'violet' }).then(done, e => done('error: ' + e));""", [], asynchronous=True)
         assert space and not str(space).startswith('error'), space
-        until(lambda: len(rail()['spaces']) == 2 and rail()['spaces'][0]['on'])
-        driver.command('POST', f"/element/{list(element('#zero-rail .zero-space[data-space="%s"]' % space).values())[0]}/click", {})
-        until(lambda: chrome("return ChromeUtils.importESModule('chrome://browser/content/kitsune-spaces.sys.mjs').KitsuneSpaces.active(window)") == space
-              and rail()['spaces'][1]['on'], timeout=8)
-        check('Con dos espacios o más, arriba salen sus iconos y un clic cambia de espacio')
+        before = [t['title'] for t in rail()['tabs']]
+        driver.script("""const done = arguments[arguments.length - 1];
+            ChromeUtils.importESModule('chrome://browser/content/kitsune-spaces.sys.mjs').KitsuneSpaces.switchTo(window, arguments[0]).then(() => done(), () => done());""", [space], asynchronous=True)
+        until(lambda: not rail()['spaces'] and [t['title'] for t in rail()['tabs']] != before, timeout=8)
+        check('En el raíl, solo las pestañas del espacio en el que se está (los espacios, en la pastilla del perfil)')
 
         # Las del espacio anterior se desvanecen antes de irse: se cuenta cuando ya no están.
         until(lambda: len(rail()['tabs']) == len(rail()['gecko']))

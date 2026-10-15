@@ -615,9 +615,9 @@ export const KitsuneSpaces = {
   async remove(id) { await load(); return commit(removeSpace(state.data, id)); },
   moveTab: (win, tab, id) => moveTab(win, tab, id),
   /** El panel de «Nuevo espacio», junto al «+» que se vea (arriba o en la barra lateral). */
-  openEditor(win) {
+  openEditor(win, anchor = null) {
     const add = [...win.document.querySelectorAll('.kitsune-space-add')].find(node => node.getBoundingClientRect().width > 0);
-    openEditor(win, add ?? win.document.getElementById('PanelUI-menu-button'));
+    openEditor(win, anchor ?? add ?? win.document.getElementById('PanelUI-menu-button'));
   },
   /** Para el importador: deja la pestaña en ese espacio sin tocar la ventana (luego, refresh). */
   assignTab(tab, id) { if (state.data.spaces.some(space => space.id === id)) setTabSpace(tab, id); },

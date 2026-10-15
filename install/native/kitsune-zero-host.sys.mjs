@@ -38,6 +38,8 @@ const spaces = {
   list: () => (spacesModule()?.list().spaces ?? []).map(({ id, name, icon, color }) => ({ id, name, icon, color })),
   current: win => spacesModule()?.active(win) ?? null,
   select: (win, id) => spacesModule()?.switchTo(win, id),
+  /** El editor de «Nuevo espacio» de Kitsune, junto a `anchor` (en Zero, la bolita del perfil). */
+  openEditor: (win, anchor) => spacesModule()?.openEditor(win, anchor),
   watch(win, fn) {
     const doc = win.document;
     const observer = new win.MutationObserver(() => fn());

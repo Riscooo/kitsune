@@ -165,7 +165,8 @@ function renderSpaces(win, st) {
   const spaces = st.host.spaces;
   let list = [], current = null;
   try { list = spaces?.list(win) ?? []; current = spaces?.current(win) ?? null; } catch { list = []; }
-  const show = list.length > 1;
+  // Los espacios son ahora los perfiles, en su propia pastilla (zero-profiles): aquí, solo las pestañas.
+  const show = false;
   st.spacesBox.hidden = !show;
   st.sep.hidden = !show;
   if (!show) { st.spacesBox.replaceChildren(); return 0; }
@@ -363,8 +364,11 @@ export function attach(win, ctx) {
   st.add.querySelector('.zero-fav').textContent = '+';
   st.add.querySelector('.zero-tt').textContent = host.t('Nueva pestaña', 'New tab');
   st.rail = el(doc, 'nav', { id: 'zero-rail', 'aria-label': host.t('Pestañas', 'Tabs') }, [st.spacesBox, st.sep, st.tabsBox, st.add]);
-  doc.body.append(st.edge, st.rail);
-  st.cleanups.push(() => { st.edge.remove(); st.rail.remove(); });
+  // La columna de pastillas de la izquierda (Risco, 15-10): el perfil y su modo arriba (zero-profiles), en
+  // medio las pestañas y abajo los accesos directos; la columna se coloca y se aparta entera.
+  st.dock = el(doc, 'div', { id: 'zero-dock' }, [st.rail]);
+  doc.body.append(st.edge, st.dock);
+  st.cleanups.push(() => { st.edge.remove(); st.dock.remove(); });
 
   const close = tab => { if (tab && !tab.closing) win.gBrowser.removeTab(tab, { animate: true }); };
   st.rail.addEventListener('click', event => {

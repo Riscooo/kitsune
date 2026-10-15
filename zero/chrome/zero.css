@@ -692,10 +692,18 @@
 /* Pequeño, centrado a la izquierda y casi transparente; al pasar el ratón (o con el teclado por sus
    filas) se abre con los títulos y, como entonces queda encima de la web, se esmerila (un velo claro)
    para que se lea. */
-#zero-rail {
+/* La columna de pastillas de la izquierda (Risco, 15-10): el perfil, su modo, las pestañas y los accesos
+   directos, una debajo de otra, centradas a la izquierda; se aparta entera con la web ampliada. */
+#zero-dock {
   position: fixed; left: 7px; top: 50%; z-index: 5;
   transform: translateY(-50%);
-  box-sizing: border-box; width: 36px; max-height: calc(100% - 120px);
+  max-height: calc(100% - 120px);
+  display: flex; flex-direction: column; align-items: flex-start; gap: 8px;
+  transition: transform var(--zero-t-move) var(--zero-calm), opacity var(--zero-t-ink) var(--zero-soft);
+}
+#zero-rail {
+  position: relative; z-index: 1; flex: 0 1 auto; min-height: 0;
+  box-sizing: border-box; width: 36px;
   padding: 7px 5px; border-radius: 18px;
   display: flex; flex-direction: column; gap: 2px;
   overflow-x: hidden; overflow-y: auto; scrollbar-width: none;
@@ -718,44 +726,72 @@
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, .95), inset 0 0 0 1px rgba(255, 255, 255, .5), 0 18px 44px rgba(0, 0, 0, .18);
 }
 #zero-rail :is(.zero-spaces, .zero-tabs) { display: flex; flex-direction: column; gap: 2px; }
-/* Los modos (zero-modes): arriba, los usuarios como bolitas (su imagen o su inicial, con su color); la del
-   usuario de la pestaña, con su aro; un punto dice su modo (ámbar, currar; verde agua, chill). */
-#zero-rail #zero-modes { display: flex; flex-direction: column; gap: 2px; }
-#zero-rail .zero-user .zero-fav { background: var(--identity-icon-color, rgba(255, 255, 255, .92)); color: #fff; }
-#zero-rail .zero-user:not([class*="identity-color-"]) .zero-fav { background: linear-gradient(135deg, #e8743b, #c8553d); }
-#zero-rail .zero-user .zero-fav img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
-#zero-rail .zero-user { position: relative; }
-#zero-rail .zero-user[active] .zero-fav { box-shadow: 0 0 0 1.5px rgba(255, 255, 255, .95), 0 1px 3px rgba(0, 0, 0, .25); }
-#zero-rail .zero-user[data-mode]::after {
-  content: ""; position: absolute; left: 18px; top: 17px; width: 8px; height: 8px; border-radius: 50%;
-  box-shadow: 0 0 0 1.5px rgba(20, 20, 24, .55); pointer-events: none;
+/* Las pastillas del perfil y del modo: el mismo cristal que el raíl. */
+#zero-dock > .zero-pill {
+  appearance: none; position: relative; flex: none; box-sizing: border-box; width: 36px; min-width: 0; margin: 0; padding: 5px; border: none; border-radius: 18px;
+  display: grid; place-items: center; color: #fff;
+  background-color: transparent;
+  background-image: radial-gradient(130% 120% at 28% 0%, rgba(255, 255, 255, .34), rgba(255, 255, 255, .12) 55%, rgba(255, 255, 255, .08)),
+                    linear-gradient(180deg, rgba(18, 18, 24, .12), rgba(18, 18, 24, .18));
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, .5), inset 0 0 12px rgba(255, 255, 255, .16), inset 0 -9px 16px -10px rgba(0, 0, 0, .24),
+              0 10px 28px rgba(0, 0, 0, .3), 0 2px 6px rgba(0, 0, 0, .2), 0 0 0 .5px rgba(0, 0, 0, .22);
+  -moz-window-dragging: no-drag;
 }
-#zero-rail .zero-user[data-mode="work"]::after { background: #ffb454; }
-#zero-rail .zero-user[data-mode="chill"]::after { background: #8fe3c6; }
-/* El selector de modo: una píldora de cristal junto al raíl, a la altura de la bolita. */
-#zero-mode-pick {
-  position: fixed; z-index: 8; left: var(--zero-pick-x, 52px); top: var(--zero-pick-y, 50%); translate: 0 -50%;
-  display: flex; gap: 4px; padding: 5px; border-radius: 999px;
-  /* Cristal ahumado, como el panel de ajustes: se lee sobre cualquier fondo (también una web clara). */
-  background: rgba(24, 24, 28, .66);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .28), inset 0 0 18px rgba(255, 255, 255, .06), 0 16px 40px rgba(0, 0, 0, .3);
-  color: #fff; font: 600 12.5px system-ui, sans-serif;
-  opacity: 0; scale: .94; transform-origin: left center; pointer-events: none; visibility: hidden;
+#zero-dock > .zero-pill::after {
+  content: ""; position: absolute; inset: 0; box-sizing: border-box; border-radius: inherit; pointer-events: none;
+  border: 1px solid; border-color: rgba(255, 222, 240, .95) rgba(204, 238, 255, .95) rgba(218, 255, 228, .9) rgba(255, 240, 206, .95);
+  mask-image: var(--zero-glass-rim);
+}
+/* La bolita de un perfil: su imagen, o su icono o su inicial sobre su tinta. */
+.zero-profile-bubble {
+  appearance: none; box-sizing: border-box; width: 26px; height: 26px; min-width: 0; margin: 0; padding: 0; border: none; border-radius: 50%;
+  display: grid; place-items: center; overflow: hidden; cursor: pointer;
+  font: 700 12px system-ui, sans-serif; color: #fff; text-shadow: 0 1px 1px rgba(0, 0, 0, .25);
+  background: var(--zero-profile-ink, #2fa59a);
+  box-shadow: 0 0 0 1.5px rgba(255, 255, 255, .9), 0 1px 3px rgba(0, 0, 0, .25);
+}
+.zero-profile-bubble img { width: 100%; height: 100%; object-fit: cover; }
+.zero-profile-bubble[data-color="blue"] { --zero-profile-ink: #4a7bd8; }
+.zero-profile-bubble[data-color="pink"] { --zero-profile-ink: #d65a9a; }
+.zero-profile-bubble[data-color="violet"] { --zero-profile-ink: #8a63d2; }
+.zero-profile-bubble[data-color="teal"] { --zero-profile-ink: #2fa59a; }
+.zero-profile-bubble[data-color="amber"] { --zero-profile-ink: #e3a03b; }
+.zero-profile-bubble[data-color="red"] { --zero-profile-ink: #d6574b; }
+/* El modo: un interruptor vertical que se desliza entre currar (arriba, ámbar) y chill (abajo, verde
+   agua); sin elegir, el botón queda en medio, apagado. */
+#zero-mode { height: 54px; padding: 0; cursor: pointer; }
+#zero-mode .zero-mode-knob {
+  width: 22px; height: 22px; border-radius: 50%; pointer-events: none;
+  background: rgba(255, 255, 255, .55); box-shadow: 0 1px 3px rgba(0, 0, 0, .3), inset 0 -1px 2px rgba(0, 0, 0, .12);
+  translate: 0 0; transition: translate var(--zero-t-morph) var(--zero-calm), background-color var(--zero-t-fade) var(--zero-soft);
+}
+#zero-mode[data-mode="work"] .zero-mode-knob { translate: 0 -12px; background: #ffb454; }
+#zero-mode[data-mode="chill"] .zero-mode-knob { translate: 0 12px; background: #8fe3c6; }
+/* El menú de perfiles: cristal ahumado (se lee sobre cualquier fondo), junto a la bolita. */
+#zero-profiles {
+  position: fixed; z-index: 8; left: var(--zero-menu-x, 52px); top: var(--zero-menu-y, 50%);
+  min-width: 200px; padding: 6px; border-radius: 16px;
+  display: flex; flex-direction: column; gap: 2px;
+  background: rgba(24, 24, 28, .7); color: #fff; font: 500 13px system-ui, sans-serif;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .28), inset 0 0 18px rgba(255, 255, 255, .06), 0 20px 50px rgba(0, 0, 0, .35);
+  opacity: 0; scale: .96; transform-origin: left top; pointer-events: none; visibility: hidden;
   transition: opacity var(--zero-t-fade) var(--zero-soft), scale var(--zero-t-morph) var(--zero-calm), visibility 0s linear var(--zero-t-fade);
 }
-#zero-mode-pick[open] { opacity: 1; scale: 1; pointer-events: auto; visibility: visible; transition-delay: 0s; }
-#zero-mode-pick > button {
-  appearance: none; border: none; margin: 0; height: 28px; padding: 0 12px; border-radius: 999px; cursor: pointer;
-  background: transparent; color: inherit; font: inherit; transition: background-color 200ms var(--zero-soft);
+#zero-profiles[open] { opacity: 1; scale: 1; pointer-events: auto; visibility: visible; transition-delay: 0s; }
+#zero-profiles > button {
+  appearance: none; display: flex; align-items: center; gap: 10px; height: 34px; margin: 0; padding: 0 10px 0 6px; border: none;
+  border-radius: 10px; background: transparent; color: inherit; font: inherit; text-align: start; cursor: pointer;
+  transition: background-color 200ms var(--zero-soft);
 }
-#zero-mode-pick > button:hover { background-color: rgba(255, 255, 255, .14); }
-#zero-mode-pick > button[current] { background-color: rgba(255, 255, 255, .22); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .45); }
-#zero-mode-pick > button[data-mode="work"]::before, #zero-mode-pick > button[data-mode="chill"]::before {
-  content: ""; display: inline-block; width: 7px; height: 7px; margin-inline-end: 7px; border-radius: 50%; vertical-align: 1px;
-}
-#zero-mode-pick > button[data-mode="work"]::before { background: #ffb454; }
-#zero-mode-pick > button[data-mode="chill"]::before { background: #8fe3c6; }
-@media (prefers-reduced-motion: reduce) { #zero-mode-pick { transition-duration: 1ms; } }
+#zero-profiles > button:hover { background-color: rgba(255, 255, 255, .1); }
+#zero-profiles > button[current] { background-color: rgba(255, 255, 255, .16); }
+#zero-profiles > button > .zero-profile-bubble { width: 24px; height: 24px; font-size: 11px; box-shadow: none; pointer-events: none; }
+#zero-profiles > button[current] > .zero-profile-bubble { box-shadow: 0 0 0 1.5px rgba(255, 255, 255, .9); }
+#zero-profiles .zero-profiles-sep { height: 1px; margin: 4px 6px; background: rgba(255, 255, 255, .14); }
+#zero-profiles .zero-profiles-plus { width: 24px; text-align: center; font-size: 17px; font-weight: 400; opacity: .8; }
+#zero-profiles > button[data-action="image"] { padding-inline-start: 40px; }
+@media (prefers-reduced-motion: reduce) { #zero-profiles, #zero-mode .zero-mode-knob { transition-duration: 1ms; } }
+
 #zero-rail [hidden] { display: none !important; }
 #zero-rail .zero-sep { flex: none; height: 1px; margin: 3px 6px; background: rgba(255, 255, 255, .3); transition: background-color var(--zero-t-ink) var(--zero-soft); }
 #zero-rail:is(:hover, :has(:focus-visible)) .zero-sep { background: rgba(29, 35, 33, .18); }
@@ -931,9 +967,9 @@
 /* Con la web ampliada el raíl se aparta; vuelve al acercar el ratón al borde izquierdo. */
 #zero-edge { position: fixed; left: 0; top: 60px; bottom: 0; width: 18px; z-index: 6; pointer-events: none; }
 :root[zero-full] #zero-edge { pointer-events: auto; }
-:root[zero-full] #zero-rail { transform: translate(-64px, -50%); opacity: 0; pointer-events: none; }
-:root[zero-full] #zero-edge:hover ~ #zero-rail,
-:root[zero-full] #zero-rail:is(:hover, :has(:focus-visible)) { transform: translateY(-50%); opacity: 1; pointer-events: auto; }
+:root[zero-full] #zero-dock { transform: translate(-64px, -50%); opacity: 0; pointer-events: none; }
+:root[zero-full] #zero-edge:hover ~ #zero-dock,
+:root[zero-full] #zero-dock:is(:hover, :has(:focus-visible)) { transform: translateY(-50%); opacity: 1; pointer-events: auto; }
 
 /* ---------------------------------------------------------------- cristal en vivo (zero-glass) */
 
