@@ -11,7 +11,8 @@
    no aplastada dentro de la isla; también la de toda la ventana (la versión nueva de Kitsune). Sin la
    franja de color de Gecko en su borde izquierdo, que es recta y asomaba por la esquina redonda.
 7. Un diálogo de la pestaña (imprimir) cabe entero en la tarjeta: Gecko lo sube 5 px para que cuelgue
-   de la barra, y en Zero la tarjeta le recortaría las esquinas de arriba.
+   de la barra, y en Zero la tarjeta le recortaría las esquinas de arriba. Uno de toda la ventana (borrar
+   el historial reciente) flota bajo la isla, sin taparla, con las esquinas redondeadas.
 8. La dirección de un enlace (al pasar por encima) sale como una píldora separada de la esquina de la
    tarjeta, no como la etiqueta cuadrada de Gecko pegada al borde.
 9. Se ve de qué usuario es cada pestaña (Kitsune los lleva en contenedores): en el raíl, una raya de su
@@ -186,7 +187,17 @@ def main():
         except AssertionError:
             raise AssertionError(f'imprimir: {chrome(sheet)}') from None
         chrome("document.querySelector('.printSettingsBrowser')?.contentDocument?.querySelector('#cancel-button')?.click()")
-        check('Un diálogo de la pestaña (imprimir) cabe entero en la tarjeta')
+        chrome("Sanitizer.showUI(window)")
+        whole = """const box = document.querySelector('#window-modal-dialog .dialogBox'); if (!box || box.getBoundingClientRect().height < 100) return null;
+            const r = box.getBoundingClientRect(); const i = document.getElementById('nav-bar').getBoundingClientRect(); const cs = getComputedStyle(box);
+            return { top: r.top, islandBottom: i.bottom, radius: Math.min(parseFloat(cs.borderTopLeftRadius), parseFloat(cs.borderTopRightRadius)) };"""
+        try:
+            eventually(lambda: (b := chrome(whole)) and b['top'] >= b['islandBottom'] + 6 and b['radius'] >= 8, timeout=10)
+        except AssertionError:
+            raise AssertionError(f'diálogo de la ventana: {chrome(whole)}') from None
+        chrome("document.querySelector('#window-modal-dialog .dialogFrame')?.contentWindow?.close()")
+        eventually(lambda: chrome(whole) is None, timeout=10)
+        check('Un diálogo de la pestaña (imprimir) cabe entero en la tarjeta; uno de la ventana flota bajo la isla')
 
         chrome("XULBrowserWindow.setOverLink(arguments[0])", [origin + '/zorros/de/kioto'])
         pill = """const l = document.getElementById('statuspanel-label'); const p = document.getElementById('statuspanel'); const r = l.getBoundingClientRect(); const cs = getComputedStyle(l);

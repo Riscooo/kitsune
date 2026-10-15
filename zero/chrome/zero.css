@@ -109,7 +109,12 @@
 
 /* Los diálogos de la pestaña (imprimir…): Gecko los sube 5 px para que cuelguen de la barra; en Zero
    la tarjeta les recortaría las esquinas de arriba, así que flotan un poco por debajo de su borde. */
-:root[zero] :not(.content-prompt-dialog) > .dialogOverlay > .dialogBox:not(.spotlightBox) { margin-top: 10px !important; }
+:root[zero] :not(.content-prompt-dialog, #window-modal-dialog) > .dialogOverlay > .dialogBox:not(.spotlightBox) { margin-top: 10px !important; }
+/* Los de toda la ventana (borrar el historial…) Gecko los cuelga de su barra de herramientas; en Zero
+   flotan bajo la isla, sin taparla (y, si la ventana es baja, suben lo justo para caber, como en Gecko). */
+:root[zero] #window-modal-dialog > .dialogOverlay > .dialogBox:not(.spotlightBox) {
+  margin-top: clamp(3px, 56px, calc(100vh - var(--subdialog-inner-height) - 5px)) !important;
+}
 
 /* La dirección de un enlace al pasar por encima: una píldora pequeña separada de la esquina de la
    tarjeta (la de Gecko es una etiqueta cuadrada pegada al borde, que aquí cortaba la curva). */
