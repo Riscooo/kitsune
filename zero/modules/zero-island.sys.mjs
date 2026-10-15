@@ -213,9 +213,17 @@ export function attach(win, ctx = {}) {
   }
   st.cleanups.push(() => watcher.disconnect());
   mirror();
-  listen(win.gBrowser.tabContainer, 'TabSelect', update);
-  listen(win.gBrowser.tabContainer, 'TabAttrModified', update);
-  const progress = { onLocationChange: () => update() };
+  // Al elegir otra pestaña, Gecko avisa varias veces seguidas (la dirección, la elegida, sus atributos):
+  // la isla se repinta una vez, al acabar la tanda.
+  const soon = () => {
+    if (st.soon) return;
+    st.soon = true;
+    win.queueMicrotask(() => { st.soon = false; if (state.get(win) === st) update(); });
+  };
+  listen(win.gBrowser.tabContainer, 'TabSelect', soon);
+  // De las demás pestañas, a la isla solo le importa si usan la cámara o el micrófono.
+  listen(win.gBrowser.tabContainer, 'TabAttrModified', event => { if (event.target.selected || event.detail?.changed?.includes('sharing')) soon(); });
+  const progress = { onLocationChange: soon };
   win.gBrowser.addProgressListener(progress);
   st.cleanups.push(() => win.gBrowser.removeProgressListener(progress));
 

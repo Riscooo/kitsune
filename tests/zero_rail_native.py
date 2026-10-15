@@ -34,6 +34,9 @@
     barra de pestañas de Kitsune; al volver a ella, se enciende.
 20. La pestaña que usa la cámara, el micrófono o comparte la pantalla lleva un punto de su color (verde,
     naranja, rojo, como en la isla) en la esquina de arriba a la izquierda de su icono; al apagarse, se va.
+21. Elegir una pestaña repinta solo las filas que cambian (la que se deja y la elegida), no todas: con
+    muchas pestañas, repintarlas todas costaba más que un fotograma a 240 Hz. Y la isla, una vez (no una
+    por cada aviso de Gecko: como mucho dos).
 
 --zero-del-repo: Zero sale de zero/ del repositorio (ver zero_harness.py).
 """
@@ -456,6 +459,22 @@ def main():
         except AssertionError:
             raise AssertionError(f'cámara en el raíl: {chrome(rec)}') from None
         check('La pestaña que usa la cámara o el micrófono lleva un punto de su color en el icono')
+
+        # Cada fila que se repinta (y la isla, al repintarse) pregunta a Gecko por su icono: se cuentan las
+        # preguntas de cada uno.
+        chrome("""const own = gBrowser.getIcon.bind(gBrowser); window.__iconos = { rail: new Set(), island: 0 };
+            gBrowser.getIcon = tab => { const stack = new Error().stack; if (stack.includes('zero-rail')) window.__iconos.rail.add(tab); if (stack.includes('zero-island')) window.__iconos.island++; return own(tab); };""")
+        rows = chrome("return document.querySelectorAll('#zero-rail .zero-tab').length")
+        assert rows >= 8, rows
+        counts = []
+        for pick in (2, 5, 1):
+            chrome("window.__iconos = { rail: new Set(), island: 0 }; gBrowser.selectedTab = gBrowser.visibleTabs[arguments[0]]", [pick])
+            time.sleep(0.3)
+            counts.append(chrome("return { rail: window.__iconos.rail.size, island: window.__iconos.island }"))
+            assert chrome("return document.querySelector('#zero-rail .zero-tab[selected]')?.getAttribute('aria-label')") == chrome("return gBrowser.selectedTab.label")
+        assert max(c['rail'] for c in counts) <= 2 and max(c['island'] for c in counts) <= 2, f'al elegir una pestaña se repintan (de {rows} filas): {counts}'
+        chrome("delete gBrowser.getIcon")
+        check('Elegir una pestaña repinta solo las filas que cambian')
         report['status'] = 'passed'
     finally:
         if driver: driver.close()

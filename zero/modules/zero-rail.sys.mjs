@@ -449,7 +449,13 @@ export function attach(win, ctx) {
   });
   listen(container, 'TabSelect', () => keepInView());
   listen(container, 'TabOpen', event => { st.fresh.add(event.target); render(win, st); });
-  for (const type of ['TabClose', 'TabSelect', 'TabMove', 'TabPinned', 'TabUnpinned', 'TabShow', 'TabHide',
+  // Al elegir otra, Gecko avisa a las dos que cambian (TabAttrModified, «selected») y se repintan solas:
+  // repintar todas costaba más que un fotograma con muchas pestañas. Solo la vista rápida (las de paso,
+  // que no salen en el raíl) y la vista dividida (se marca la de debajo) cambian qué filas se ven.
+  listen(container, 'TabSelect', event => {
+    if ([event.detail?.previousTab, win.gBrowser.selectedTab].some(tab => tab && (passing(st, tab) || tab.splitview))) render(win, st);
+  });
+  for (const type of ['TabClose', 'TabMove', 'TabPinned', 'TabUnpinned', 'TabShow', 'TabHide',
     'TabGroupCreate', 'TabGroupRemoved', 'TabGroupCollapse', 'TabGroupExpand', 'TabGrouped', 'TabUngrouped', 'TabGroupUpdate', 'TabGroupMoved']) {
     listen(container, type, () => render(win, st));
   }
