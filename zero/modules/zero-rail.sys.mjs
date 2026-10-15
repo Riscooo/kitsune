@@ -45,6 +45,7 @@ function item(doc, kind, extra = {}) {
 function tabItem(doc, host) {
   return el(doc, 'div', { class: 'zero-item zero-tab', role: 'tab', tabindex: '0' }, [
     el(doc, 'span', { class: 'zero-fav', 'aria-hidden': 'true' }),
+    el(doc, 'span', { class: 'zero-dot', 'aria-hidden': 'true' }),
     el(doc, 'button', { type: 'button', class: 'zero-sound', tabindex: '-1', title: host.t('Silenciar o volver a oír', 'Mute or unmute'), 'aria-label': host.t('Silenciar o volver a oír', 'Mute or unmute') }),
     el(doc, 'span', { class: 'zero-tt' }),
     el(doc, 'button', { type: 'button', class: 'zero-close', tabindex: '-1', title: host.t('Cerrar pestaña', 'Close tab'), 'aria-label': host.t('Cerrar pestaña', 'Close tab') }),
@@ -102,6 +103,9 @@ function fill(win, st, tab, node) {
   // Lo que suena (y lo silenciado), con su altavoz en el icono.
   node.toggleAttribute('soundplaying', tab.hasAttribute('soundplaying'));
   node.toggleAttribute('muted', tab.hasAttribute('muted'));
+  // Una de fondo que cambia de título (un chat con mensajes nuevos) o pide atención: un punto, como las
+  // fijadas de Kitsune. Al elegirla, Gecko lo quita.
+  node.toggleAttribute('attention', tab.hasAttribute('attention') || tab.hasAttribute('titlechanged'));
   // De qué grupo es: una raya con su color al otro lado del icono.
   node.toggleAttribute('grouped', !!tab.group);
   if (tab.group) node.style.setProperty('--zero-group', `var(--tab-group-${tab.group.color || 'blue'})`);
@@ -428,6 +432,12 @@ export function attach(win, ctx) {
     const node = st.items.get(event.target);
     if (node) fill(win, st, event.target, node);
   });
+  // «titlechanged» lo pone Gecko sin avisar (justo después del cambio de título): se mira el atributo.
+  const attention = new win.MutationObserver(records => {
+    for (const { target } of records) { const node = st.items.get(target); if (node) fill(win, st, target, node); }
+  });
+  attention.observe(container, { subtree: true, attributes: true, attributeFilter: ['titlechanged', 'attention'] });
+  st.cleanups.push(() => attention.disconnect());
   const unwatch = host.spaces?.watch?.(win, () => { render(win, st); keepInView(true); });
   if (unwatch) st.cleanups.push(unwatch);
 

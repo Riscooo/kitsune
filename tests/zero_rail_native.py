@@ -26,6 +26,8 @@
     en aria-label, no en title.
 16. Un enlace soltado en el raíl se abre en una pestaña nueva, como en la barra de pestañas de Kitsune;
     uno «javascript:», no.
+17. Una pestaña de fondo que cambia de título (un chat con mensajes nuevos) o pide atención lleva un
+    punto en su icono, como las fijadas de Kitsune; al elegirla, se va.
 
 --zero-del-repo: Zero sale de zero/ del repositorio (ver zero_harness.py).
 """
@@ -50,6 +52,12 @@ ICONS = {'/blanco.svg': '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16
 
 class Handler(http.server.BaseHTTPRequestHandler):
     def do_GET(self):
+        if self.path == '/chat':
+            self.send_response(200)
+            self.send_header('Content-Type', 'text/html; charset=utf-8')
+            self.end_headers()
+            self.wfile.write('<!doctype html><meta charset=utf-8><title>Chat</title><script>setTimeout(() => document.title = "(1) Chat", 2500)</script>'.encode())
+            return
         if self.path in ICONS:
             self.send_response(200)
             self.send_header('Content-Type', 'image/svg+xml')
@@ -369,6 +377,18 @@ def main():
         time.sleep(1)
         assert chrome(count) == before + 1, 'un javascript: no debería abrirse'
         check('Un enlace soltado en el raíl se abre en una pestaña nueva (javascript:, no)')
+
+        add_tab('/chat')
+        dot = """const row = [...document.querySelectorAll('#zero-rail .zero-tab')].find(r => (r.getAttribute('aria-label') || '').includes('Chat'));
+            const d = row?.querySelector('.zero-dot'); return { label: row?.getAttribute('aria-label'), on: !!row?.hasAttribute('attention'),
+              seen: !!d && d.getBoundingClientRect().width >= 5 && getComputedStyle(d).display !== 'none' };"""
+        try:
+            until(lambda: (d := chrome(dot))['label'] == '(1) Chat' and d['on'] and d['seen'], timeout=10)
+        except AssertionError:
+            raise AssertionError(f'punto de atención: {chrome(dot)}') from None
+        chrome("gBrowser.selectedTab = gBrowser.tabs.find(t => t.label === '(1) Chat')")
+        until(lambda: not chrome(dot)['on'] and not chrome(dot)['seen'], timeout=5)
+        check('Una pestaña de fondo que cambia de título lleva un punto en su icono; al elegirla, se va')
         report['status'] = 'passed'
     finally:
         if driver: driver.close()

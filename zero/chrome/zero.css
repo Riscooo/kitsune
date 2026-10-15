@@ -556,6 +556,12 @@
   background-color: rgba(255, 255, 255, .55) !important;
   box-shadow: 0 6px 18px rgba(0, 0, 0, .16);
 }
+/* Una de fondo con algo nuevo (cambió su título o pide atención): un punto en su icono. */
+#zero-rail .zero-dot {
+  display: none; position: absolute; left: 19px; top: 0; width: 7px; height: 7px; border-radius: 50%;
+  background: #e8743b; box-shadow: 0 0 0 1.5px rgba(255, 255, 255, .92); pointer-events: none;
+}
+#zero-rail .zero-tab[attention] .zero-dot { display: block; }
 /* Con un enlace encima, listo para abrirlo: un filo de luz. */
 #zero-rail[dropping] { box-shadow: inset 0 0 0 1.5px rgba(255, 255, 255, .8), 0 10px 30px rgba(0, 0, 0, .18); }
 /* Arrastrada lejos del raíl: al soltarla se va a una ventana nueva (se aparta un poco, como despegándose). */
