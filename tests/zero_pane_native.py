@@ -7,15 +7,14 @@ cualquier Linux: la dibuja Kitsune (WebGL), y no necesita ver lo de detrás.
 
 1. Al entrar en Zero, detrás de todo (la tarjeta y las piezas) hay una lámina que cubre la ventana; con la
    web ampliada no está, y al dejar de ampliar vuelve.
-2. Su filo es una película de pompa, sobre lo que haya detrás (un gris oscuro liso, solo para la foto): con
-   algo de color (irisada, no una raya blanca) pero contenida, como una pompa de verdad («menos notorio…
-   no luces de feria», Risco 15-10), que hace de borde: está en el filo (a 6 px hacia dentro ya ha caído a
+2. Su filo es la luz de una pompa, sobre lo que haya detrás (un gris oscuro liso, solo para la foto), ya sin
+   sus colores (Dani, 15-10: «que no sea tan colorido, más como concentración»), que hace de borde: está en el filo (a 6 px hacia dentro ya ha caído a
    menos de un tercio, «que hicieran de borde… más limpio») y no vuelve a subir; más adentro, nada (sin
    velo). Con kitsune.zero.glass.strength = 0 no hay nada. Igual con el fondo de la web.
 3. Quieta no se repinta (no cuesta nada mientras no cambie el tamaño o la fuerza).
 4. Ese filo hace de borde de la ventana, bien definido (Risco, 15-10: «que hicieran de borde»), y también de
    la tarjeta de la web: pegado a ella por fuera, en lugar de su línea blanca. Y las piezas (isla, raíl,
-   botones, pomodoro, ajustes) llevan su filo con los colores de la pompa, no blanco.
+   botones, pomodoro, ajustes) llevan su filo, neutro.
 5. Con el fondo de la web (el de Windows, macOS y los Linux sin refracción en el compositor), el canto dobla
    la foto de detrás como una lente (Risco, 15-10: «haremos lo más eficaz y top»): en la franja del filo, la
    foto cambia (las rayas se doblan, y cada color un poco distinto); más adentro, igual que sin lente.
@@ -135,7 +134,7 @@ def main():
                 chrome("Services.prefs.clearUserPref('kitsune.zero.glass.strength')")
                 rim = edge(f'pompa-{mode}.png'); rim_card = edge.card
                 light = [sum(c) / 3 for c in rim]
-                # El color que añade la pompa (lo de detrás puede traer el suyo, como la foto de la web).
+                # El color que añade el filo (lo de detrás puede traer el suyo, como la foto de la web).
                 chroma = max(max(d) - min(d) for d in ([a - b for a, b in zip(r, o)] for r, o in zip(rim[0:6], off[0:6])))
                 rise = max(light[i + 1] - light[i] for i in range(2, 40))
                 lift = light[1] - sum(off[1]) / 3
@@ -144,20 +143,22 @@ def main():
                 # El borde de la tarjeta: lo que añade la pompa justo fuera de ella.
                 card_add = max(sum(abs(a - b) for a, b in zip(r, o)) / 3 for r, o in zip(rim_card, off_card))
                 assert card_add >= 6, f'{mode}: la tarjeta no lleva el borde de pompa ({rim_card} / sin {off_card})'
-                assert 10 <= chroma <= 36 and 12 <= lift <= 26 and inner <= lift / 3 and rise <= 3 and clean, \
-                    f'{mode}: el filo no es una película de pompa que hace de borde (color {chroma}, luz {lift:.0f} en el filo y {inner:.0f} a 6 px, rebota {rise}, dentro {rim[40]} / sin {off[40]})'
+                # Sin los colores de la pompa (Dani, 15-10: «que no sea tan colorido»): una luz neutra.
+                assert chroma <= 6 and 12 <= lift <= 26 and inner <= lift / 3 and rise <= 3 and clean, \
+                    f'{mode}: el filo no es una luz neutra que hace de borde (color {chroma}, luz {lift:.0f} en el filo y {inner:.0f} a 6 px, rebota {rise}, dentro {rim[40]} / sin {off[40]})'
         finally:
             chrome("Services.prefs.clearUserPref('kitsune.zero.glass.strength')")
             chrome("Services.prefs.setStringPref('kitsune.zero.backdrop', 'system')")
             chrome("window.windowUtils.removeSheetUsingURIString(arguments[0], window.windowUtils.AGENT_SHEET)", [dark])
-        check('El filo es una película de pompa: irisada, se funde hacia dentro y el centro queda limpio')
+        check('El filo es una luz neutra: se funde hacia dentro y el centro queda limpio')
         ring = chrome("return getComputedStyle(document.querySelector('#tabbrowser-tabpanels > .deck-selected')).boxShadow")
         assert '0px 0px 0px 1px' not in ring, f'la tarjeta sigue con su línea blanca: {ring}'
         rims = chrome("""return ['nav-bar', 'zero-rail', 'zero-grow', 'zero-pomo'].map(id => document.getElementById(id)).filter(Boolean).map(el => {
             const cs = getComputedStyle(el, '::after'); return [el.id, cs.borderTopColor, cs.borderRightColor, cs.borderBottomColor, cs.borderLeftColor]; });""")
-        white = [r for r in rims if len(set(r[1:])) == 1 or any(c.startswith('rgb(255, 255, 255') for c in r[1:])]
-        assert rims and not white, f'piezas con el filo blanco: {white}'
-        check('Ese filo hace de borde de la ventana y de la tarjeta; las piezas llevan el suyo con los colores de la pompa')
+        # Neutro: el mismo color en los cuatro lados (antes, uno de la pompa en cada lado).
+        colored = [r for r in rims if len(set(r[1:])) != 1]
+        assert rims and not colored, f'piezas con el filo de colores: {colored}'
+        check('Ese filo hace de borde de la ventana y de la tarjeta; las piezas llevan el suyo, neutro')
 
         # La lente del canto, con el fondo de la web: la foto de las rayas, con y sin lente.
         driver.navigate(origin + '/rayas')

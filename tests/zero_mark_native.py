@@ -119,11 +119,11 @@ def main():
         # El puntero, lejos de la marca (sin moverlo, su sitio es cualquiera y puede quedar encima de ella).
         pointer([{'type': 'pointerMove', 'origin': 'viewport', 'x': 800, 'y': 400}])
 
+        # Del color de las piezas: claro en oscuro y, en claro (con la niebla), en tinta.
         until(lambda: (m := mark())['mark'] is not None and abs(m['mark']['x'] - 7) <= 1 and m['H'] / 2 < m['mark']['y'] < m['H'] - 40
-              and m['color'] == 'rgb(255, 255, 255)' and abs(m['opacity'] - 0.92) < 0.01)
-        # Con el sistema en claro (y el cristal del sistema), el marco pasa a tinta y la marca también.
+              and m['color'] == 'rgb(242, 243, 245)' and m['opacity'] > 0.75)
         chrome("Services.prefs.setIntPref('ui.systemUsesDarkTheme', 0)")
-        until(lambda: (m := mark())['color'] == 'rgb(255, 255, 255)' and abs(m['opacity'] - 0.92) < 0.01)
+        until(lambda: (m := mark())['color'] == 'rgb(29, 35, 33)' and m['opacity'] > 0.75)
         chrome("Services.prefs.clearUserPref('ui.systemUsesDarkTheme')")
         check('Los ajustes están integrados como la última pastilla de la columna izquierda')
 
@@ -147,16 +147,18 @@ def main():
         until(lambda: mark()['always'] is False and mark()['inherit'] is False)
         click('#zero-settings [data-pref="windows"] [data-value="inherit"]')
         until(lambda: mark()['always'] is False and mark()['inherit'] is True)
+        click('#zero-settings [data-pref="backdrop"] [data-value="mist"]')
+        until(lambda: mark()['backdropPref'] == 'mist' and mark()['backdrop'] == 'mist')
         click('#zero-settings [data-pref="backdrop"] [data-value="web"]')
         until(lambda: mark()['backdropPref'] == 'web' and mark()['backdrop'] == 'web')
-        click('#zero-settings [data-pref="backdrop"] [data-value="system"]')
-        until(lambda: mark()['backdropPref'] == 'system' and mark()['backdrop'] == 'system')
         assert mark()['open'], mark()  # tocar dentro no lo cierra
         check('«Ventanas nuevas» y «Fondo» cambian sus ajustes y el aspecto al momento')
 
+        # (Las filas que dependen del fondo se van al repintar la hoja, un momento después.)
+        until(lambda: len(mark()['rows']) == 8)
         rows = mark()['rows']
-        # Las de Zero (ventanas nuevas, fondo, isla) y los interruptores del pomodoro, el silencio y los
-        # sonidos, apagados: sin sus opciones.
+        # Las de Zero (ventanas nuevas, fondo, modo concentración, pestañas, info; con el fondo de la web, sin
+        # la opacidad) y los interruptores del pomodoro, el silencio y los sonidos, apagados: sin sus opciones.
         assert len(rows) == 8 and [r.split(' ')[0][:8] for r in rows[5:]] == ['Pomodoro', 'Silencio', 'Sonidos'], rows
         assert not any(word in ' '.join(rows) for word in ('Tiempos', 'Webs vetadas', 'Aviso de scroll', 'Lluvia')), rows
         assert chrome("return !document.querySelector('#zero-settings [data-pref=islandIcons]')"), 'la isla de arriba no lleva «solo iconos»'

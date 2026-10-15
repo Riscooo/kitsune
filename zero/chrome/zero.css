@@ -165,8 +165,8 @@
 }
 :root[zero] #browser:has(> #sidebar-box:not([hidden], [sidebar-positionend])) #tabbrowser-tabpanels { margin-left: 0 !important; }
 :root[zero] #browser:has(> #sidebar-box[sidebar-positionend]:not([hidden])) #tabbrowser-tabpanels { margin-right: 0 !important; }
-:root[zero]:is([zero-full], [inFullscreen]) #sidebar-box:not([hidden]) { margin: 0 !important; border-radius: 0 !important; box-shadow: none !important; }
-:root[zero]:is([zero-full], [inFullscreen]) #sidebar-splitter:not([hidden]) { width: 1px !important; min-width: 1px !important; max-width: 1px !important; opacity: 1; background: rgba(127, 127, 127, .25) !important; }
+:root[zero][zero-full] #sidebar-box:not([hidden]) { margin: 0 !important; border-radius: 0 !important; box-shadow: none !important; }
+:root[zero][zero-full] #sidebar-splitter:not([hidden]) { width: 1px !important; min-width: 1px !important; max-width: 1px !important; opacity: 1; background: rgba(127, 127, 127, .25) !important; }
 :root[zero][inDOMFullscreen] :is(#sidebar-box, #sidebar-splitter) { display: none !important; }
 @keyframes zero-side-in { from { opacity: 0; transform: scale(.985); } }
 
@@ -1919,3 +1919,20 @@
 :root[zero]:not([zero-frame-ink]) #zero-bg { box-shadow: inset 0 0 0 .5px rgba(255, 255, 255, .16), inset 0 1px 0 rgba(255, 255, 255, .06); }
 :root[zero][zero-frame-ink] #zero-bg { box-shadow: inset 0 0 0 .5px rgba(0, 0, 0, .14); }
 :root[zero]:is([inFullscreen], [sizemode="fullscreen"]) #zero-bg { box-shadow: none; }
+
+/* La vista rápida de Kitsune (Alt + clic) dentro de Zero: su cabecera, del cristal de Zero y sin la raya de
+   color; los botones, pastillas. */
+:root[zero] .kitsune-glance-head {
+  background: var(--zero-sheet) !important; color: var(--zero-piece-text) !important;
+  border-bottom: .5px solid rgba(127, 127, 127, .2) !important; box-shadow: none !important;
+  font-family: system-ui, sans-serif !important;
+}
+:root[zero] .kitsune-glance-host { color: var(--zero-piece-quiet) !important; }
+:root[zero] .kitsune-glance-head > button {
+  border: none !important; border-radius: 999px !important; background: var(--zero-piece-hover) !important; color: inherit !important;
+}
+:root[zero] .kitsune-glance-head > button:hover { background: rgba(127, 127, 127, .24) !important; }
+:root[zero] #kitsune-glance .kitsune-glance-body { border: none !important; border-radius: 18px !important; box-shadow: 0 24px 60px rgba(0, 0, 0, .4), 0 0 0 .5px rgba(255, 255, 255, .12) !important; }
+
+/* La hoja de ajustes nunca se sale por abajo: si crece (al encender los sonidos) se desplaza por dentro. */
+#zero-settings { max-height: calc(100vh - var(--zero-settings-y, 80px) - 12px) !important; }

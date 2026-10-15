@@ -77,7 +77,7 @@ def main():
         chrome("document.querySelector('#zero-settings [data-pref=\"sounds\"]').click()")
         names = ('Lluvia', 'Bosque', 'Cafetería', 'Olas', 'Fuego', 'Río', 'Se paran en el descanso')
         until(lambda: all(any(r.startswith(n) for r in rows()) for n in names))
-        assert chrome("return document.querySelectorAll('#zero-settings input[type=range]').length") == 6
+        assert chrome("return document.querySelectorAll('#zero-settings input[type=range]:not([data-pref^=background])').length") == 6
         check('Encendido salen las seis capas y «Se paran en el descanso»')
 
         driver.context('chrome')
@@ -101,6 +101,8 @@ def main():
 
         # Arrastrar el bosque con el ratón, de la izquierda hasta la mitad, en pasos.
         chrome("document.querySelector('#zero-settings input[data-pref=\"sounds.bosque\"]').__mia = true")
+        # (Con todas las filas, la hoja de ajustes puede ser más alta que la ventana: se desplaza hasta la barra.)
+        chrome("document.querySelector('#zero-settings input[data-pref=\"sounds.bosque\"]').scrollIntoView({ block: 'center' })")
         driver.context('chrome')
         bar = driver.command('POST', '/element', {'using': 'css selector', 'value': '#zero-settings input[data-pref="sounds.bosque"]'})
         width = chrome("return document.querySelector('#zero-settings input[data-pref=\"sounds.bosque\"]').getBoundingClientRect().width")

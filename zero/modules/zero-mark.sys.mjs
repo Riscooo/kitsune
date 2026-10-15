@@ -36,7 +36,12 @@ function zeroSection(win, host) {
   };
   return {
     id: 'zero',
-    watch: watchPref(PREFS.backdrop),
+    // Las filas que dependen del fondo (la foto, la opacidad) siguen al que está puesto de verdad.
+    watch: fn => {
+      const observer = new win.MutationObserver(() => fn());
+      observer.observe(win.document.documentElement, { attributes: true, attributeFilter: ['zero-backdrop'] });
+      return () => observer.disconnect();
+    },
     rows: [
       {
         // Una fila para dos ajustes: como la ventana de origen (de serie), siempre en Zero o normales.

@@ -207,10 +207,9 @@ def main():
         c = (lights[0]['x'] + lights[0]['w'] / 2, lights[0]['y'] + lights[0]['h'] / 2)
         gap = 48 - ((48 - c[0]) ** 2 + (48 - c[1]) ** 2) ** 0.5 - lights[0]['w'] / 2
         assert gap >= 12, f'botones de ventana pegados al borde: {gap:.1f} px de la curva · {lights[0]}'
-        # Lo mismo la marca de Kitsune, abajo a la izquierda.
-        m = chrome("const r = document.getElementById('zero-mark').getBoundingClientRect(); return [r.left + r.width / 2, innerHeight - (r.top + r.height / 2), r.width / 2]")
-        mark_gap = 48 - ((48 - m[0]) ** 2 + (48 - m[1]) ** 2) ** 0.5 - m[2]
-        assert mark_gap >= 12, f'la marca, pegada al borde: {mark_gap:.1f} px de la curva · {m}'
+        # Los ajustes (la marca de Kitsune) van en la columna de la izquierda, como su última pastilla (Dani, 15-10).
+        m = chrome("const r = document.getElementById('zero-mark'); return r.parentNode.id + ':' + (r === r.parentNode.lastElementChild)")
+        assert m == 'zero-dock:true', f'los ajustes, fuera de la columna: {m}'
         assert f['drag'] == 'drag' and f['webDrag'] == 'no-drag', f
         grow = chrome("const r = document.getElementById('zero-grow').getBoundingClientRect(); return { x: r.left, y: r.top, right: r.right, bottom: r.bottom }")
         assert grow['bottom'] <= f['panels']['y'] and grow['x'] > lights[2]['x'] + lights[2]['w'], (grow, f['panels'], lights)
@@ -369,7 +368,8 @@ def main():
         # (una hoja de agente, solo para la foto; sin pantalla, detrás hay blanco y la luz no se ve).
         # Las esquinas de la lámina, de 48 px como en la maqueta elegida: el canto no es más ancho que la
         # curva (si lo fuera, el doblez se parte en la diagonal).
-        assert float(chrome("return parseFloat(getComputedStyle(document.body).borderTopLeftRadius)")) == 48
+        # (En macOS, las de una ventana del sistema, 16 px: Dani, 15-10.)
+        assert float(chrome("return parseFloat(getComputedStyle(document.body).borderTopLeftRadius)")) == (16 if chrome("return Services.appinfo.OS") == 'Darwin' else 48)
         GREY = 42
         dark_sheet = 'data:text/css,' + urllib.parse.quote(f':root {{ background: rgb({GREY}, {GREY}, {GREY}) !important; }}')
         def photo(name):
