@@ -1943,3 +1943,7 @@
   content: ""; position: absolute; inset: 0 0 auto 0; height: 96px; pointer-events: none;
   background: linear-gradient(#000, rgba(0, 0, 0, 0));
 }
+
+/* Una fila con varios botones (Cambiar… y Quitar), a la derecha. */
+#zero-settings .zero-actions { display: flex; gap: 6px; margin-inline-start: auto; }
+#zero-settings .zero-actions > .zero-action-button { margin-inline-start: 0; }

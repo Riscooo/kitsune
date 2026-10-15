@@ -85,8 +85,11 @@ function zeroSection(win, host) {
         // Siempre a la vista (Dani, 15-10: «no se puede cambiar la imagen de fondo»): elegir una pone la foto.
         kind: 'action', id: PREFS.backgroundImage,
         label: host.t('Foto de fondo', 'Background photo'),
-        actionLabel: host.t('Elegir…', 'Choose…'),
-        run: () => chooseBackground(win, host),
+        // Sin foto, «Elegir…»; con una, «Cambiar…» y «Quitar».
+        actions: () => (prefs.getStringPref(prefName(prefix, PREFS.backgroundImage), '')
+          ? [{ id: 'change', label: host.t('Cambiar…', 'Change…'), run: () => chooseBackground(win, host) },
+             { id: 'remove', label: host.t('Quitar', 'Remove'), run: () => removeBackground(host) }]
+          : [{ id: 'choose', label: host.t('Elegir…', 'Choose…'), run: () => chooseBackground(win, host) }]),
         watch: watchPref(PREFS.backgroundImage),
       },
       {
@@ -128,30 +131,55 @@ function zeroSection(win, host) {
   };
 }
 
+/** Borra la foto de fondo guardada (salvo `keep`, la que la sustituye): solo las de Zero, en chrome/ del perfil. */
+async function forgetBackground(host, keep = null) {
+  let old = '';
+  try { old = host.prefs.getStringPref(prefName(host.prefix, PREFS.backgroundImage), ''); } catch { /* sin ajuste */ }
+  const folder = PathUtils.join(Services.dirsvc.get('ProfD', Ci.nsIFile).path, 'chrome');
+  if (old && old !== keep && PathUtils.parent(old) === folder && /^kitsune-zero-background[-\w]*\.jpg$/.test(PathUtils.filename(old))) {
+    try { await IOUtils.remove(old, { ignoreAbsent: true }); } catch { /* ya no estaba */ }
+  }
+}
+
+/** Quita la foto de fondo: se borra y Zero vuelve a su fondo de serie. */
+export async function removeBackground(host) {
+  await forgetBackground(host);
+  try {
+    host.prefs.clearUserPref(prefName(host.prefix, PREFS.backgroundImage));
+    if (host.prefs.getStringPref(prefName(host.prefix, PREFS.backdrop), 'auto') === 'photo') host.prefs.clearUserPref(prefName(host.prefix, PREFS.backdrop));
+  } catch { /* sin ajustes */ }
+}
+
 /** Copia una foto normalizada al perfil: no dependemos de que el archivo original siga en su sitio. */
 function chooseBackground(win, host) {
   const picker = Cc['@mozilla.org/filepicker;1'].createInstance(Ci.nsIFilePicker);
   picker.init(win.browsingContext, host.t('Fondo de Kitsune Zero', 'Kitsune Zero background'), Ci.nsIFilePicker.modeOpen);
   picker.appendFilters(Ci.nsIFilePicker.filterImages);
-  picker.open(async result => {
-    if (result !== Ci.nsIFilePicker.returnOK || !picker.file) return;
-    try {
-      const bytes = await IOUtils.read(picker.file.path, { maxBytes: 20 * 1024 * 1024 });
-      const bitmap = await win.createImageBitmap(new win.Blob([bytes]));
-      const scale = Math.min(1, 2560 / bitmap.width, 1600 / bitmap.height);
-      const width = Math.max(1, Math.round(bitmap.width * scale)), height = Math.max(1, Math.round(bitmap.height * scale));
-      const canvas = new win.OffscreenCanvas(width, height);
-      canvas.getContext('2d').drawImage(bitmap, 0, 0, width, height);
-      bitmap.close?.();
-      const blob = await canvas.convertToBlob({ type: 'image/jpeg', quality: .88 });
-      const file = Services.dirsvc.get('ProfD', Ci.nsIFile).clone();
-      file.append('chrome'); await IOUtils.makeDirectory(file.path, { ignoreExisting: true });
-      file.append('kitsune-zero-background.jpg');
-      await IOUtils.write(file.path, new Uint8Array(await blob.arrayBuffer()));
-      host.prefs.setStringPref(prefName(host.prefix, PREFS.backgroundImage), file.path);
-      host.prefs.setStringPref(prefName(host.prefix, PREFS.backdrop), 'photo');
-    } catch (error) { console.error('Zero: no se pudo poner el fondo', error); }
+  picker.open(result => {
+    if (result === Ci.nsIFilePicker.returnOK && picker.file) setBackground(win, host, picker.file.path).catch(error => console.error('Zero: no se pudo poner el fondo', error));
   });
+}
+
+/** Pone de fondo la foto de `path`: la guarda reducida (2560 × 1600 como mucho, JPEG) en chrome/ del perfil, con
+ *  un nombre nuevo, y borra la de antes. */
+export async function setBackground(win, host, path) {
+  const bytes = await IOUtils.read(path, { maxBytes: 20 * 1024 * 1024 });
+  const bitmap = await win.createImageBitmap(new win.Blob([bytes]));
+  const scale = Math.min(1, 2560 / bitmap.width, 1600 / bitmap.height);
+  const width = Math.max(1, Math.round(bitmap.width * scale)), height = Math.max(1, Math.round(bitmap.height * scale));
+  const canvas = new win.OffscreenCanvas(width, height);
+  canvas.getContext('2d').drawImage(bitmap, 0, 0, width, height);
+  bitmap.close?.();
+  const blob = await canvas.convertToBlob({ type: 'image/jpeg', quality: .88 });
+  const file = Services.dirsvc.get('ProfD', Ci.nsIFile).clone();
+  file.append('chrome'); await IOUtils.makeDirectory(file.path, { ignoreExisting: true });
+  // Un nombre nuevo cada vez: con el mismo, el ajuste no cambiaba y se seguía viendo la foto de antes
+  // (Dani, 15-10: «si pongo una foto no me deja cambiarla luego»). La anterior se borra.
+  file.append(`kitsune-zero-background-${Date.now()}.jpg`);
+  await IOUtils.write(file.path, new Uint8Array(await blob.arrayBuffer()));
+  await forgetBackground(host, file.path);
+  host.prefs.setStringPref(prefName(host.prefix, PREFS.backgroundImage), file.path);
+  host.prefs.setStringPref(prefName(host.prefix, PREFS.backdrop), 'photo');
 }
 
 function rowNode(doc, row, undo) {
@@ -176,9 +204,18 @@ function rowNode(doc, row, undo) {
     control.addEventListener('change', commit);
     control.addEventListener('keydown', event => { if (event.key === 'Enter') { event.preventDefault(); commit(); } });
   } else if (row.kind === 'action') {
-    control = el(doc, 'button', { type: 'button', class: 'zero-action-button', 'data-pref': row.id }, [row.actionLabel]);
-    sync = () => {};
-    control.addEventListener('click', () => row.run());
+    // Uno o varios botones (actions(): [{ id, label, run }]); se rehacen cuando cambia lo que vigila la fila.
+    control = el(doc, 'span', { class: 'zero-actions', 'data-pref': row.id });
+    sync = () => {
+      const actions = row.actions?.() ?? [{ id: 'run', label: row.actionLabel, run: row.run }];
+      if (control.dataset.ids === actions.map(a => a.id).join(' ')) return;
+      control.dataset.ids = actions.map(a => a.id).join(' ');
+      control.replaceChildren(...actions.map(action => {
+        const button = el(doc, 'button', { type: 'button', class: 'zero-action-button', 'data-action': action.id }, [action.label]);
+        button.addEventListener('click', () => action.run());
+        return button;
+      }));
+    };
   } else {
     // La elegida lleva una pastilla que se desliza hasta ella (no salta de una a otra).
     const thumb = el(doc, 'span', { class: 'zero-seg-thumb', 'aria-hidden': 'true', still: '' });
