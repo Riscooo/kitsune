@@ -10,6 +10,11 @@ import { dockScales } from './zero-dock.mjs';
 import { userOf, paintUser } from './zero-who.sys.mjs';
 import { lightIcon } from './zero-icon.sys.mjs';
 import { prefName, PREFS } from './zero-config.sys.mjs';
+import { isEmptyPage } from './zero-island.sys.mjs';
+
+// El icono de una pestaña vacía: el de la pestaña nueva del navegador. La que abre al arrancar (en blanco)
+// no trae ninguno y salía la inicial de «Nueva pestaña» (Risco, 15-10).
+const NEW_TAB_ICON = 'chrome://branding/content/icon32.png';
 
 const HTML = 'http://www.w3.org/1999/xhtml';
 const state = new WeakMap(); // ventana → { cleanups, items, … }
@@ -98,6 +103,7 @@ function fill(win, st, tab, node) {
   if (node.getAttribute('aria-label') !== label) node.setAttribute('aria-label', label);
   let icon = null;
   try { icon = win.gBrowser.getIcon?.(tab) ?? tab.getAttribute('image'); } catch { /* sin icono */ }
+  if (!icon && isEmptyPage(win, tab.linkedBrowser?.currentURI?.spec ?? '')) icon = NEW_TAB_ICON;
   setFav(doc, node.querySelector('.zero-fav'), icon || null, initialOf(label), hueOf(siteOf(tab)));
   node.toggleAttribute('selected', tab === current(win, st));
   node.toggleAttribute('pinned', tab.pinned);

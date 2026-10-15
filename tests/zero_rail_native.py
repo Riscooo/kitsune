@@ -38,6 +38,8 @@
 23. Con «Pestañas: solo iconos», el raíl no se ensancha con el ratón encima (sigue el efecto Dock, sin
     títulos) y el nombre de la pestaña bajo el ratón sale en una etiqueta junto a su icono, como en el
     Dock; sin la opción, se abre como siempre.
+24. Una pestaña vacía lleva el icono de pestaña nueva de Kitsune, también la que abre el navegador al
+    arrancar (en blanco, sin icono propio): no la inicial de «Nueva pestaña» (Risco, 15-10).
 22. Lo que una fila enseña con puntos e iconos (suena, silenciada, usa la cámara, algo nuevo, descargada)
     también lo dice a los lectores de pantalla (aria-description); sin nada, no dice nada.
 21. Elegir una pestaña repinta solo las filas que cambian (la que se deja y la elegida), no todas: con
@@ -536,6 +538,17 @@ def main():
         until(lambda: chrome(look)['width'] > 150, timeout=5)
         away()
         check('Con «solo iconos», el raíl no se ensancha y el nombre sale en una etiqueta junto al icono')
+
+        chrome("gBrowser.selectedTab = gBrowser.addTab('about:blank', { triggeringPrincipal: Services.scriptSecurityManager.getSystemPrincipal() })")
+        blank = """const i = gBrowser.visibleTabs.indexOf(gBrowser.selectedTab);
+            const fav = document.querySelectorAll('#zero-rail .zero-tab')[i]?.querySelector('.zero-fav');
+            return fav && { letter: fav.hasAttribute('letter'), text: fav.textContent.trim(), src: fav.querySelector('img')?.getAttribute('src') ?? null };"""
+        try:
+            eventually(lambda: (f := chrome(blank)) and not f['letter'] and f['src'] == 'chrome://branding/content/icon32.png', timeout=5)
+        except AssertionError:
+            raise AssertionError(f'pestaña en blanco: {chrome(blank)}') from None
+        chrome("gBrowser.removeTab(gBrowser.selectedTab)")
+        check('Una pestaña vacía (también la en blanco del arranque) lleva el icono de pestaña nueva de Kitsune')
         report['status'] = 'passed'
     finally:
         if driver: driver.close()
