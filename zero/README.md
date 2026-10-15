@@ -51,6 +51,22 @@ la ventana a Zero y la devuelve, con las mismas pestañas. Diseño completo en
   la refracción no termine en una franja. Las piezas comparten el relleno, el filo y la sombra corta
   (`--zero-glass-fill`, `--zero-glass-rim`, `--zero-glass-edge`): cristal sobre cristal, también en
   las pastillas de perfiles, modos, música y accesos. No añade capturas ni animaciones al cristal.
+- Dos variantes (ajuste «Estilo», `kitsune.zero.variant`; zero-frame pone `zero-variant` en la raíz):
+  **Nácar** (de serie, la de Risco: la lámina nacarada, los accesos directos con la música en su
+  pastilla, la marca abajo a la izquierda y, sin cristal detrás, la foto de la web) y **Sobrio** (la de
+  Dani: cristal ahumado o esmerilado con filo neutro, la lámina sin color, el panel de sonido en lugar
+  de accesos y música, los ajustes en la columna, tu perfil sobre el buscador y, sin cristal detrás,
+  Espacio o Niebla). Lo demás es común: los dos botones del modo, el pomodoro, los fondos pintados, las
+  cuentas del perfil.
+- Cada sistema con sus esquinas: zero-frame pone `zero-os` y `--zero-os-radius` (48 px en Linux, como la
+  regla de niri; 16 en macOS 26 y 10 antes; 8 en Windows 11 y 0 en Windows 10), y el cuerpo, el fondo
+  pintado, la lámina y el cristal nativo de macOS (`kitsune.zero.macos-glass-radius`, 16) usan las mismas.
+  A pantalla completa, y en Windows maximizada, rectas. En macOS el botón verde es pantalla completa y Zero
+  sigue (la lámina, sin canto y con la franja de la cámara fundida); en Windows y Linux con Nácar, F11 es la
+  web sola.
+- Las páginas se agarran: una pestaña del raíl soltada sobre la web de otra se pone a su lado (vista
+  dividida, en el lado en que se suelta, o se añade a la que hay); lejos del raíl y fuera de esa web, a una
+  ventana nueva que el sistema puede colocar.
 - `assets/`: el logo («máscara en el cero») y los seis sonidos (`zero-sonido-*.ogg`, CC0).
 - `linux/`: la regla de niri que desenfoca lo que hay detrás de la ventana (`kitsune-zero.kdl`) y su
   instalador, que la añade a `~/.config/niri/config.kdl` con copia de seguridad. Sin ella, el fondo es
@@ -96,4 +112,7 @@ El código de `modules/` y `chrome/` no se toca.
 
 `tests/zero_*.test.mjs` (Node) y `tests/zero_*_native.py` (motor real). Con `--zero-del-repo`, las
 pruebas nativas usan este directorio sin compilar el motor: un `chrome.manifest` temporal sustituye
-las URL de `chrome://browser/content/zero/` (ver `tests/zero_harness.py`).
+las URL de `chrome://browser/content/zero/` (ver `tests/zero_harness.py`). Solo sirve con un motor que no
+arranque su propio Zero (desde la 0.8 beta 2 el de serie lo trae: el arnés lo detecta y falla); en Linux,
+una copia del motor con el bloque de Zero quitado de `kitsune-bootstrap.js`. `zero_platform_native` simula
+las reglas de macOS y Windows en Linux; que casen con sus ventanas de verdad se mira en esos sistemas.

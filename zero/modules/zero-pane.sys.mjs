@@ -200,14 +200,17 @@ function draw(win, st) {
   gl.uniform2f(u.uSize, W, H);
   gl.uniform1f(u.uScale, k);
   // Las esquinas de la ventana, las de zero.css (las de cada sistema; 0 a pantalla completa).
-  const radius = parseFloat(win.getComputedStyle(root).getPropertyValue('--zero-win-radius'));
-  gl.uniform1f(u.uRadius, Number.isFinite(radius) ? radius : RADIUS);
+  const css = parseFloat(win.getComputedStyle(root).getPropertyValue('--zero-win-radius'));
+  const radius = Number.isFinite(css) ? css : RADIUS;
+  gl.uniform1f(u.uRadius, radius);
   gl.uniform1f(u.uBand, sobrio ? SOBRIO.band : BAND);
   gl.uniform1f(u.uFilm, sobrio ? SOBRIO.film : FILM);
   gl.uniform1f(u.uMono, sobrio ? 1 : 0);
   const fullscreen = root.matches('[inFullscreen], [sizemode="fullscreen"]');
-  gl.uniform1f(u.uEdge, fullscreen ? 0 : 1);
-  gl.uniform1f(u.uTopShade, fullscreen && root.getAttribute('zero-os') === 'mac' ? 96 : 0);
+  const edge = fullscreen ? 0 : 1, topShade = fullscreen && root.getAttribute('zero-os') === 'mac' ? 96 : 0;
+  gl.uniform1f(u.uEdge, edge);
+  gl.uniform1f(u.uTopShade, topShade);
+  st.look = { radius, edge, topShade };
   gl.uniform1f(u.uStrength, strength(win, st));
   // Las tarjetas a la vista (la web, las de la vista dividida, la barra lateral), donde estén en este
   // fotograma; su borde se va con ellas (con la tarjeta escondida, sin borde).
@@ -294,5 +297,9 @@ export function detach(win) {
   try { st.gl.gl.getExtension('WEBGL_lose_context')?.loseContext(); } catch { /* ya se fue */ }
 }
 
-/** Para las pruebas: cuántas veces se ha pintado la lámina de esta ventana. */
-export const ZeroPane = { draws: win => state.get(win)?.draws ?? 0 };
+/** Para las pruebas: cuántas veces se ha pintado la lámina de esta ventana, y cómo. */
+export const ZeroPane = {
+  draws: win => state.get(win)?.draws ?? 0,
+  /** Con qué se pintó la última vez: las esquinas, si tiene canto y los px de arriba fundidos (o null). */
+  look: win => state.get(win)?.look ?? null,
+};
