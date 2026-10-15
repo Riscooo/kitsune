@@ -134,11 +134,66 @@ function buildRing(win, st) {
   GlassPane.attach(st.ring, win, st.host);
 }
 
-function dropRing(st) {
+const still = win => win.matchMedia('(prefers-reduced-motion: reduce)').matches;
+// Del centro del anillo (a la derecha de la píldora): crece y se encoge desde ahí.
+const ORIGIN = 'calc(100% - 16px) 50%';
+
+/** Al encenderlo, el anillo no aparece de golpe (Risco, 15-10: «sale demasiado brusco»): nace pequeño y
+ *  desenfocado, crece con un rebote, su arco se dibuja girando hasta donde va y suelta una onda de luz. */
+function enterRing(win, st) {
+  const ring = st.ring;
+  if (!ring || still(win)) return;
+  ring.setAttribute('entering', '');
+  ring.animate([
+    { opacity: 0, transform: 'scale(.3)', filter: 'blur(8px)', transformOrigin: ORIGIN },
+    { opacity: 1, transform: 'scale(1.14)', filter: 'blur(0px)', transformOrigin: ORIGIN, offset: .5 },
+    { opacity: 1, transform: 'scale(.97)', filter: 'blur(0px)', transformOrigin: ORIGIN, offset: .78 },
+    { opacity: 1, transform: 'scale(1)', filter: 'blur(0px)', transformOrigin: ORIGIN },
+  ], { duration: 680, easing: 'cubic-bezier(.22, 1, .36, 1)' });
+  ring.animate([
+    { boxShadow: 'var(--zero-glass-edge), 0 0 0 0 rgba(255, 226, 206, .38)' },
+    { boxShadow: 'var(--zero-glass-edge), 0 0 0 12px rgba(255, 226, 206, 0)' },
+  ], { duration: 900, delay: 260, easing: 'cubic-bezier(.22, 1, .36, 1)' });
+  GlassPane.kick(win, 1200);
+  const done = event => {
+    if (event && event.animationName !== 'zero-pomo-sweep') return;
+    ring.removeEventListener('animationend', done);
+    ring.removeAttribute('entering');
+  };
+  ring.addEventListener('animationend', done);
+  win.setTimeout(() => done(), 1400); // por si no llega el aviso (la ventana escondida)
+}
+
+/** Al apagarlo se encoge y se desvanece, y luego se va. Si se vuelve a encender mientras, vuelve él. */
+function dropRing(st, win = null) {
   if (!st.ring) return;
-  GlassPane.detach(st.ring);
-  st.ring.remove();
+  const ring = st.ring;
   st.ring = null;
+  st.leaving = ring;
+  const gone = () => {
+    if (st.leaving !== ring) return;
+    st.leaving = null;
+    GlassPane.detach(ring);
+    ring.remove();
+  };
+  if (!win || still(win)) { gone(); return; }
+  ring.removeAttribute('entering');
+  for (const animation of ring.getAnimations()) animation.cancel();
+  ring.style.pointerEvents = 'none';
+  ring.animate([
+    { opacity: 1, transform: 'scale(1)', filter: 'blur(0px)', transformOrigin: ORIGIN },
+    { opacity: 0, transform: 'scale(.45)', filter: 'blur(6px)', transformOrigin: ORIGIN },
+  ], { duration: 300, easing: 'cubic-bezier(.5, 0, .75, 0)', fill: 'forwards' }).finished.then(gone, gone);
+  GlassPane.kick(win, 340);
+}
+
+function reviveRing(win, st) {
+  const ring = st.leaving;
+  st.leaving = null;
+  for (const animation of ring.getAnimations()) animation.cancel();
+  ring.style.removeProperty('pointer-events');
+  st.ring = ring;
+  enterRing(win, st);
 }
 
 // A la vista, lo mínimo: la hora (o «Listo» esperando). Lo demás (la fase, el ciclo, qué hace el
@@ -246,14 +301,15 @@ function update(win, st) {
   const p = st.p;
   const root = win.document.documentElement;
   if (!p.on()) {
-    dropRing(st);
+    dropRing(st, st.ready ? win : null);
     dropBreak(st);
     for (const name of ['zero-pomo-running', 'zero-pomo-phase']) root.removeAttribute(name);
     root.style.removeProperty('--zero-pomo-progress');
     st.lastPhase = null;
     return;
   }
-  if (!st.ring) buildRing(win, st);
+  if (!st.ring && st.leaving) reviveRing(win, st);
+  else if (!st.ring) { buildRing(win, st); if (st.ready) enterRing(win, st); }
   const v = view(p.saved(), p.preset(), clock.now());
   paintRing(win, st, v);
   // Los avisos, solo al cambiar de fase mientras se mira (no al abrir la ventana).
@@ -277,7 +333,7 @@ function update(win, st) {
 export function attach(win, ctx) {
   const { host } = ctx;
   if (!host?.prefs) return;
-  const st = { host, p: prefs(host), island: ctx.island, ring: null, brk: null, lastPhase: null, cleanups: [] };
+  const st = { host, p: prefs(host), island: ctx.island, ring: null, leaving: null, ready: false, brk: null, lastPhase: null, cleanups: [] };
   state.set(win, st);
   ctx.settings?.add(section(win, host));
   const refresh = () => { if (state.get(win) === st) update(win, st); };
@@ -298,6 +354,8 @@ export function attach(win, ctx) {
   tick();
   update(win, st);
   st.lastPhase = st.p.on() ? view(st.p.saved(), st.p.preset(), clock.now()).phase : null;
+  // Desde aquí, encenderlo o apagarlo se anima (al entrar en Zero, el anillo llega con las demás piezas).
+  st.ready = true;
 }
 
 export function detach(win) {
@@ -306,6 +364,7 @@ export function detach(win) {
   state.delete(win);
   for (const undo of st.cleanups.reverse()) { try { undo(); } catch { /* ya no estaba */ } }
   dropRing(st);
+  if (st.leaving) { GlassPane.detach(st.leaving); st.leaving.remove(); st.leaving = null; }
   dropBreak(st);
   const root = win.document.documentElement;
   for (const name of ['zero-pomo-running', 'zero-pomo-phase']) root.removeAttribute(name);

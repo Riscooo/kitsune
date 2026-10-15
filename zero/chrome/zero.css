@@ -1300,6 +1300,11 @@
 
 /* El anillo: arriba a la derecha, en el marco. Se vacía mientras corre; al pasar el ratón se abre con
    el tiempo, reiniciar y saltar. */
+/* Al encenderlo, el arco se dibuja girando desde arriba hasta donde va (Risco, 15-10: «métele alguna
+   animación guapa»); el resto de la entrada (crecer con un rebote, la onda de luz) va en zero-pomodoro. */
+@property --zero-pomo-sweep { syntax: '<number>'; inherits: true; initial-value: 1; }
+@keyframes zero-pomo-sweep { from { --zero-pomo-sweep: 0; rotate: -90deg; } to { --zero-pomo-sweep: 1; rotate: 0deg; } }
+#zero-pomo[entering] .zero-pomo-ring::before { animation: zero-pomo-sweep 950ms cubic-bezier(.22, 1, .36, 1) 120ms both; }
 #zero-pomo {
   --zero-pomo-color: rgba(255, 226, 206, .98);
   /* Separado de la curva de la esquina (Risco, 15-10), con su centro a la altura del de los botones de ventana. */
@@ -1353,11 +1358,11 @@
 }
 #zero-pomo .zero-pomo-ring::before {
   content: ""; width: 20px; height: 20px; border-radius: 50%;
-  background: conic-gradient(var(--zero-pomo-color) 0 calc(var(--zero-pomo-p, 1) * 100%), rgba(255, 255, 255, .22) 0);
+  background: conic-gradient(var(--zero-pomo-color) 0 calc(var(--zero-pomo-p, 1) * var(--zero-pomo-sweep, 1) * 100%), rgba(255, 255, 255, .22) 0);
   mask: radial-gradient(circle, transparent 54%, #000 58%);
   transition: opacity var(--zero-t-fade) var(--zero-soft);
 }
-#zero-pomo[zero-ink] .zero-pomo-ring::before { background: conic-gradient(rgba(200, 85, 61, .9) 0 calc(var(--zero-pomo-p, 1) * 100%), rgba(29, 35, 33, .14) 0); }
+#zero-pomo[zero-ink] .zero-pomo-ring::before { background: conic-gradient(rgba(200, 85, 61, .9) 0 calc(var(--zero-pomo-p, 1) * var(--zero-pomo-sweep, 1) * 100%), rgba(29, 35, 33, .14) 0); }
 #zero-pomo[paused] .zero-pomo-ring::before { opacity: .55; }
 #zero-pomo[phase="idle"] .zero-pomo-ring::before { opacity: .7; }
 /* El último minuto, respira; esperando a que lo pulses, late despacio. */
@@ -1447,8 +1452,8 @@
 #main-window[zero][zero-frame-ink]:not([zero-full]) #nav-bar:not([zero-ink]) :is(#zero-host, #zero-island-msg, #urlbar-input) { color: #1d2321 !important; text-shadow: none !important; }
 #main-window[zero][zero-frame-ink]:not([zero-full], [zero-empty]) #navigator-toolbox[zero-island="typing"] #nav-bar:not([zero-ink]) #urlbar > .urlbar-input-container { background-color: rgba(29, 35, 33, .08) !important; }
 :root[zero-frame-ink]:not([zero-full]) #zero-pomo:not([zero-ink]) { color: #1d2321; text-shadow: none; }
-:root[zero-frame-ink]:not([zero-full]) #zero-pomo:not([zero-ink]) .zero-pomo-ring::before { background: conic-gradient(rgba(200, 85, 61, .9) 0 calc(var(--zero-pomo-p, 1) * 100%), rgba(29, 35, 33, .14) 0); }
-:root[zero-frame-ink]:not([zero-full]) #zero-pomo:is([phase="short"], [phase="long"]):not([zero-ink]) .zero-pomo-ring::before { background: conic-gradient(rgba(58, 143, 116, .95) 0 calc(var(--zero-pomo-p, 1) * 100%), rgba(29, 35, 33, .14) 0); }
+:root[zero-frame-ink]:not([zero-full]) #zero-pomo:not([zero-ink]) .zero-pomo-ring::before { background: conic-gradient(rgba(200, 85, 61, .9) 0 calc(var(--zero-pomo-p, 1) * var(--zero-pomo-sweep, 1) * 100%), rgba(29, 35, 33, .14) 0); }
+:root[zero-frame-ink]:not([zero-full]) #zero-pomo:is([phase="short"], [phase="long"]):not([zero-ink]) .zero-pomo-ring::before { background: conic-gradient(rgba(58, 143, 116, .95) 0 calc(var(--zero-pomo-p, 1) * var(--zero-pomo-sweep, 1) * 100%), rgba(29, 35, 33, .14) 0); }
 :root[zero-frame-ink]:not([zero-full]) #zero-pomo .zero-pomo-action:hover { background-color: rgba(29, 35, 33, .1); }
 :root[zero-frame-ink]:not([zero-full]) #zero-rail:not(:hover, :has(:focus-visible), [zero-ink]) { color: #1d2321; }
 :root[zero-frame-ink]:not([zero-full]) #zero-rail:not(:hover, :has(:focus-visible), [zero-ink]) :is(.zero-space, .zero-new) .zero-fav { background: rgba(29, 35, 33, .08); color: #1d2321; }

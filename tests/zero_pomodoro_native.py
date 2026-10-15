@@ -22,6 +22,9 @@ El tiempo se adelanta con el reloj del módulo (clock.now), para no esperar 25 m
 12. Al cerrarse, sin tirones (Risco, 15-10): la hora se apaga en su sitio (mientras se ve no se desliza) y
     la píldora y sus botones se recogen a la vez, sin saltos de un fotograma a otro.
 13. Apagarlo desde los ajustes: sus filas se recogen y el panel no da un salto al quitarlas.
+14. Al encenderlo (al pasar a «Currar»), el anillo no aparece de golpe (Risco, 15-10: «sale demasiado
+    brusco»): nace pequeño y transparente, crece con un rebote y su arco se dibuja; al apagarlo se encoge y
+    se desvanece antes de irse.
 
 --zero-del-repo: Zero sale de zero/ del repositorio (ver zero_harness.py).
 """
@@ -138,7 +141,8 @@ def main():
         check('Apagado de serie: no hay anillo y en los ajustes solo sale el interruptor')
 
         click('#zero-settings [data-pref="pomodoro"]')
-        until(lambda: state()['pomo'] and state()['pomo']['seen'])
+        # Ya quieto (entra con su animación: ver 14).
+        until(lambda: state()['pomo'] and state()['pomo']['seen'] and chrome("return document.getElementById('zero-pomo').getAnimations({ subtree: true }).length") == 0)
         s = state()
         p, card = s['pomo']['box'], s['card']
         # Arriba a la derecha, pero sin pegarse al borde (Risco, 15-10): a 8 px o más de la curva de la
@@ -281,6 +285,34 @@ def main():
         click('#zero-mark')
         until(lambda: state()['pomo'] is None and state()['brk'] is None)
         check('Apagarlo quita todo')
+
+        # Entrar y salir con animación: muestras de cada fotograma (opacidad y escala del anillo).
+        sample = """window.__pomo = []; const t0 = performance.now();
+            const step = () => { const r = document.getElementById('zero-pomo');
+              if (r) { const m = new DOMMatrix(getComputedStyle(r).transform === 'none' ? undefined : getComputedStyle(r).transform);
+                       window.__pomo.push({ t: performance.now() - t0, o: Number(getComputedStyle(r).opacity), s: m.a,
+                                            sweep: r.hasAttribute('entering'), anims: r.getAnimations({ subtree: true }).length }); }
+              else window.__pomo.push({ t: performance.now() - t0, gone: true });
+              if (performance.now() - t0 < 1500) requestAnimationFrame(step); };
+            requestAnimationFrame(step);"""
+        chrome(sample)
+        chrome("Services.prefs.setBoolPref('kitsune.zero.pomodoro', true)")
+        time.sleep(1.7)
+        frames = [f for f in chrome("return window.__pomo") if not f.get('gone')]
+        assert frames, 'el anillo no salió'
+        first, last = frames[0], frames[-1]
+        assert first['o'] < 0.6 and first['s'] < 0.8, f'el anillo aparece de golpe: {first}'
+        assert max(f['s'] for f in frames) > 1.02, f'sin rebote: {max(f["s"] for f in frames)}'
+        assert any(f['sweep'] for f in frames), 'el arco no se dibuja'
+        assert last['o'] == 1 and abs(last['s'] - 1) < 1e-3 and last['anims'] == 0 and not last['sweep'], f'no acaba quieto: {last}'
+        chrome(sample)
+        chrome("Services.prefs.setBoolPref('kitsune.zero.pomodoro', false)")
+        time.sleep(1.7)
+        frames = chrome("return window.__pomo")
+        leaving = [f for f in frames if not f.get('gone')]
+        assert leaving and any(f['o'] < 0.9 and f['s'] < 0.95 for f in leaving), f'se va de golpe: {frames[:3]}'
+        assert frames[-1].get('gone') and leaving[-1]['t'] < 600, f'no se va: {frames[-1]} · {len(leaving)}'
+        check('Al encenderlo, el anillo entra con su animación (crece con un rebote y dibuja su arco); al apagarlo se encoge y se va')
         report['status'] = 'passed'
     finally:
         if driver: driver.close()
