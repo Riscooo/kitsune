@@ -1036,7 +1036,8 @@
    el tiempo, reiniciar y saltar. */
 #zero-pomo {
   --zero-pomo-color: rgba(255, 226, 206, .98);
-  position: fixed; top: 7px; right: 10px; z-index: 6;
+  /* Separado de la curva de la esquina (Risco, 15-10), con su centro a la altura del de los botones de ventana. */
+  position: fixed; top: 10px; right: 28px; z-index: 6;
   box-sizing: border-box; height: 32px; width: 32px; padding: 0; border-radius: 999px;
   display: flex; align-items: center; justify-content: flex-end; gap: 0; overflow: hidden;
   color: #fff; font: 600 12.5px system-ui, sans-serif; text-shadow: var(--zero-glass-halo);

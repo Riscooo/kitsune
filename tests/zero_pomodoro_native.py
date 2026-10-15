@@ -3,7 +3,8 @@
 El tiempo se adelanta con el reloj del módulo (clock.now), para no esperar 25 minutos.
 
 1. Apagado de serie: no hay anillo y en los ajustes solo sale el interruptor «Pomodoro».
-2. Al encenderlo sale el anillo arriba a la derecha, en el marco (sin tocar la tarjeta), y las filas
+2. Al encenderlo sale el anillo arriba a la derecha, en el marco (sin tocar la tarjeta ni pegarse a la curva
+   de la esquina), y las filas
    de tiempos, descanso y guía.
 3. Un clic empieza: con el ratón encima se abre, mínimo, con la hora y nada más («25:00», sin «Empezar» ni
    «Trabajo 1 de 4», que dicen el anillo a los lectores de pantalla y su bocadillo), y saltar y reiniciar
@@ -20,6 +21,7 @@ El tiempo se adelanta con el reloj del módulo (clock.now), para no esperar 25 m
     anillo se abre igual que con el ratón.
 12. Al cerrarse, sin tirones (Risco, 15-10): la hora se apaga en su sitio (mientras se ve no se desliza) y
     la píldora y sus botones se recogen a la vez, sin saltos de un fotograma a otro.
+13. Apagarlo desde los ajustes: sus filas se recogen y el panel no da un salto al quitarlas.
 
 --zero-del-repo: Zero sale de zero/ del repositorio (ver zero_harness.py).
 """
@@ -139,7 +141,11 @@ def main():
         until(lambda: state()['pomo'] and state()['pomo']['seen'])
         s = state()
         p, card = s['pomo']['box'], s['card']
-        assert p['bottom'] <= card['y'] and s['W'] - p['right'] <= 20 and p['w'] <= 34, s
+        # Arriba a la derecha, pero sin pegarse al borde (Risco, 15-10): a 8 px o más de la curva de la
+        # esquina (48 px de radio).
+        c = (s['W'] - (p['x'] + p['w'] / 2), p['y'] + p['h'] / 2)
+        gap = 48 - ((48 - c[0]) ** 2 + (48 - c[1]) ** 2) ** 0.5 - p['w'] / 2
+        assert p['bottom'] <= card['y'] and s['W'] - p['right'] <= 40 and p['w'] <= 34 and gap >= 8, f'anillo a {gap:.1f} px de la curva · {s}'
         until(lambda: all(any(r.startswith(name) for r in state()['rows']) for name in ('Tiempos', 'Descanso', 'Guía')))
         chrome("document.getElementById('zero-mark').click()")  # cierra los ajustes
         check('Al encenderlo sale el anillo arriba a la derecha, en el marco, y las filas de tiempos, descanso y guía')
@@ -257,7 +263,22 @@ def main():
             f'cierre con tirón: la hora se desliza {drift:.1f} px mientras se ve, pico de {steps:.1f} px sobre sus vecinos, botones antes que la píldora {apart:.1f} px · {rec[-1]}'
         check('Al cerrarse, la hora se apaga en su sitio y la píldora se recoge sin tirones')
 
-        chrome("Services.prefs.setBoolPref('kitsune.zero.pomodoro', false)")
+        # Apagado desde los ajustes: sus filas se recogen y el panel no da un salto al quitarlas.
+        click('#zero-mark')
+        until(lambda: chrome("return document.getElementById('zero-settings').hasAttribute('open')"))
+        time.sleep(0.8)
+        chrome("""window.__rows = []; const t0 = performance.now(); const panel = document.getElementById('zero-settings');
+            const step = () => { window.__rows.push({ top: panel.getBoundingClientRect().top, n: panel.querySelectorAll('.zero-row').length });
+              if (performance.now() - t0 < 1200) requestAnimationFrame(step); };
+            requestAnimationFrame(step);""")
+        click('#zero-settings [data-pref="pomodoro"]')
+        time.sleep(1.4)
+        rows = chrome("return window.__rows")
+        gone = [i for i in range(1, len(rows)) if rows[i]['n'] < rows[i - 1]['n']]
+        assert gone, f'no se fueron filas: {rows[-1]}'
+        snap = max(abs(rows[i]['top'] - rows[i - 1]['top']) for i in gone)
+        assert snap <= 0.5, f'el panel salta {snap:.1f} px al quitar las filas'
+        click('#zero-mark')
         until(lambda: state()['pomo'] is None and state()['brk'] is None)
         check('Apagarlo quita todo')
         report['status'] = 'passed'

@@ -155,9 +155,9 @@ function enter(win, node) {
   // Con la altura máxima, no la altura: la fila es flexible y, con una altura fija mayor que la suya,
   // separaba sus líneas y al final daba un salto (visto por Risco, 15-10).
   node.animate([
-    { maxHeight: '0px', paddingTop: '0px', paddingBottom: '0px', opacity: 0, transform: 'translateY(-6px)' },
+    { maxHeight: '0px', paddingTop: '0px', paddingBottom: '0px', borderTopWidth: '0px', opacity: 0, transform: 'translateY(-6px)' },
     { opacity: 0, offset: .25 },
-    { maxHeight: `${height}px`, paddingTop: cs.paddingTop, paddingBottom: cs.paddingBottom, opacity: 1, transform: 'none' },
+    { maxHeight: `${height}px`, paddingTop: cs.paddingTop, paddingBottom: cs.paddingBottom, borderTopWidth: cs.borderTopWidth, opacity: 1, transform: 'none' },
   ], { duration: 460, easing: calm }).finished.then(() => { node.style.overflow = ''; }, () => { node.style.overflow = ''; });
 }
 
@@ -169,9 +169,11 @@ function leave(win, node) {
   const height = node.getBoundingClientRect().height;
   node.style.overflow = 'clip';
   node.animate([
-    { maxHeight: `${height}px`, paddingTop: cs.paddingTop, paddingBottom: cs.paddingBottom, opacity: 1, transform: 'none' },
+    { maxHeight: `${height}px`, paddingTop: cs.paddingTop, paddingBottom: cs.paddingBottom, borderTopWidth: cs.borderTopWidth, opacity: 1, transform: 'none' },
     { opacity: 0, offset: .45 },
-    { maxHeight: '0px', paddingTop: '0px', paddingBottom: '0px', opacity: 0, transform: 'translateY(-6px)', borderTopColor: 'transparent' },
+    // También su borde de 1 px: si no, cada fila dejaba 1 px que desaparecía de golpe al quitarla (el
+    // «tironcillo» al apagar el pomodoro, Risco 15-10).
+    { maxHeight: '0px', paddingTop: '0px', paddingBottom: '0px', borderTopWidth: '0px', opacity: 0, transform: 'translateY(-6px)', borderTopColor: 'transparent' },
   ], { duration: 380, easing: calm, fill: 'forwards' }).finished.then(() => node.remove(), () => node.remove());
 }
 
