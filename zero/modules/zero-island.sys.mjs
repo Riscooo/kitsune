@@ -34,16 +34,16 @@ function label(win) {
   return { text: win.gBrowser.selectedTab.label || '', site: null };
 }
 
-/** Lo más delicado que comparte alguna pestaña de la ventana: la pantalla, la cámara o el micrófono
- *  (Gecko lo marca en «sharing»; ventana, aplicación o pestaña cuentan como pantalla). */
+/** Lo más delicado que comparte alguna pestaña de la ventana —la pantalla, la cámara o el micrófono— y
+ *  qué pestaña es (Gecko lo marca en «sharing»; ventana, aplicación o pestaña cuentan como pantalla). */
 export function sharingOf(win) {
+  const rank = { microphone: 1, camera: 2, screen: 3 };
   let best = null;
   for (const tab of win.gBrowser.tabs) {
     const value = tab.getAttribute('sharing');
     if (!value) continue;
     const kind = value === 'camera' || value === 'microphone' ? value : 'screen';
-    if (kind === 'screen') return 'screen';
-    if (kind === 'camera' || !best) best = kind;
+    if (!best || rank[kind] > rank[best.kind]) best = { kind, tab };
   }
   return best;
 }
@@ -79,7 +79,13 @@ export function attach(win, ctx = {}) {
   const user = el(doc, 'span', { class: 'zero-user' });
   // Una web de la ventana usa la cámara, el micrófono o la pantalla: un punto tras el dominio, como el
   // de iOS. De cualquier pestaña, no solo la que se ve: lo que importa es saber que está encendida.
-  const rec = el(doc, 'span', { class: 'zero-rec', role: 'img' });
+  // Con la isla abierta se pulsa y lleva a esa pestaña (como tocar el punto en iOS).
+  const rec = el(doc, 'span', { class: 'zero-rec', role: 'button', tabindex: '-1' });
+  rec.addEventListener('click', event => {
+    if (event.button !== 0 || toolbox.getAttribute('zero-island') !== 'open') return;
+    const tab = sharingOf(win)?.tab;
+    if (tab) { event.preventDefault(); win.gBrowser.selectedTab = tab; }
+  });
   st.host.append(icon, user, lock, text, rec);
   const recLabels = {
     camera: t('Una web usa la cámara', 'A site is using the camera'),
@@ -95,7 +101,7 @@ export function attach(win, ctx = {}) {
     st.host.toggleAttribute('user', !!who);
     paintUser(user, who);
     if (user.textContent !== (who?.name ?? '')) user.textContent = who?.name ?? '';
-    const sharing = sharingOf(win);
+    const sharing = sharingOf(win)?.kind;
     if (sharing) { st.host.setAttribute('sharing', sharing); rec.setAttribute('aria-label', recLabels[sharing]); rec.setAttribute('title', recLabels[sharing]); }
     else { st.host.removeAttribute('sharing'); rec.removeAttribute('aria-label'); rec.removeAttribute('title'); }
     let src = null;

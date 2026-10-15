@@ -36,7 +36,8 @@
     avanza y se va al terminar.
 21. Si una web de la ventana usa la cámara, el micrófono o comparte la pantalla, la isla lleva un punto
     tras el dominio, como el de iOS: verde la cámara, naranja el micrófono, rojo la pantalla. Aunque sea
-    otra pestaña (lo que importa es saber que está encendida); al apagarse, se va.
+    otra pestaña (lo que importa es saber que está encendida); al apagarse, se va. Con la isla abierta, el
+    punto se pulsa y lleva a esa pestaña.
 
 --zero-del-repo: Zero sale de zero/ del repositorio (ver zero_harness.py).
 """
@@ -439,11 +440,22 @@ def main():
             until(lambda: (r := chrome(rec)) and r['shown'] and r['red'] > 200 and 100 < r['green'] < 200 and 'micrófono' in r['label'].lower(), timeout=5)
             chrome(share, [True, {'sharing': 'screen', 'screen': 'Screen'}])
             until(lambda: (r := chrome(rec)) and r['shown'] and r['red'] > 200 and r['green'] < 100 and 'pantalla' in r['label'].lower(), timeout=5)
+            # Abierta, el punto lleva a la pestaña que comparte.
+            sharer = chrome("return gBrowser.visibleTabs.indexOf(gBrowser.visibleTabs.find(t => t.hasAttribute('sharing')))")
+            before = chrome("return gBrowser.visibleTabs.indexOf(gBrowser.selectedTab)")
+            assert before != sharer
+            hover('nav-bar')
+            until(lambda: chrome("return document.getElementById('navigator-toolbox').getAttribute('zero-island')") == 'open', timeout=5)
+            time.sleep(0.8)
+            click('#zero-host .zero-rec')
+            until(lambda: chrome("return gBrowser.visibleTabs.indexOf(gBrowser.selectedTab)") == sharer, timeout=5)
+            away()
+            chrome("gBrowser.selectedTab = gBrowser.visibleTabs[arguments[0]]", [before])
             chrome(share, [True, {}])
             until(lambda: not chrome(rec)['shown'], timeout=5)
         except AssertionError:
             raise AssertionError(f'cámara/micrófono: {chrome(rec)}') from None
-        check('Con la cámara, el micrófono o la pantalla en uso (en cualquier pestaña), un punto tras el dominio')
+        check('Con la cámara, el micrófono o la pantalla en uso (en cualquier pestaña), un punto tras el dominio, que lleva a esa pestaña')
 
         chrome("ChromeUtils.importESModule('chrome://browser/content/zero/zero-island.sys.mjs').alert(window, 'Tres avisos esperando', 'te los enseño en el descanso', 1500, 'quiet')")
         until(lambda: sized(470) and clear_of_card(), timeout=5)

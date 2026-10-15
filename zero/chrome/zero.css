@@ -470,6 +470,9 @@
   background: var(--zero-rec) !important; box-shadow: 0 0 6px var(--zero-rec) !important;
 }
 #main-window[zero] #zero-host[sharing] .zero-rec { display: block !important; }
+/* Abierta, se pulsa: lleva a la pestaña que lo usa (el hueco que se pulsa es mayor que el punto). */
+#main-window[zero] #navigator-toolbox[zero-island="open"] #zero-host[sharing] .zero-rec { position: relative !important; pointer-events: auto !important; cursor: pointer !important; }
+#main-window[zero] #navigator-toolbox[zero-island="open"] #zero-host[sharing] .zero-rec::after { content: '' !important; position: absolute !important; inset: -6px !important; }
 #main-window[zero] #zero-host[sharing="camera"] { --zero-rec: #30d158; }
 #main-window[zero] #zero-host[sharing="microphone"] { --zero-rec: #ff9f0a; }
 #main-window[zero] #zero-host[sharing="screen"] { --zero-rec: #ff453a; }
