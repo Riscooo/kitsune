@@ -34,6 +34,7 @@ from pathlib import Path
 import tempfile
 import threading
 import time
+import sys
 
 from browser_smoke import WebDriver, prepare_profile, eventually
 import zero_harness
@@ -122,7 +123,8 @@ def main():
         # Como una persona: en el campo (ya enfocado al abrir la ficha), todo seleccionado (Ctrl+A) y se
         # escribe encima.
         assert chrome("return document.activeElement === document.querySelector(arguments[0])", [selector]), 'el campo no tiene el foco'
-        keys = [{'type': 'keyDown', 'value': '\ue009'}, {'type': 'keyDown', 'value': 'a'}, {'type': 'keyUp', 'value': 'a'}, {'type': 'keyUp', 'value': '\ue009'}]
+        modifier = '\ue03d' if sys.platform == 'darwin' else '\ue009'
+        keys = [{'type': 'keyDown', 'value': modifier}, {'type': 'keyDown', 'value': 'a'}, {'type': 'keyUp', 'value': 'a'}, {'type': 'keyUp', 'value': modifier}]
         for char in text + ('\ue007' if enter else ''):
             keys += [{'type': 'keyDown', 'value': char}, {'type': 'keyUp', 'value': char}]
         driver.context('chrome')

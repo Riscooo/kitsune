@@ -5,7 +5,12 @@
 export const PREFS = Object.freeze({
   always: 'always',       // las ventanas nuevas nacen en Zero
   inherit: 'inherit',     // las ventanas nuevas nacen como la ventana desde la que se abren
+  variant: 'variant',     // 'nacar' (Risco: la lámina nacarada, accesos y música) | 'sobrio' (Dani: cristal ahumado, sonido)
   backdrop: 'backdrop',   // 'auto' | 'system' (desenfoque del compositor) | 'web' (fondo del color de la web)
+  backgroundImage: 'background.image',     // ruta de la foto propia del fondo
+  backgroundOpacity: 'background.opacity', // opacidad del fondo pintado (espacio, niebla, foto), de 0.2 a 1 (string)
+  focus: 'focus.enabled',                  // el modo Currar/Chill y sus automatismos
+  volume: 'volume',       // el volumen de Kitsune, de 0 a 1 (string): multiplica el de lo que suena (zero-audio)
   islandIcons: 'islandIcons', // la isla con solo iconos (sin el dominio)
   pomodoro: 'pomodoro',               // el pomodoro, encendido o no (apagado de serie)
   pomodoroPreset: 'pomodoro.preset',  // '25' | '50' | '90' (minutos de trabajo; ver zero-pomodoro.mjs)
@@ -28,12 +33,17 @@ export const PREFS = Object.freeze({
   glassStrength: 'glass.strength',    // la fuerza de la lámina de vidrio (doblez y brillos), de 0 a 100 o más
 });
 
-export const DEFAULTS = Object.freeze({ always: false, inherit: true, backdrop: 'auto', islandIcons: false,
+export const DEFAULTS = Object.freeze({ always: false, inherit: true, variant: 'nacar', backdrop: 'auto', backgroundImage: '', backgroundOpacity: '1', focus: true, volume: '1', islandIcons: false,
   pomodoro: false, pomodoroPreset: '25', pomodoroBreak: 'soft', pomodoroGuide: 'breathe', pomodoroState: '',
   silence: false, silenceNotify: true, silenceBlock: true, silenceBlocked: '', silenceOnlyWork: false, silenceScroll: true,
   sounds: false, soundsLevels: '{"lluvia":0.5}', soundsPause: true, welcomed: false, railIcons: false, hints: true, growAt: '' });
 
 export const prefName = (prefix, key) => `${prefix}${key}`;
+
+/** Las dos formas de llevar Zero (Risco, 15-10: «crea dos variantes»): «nacar» (Risco: la lámina nacarada, los
+ *  accesos directos y la música en su pastilla) y «sobrio» (Dani: cristal ahumado, el panel de sonido, los
+ *  ajustes en la columna). Cualquier otra cosa, la de serie. */
+export const variantOf = value => value === 'sobrio' ? 'sobrio' : 'nacar';
 
 /** El atajo de Zero, escrito como lo escribe cada sistema (en Mac, Cmd y Opción). */
 export const shortcutText = os => os === 'Darwin' ? '⌘⌥0' : 'Ctrl+Alt+0';

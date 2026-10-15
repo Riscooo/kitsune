@@ -12,7 +12,7 @@ test('Zero reads its settings from the host prefs, and falls back to its default
   assert.deepEqual(readPrefs(prefs, 'kitsune.zero.'), { ...DEFAULTS, always: true })
   const broken = { getBoolPref() { throw new Error('sin ajustes') }, getStringPref() { throw new Error('sin ajustes') } }
   assert.deepEqual(readPrefs(broken, 'kitsune.zero.'), DEFAULTS)
-  assert.deepEqual(DEFAULTS, { always: false, inherit: true, backdrop: 'auto', islandIcons: false,
+  assert.deepEqual(DEFAULTS, { always: false, inherit: true, variant: 'nacar', backdrop: 'auto', backgroundImage: '', backgroundOpacity: '1', focus: true, volume: '1', islandIcons: false,
     pomodoro: false, pomodoroPreset: '25', pomodoroBreak: 'soft', pomodoroGuide: 'breathe', pomodoroState: '',
     silence: false, silenceNotify: true, silenceBlock: true, silenceBlocked: '', silenceOnlyWork: false, silenceScroll: true,
     sounds: false, soundsLevels: '{"lluvia":0.5}', soundsPause: true, welcomed: false, railIcons: false, hints: true, growAt: '' })
@@ -25,6 +25,9 @@ test('Zero reads its settings from the host prefs, and falls back to its default
   assert.equal(prefName('kitsune.zero.', PREFS.pomodoroBreak), 'kitsune.zero.pomodoro.break')
   assert.equal(prefName('kitsune.zero.', PREFS.islandIcons), 'kitsune.zero.islandIcons')
   assert.equal(prefName('kitsune.zero.', PREFS.inherit), 'kitsune.zero.inherit')
+  assert.equal(prefName('kitsune.zero.', PREFS.backgroundImage), 'kitsune.zero.background.image')
+  assert.equal(prefName('kitsune.zero.', PREFS.focus), 'kitsune.zero.focus.enabled')
+  assert.equal(prefName('kitsune.zero.', PREFS.variant), 'kitsune.zero.variant')
 })
 
 test('the shortcut is written as each system writes it (Cmd and Option on a Mac)', () => {

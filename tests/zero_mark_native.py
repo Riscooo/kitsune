@@ -1,10 +1,12 @@
 """Kitsune Zero · la marca de agua y los ajustes, en el motor real (perfil temporal, sin ventana en pantalla).
 
-1. La marca está abajo a la izquierda (a 13 px y 16 px de los bordes) y se ve: con el fondo del sistema
-   (Zero transparente), blanca, sin disco y a 0,92, con el sistema en oscuro y en claro.
+1. Con «Nácar» (de serie), la marca está abajo a la izquierda (a 22 px de los bordes) y se ve: con el fondo
+   del sistema, blanca, sin disco y a 0,92, en oscuro y en claro. Con «Sobrio» (Dani, 15-10), los ajustes son la
+   última pastilla de la columna izquierda, del color de las piezas, y brotan de ella.
 2. Un clic abre los ajustes (#zero-settings), que brotan de la marca; se cierran con un clic fuera o con Esc.
 3. «Ventanas nuevas» (como esta / en Zero / normales) cambia kitsune.zero.inherit y kitsune.zero.always,
-   y «Fondo» (del sistema / de la web) cambia kitsune.zero.backdrop y el aspecto al momento. «Pestañas» (con texto / solo
+   «Estilo» (Nácar / Sobrio) cambia kitsune.zero.variant, y «Fondo» (cristal / espacio / niebla / foto / de la
+   web) cambia kitsune.zero.backdrop y el aspecto al momento. «Pestañas» (con texto / solo
    iconos, el raíl) cambia kitsune.zero.railIcons; la isla de arriba no tiene esa opción.
 4. No salen filas de fases sin hacer (pomodoro, silencio, sonidos…).
 5. Con la web ampliada no hay ajustes, como el pomodoro (Risco, 15-10): al acercarse al borde izquierdo
@@ -59,6 +61,7 @@ return {
   inherit: Services.prefs.getBoolPref('kitsune.zero.inherit', true),
   backdropPref: Services.prefs.getStringPref('kitsune.zero.backdrop', 'auto'),
   backdrop: document.documentElement.getAttribute('zero-backdrop'),
+  variant: document.documentElement.getAttribute('zero-variant'), inDock: mark?.parentNode?.id === 'zero-dock' && mark === mark.parentNode.lastElementChild,
   full: document.documentElement.hasAttribute('zero-full'),
 };
 """
@@ -120,13 +123,28 @@ def main():
         # El puntero, lejos de la marca (sin moverlo, su sitio es cualquiera y puede quedar encima de ella).
         pointer([{'type': 'pointerMove', 'origin': 'viewport', 'x': 800, 'y': 400}])
 
+        chrome("Services.prefs.setStringPref('kitsune.zero.backdrop', 'system')")
         until(lambda: (m := mark())['mark'] is not None and abs(m['mark']['x'] - 22) <= 1 and abs(m['H'] - m['mark']['bottom'] - 22) <= 1
-              and m['color'] == 'rgb(255, 255, 255)' and abs(m['opacity'] - 0.92) < 0.01)
-        # Con el sistema en claro (y el cristal del sistema), el marco pasa a tinta y la marca también.
+              and m['color'] == 'rgb(255, 255, 255)' and abs(m['opacity'] - 0.92) < 0.01 and not m['inDock'])
+        # Con el sistema en claro (y el cristal del sistema), sigue blanca y a la vista.
         chrome("Services.prefs.setIntPref('ui.systemUsesDarkTheme', 0)")
         until(lambda: (m := mark())['color'] == 'rgb(255, 255, 255)' and abs(m['opacity'] - 0.92) < 0.01)
+        # Con «Sobrio», la última pastilla de la columna, del color de las piezas: tinta en claro, clara en oscuro.
+        chrome("Services.prefs.setStringPref('kitsune.zero.variant', 'sobrio')")
+        until(lambda: (m := mark())['inDock'] and abs(m['mark']['x'] - 7) <= 1 and m['color'] == 'rgb(29, 35, 33)' and m['opacity'] > 0.75)
+        chrome("Services.prefs.setIntPref('ui.systemUsesDarkTheme', 1)")
+        until(lambda: (m := mark())['color'] == 'rgb(242, 243, 245)' and m['opacity'] > 0.75)
+        click('#zero-mark')
+        until(lambda: mark()['open'] and mark()['panelOpacity'] == 1)
+        m = mark()
+        assert m['mark']['x'] - 6 <= m['origin']['x'] <= m['mark']['right'] + 6 and m['mark']['y'] - 6 <= m['origin']['y'] <= m['mark']['bottom'] + 6, m
+        keys('')  # Esc
+        until(lambda: not mark()['open'])
+        chrome("Services.prefs.clearUserPref('kitsune.zero.variant')")
+        chrome("Services.prefs.clearUserPref('kitsune.zero.backdrop')")
+        until(lambda: (m := mark())['variant'] == 'nacar' and not m['inDock'] and abs(m['mark']['x'] - 22) <= 1)
         chrome("Services.prefs.clearUserPref('ui.systemUsesDarkTheme')")
-        check('La marca está abajo a la izquierda y se ve: blanca a 0,92 con el fondo del sistema, en oscuro y en claro')
+        check('La marca, abajo a la izquierda en «Nácar» (blanca a 0,92) y la última pastilla de la columna en «Sobrio»')
 
         click('#zero-mark')
         until(lambda: mark()['open'] and mark()['panelOpacity'] == 1)
@@ -148,17 +166,23 @@ def main():
         until(lambda: mark()['always'] is False and mark()['inherit'] is False)
         click('#zero-settings [data-pref="windows"] [data-value="inherit"]')
         until(lambda: mark()['always'] is False and mark()['inherit'] is True)
+        click('#zero-settings [data-pref="variant"] [data-value="sobrio"]')
+        until(lambda: mark()['variant'] == 'sobrio' and chrome("return Services.prefs.getStringPref('kitsune.zero.variant', '')") == 'sobrio')
+        click('#zero-settings [data-pref="variant"] [data-value="nacar"]')
+        until(lambda: mark()['variant'] == 'nacar' and mark()['open'])
+        click('#zero-settings [data-pref="backdrop"] [data-value="mist"]')
+        until(lambda: mark()['backdropPref'] == 'mist' and mark()['backdrop'] == 'mist')
         click('#zero-settings [data-pref="backdrop"] [data-value="web"]')
         until(lambda: mark()['backdropPref'] == 'web' and mark()['backdrop'] == 'web')
-        click('#zero-settings [data-pref="backdrop"] [data-value="system"]')
-        until(lambda: mark()['backdropPref'] == 'system' and mark()['backdrop'] == 'system')
         assert mark()['open'], mark()  # tocar dentro no lo cierra
-        check('«Ventanas nuevas» y «Fondo» cambian sus ajustes y el aspecto al momento')
+        check('«Ventanas nuevas», «Estilo» y «Fondo» cambian sus ajustes y el aspecto al momento')
 
+        # (Las filas que dependen del fondo se van al repintar la hoja, un momento después.)
+        until(lambda: len(mark()['rows']) == 10)
         rows = mark()['rows']
-        # Las de Zero (ventanas nuevas, fondo, isla) y los interruptores del pomodoro, el silencio y los
-        # sonidos, apagados: sin sus opciones.
-        assert len(rows) == 7 and [r.split(' ')[0][:8] for r in rows[4:]] == ['Pomodoro', 'Silencio', 'Sonidos'], rows
+        # Las de Zero (ventanas nuevas, estilo, fondo, foto de fondo, modo concentración, pestañas, info; con el fondo
+        # de la web, sin la opacidad) y los interruptores del pomodoro, el silencio y los sonidos, apagados: sin sus opciones.
+        assert len(rows) == 10 and [r.split(' ')[0][:8] for r in rows[7:]] == ['Pomodoro', 'Silencio', 'Sonidos'], rows
         assert not any(word in ' '.join(rows) for word in ('Tiempos', 'Webs vetadas', 'Aviso de scroll', 'Lluvia')), rows
         assert chrome("return !document.querySelector('#zero-settings [data-pref=islandIcons]')"), 'la isla de arriba no lleva «solo iconos»'
         click('#zero-settings [data-pref="railIcons"] [data-value="icons"]')
@@ -205,7 +229,7 @@ def main():
               const animated = leaving.filter(r => r.getAnimations().some(a => a.playState === 'running')).length;
               setTimeout(() => done({ before, leaving: leaving.length, animated, after: document.querySelectorAll('#zero-settings .zero-row').length, live: count() }), 800);
             }, 60);""", [], asynchronous=True)
-        assert gone['leaving'] >= 2 and gone['animated'] == gone['leaving'] and gone['after'] == gone['live'] == 7, gone
+        assert gone['leaving'] >= 2 and gone['animated'] == gone['leaving'] and gone['after'] == gone['live'] == 10, gone
         chrome("Services.prefs.clearUserPref('kitsune.zero.pomodoro.preset')")
         check('Sin el atajo en la cabecera; las filas entran y se van con animación, el interruptor y el segmento se deslizan')
 

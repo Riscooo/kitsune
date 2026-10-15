@@ -3,11 +3,13 @@
 1. Un vídeo (o cualquier cosa) a pantalla completa ocupa toda la ventana: sin márgenes de tarjeta,
    sin esquinas redondas, y sin la isla, el raíl, la marca ni los botones encima.
 2. Al salir, Zero vuelve como estaba.
-3. Con F11 (pantalla completa del navegador), igual.
+3. Con la ventana a pantalla completa: en macOS (el botón verde) y en la variante «Sobrio», Zero sigue igual, con
+   la isla, el raíl y la tarjeta, y el fondo sin esquinas (Dani, 15-10); en Windows y Linux con «Nácar», F11 es
+   la web sola, como un quiosco (toda la ventana, sin la isla, el raíl, la marca ni los botones).
 4. La isla abierta lleva el botón de las extensiones (sus ventanas se pueden abrir).
 5. Un aviso de permiso (la ubicación) sale abierto y colocado bajo la isla, no en una esquina.
-6. Con la barra lateral abierta y F11, la barra lateral también va pegada a los bordes (sin márgenes de
-   tarjeta) junto a la web; al salir vuelve a ser una tarjeta.
+6. Con la barra lateral abierta y la ventana a pantalla completa, sigue siendo una tarjeta junto a la web (o, en
+   el quiosco de F11, pegada a los bordes junto a ella; al salir vuelve a ser una tarjeta).
 
 --zero-del-repo: Zero sale de zero/ del repositorio (ver zero_harness.py).
 """
@@ -106,11 +108,26 @@ def main():
         until(lambda: (l := look())['island'] and l['rail'] and not l['dom'] and abs(l['panels']['x'] - before['panels']['x']) <= 1 and l['radius'] == before['radius'])
         check('Al salir, Zero vuelve como estaba')
 
-        chrome("window.fullScreen = true")
-        until(lambda: (l := look())['full'] and covers(l) and not any(l[k] for k in ('island', 'rail', 'mark', 'lights')))
-        chrome("window.fullScreen = false")
-        until(lambda: (l := look())['island'] and not l['full'])
-        check('Con F11, igual: toda la ventana, y al salir vuelve')
+        mac = chrome("return Services.appinfo.OS") == 'Darwin'
+        win_radius = "return getComputedStyle(document.documentElement).getPropertyValue('--zero-win-radius').trim()"
+        def stays():
+            chrome("window.fullScreen = true")
+            until(lambda: (l := look())['full'] and all(l[k] for k in ('island', 'rail', 'mark')) and l['radius'] == before['radius'] and chrome(win_radius) == '0px')
+            chrome("window.fullScreen = false")
+            until(lambda: (l := look())['island'] and not l['full'])
+        if mac:
+            stays()
+        else:
+            chrome("window.fullScreen = true")
+            until(lambda: (l := look())['full'] and covers(l) and not any(l[k] for k in ('island', 'rail', 'mark', 'lights')))
+            chrome("window.fullScreen = false")
+            until(lambda: (l := look())['island'] and not l['full'])
+        chrome("Services.prefs.setStringPref('kitsune.zero.variant', 'sobrio')")
+        try:
+            stays()
+        finally:
+            chrome("Services.prefs.clearUserPref('kitsune.zero.variant')")
+        check('A pantalla completa, Zero sigue (macOS, «Sobrio») o deja la web sola (F11 con «Nácar»), y al salir vuelve')
 
         driver.context('chrome')
         island = driver.command('POST', '/element', {'using': 'css selector', 'value': '#nav-bar'})
@@ -135,14 +152,17 @@ def main():
         until(lambda: chrome(side)['s'][2] > 150)
         chrome("window.fullScreen = true")
         try:
-            until(lambda: (q := chrome(side))['full'] and q['s'][0] <= 1 and q['s'][1] <= 1 and abs(q['s'][3] - q['H']) <= 1 and q['radius'] == '0px'
-                  and abs(q['p'][2] - q['W']) <= 1 and abs(q['p'][3] - q['H']) <= 1)
+            if mac:
+                until(lambda: (q := chrome(side))['full'] and q['s'][0] >= 49 and q['radius'] == '18px')
+            else:
+                until(lambda: (q := chrome(side))['full'] and q['s'][0] <= 1 and q['s'][1] <= 1 and abs(q['s'][3] - q['H']) <= 1 and q['radius'] == '0px'
+                      and abs(q['p'][2] - q['W']) <= 1 and abs(q['p'][3] - q['H']) <= 1)
         except AssertionError:
-            raise AssertionError(f'barra lateral con F11: {chrome(side)}') from None
+            raise AssertionError(f'barra lateral a pantalla completa: {chrome(side)}') from None
         chrome("window.fullScreen = false")
-        until(lambda: (q := chrome(side))['s'][0] >= 49 and q['radius'] == '18px')
+        until(lambda: (q := chrome(side))['s'][0] >= 49 and q['radius'] == '18px' and not q['full'])
         chrome("SidebarController.hide()")
-        check('Con la barra lateral abierta y F11, la barra lateral va pegada a los bordes; al salir vuelve a ser tarjeta')
+        check('Con la barra lateral abierta y la ventana a pantalla completa, va con la web (tarjeta, o pegada a los bordes en el quiosco)')
         report['status'] = 'passed'
     finally:
         if driver: driver.close()

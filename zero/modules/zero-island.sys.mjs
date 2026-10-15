@@ -310,8 +310,10 @@ export function attach(win, ctx = {}) {
   };
   const nowToggle = nowButton('toggle', t('Pausa', 'Pause'), data => data?.toggle());
   const nowNext = nowButton('next', t('Siguiente', 'Next'), data => data?.next());
-  now.append(nowToggle, nowNext);
-  st.now = { node: now, toggle: nowToggle, next: nowNext, data: null, t };
+  // Silenciar esa pestaña desde la isla (el volumen de Kitsune está en el panel de sonido, en la columna).
+  const nowMute = nowButton('mute', t('Silenciar', 'Mute'), data => data?.toggleMute?.());
+  now.append(nowToggle, nowNext, nowMute);
+  st.now = { node: now, toggle: nowToggle, next: nowNext, mute: nowMute, data: null, t };
   st.host.append(now, actions);
   const mirror = () => {
     const geckoReader = doc.getElementById('reader-mode-button'), geckoTranslate = doc.getElementById('translations-button');
@@ -473,18 +475,22 @@ export function activity(win, key, data) {
   if (!st.alerting) show(win, st, data);
 }
 
-/** Lo que suena en otra pestaña (o null): { playing, title, still, canNext, toggle(), next(), go() }. En
+/** Lo que suena en otra pestaña (o null): { playing, title, still, canNext, toggle(), next(),
+ *  muted, toggleMute(), go() }. En
  *  reposo, una onda junto al dominio; con la isla abierta, pausa (o seguir) y siguiente. */
 export function nowPlaying(win, data) {
   const st = state.get(win);
   if (!st?.now) return;
-  const { node, toggle, next, t } = st.now;
+  const { node, toggle, next, mute, t } = st.now;
   st.now.data = data;
   st.host.toggleAttribute('now', !!data);
   node.toggleAttribute('playing', !!data?.playing);
   node.toggleAttribute('still', !!data?.still); // modo ahorro: la onda, quieta
   node.title = data?.title ?? '';
   next.hidden = !data?.canNext;
+  mute.toggleAttribute('muted', !!data?.muted);
+  const muteLabel = data?.muted ? t('Quitar silencio', 'Unmute') : t('Silenciar', 'Mute');
+  mute.title = muteLabel; mute.setAttribute('aria-label', muteLabel);
   const label = data?.playing ? t('Pausa', 'Pause') : t('Seguir', 'Play');
   if (toggle.title !== label) { toggle.title = label; toggle.setAttribute('aria-label', label); }
 }

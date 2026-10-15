@@ -118,7 +118,8 @@ TEXT_PATCHES = {
     "widget/cocoa/nsCocoaWindow.mm": [
         ('// This is called from nsMenuPopupFrame when making a popup transparent.\nvoid nsCocoaWindow::SetTransparencyMode(',
          '// Kitsune Zero (macOS 26+): el cristal de Apple detrás de la vista de Gecko, del tamaño de la ventana y\n'
-         '// con las esquinas de Zero (48 px, como zero.css); se busca por su identificador para quitarlo.\n'
+         '// con las esquinas de Zero (kitsune.zero.macos-glass-radius: 16 px, las de una ventana de macOS, como\n'
+         '// zero.css); se busca por su identificador para quitarlo.\n'
          'static void SetKitsuneGlass(BaseWindow* aWindow, bool aOn) {\n'
          '  if (@available(macOS 26.0, *)) {\n'
          '    NSView* child = aWindow.mainChildView;\n'
@@ -136,7 +137,7 @@ TEXT_PATCHES = {
          '    if (aOn && !glass) {\n'
          '      auto* view = [[NSGlassEffectView alloc] initWithFrame:child.frame];\n'
          '      view.identifier = @"kitsune-zero-glass";\n'
-         '      view.cornerRadius = 48.0;\n'
+         '      view.cornerRadius = Preferences::GetInt("kitsune.zero.macos-glass-radius", 16);\n'
          '      view.autoresizingMask = NSViewWidthSizable | NSViewHeightSizable;\n'
          '      [parent addSubview:view positioned:NSWindowBelow relativeTo:child];\n'
          '      [view release];\n'

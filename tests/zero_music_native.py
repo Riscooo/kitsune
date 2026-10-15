@@ -12,7 +12,7 @@ el reproductor es la web del servicio (con tu cuenta), en un navegador propio de
 3. Al minimizarlo, el panel se va, sale el minipanel flotante (con el título de lo que suena) y la música
    sigue; pausa y vuelve a sonar desde él.
 4. El minipanel se arrastra a donde se quiera y se queda allí (también al volver a abrirlo).
-5. Al cerrarlo se va, y la música sigue; el botón vuelve a abrir el panel, con la misma música.
+5. Al cerrarlo se va, y la música sigue; «Abrir» vuelve a abrir el panel, con la misma música.
 
 (En la prueba, el «servicio» es una página local con audio y su MediaSession.)
 
@@ -122,6 +122,13 @@ def main():
         node = driver.command('POST', '/element', {'using': 'css selector', 'value': selector})
         driver.command('POST', f"/element/{list(node.values())[0]}/click", {})
 
+    def music():
+        # En la variante «Sobrio» (Dani), la música se abre desde el panel de sonido (el altavoz de la columna):
+        # «Música → Abrir».
+        click('#zero-sound-pill .zero-sound-button')
+        eventually(lambda: chrome("return document.getElementById('zero-sound')?.hasAttribute('open')"), timeout=5)
+        click('#zero-sound .zero-sound-music-open')
+
     try:
         driver = WebDriver(profile, evidence, browser=args.browser)
         zero_harness.prepare(chrome, args.zero_del_repo)
@@ -170,6 +177,17 @@ def main():
         click('#zero-music .zero-music-minimize')
         until(lambda: (s := state())['mini'] and s['at'] and abs(s['at'][0] - moved[0]) <= 2 and abs(s['at'][1] - moved[1]) <= 2)
         check('Al cerrarlo la música sigue, y el panel vuelve con la misma (y el minipanel, donde se dejó)')
+
+        # En «Sobrio» (Dani, 15-10) no está la pastilla de la música (ni los accesos directos): se abre desde el
+        # panel de sonido, «Música → Abrir», con la misma música.
+        click('#zero-mini .zero-mini-close')
+        chrome("Services.prefs.setStringPref('kitsune.zero.variant', 'sobrio')")
+        until(lambda: chrome("""const shown = id => { const n = document.getElementById(id); return !!n && getComputedStyle(n).display !== 'none' && n.getBoundingClientRect().width > 0; };
+            return !shown('zero-music-pill') && !shown('zero-shortcuts') && shown('zero-sound-pill');"""))
+        music()
+        until(lambda: (s := state())['panel'] and s['playing'] and s['url'] == origin + '/radio')
+        chrome("Services.prefs.clearUserPref('kitsune.zero.variant')")
+        check('En «Sobrio», la música se abre desde el panel de sonido, con la misma música')
         report['status'] = 'passed'
     finally:
         if driver: driver.close()

@@ -10,14 +10,23 @@ la ventana a Zero y la devuelve, con las mismas pestañas. Diseño completo en
   personaliza la barra); cada pieza es un módulo con
   `attach(win, ctx)` y `detach(win)`, en su lista de piezas. Se importan entre sí con rutas relativas y
   **no importan nada de Kitsune**. Las piezas, en orden:
-  - `zero-frame`: la ventana de cristal, la web en tarjeta (y ampliada), la vista dividida, la barra
-    lateral de Gecko (historial, marcadores, extensiones) como otra tarjeta, los botones de ventana y
-    el velo del color de la web;
+  - `zero-pane`: la lámina de detrás de todo (el canto de la ventana, con WebGL), solo con el cristal;
+  - `zero-frame`: la ventana y su fondo (el cristal del sistema, el de la web, o los que pinta Zero en
+    `#zero-bg`: Espacio, Niebla o una foto, con su opacidad), la web en tarjeta (y ampliada), la vista
+    dividida, la barra lateral de Gecko (historial, marcadores, extensiones) como otra tarjeta, los botones
+    de ventana (en macOS, el verde pone la pantalla completa) y el velo del color de la web;
   - `zero-island`: la isla (la barra de navegación de Gecko, reestilada), sus avisos (`alert()`), la
     línea de carga y las actividades en directo (las descargas, en `zero-downloads`); las barras de
     aviso de Gecko salen de ella como tarjetas, y la de buscar en la página (solo CSS) flota abajo;
   - `zero-rail`: el raíl de pestañas con efecto Dock (`zero-dock.mjs`) y los espacios del anfitrión;
-  - `zero-mark`: la marca de agua y los ajustes;
+  - `zero-profiles`: los perfiles (los espacios del anfitrión) en su pastilla, su ficha (nombre, correo,
+    cuentas, icono, color, sesiones e imagen), el modo Currar/Chill y tu perfil sobre el buscador de la
+    pestaña nueva;
+  - `zero-shortcuts`: la pastilla de abajo, la del sonido (sin abrir pestañas);
+  - `zero-music`: el reproductor de música (Spotify, SoundCloud…) y su minipanel flotante;
+  - `zero-audio`: el panel de sonido (lo que suena en cada pestaña, silenciar y el volumen de Kitsune,
+    que multiplica el de cada audio y vídeo; lo aplica su actor, `zero-audio-child.sys.mjs`);
+  - `zero-mark`: los ajustes (la última pastilla de la columna);
   - `zero-pomodoro`: el anillo, los avisos y los descansos (el reloj, puro, en `zero-pomodoro.mjs`);
   - `zero-silence`: avisos en silencio, webs vetadas, «Solo currar» y el aviso de scroll infinito
     (las reglas, puras, en `zero-silence.mjs`);

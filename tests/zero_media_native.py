@@ -76,6 +76,7 @@ const msg = document.getElementById('zero-island-msg');
 return { alert: toolbox.hasAttribute('zero-island-alert') ? msg.textContent.trim() : '', action: !!msg?.hasAttribute('action'),
          now: seen(now), playing: !!now?.hasAttribute('playing'),
          toggle: seen(document.querySelector('#zero-host .zero-now-toggle')), next: seen(document.querySelector('#zero-host .zero-now-next')),
+         mute: seen(document.querySelector('#zero-host .zero-now-mute')),
          selected: gBrowser.selectedTab.label };
 """
 
@@ -173,6 +174,15 @@ def main():
 
         chrome("gBrowser.selectedTab = gBrowser.tabs.find(t => t.label === 'Kioto')")
         until(lambda: island()['now'])
+        pointer([{'type': 'pointerMove', 'origin': element('#nav-bar'), 'x': 0, 'y': 0}])
+        # (Con el aviso de la canción a la vista, un clic en la isla es en el aviso: se espera a que acabe.)
+        until(lambda: (i := island())['mute'] and not i['alert'], timeout=10)
+        click('#zero-host .zero-now-mute')
+        until(lambda: chrome("return gBrowser.tabs.some(t => t.label === 'siguiente' && t.hasAttribute('muted'))"))
+        click('#zero-host .zero-now-mute')
+        until(lambda: chrome("return gBrowser.tabs.some(t => t.label === 'siguiente' && !t.hasAttribute('muted'))"))
+        check('Con la isla abierta, silencia la pestaña que suena (y le devuelve el sonido) sin abrir otra')
+
         chrome("gBrowser.removeTab(gBrowser.tabs.find(t => t.label === 'siguiente'))")
         until(lambda: not island()['now'])
         check('Si se cierra la pestaña que sonaba, la onda se va')

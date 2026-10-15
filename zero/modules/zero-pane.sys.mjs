@@ -23,10 +23,13 @@
 import { prefName, PREFS } from './zero-config.sys.mjs';
 
 const HTML = 'http://www.w3.org/1999/xhtml';
-const RADIUS = 48;   // esquinas de la ventana (= zero.css)
+const RADIUS = 48;   // esquinas de la ventana si zero.css no dice otra cosa (--zero-win-radius: cada sistema las suyas)
 const BAND = 22;     // el canto se recoge hacia el filo; el resto de la lámina queda plano
 const CARD_RADIUS = 18; // las esquinas de la tarjeta (= zero.css)
 const FILM = 0.32;   // halo nacarado junto al filo blanco del boceto, sin teñir el centro
+// La variante «Sobrio» (Dani, 15-10: «que no sea tan colorido, más como concentración»): la luz de la pompa
+// en gris, en una franja algo más ancha y más tenue, y un filo fino en lugar del blanco del boceto.
+const SOBRIO = Object.freeze({ band: 30, film: 0.24 });
 const LENS_BAND = 30; // la lente conserva su caída suave; el reflejo del filo es más estrecho
 const DEPTH = 70;    // la refracción ya probada: solo en el canto, con el centro plano
 
@@ -41,6 +44,8 @@ precision highp float;
 uniform vec2 uSize;       // la ventana, en px CSS
 uniform float uScale;     // px del lienzo por px CSS
 uniform float uRadius, uBand, uFilm, uStrength;
+uniform float uMono, uEdge; // la variante «Sobrio» (sin color) y si la ventana tiene canto (no a pantalla completa)
+uniform float uTopShade;    // px de arriba que se funden con negro (un Mac con cámara, a pantalla completa)
 uniform vec4 uCards[4];   // las tarjetas (x, y, ancho, alto), con su borde de pompa por fuera
 uniform int uCardCount;
 uniform float uCardRadius, uCardAlpha;
@@ -83,7 +88,9 @@ void main() {
   vec2 nw, n;
   float window = inner(p, uRadius, nw);
   bool lens = uPhotoOn > 0.5;
-  if (window <= 0.0 || uStrength <= 0.0) { outColor = lens ? vec4(photo(p), 1.0) : vec4(0.0); return; }
+  // A pantalla completa en un Mac con cámara, macOS deja negra la franja de arriba: la foto se funde con ella.
+  float shade = uTopShade > 0.0 ? smoothstep(0.0, uTopShade, p.y) : 1.0;
+  if (window <= 0.0 || uStrength <= 0.0) { outColor = lens ? vec4(photo(p) * shade, 1.0) : vec4(0.0); return; }
   // El borde de cada tarjeta: una línea fina de película pegada a ella por fuera, con un halo corto.
   float cardA = 0.0; vec3 cardC = vec3(0.0);
   for (int i = 0; i < 4; i++) {
@@ -91,7 +98,9 @@ void main() {
     float dc = box(p, uCards[i], uCardRadius);
     if (dc < 0.0 || dc > 8.0) continue;
     float k = uCardAlpha * (0.76 * (1.0 - smoothstep(0.6, 2.2, dc)) + 0.1 * exp(-dc / 2.5));
-    cardA = max(cardA, k); cardC = mix(vec3(1.0), filmAt(p, 0.2), 0.6);
+    vec3 cardFilm = filmAt(p, 0.2);
+    if (uMono > 0.5) cardFilm = vec3(dot(cardFilm, vec3(0.299, 0.587, 0.114)));
+    cardA = max(cardA, k); cardC = mix(vec3(1.0), cardFilm, 0.6);
   }
   float d = min(inner(p, max(uRadius, uBand), n), window);
   float u = clamp(1.0 - d / uBand, 0.0, 0.999);         // 0 dentro, 1 en el filo
@@ -102,16 +111,26 @@ void main() {
   // La película: su grosor cambia despacio a lo largo del borde (y crece hacia el filo); de él salen los
   // colores, como en una pompa de jabón (interferencia, aproximada con una paleta de cosenos).
   vec3 film = filmAt(p, 0.35 * u);
-  // El boceto aprobado tiene un filo blanco continuo de 2–3 px, no solo el Fresnel tenue.
-  // Bajo él asoma la película nacarada; su luz cae sin escalones y a 22 px el centro está limpio.
-  float rim = 0.97 * (1.0 - smoothstep(2.2, 4.4, window));
-  float pearl = uFilm * (fresnel + 0.6 * exp(-window / 4.0) + 1.2 * exp(-pow((window - 4.2) / 1.6, 2.0)))
-    * (1.0 - smoothstep(14.0, uBand, window));
+  float edgeA; vec3 edgeC;
+  if (uMono > 0.5) {
+    // Sobrio: sin los colores de la pompa, su luz en gris; y el filo, una línea fina y limpia.
+    film = vec3(dot(film, vec3(0.299, 0.587, 0.114)));
+    edgeA = uFilm * fresnel + 0.15 * clamp(1.8 - window, 0.0, 1.0);
+    edgeC = film * edgeA;
+  } else {
+    // Nácar: el boceto aprobado tiene un filo blanco continuo de 2–3 px, no solo el Fresnel tenue.
+    // Bajo él asoma la película nacarada; su luz cae sin escalones y a 22 px el centro está limpio.
+    float rim = 0.97 * (1.0 - smoothstep(2.2, 4.4, window));
+    float pearl = uFilm * (fresnel + 0.6 * exp(-window / 4.0) + 1.2 * exp(-pow((window - 4.2) / 1.6, 2.0)))
+      * (1.0 - smoothstep(14.0, uBand, window));
+    edgeA = rim + pearl * (1.0 - rim);
+    edgeC = mix(vec3(1.0), film, 0.04) * rim + film * pearl * (1.0 - rim);
+  }
+  // A pantalla completa la ventana no tiene canto (sus bordes son los de la pantalla): ni filo ni lente.
+  edgeA *= uEdge; edgeC *= uEdge;
   // Los reflejos de la luz, suaves (una arriba a la izquierda y su eco abajo a la derecha).
   float onEdge = smoothstep(0.25, 0.65, u);
-  float glint = onEdge * (0.92 * blinn(N, normalize(vec3(-1.0, -1.25, 1.1)), 36.0) + 0.52 * blinn(N, normalize(vec3(1.0, 1.25, 1.1)), 44.0));
-  float edgeA = rim + pearl * (1.0 - rim);
-  vec3 edgeC = mix(vec3(1.0), film, 0.04) * rim + film * pearl * (1.0 - rim);
+  float glint = uEdge * onEdge * (0.92 * blinn(N, normalize(vec3(-1.0, -1.25, 1.1)), 36.0) + 0.52 * blinn(N, normalize(vec3(1.0, 1.25, 1.1)), 44.0));
   float alpha = clamp((edgeA + glint + cardA) * uStrength, 0.0, 1.0);
   vec3 color = min((edgeC + vec3(glint) + cardC * cardA) * uStrength, vec3(alpha));   // premultiplicado
   if (!lens) { outColor = vec4(color, alpha); return; }
@@ -120,9 +139,9 @@ void main() {
   float lensU = clamp(1.0 - d / uLensBand, 0.0, 0.999);
   float P = 3.0, w = pow(lensU, P);
   float slope = lensU > 0.0 ? min(pow(lensU, P - 1.0) * pow(max(1.0 - w, 1e-4), 1.0 / P - 1.0), 4.0) / 4.0 : 0.0;
-  vec2 bend = -n * uDepth * uStrength * slope;
+  vec2 bend = -n * uDepth * uStrength * uEdge * slope;
   vec3 behind = vec3(photo(p + bend * 0.94).r, photo(p + bend).g, photo(p + bend * 1.06).b);
-  outColor = vec4(behind * (1.0 - alpha) + color, 1.0);
+  outColor = vec4((behind * (1.0 - alpha) + color) * shade, 1.0);
 }`;
 
 function compile(gl, type, source) {
@@ -150,7 +169,7 @@ function setup(canvas) {
   gl.vertexAttribPointer(at, 2, gl.FLOAT, false, 0, 0);
   const u = name => gl.getUniformLocation(program, name);
   const uniforms = Object.fromEntries(['uSize', 'uScale', 'uRadius', 'uBand', 'uFilm', 'uStrength', 'uCards', 'uCardCount', 'uCardRadius', 'uCardAlpha',
-    'uPhoto', 'uPhotoOn', 'uPhotoMap', 'uDepth', 'uLensBand'].map(n => [n, u(n)]));
+    'uPhoto', 'uPhotoOn', 'uPhotoMap', 'uDepth', 'uLensBand', 'uMono', 'uEdge', 'uTopShade'].map(n => [n, u(n)]));
   const texture = gl.createTexture();
   gl.bindTexture(gl.TEXTURE_2D, texture);
   for (const [k, v] of [[gl.TEXTURE_MIN_FILTER, gl.LINEAR], [gl.TEXTURE_MAG_FILTER, gl.LINEAR], [gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE], [gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE]]) gl.texParameteri(gl.TEXTURE_2D, k, v);
@@ -166,7 +185,10 @@ function draw(win, st) {
   st.frame = 0;
   const { canvas } = st;
   const root = win.document.documentElement;
-  const hidden = root.hasAttribute('zero-full');
+  // Con la web ampliada no hay lámina. Con un fondo que pinta Zero (espacio, niebla, foto), en «Sobrio» tampoco
+  // (su fondo lleva su propio filo); en «Nácar» la lámina pone su canto encima.
+  const sobrio = root.getAttribute('zero-variant') === 'sobrio';
+  const hidden = root.hasAttribute('zero-full') || (sobrio && ['space', 'mist', 'photo'].includes(root.getAttribute('zero-backdrop')));
   if (canvas.hidden !== hidden) canvas.hidden = hidden;
   if (hidden || !st.gl) return;
   const W = win.innerWidth, H = win.innerHeight, k = win.devicePixelRatio || 1;
@@ -177,9 +199,15 @@ function draw(win, st) {
   gl.viewport(0, 0, width, height);
   gl.uniform2f(u.uSize, W, H);
   gl.uniform1f(u.uScale, k);
-  gl.uniform1f(u.uRadius, RADIUS);
-  gl.uniform1f(u.uBand, BAND);
-  gl.uniform1f(u.uFilm, FILM);
+  // Las esquinas de la ventana, las de zero.css (las de cada sistema; 0 a pantalla completa).
+  const radius = parseFloat(win.getComputedStyle(root).getPropertyValue('--zero-win-radius'));
+  gl.uniform1f(u.uRadius, Number.isFinite(radius) ? radius : RADIUS);
+  gl.uniform1f(u.uBand, sobrio ? SOBRIO.band : BAND);
+  gl.uniform1f(u.uFilm, sobrio ? SOBRIO.film : FILM);
+  gl.uniform1f(u.uMono, sobrio ? 1 : 0);
+  const fullscreen = root.matches('[inFullscreen], [sizemode="fullscreen"]');
+  gl.uniform1f(u.uEdge, fullscreen ? 0 : 1);
+  gl.uniform1f(u.uTopShade, fullscreen && root.getAttribute('zero-os') === 'mac' ? 96 : 0);
   gl.uniform1f(u.uStrength, strength(win, st));
   // Las tarjetas a la vista (la web, las de la vista dividida, la barra lateral), donde estén en este
   // fotograma; su borde se va con ellas (con la tarjeta escondida, sin borde).
@@ -243,7 +271,7 @@ export function attach(win, ctx) {
   if (panels) { listen(panels, 'transitionstart', () => schedule(win, st)); listen(panels, 'transitionend', () => schedule(win, st)); }
   // Con la web ampliada no hay lámina; la pestaña vacía no tiene tarjeta.
   const observer = new win.MutationObserver(() => schedule(win, st));
-  observer.observe(doc.documentElement, { attributes: true, attributeFilter: ['zero-full', 'zero-empty', 'zero-backdrop'] });
+  observer.observe(doc.documentElement, { attributes: true, attributeFilter: ['zero-full', 'zero-empty', 'zero-backdrop', 'zero-variant', 'zero-os', 'sizemode', 'inFullscreen'] });
   const sidebar = doc.getElementById('sidebar-box');
   if (sidebar) observer.observe(sidebar, { attributes: true, attributeFilter: ['hidden'] });
   if (panels) observer.observe(panels, { attributes: true, attributeFilter: ['splitview'] });

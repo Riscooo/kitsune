@@ -325,7 +325,9 @@ class RecipeTests(unittest.TestCase):
         patches = engine.TEXT_PATCHES["widget/cocoa/nsCocoaWindow.mm"]
         code = "".join(new for _, new in patches)
         for piece in ("@available(macOS 26.0, *)", "NSGlassEffectView", "positioned:NSWindowBelow", "removeFromSuperview",
-                      '"kitsune.zero.macos-glass"', "mWindowType == WindowType::TopLevel"):
+                      '"kitsune.zero.macos-glass"', "mWindowType == WindowType::TopLevel",
+                      # Con las esquinas de una ventana de macOS (las de zero.css), que se pueden cambiar.
+                      'Preferences::GetInt("kitsune.zero.macos-glass-radius", 16)'):
             self.assertIn(piece, code)
         # Apagado de serie: en un Mac de verdad no salió bien (Risco, 15-10); solo con el ajuste a true.
         self.assertIn('Preferences::GetBool("kitsune.zero.macos-glass", false)', code)

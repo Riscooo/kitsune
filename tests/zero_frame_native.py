@@ -207,10 +207,18 @@ def main():
         c = (lights[0]['x'] + lights[0]['w'] / 2, lights[0]['y'] + lights[0]['h'] / 2)
         gap = 48 - ((48 - c[0]) ** 2 + (48 - c[1]) ** 2) ** 0.5 - lights[0]['w'] / 2
         assert gap >= 12, f'botones de ventana pegados al borde: {gap:.1f} px de la curva · {lights[0]}'
-        # Lo mismo la marca de Kitsune, abajo a la izquierda.
+        # Lo mismo la marca de Kitsune, abajo a la izquierda (en «Nácar»).
         m = chrome("const r = document.getElementById('zero-mark').getBoundingClientRect(); return [r.left + r.width / 2, innerHeight - (r.top + r.height / 2), r.width / 2]")
         mark_gap = 48 - ((48 - m[0]) ** 2 + (48 - m[1]) ** 2) ** 0.5 - m[2]
         assert mark_gap >= 12, f'la marca, pegada al borde: {mark_gap:.1f} px de la curva · {m}'
+        # En «Sobrio», los ajustes van en la columna de la izquierda, como su última pastilla (Dani, 15-10).
+        where = "const r = document.getElementById('zero-mark'); return r.parentNode.id + ':' + (r === r.parentNode.lastElementChild)"
+        chrome("Services.prefs.setStringPref('kitsune.zero.variant', 'sobrio')")
+        try:
+            eventually(lambda: chrome(where) == 'zero-dock:true', timeout=5)
+        finally:
+            chrome("Services.prefs.clearUserPref('kitsune.zero.variant')")
+        eventually(lambda: chrome(where).startswith('main-window') or not chrome(where).startswith('zero-dock'), timeout=5)
         assert f['drag'] == 'drag' and f['webDrag'] == 'no-drag', f
         grow = chrome("const r = document.getElementById('zero-grow').getBoundingClientRect(); return { x: r.left, y: r.top, right: r.right, bottom: r.bottom }")
         assert grow['bottom'] <= f['panels']['y'] and grow['x'] > lights[2]['x'] + lights[2]['w'], (grow, f['panels'], lights)
@@ -300,10 +308,12 @@ def main():
         chrome("Services.prefs.setStringPref('kitsune.zero.backdrop', 'auto')")
         chrome("document.getElementById('kitsune-zero-key').doCommand()")
         eventually(lambda: chrome("return !document.documentElement.hasAttribute('zero')"), timeout=5)
-        # Lo que toca en este ordenador: el cristal del sistema con niri y la regla de Zero; si no, la web.
+        # Lo que toca en este ordenador con «Nácar» (de serie): el cristal del sistema con niri y la regla de Zero;
+        # si no (macOS incluido, con su cristal apagado de serie), la foto de la web.
         expected = chrome("""const niri = !!Services.env.get('NIRI_SOCKET');
             const rule = Services.dirsvc.get('Home', Ci.nsIFile); rule.append('.config'); rule.append('niri'); rule.append('kitsune-zero.kdl');
-            return niri && rule.exists() ? 'system' : 'web';""")
+            if (Services.appinfo.OS !== 'Darwin' && niri && rule.exists()) return 'system';
+            return 'web';""")
         chrome("""window.__fondos = []; window.__vigia = new MutationObserver(() => { const v = document.documentElement.getAttribute('zero-backdrop'); if (v) window.__fondos.push(v); });
             window.__vigia.observe(document.documentElement, { attributes: true, attributeFilter: ['zero-backdrop'] });
             document.getElementById('kitsune-zero-key').doCommand();""")
@@ -367,7 +377,9 @@ def main():
         # (una hoja de agente, solo para la foto; sin pantalla, detrás hay blanco y la luz no se ve).
         # Las esquinas de la lámina, de 48 px como en la maqueta elegida: el canto no es más ancho que la
         # curva (si lo fuera, el doblez se parte en la diagonal).
-        assert float(chrome("return parseFloat(getComputedStyle(document.body).borderTopLeftRadius)")) == 48
+        # (En macOS y Windows, las de una ventana del sistema: --zero-os-radius, de zero-frame.)
+        radius = chrome("return [parseFloat(getComputedStyle(document.body).borderTopLeftRadius), parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--zero-os-radius')), Services.appinfo.OS]")
+        assert radius[0] == radius[1] and (radius[2] in ('Darwin', 'WINNT') or radius[0] == 48), radius
         GREY = 42
         dark_sheet = 'data:text/css,' + urllib.parse.quote(f':root {{ background: rgb({GREY}, {GREY}, {GREY}) !important; }}')
         def photo(name):
@@ -406,7 +418,9 @@ def main():
             time.sleep(0.4)
             lam = lamina()
             fused = lam['glow'][0] >= lam['behind'] + 3 and lam['rise'] <= 3
-            even = abs(lam['rim'][0] - lam['rim'][1]) <= 12 and abs(lam['glow'][0] - lam['glow'][1]) <= 6
+            # El acabado aprobado (el boceto nacarado, 15-10) da más luz arriba a la izquierda que en su eco de abajo a
+            # la derecha: a un cuarto de la altura, el halo izquierdo sale unos 7 niveles más claro. Igual a la vista.
+            even = abs(lam['rim'][0] - lam['rim'][1]) <= 12 and abs(lam['glow'][0] - lam['glow'][1]) <= 8
             assert fused and even, f'el borde no se funde (o no es igual a los dos lados): {lam}'
             # Los botones de ventana, sobre oscuro: claros.
             img, k, W, H, row = photo('botones-oscuro.png')

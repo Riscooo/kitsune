@@ -13,7 +13,7 @@
  * ([{ value, label }], para segment), placeholder? (para list), get() → valor, set(valor),
  * watch?(fn) → dejar, when?() → si sale }.
  */
-import { prefName, PREFS, readPrefs } from './zero-config.sys.mjs';
+import { prefName, PREFS, readPrefs, variantOf } from './zero-config.sys.mjs';
 
 const HTML = 'http://www.w3.org/1999/xhtml';
 const state = new WeakMap();      // ventana → { cleanups, mark, panel, … }
@@ -36,6 +36,12 @@ function zeroSection(win, host) {
   };
   return {
     id: 'zero',
+    // Las filas que dependen del fondo (la foto, la opacidad) siguen al que está puesto de verdad.
+    watch: fn => {
+      const observer = new win.MutationObserver(() => fn());
+      observer.observe(win.document.documentElement, { attributes: true, attributeFilter: ['zero-backdrop'] });
+      return () => observer.disconnect();
+    },
     rows: [
       {
         // Una fila para dos ajustes: como la ventana de origen (de serie), siempre en Zero o normales.
@@ -54,17 +60,67 @@ function zeroSection(win, host) {
         watch: fn => { const undo = [watchPref(PREFS.always)(fn), watchPref(PREFS.inherit)(fn)]; return () => undo.forEach(u => u()); },
       },
       {
+        // Dos formas de llevar Zero (Risco, 15-10: «si hace falta, dos variantes»): «Nácar», la de Risco, y
+        // «Sobrio», la de Dani.
+        kind: 'segment', id: PREFS.variant,
+        label: host.t('Estilo', 'Style'),
+        detail: host.t('Nácar: la lámina nacarada, con accesos directos y música. Sobrio: cristal ahumado, con el panel de sonido y los ajustes en la columna.',
+                       'Nacre: the pearly sheet, with shortcuts and music. Sober: smoked glass, with the sound panel and the settings in the column.'),
+        options: [{ value: 'nacar', label: host.t('Nácar', 'Nacre') }, { value: 'sobrio', label: host.t('Sobrio', 'Sober') }],
+        get: () => variantOf(prefs.getStringPref(prefName(prefix, PREFS.variant), 'nacar')),
+        set: value => prefs.setStringPref(prefName(prefix, PREFS.variant), value),
+        watch: watchPref(PREFS.variant),
+      },
+      {
         kind: 'segment', id: PREFS.backdrop,
         label: host.t('Fondo', 'Background'),
-        options: [{ value: 'system', label: host.t('Del sistema', 'System') }, { value: 'web', label: host.t('De la web', 'Page') }],
+        // Cristal solo donde el sistema lo pone (macOS 26, o un escritorio con la regla de Kitsune).
+        options: [
+          ...(win.document.documentElement.getAttribute('zero-glass') === 'system' ? [{ value: 'system', label: host.t('Cristal', 'Glass') }] : []),
+          { value: 'space', label: host.t('Espacio', 'Space') }, { value: 'mist', label: host.t('Niebla', 'Mist') },
+          { value: 'photo', label: host.t('Foto', 'Photo') }, { value: 'web', label: host.t('Web', 'Page') }],
         // Con «auto» se marca el que está puesto de verdad.
         get: () => win.document.documentElement.getAttribute('zero-backdrop'),
-        set: value => prefs.setStringPref(prefName(prefix, PREFS.backdrop), value),
+        // «Foto» sin foto elegida, o pulsada otra vez con la foto puesta, abre el selector para elegirla.
+        set: value => {
+          const photo = prefs.getStringPref(prefName(prefix, PREFS.backgroundImage), '');
+          if (value === 'photo' && (!photo || win.document.documentElement.getAttribute('zero-backdrop') === 'photo')) chooseBackground(win, host);
+          else prefs.setStringPref(prefName(prefix, PREFS.backdrop), value);
+        },
         watch: fn => {
           const observer = new win.MutationObserver(() => fn());
           observer.observe(win.document.documentElement, { attributes: true, attributeFilter: ['zero-backdrop'] });
           return () => observer.disconnect();
         },
+      },
+      {
+        // Siempre a la vista (Dani, 15-10: «no se puede cambiar la imagen de fondo»): elegir una pone la foto.
+        kind: 'action', id: PREFS.backgroundImage,
+        label: host.t('Foto de fondo', 'Background photo'),
+        // Sin foto, «Elegir…»; con una, «Cambiar…» y «Quitar».
+        actions: () => (prefs.getStringPref(prefName(prefix, PREFS.backgroundImage), '')
+          ? [{ id: 'change', label: host.t('Cambiar…', 'Change…'), run: () => chooseBackground(win, host) },
+             { id: 'remove', label: host.t('Quitar', 'Remove'), run: () => removeBackground(host) }]
+          : [{ id: 'choose', label: host.t('Elegir…', 'Choose…'), run: () => chooseBackground(win, host) }]),
+        watch: watchPref(PREFS.backgroundImage),
+      },
+      {
+        // Con menos opacidad se ve lo de detrás: el cristal del sistema (acrílico) donde lo hay.
+        kind: 'slider', id: PREFS.backgroundOpacity,
+        label: host.t('Opacidad del fondo', 'Background opacity'),
+        detail: host.t('Con menos, se ve lo que hay detrás de la ventana, desenfocado si el sistema lo permite.', 'Lower it to see what is behind the window, blurred where the system allows it.'),
+        get: () => Number(prefs.getStringPref(prefName(prefix, PREFS.backgroundOpacity), '1')),
+        set: value => prefs.setStringPref(prefName(prefix, PREFS.backgroundOpacity), String(Math.max(0.2, value))),
+        when: () => ['space', 'mist', 'photo'].includes(win.document.documentElement.getAttribute('zero-backdrop')),
+        watch: watchPref(PREFS.backgroundOpacity),
+      },
+      {
+        kind: 'switch', id: PREFS.focus,
+        label: host.t('Modo concentración', 'Focus mode'),
+        detail: host.t('Activa Currar/Chill y recuerda sus ajustes por perfil.', 'Enables Work/Chill and remembers its settings per profile.'),
+        get: () => prefs.getBoolPref(prefName(prefix, PREFS.focus), true),
+        set: on => prefs.setBoolPref(prefName(prefix, PREFS.focus), !!on),
+        watch: watchPref(PREFS.focus),
       },
       {
         // El raíl de pestañas (la isla de la izquierda): con sus títulos al abrirse, o solo iconos.
@@ -85,6 +141,57 @@ function zeroSection(win, host) {
       },
     ],
   };
+}
+
+/** Borra la foto de fondo guardada (salvo `keep`, la que la sustituye): solo las de Zero, en chrome/ del perfil. */
+async function forgetBackground(host, keep = null) {
+  let old = '';
+  try { old = host.prefs.getStringPref(prefName(host.prefix, PREFS.backgroundImage), ''); } catch { /* sin ajuste */ }
+  const folder = PathUtils.join(Services.dirsvc.get('ProfD', Ci.nsIFile).path, 'chrome');
+  if (old && old !== keep && PathUtils.parent(old) === folder && /^kitsune-zero-background[-\w]*\.jpg$/.test(PathUtils.filename(old))) {
+    try { await IOUtils.remove(old, { ignoreAbsent: true }); } catch { /* ya no estaba */ }
+  }
+}
+
+/** Quita la foto de fondo: se borra y Zero vuelve a su fondo de serie. */
+export async function removeBackground(host) {
+  await forgetBackground(host);
+  try {
+    host.prefs.clearUserPref(prefName(host.prefix, PREFS.backgroundImage));
+    if (host.prefs.getStringPref(prefName(host.prefix, PREFS.backdrop), 'auto') === 'photo') host.prefs.clearUserPref(prefName(host.prefix, PREFS.backdrop));
+  } catch { /* sin ajustes */ }
+}
+
+/** Copia una foto normalizada al perfil: no dependemos de que el archivo original siga en su sitio. */
+function chooseBackground(win, host) {
+  const picker = Cc['@mozilla.org/filepicker;1'].createInstance(Ci.nsIFilePicker);
+  picker.init(win.browsingContext, host.t('Fondo de Kitsune Zero', 'Kitsune Zero background'), Ci.nsIFilePicker.modeOpen);
+  picker.appendFilters(Ci.nsIFilePicker.filterImages);
+  picker.open(result => {
+    if (result === Ci.nsIFilePicker.returnOK && picker.file) setBackground(win, host, picker.file.path).catch(error => console.error('Zero: no se pudo poner el fondo', error));
+  });
+}
+
+/** Pone de fondo la foto de `path`: la guarda reducida (2560 × 1600 como mucho, JPEG) en chrome/ del perfil, con
+ *  un nombre nuevo, y borra la de antes. */
+export async function setBackground(win, host, path) {
+  const bytes = await IOUtils.read(path, { maxBytes: 20 * 1024 * 1024 });
+  const bitmap = await win.createImageBitmap(new win.Blob([bytes]));
+  const scale = Math.min(1, 2560 / bitmap.width, 1600 / bitmap.height);
+  const width = Math.max(1, Math.round(bitmap.width * scale)), height = Math.max(1, Math.round(bitmap.height * scale));
+  const canvas = new win.OffscreenCanvas(width, height);
+  canvas.getContext('2d').drawImage(bitmap, 0, 0, width, height);
+  bitmap.close?.();
+  const blob = await canvas.convertToBlob({ type: 'image/jpeg', quality: .88 });
+  const file = Services.dirsvc.get('ProfD', Ci.nsIFile).clone();
+  file.append('chrome'); await IOUtils.makeDirectory(file.path, { ignoreExisting: true });
+  // Un nombre nuevo cada vez: con el mismo, el ajuste no cambiaba y se seguía viendo la foto de antes
+  // (Dani, 15-10: «si pongo una foto no me deja cambiarla luego»). La anterior se borra.
+  file.append(`kitsune-zero-background-${Date.now()}.jpg`);
+  await IOUtils.write(file.path, new Uint8Array(await blob.arrayBuffer()));
+  await forgetBackground(host, file.path);
+  host.prefs.setStringPref(prefName(host.prefix, PREFS.backgroundImage), file.path);
+  host.prefs.setStringPref(prefName(host.prefix, PREFS.backdrop), 'photo');
 }
 
 function rowNode(doc, row, undo) {
@@ -108,6 +215,19 @@ function rowNode(doc, row, undo) {
     const commit = () => row.set(control.value);
     control.addEventListener('change', commit);
     control.addEventListener('keydown', event => { if (event.key === 'Enter') { event.preventDefault(); commit(); } });
+  } else if (row.kind === 'action') {
+    // Uno o varios botones (actions(): [{ id, label, run }]); se rehacen cuando cambia lo que vigila la fila.
+    control = el(doc, 'span', { class: 'zero-actions', 'data-pref': row.id });
+    sync = () => {
+      const actions = row.actions?.() ?? [{ id: 'run', label: row.actionLabel, run: row.run }];
+      if (control.dataset.ids === actions.map(a => a.id).join(' ')) return;
+      control.dataset.ids = actions.map(a => a.id).join(' ');
+      control.replaceChildren(...actions.map(action => {
+        const button = el(doc, 'button', { type: 'button', class: 'zero-action-button', 'data-action': action.id }, [action.label]);
+        button.addEventListener('click', () => action.run());
+        return button;
+      }));
+    };
   } else {
     // La elegida lleva una pastilla que se desliza hasta ella (no salta de una a otra).
     const thumb = el(doc, 'span', { class: 'zero-seg-thumb', 'aria-hidden': 'true', still: '' });
@@ -226,6 +346,14 @@ function placeThumbs(root) {
 }
 
 function setOpen(win, st, open) {
+  if (open) {
+    const mark = st.mark.getBoundingClientRect();
+    const height = st.panel.offsetHeight || 520;
+    const y = Math.max(8, Math.min(mark.top + mark.height / 2 - height / 2, win.innerHeight - height - 8));
+    st.panel.style.setProperty('--zero-settings-x', `${Math.round(mark.right + 12)}px`);
+    st.panel.style.setProperty('--zero-settings-y', `${Math.round(y)}px`);
+    st.panel.style.setProperty('--zero-settings-origin-y', `${Math.round(mark.top + mark.height / 2 - y)}px`);
+  }
   st.panel.toggleAttribute('open', open);
   st.mark.toggleAttribute('open', open);
   st.mark.setAttribute('aria-expanded', String(open));
@@ -251,8 +379,20 @@ export function attach(win, ctx) {
     el(doc, 'h4', {}, [el(doc, 'span', { class: 'zero-logo', 'aria-hidden': 'true' }), 'Kitsune Zero']),
     st.rows,
   ]);
-  doc.body.append(st.mark, st.panel);
-  st.cleanups.push(() => { st.mark.remove(); st.panel.remove(); });
+  doc.body.append(st.panel);
+  // La marca: en «Nácar», abajo a la izquierda; en «Sobrio», la última pastilla de la columna (Dani, 15-10).
+  // Al cambiar de variante se mueve (y, si los ajustes están abiertos, vuelven a brotar de ella).
+  const place = () => {
+    const dock = doc.getElementById('zero-dock');
+    if (doc.documentElement.getAttribute('zero-variant') === 'sobrio' && dock) {
+      if (dock.lastElementChild !== st.mark) dock.append(st.mark);
+    } else if (st.mark.nextElementSibling !== st.panel) st.panel.before(st.mark);
+    if (st.panel.hasAttribute('open')) setOpen(win, st, true);
+  };
+  place();
+  const variantWatch = new win.MutationObserver(place);
+  variantWatch.observe(doc.documentElement, { attributes: true, attributeFilter: ['zero-variant'] });
+  st.cleanups.push(() => { variantWatch.disconnect(); st.mark.remove(); st.panel.remove(); });
   renderRows(win, st);
 
   // La explicación de cada «i», en una etiqueta de cristal junto a ella; y quitarlas todas.

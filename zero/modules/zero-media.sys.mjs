@@ -55,9 +55,11 @@ export function attach(win, ctx) {
     island.nowPlaying({
       playing: controller.isPlaying, title, still: saver,
       canNext: [...(controller.supportedKeys ?? [])].includes('nexttrack'),
+      muted: tab.hasAttribute('muted'),
       // Gecko 158 pide de dónde viene la pausa.
       toggle: () => { try { controller.isPlaying ? controller.pause('user') : controller.play(); } catch { /* ya no está */ } },
       next: () => { try { controller.nextTrack(); } catch { /* ya no está */ } },
+      toggleMute: () => { try { tab.toggleMuteAudio(); win.setTimeout(refresh, 0); } catch { /* ya no está */ } },
       go,
     });
     // Al empezar a sonar o con otra canción, un aviso breve (una vez por canción).
