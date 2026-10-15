@@ -6,14 +6,16 @@
      las piezas las que se ven, como objetos de cristal grueso: un relleno claro con su brillo arriba, un
      anillo de luz (::after, más vivo arriba a la izquierda y abajo a la derecha), sombreado por dentro
      abajo (grosor) y una sombra fuera que lo separa de cualquier fondo. El texto blanco, con halo. */
-  --zero-glass-fill: radial-gradient(130% 120% at 28% 0%, rgba(255, 255, 255, .30), rgba(255, 255, 255, .09) 55%, rgba(255, 255, 255, .05)),
-                     linear-gradient(180deg, rgba(255, 255, 255, .10), rgba(255, 255, 255, .03));
+  /* (Con una sombra muy leve por dentro, como el cristal de Apple: el texto blanco se lee también sobre
+     fondos claros, y sigue siendo cristal transparente.) */
+  --zero-glass-fill: radial-gradient(130% 120% at 28% 0%, rgba(255, 255, 255, .26), rgba(255, 255, 255, .06) 55%, rgba(255, 255, 255, .03)),
+                     linear-gradient(180deg, rgba(18, 18, 24, .10), rgba(18, 18, 24, .16));
   --zero-glass-edge: inset 0 1px 1px rgba(255, 255, 255, .5), inset 0 0 12px rgba(255, 255, 255, .14),
                      inset 0 -9px 16px -10px rgba(0, 0, 0, .24),
                      0 10px 28px rgba(0, 0, 0, .22), 0 2px 6px rgba(0, 0, 0, .16), 0 0 0 .5px rgba(0, 0, 0, .14);
   --zero-glass-rim: linear-gradient(135deg, rgba(255, 255, 255, .95) 0%, rgba(255, 255, 255, .3) 26%, rgba(255, 255, 255, .06) 50%,
                                     rgba(255, 255, 255, .28) 74%, rgba(255, 255, 255, .85) 100%);
-  --zero-glass-halo: 0 1px 2px rgba(0, 0, 0, .4), 0 0 10px rgba(0, 0, 0, .3);
+  --zero-glass-halo: 0 1px 2px rgba(0, 0, 0, .5), 0 0 12px rgba(0, 0, 0, .42);
   /* Curvas y tiempos de Zero: todo frena despacio, nada rebota ni salta. */
   --zero-calm: cubic-bezier(.32, .72, 0, 1);
   --zero-soft: cubic-bezier(.4, 0, .2, 1);
@@ -418,7 +420,8 @@
 #main-window[zero] #urlbar > .urlbar-input-container > #page-action-buttons * { -moz-user-focus: ignore !important; }
 #main-window[zero] #urlbar > .urlbar-input-container > #identity-box { max-width: 0 !important; overflow: clip !important; margin: 0 !important; padding: 0 !important; opacity: 0 !important; }
 #main-window[zero] #urlbar-input { color: #fff !important; font: 500 12.5px system-ui, sans-serif !important; }
-#main-window[zero] #urlbar-input::placeholder { color: rgba(255, 255, 255, .62) !important; opacity: 1 !important; }
+#main-window[zero] #urlbar-input::placeholder { color: rgba(255, 255, 255, .8) !important; opacity: 1 !important; }
+#main-window[zero] #urlbar-input { text-shadow: var(--zero-glass-halo) !important; }
 #main-window[zero]:not([zero-empty]) #navigator-toolbox[zero-island="typing"] #urlbar > .urlbar-input-container {
   opacity: 1 !important; margin-inline: 37px !important; /* como en la maqueta: un campo a 40 px de los bordes */
   background-color: rgba(255, 255, 255, .16) !important;
@@ -1214,6 +1217,28 @@
 #zero-settings .zero-row:hover .zero-slider::-moz-range-thumb, #zero-settings .zero-slider:focus-visible::-moz-range-thumb { transform: scale(1); opacity: 1; }
 #zero-settings .zero-slider:active::-moz-range-thumb { transform: scale(1.15); opacity: 1; }
 #zero-settings .zero-slider:focus-visible { outline: 2px solid #3a8f74; outline-offset: 2px; border-radius: 999px; }
+
+/* Con el fondo del sistema y el sistema en oscuro, el panel de ajustes es de cristal ahumado (oscuro y
+   translúcido) con el texto blanco: sobre el escritorio no hay nada que desenfocar y el claro no se leía
+   (visto por Risco, 15-10). Sigue siendo cristal: su anillo de luz y su grosor. */
+:root[zero-backdrop="system"]:not([zero-frame-ink]) #zero-settings {
+  color: #fff; background: rgba(24, 24, 28, .66);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .28), inset 0 0 18px rgba(255, 255, 255, .06), 0 24px 60px rgba(0, 0, 0, .35);
+}
+:root[zero-backdrop="system"]:not([zero-frame-ink]) #zero-settings .zero-row { border-top-color: rgba(255, 255, 255, .1); }
+:root[zero-backdrop="system"]:not([zero-frame-ink]) #zero-settings .zero-row:has(> .zero-slider) .zero-row-text { color: rgba(255, 255, 255, .8); }
+:root[zero-backdrop="system"]:not([zero-frame-ink]) #zero-settings .zero-switch { background: rgba(255, 255, 255, .2); }
+:root[zero-backdrop="system"]:not([zero-frame-ink]) #zero-settings .zero-switch[on] { background: #3a8f74; }
+:root[zero-backdrop="system"]:not([zero-frame-ink]) #zero-settings .zero-segment { background: rgba(255, 255, 255, .12); }
+:root[zero-backdrop="system"]:not([zero-frame-ink]) #zero-settings .zero-seg-thumb { background: rgba(255, 255, 255, .24); box-shadow: inset 0 1px 0 rgba(255, 255, 255, .35), 0 1px 3px rgba(0, 0, 0, .25); }
+:root[zero-backdrop="system"]:not([zero-frame-ink]) #zero-settings .zero-info { border-color: rgba(255, 255, 255, .45); color: rgba(255, 255, 255, .75); }
+:root[zero-backdrop="system"]:not([zero-frame-ink]) #zero-settings .zero-info:is(:hover, :focus-visible) { color: #1d2321; background: rgba(255, 255, 255, .85); }
+:root[zero-backdrop="system"]:not([zero-frame-ink]) #zero-settings .zero-slider::-moz-range-track { background: rgba(255, 255, 255, .22); }
+:root[zero-backdrop="system"]:not([zero-frame-ink]) #zero-settings .zero-list { color: #fff; background: rgba(255, 255, 255, .1); }
+:root[zero-backdrop="system"]:not([zero-frame-ink]) #zero-settings .zero-list::placeholder { color: rgba(255, 255, 255, .45); }
+:root[zero-backdrop="system"]:not([zero-frame-ink]) #zero-settings-tip { color: #fff; background: rgba(24, 24, 28, .9); box-shadow: inset 0 1px 0 rgba(255, 255, 255, .25), 0 10px 28px rgba(0, 0, 0, .3); }
+/* En claro, cristal claro bien cubierto, con tinta. */
+:root[zero-backdrop="system"][zero-frame-ink] #zero-settings { background: rgba(246, 245, 241, .74); }
 
 /* ---------------------------------------------------------------- actividades en la isla (descargas) */
 

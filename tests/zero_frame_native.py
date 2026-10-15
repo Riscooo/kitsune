@@ -25,8 +25,9 @@
     la ventana con las esquinas redondeadas y un filo de cristal alrededor (anillo de luz y grosor en los
     bordes), transparente por dentro, sin velo de color. Sus piezas, de cristal transparente: sobre
     blanco, la isla, el pomodoro abierto y los botones de ampliar se ven claros (sin tinte oscuro); el
-    texto, blanco con un halo con el sistema en oscuro y en tinta (≥ 3:1) en claro. El panel de ajustes,
-    transparente; la marca de Kitsune se ve (≥ 0,85).
+    texto, blanco con un halo con el sistema en oscuro y en tinta (≥ 3:1) en claro. El panel de ajustes
+    se lee (≥ 4,5:1) con blanco o negro detrás: cristal ahumado en oscuro, claro en claro; la marca de
+    Kitsune se ve (≥ 0,85).
 
 --zero-del-repo: Zero sale de zero/ del repositorio (ver zero_harness.py).
 """
@@ -343,8 +344,19 @@ def main():
             pointer(700, 600)
         mark = "return Number(getComputedStyle(document.getElementById('zero-mark')).opacity)"
         eventually(lambda: chrome(mark) >= 0.85, timeout=5)
-        panel = "const c = getComputedStyle(document.getElementById('zero-settings')).backgroundColor; const m = c.match(/[\\d.]+/g).map(Number); return m.length > 3 ? m[3] : 1"
-        assert chrome(panel) <= 0.4, f'panel de ajustes: alfa {chrome(panel)}'
+        # El panel de ajustes se lee haya lo que haya detrás (blanco o negro), en los dos modos.
+        panel = """const p = document.getElementById('zero-settings'); const cs = getComputedStyle(p);
+            return { bg: cs.backgroundColor.match(/[\\d.]+/g).map(Number), text: cs.color.match(/[\\d.]+/g).map(Number) };"""
+        def legible(behind):
+            q = chrome(panel)
+            a = q['bg'][3] if len(q['bg']) > 3 else 1
+            bg = [q['bg'][i] * a + behind * (1 - a) for i in range(3)]
+            l1, l2 = lum(bg), lum(q['text'])
+            return (max(l1, l2) + 0.05) / (min(l1, l2) + 0.05)
+        for dark in (1, 0):
+            chrome(f"Services.prefs.setIntPref('ui.systemUsesDarkTheme', {dark})")
+            eventually(lambda: chrome("return matchMedia('(prefers-color-scheme: dark)').matches") == bool(dark), timeout=5)
+            assert legible(255) >= 4.5 and legible(0) >= 4.5, f'panel de ajustes {"oscuro" if dark else "claro"}: {chrome(panel)} · {legible(255):.1f} / {legible(0):.1f}'
         chrome("Services.prefs.clearUserPref('kitsune.zero.pomodoro')")
         chrome("Services.prefs.clearUserPref('ui.systemUsesDarkTheme')")
         check('Con el fondo del sistema, Zero es una lámina de cristal redondeada y sus piezas de cristal transparente')
