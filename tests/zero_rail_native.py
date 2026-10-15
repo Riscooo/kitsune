@@ -28,6 +28,8 @@
     uno «javascript:», no.
 17. Una pestaña de fondo que cambia de título (un chat con mensajes nuevos) o pide atención lleva un
     punto en su icono, como las fijadas de Kitsune; al elegirla, se va.
+18. Varias a la vez, como en la barra de pestañas: Ctrl + clic añade o quita una, Mayús + clic marca un
+    tramo, y se ven marcadas; un clic normal deja solo esa.
 
 --zero-del-repo: Zero sale de zero/ del repositorio (ver zero_harness.py).
 """
@@ -389,6 +391,35 @@ def main():
         chrome("gBrowser.selectedTab = gBrowser.tabs.find(t => t.label === '(1) Chat')")
         until(lambda: not chrome(dot)['on'] and not chrome(dot)['seen'], timeout=5)
         check('Una pestaña de fondo que cambia de título lleva un punto en su icono; al elegirla, se va')
+
+        def modified_click(selector, key):
+            driver.context('chrome')
+            target = element(selector)
+            driver.command('POST', '/actions', {'actions': [
+                {'type': 'key', 'id': 'teclado', 'actions': [{'type': 'keyDown', 'value': key}, {'type': 'pause', 'duration': 0}, {'type': 'pause', 'duration': 0}, {'type': 'pause', 'duration': 0}, {'type': 'keyUp', 'value': key}]},
+                {'type': 'pointer', 'id': 'raton', 'parameters': {'pointerType': 'mouse'}, 'actions': [
+                    {'type': 'pause', 'duration': 0}, {'type': 'pointerMove', 'origin': target, 'x': 0, 'y': 0}, {'type': 'pointerDown', 'button': 0}, {'type': 'pointerUp', 'button': 0}, {'type': 'pause', 'duration': 0}]}]})
+            driver.command('DELETE', '/actions')
+        marked = """return { gecko: gBrowser.selectedTabs.map(t => t.label), rail: [...document.querySelectorAll('#zero-rail .zero-tab[multiselected]')].map(r => r.getAttribute('aria-label')),
+                   ring: [...document.querySelectorAll('#zero-rail .zero-tab[multiselected] .zero-fav')].every(f => getComputedStyle(f).boxShadow.includes('232, 116, 59')) };"""
+        rows = chrome("return [...document.querySelectorAll('#zero-rail .zero-tab:not([pinned])')].map((r, i) => r.getAttribute('aria-label'))")
+        chrome("gBrowser.selectedTab = gBrowser.visibleTabs.find(t => !t.pinned)")
+        first = chrome("return gBrowser.selectedTab.label")
+        nth = lambda label: f'#zero-rail .zero-tab[aria-label="{label}"]'
+        others = [r for r in rows if r != first][:3]
+        CTRL, SHIFT = '', ''
+        try:
+            modified_click(nth(others[1]), CTRL)
+            until(lambda: set(chrome(marked)['gecko']) == {first, others[1]} and set(chrome(marked)['rail']) >= {others[1]} and chrome(marked)['ring'], timeout=5)
+            modified_click(nth(others[1]), CTRL)
+            until(lambda: chrome(marked)['gecko'] == [first], timeout=5)
+            modified_click(nth(others[2]), SHIFT)
+            until(lambda: len(chrome(marked)['gecko']) >= 3, timeout=5)
+            driver.command('POST', f"/element/{list(element(nth(others[0])).values())[0]}/click", {})
+            until(lambda: chrome(marked)['gecko'] == [others[0]] and chrome(marked)['rail'] == [], timeout=5)
+        except AssertionError:
+            raise AssertionError(f'varias a la vez: {chrome(marked)}') from None
+        check('Varias a la vez: Ctrl + clic añade o quita, Mayús + clic un tramo, y se ven marcadas')
         report['status'] = 'passed'
     finally:
         if driver: driver.close()

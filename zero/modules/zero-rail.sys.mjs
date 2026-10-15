@@ -106,6 +106,7 @@ function fill(win, st, tab, node) {
   // Una de fondo que cambia de título (un chat con mensajes nuevos) o pide atención: un punto, como las
   // fijadas de Kitsune. Al elegirla, Gecko lo quita.
   node.toggleAttribute('attention', tab.hasAttribute('attention') || tab.hasAttribute('titlechanged'));
+  node.toggleAttribute('multiselected', !!tab.multiselected);
   // De qué grupo es: una raya con su color al otro lado del icono.
   node.toggleAttribute('grouped', !!tab.group);
   if (tab.group) node.style.setProperty('--zero-group', `var(--tab-group-${tab.group.color || 'blue'})`);
@@ -352,7 +353,22 @@ export function attach(win, ctx) {
     if (group) { group.collapsed = !group.collapsed; return; }
     if (node === st.add) { (win.BrowserCommands?.openTab ?? win.BrowserOpenTab)?.call(win.BrowserCommands ?? win); return; }
     const tab = st.tabOf.get(node);
-    if (tab && !tab.closing) win.gBrowser.selectedTab = tab;
+    if (!tab || tab.closing) return;
+    // Varias a la vez, como en la barra de pestañas: Ctrl (⌘) + clic añade o quita una; Mayús + clic, un
+    // tramo desde la última. El menú de pestaña de Gecko actúa luego sobre todas.
+    const gb = win.gBrowser, accel = event.getModifierState('Accel');
+    if (event.shiftKey) {
+      const last = gb.lastMultiSelectedTab;
+      if (!accel) { gb.selectedTab = last; gb.clearMultiSelectedTabs(); }
+      gb.addRangeToMultiSelectedTabs(last, tab);
+      return;
+    }
+    if (accel) {
+      if (tab.multiselected) gb.removeFromMultiSelectedTabs(tab);
+      else if (tab !== gb.selectedTab) { gb.addToMultiSelectedTabs(tab); gb.lastMultiSelectedTab = tab; }
+      return;
+    }
+    gb.selectedTab = tab;
   });
   // Clic central: cierra la pestaña (como en la barra de pestañas).
   st.rail.addEventListener('auxclick', event => {
@@ -432,11 +448,12 @@ export function attach(win, ctx) {
     const node = st.items.get(event.target);
     if (node) fill(win, st, event.target, node);
   });
-  // «titlechanged» lo pone Gecko sin avisar (justo después del cambio de título): se mira el atributo.
+  // «titlechanged» lo pone Gecko sin avisar (justo después del cambio de título), y «multiselected»
+  // también: se miran los atributos.
   const attention = new win.MutationObserver(records => {
     for (const { target } of records) { const node = st.items.get(target); if (node) fill(win, st, target, node); }
   });
-  attention.observe(container, { subtree: true, attributes: true, attributeFilter: ['titlechanged', 'attention'] });
+  attention.observe(container, { subtree: true, attributes: true, attributeFilter: ['titlechanged', 'attention', 'multiselected'] });
   st.cleanups.push(() => attention.disconnect());
   const unwatch = host.spaces?.watch?.(win, () => { render(win, st); keepInView(true); });
   if (unwatch) st.cleanups.push(unwatch);

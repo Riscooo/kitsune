@@ -556,6 +556,9 @@
   background-color: rgba(255, 255, 255, .55) !important;
   box-shadow: 0 6px 18px rgba(0, 0, 0, .16);
 }
+/* Marcada junto con otras (Ctrl + clic, Mayús + clic): un anillo del color de Kitsune. */
+#zero-rail .zero-tab[multiselected] .zero-fav { box-shadow: 0 0 0 2px rgba(232, 116, 59, .95), 0 1px 3px rgba(0, 0, 0, .18) !important; }
+#zero-rail:is(:hover, :has(:focus-visible)) .zero-tab[multiselected] { background-color: rgba(232, 116, 59, .12) !important; }
 /* Una de fondo con algo nuevo (cambió su título o pide atención): un punto en su icono. */
 #zero-rail .zero-dot {
   display: none; position: absolute; left: 19px; top: 0; width: 7px; height: 7px; border-radius: 50%;
