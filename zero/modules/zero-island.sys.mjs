@@ -163,9 +163,17 @@ export function attach(win, ctx = {}) {
     if (state.get(win) !== st) return;
     const browser = win.gBrowser.selectedBrowser;
     const target = st.loading.get(browser) ?? browser.currentURI?.spec ?? '';
-    root.toggleAttribute('zero-empty', isEmptyPage(win, target));
+    const empty = isEmptyPage(win, target), was = root.hasAttribute('zero-empty');
+    root.toggleAttribute('zero-empty', empty);
+    // Al dejar de estar vacía (se ha buscado algo), mientras la isla sube: lo escrito se va al momento y
+    // el dominio entra al llegar arriba, sin cruzarse los dos textos.
+    if (was && !empty) {
+      root.setAttribute('zero-leaving-empty', '');
+      win.clearTimeout(st.leaving);
+      st.leaving = win.setTimeout(() => root.removeAttribute('zero-leaving-empty'), 760);
+    }
   };
-  st.cleanups.push(() => root.removeAttribute('zero-empty'));
+  st.cleanups.push(() => { win.clearTimeout(st.leaving); root.removeAttribute('zero-empty'); root.removeAttribute('zero-leaving-empty'); });
   // El buscador de siempre, con su icono delante del campo.
   const engine = el(doc, 'img', { class: 'zero-engine', alt: '' });
   navbar.append(engine);

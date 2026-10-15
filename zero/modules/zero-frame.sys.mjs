@@ -128,9 +128,10 @@ function applyBackdrop(win, st) {
   root.setAttribute('zero-backdrop', backdropMode(pref, st.env));
   if (root.getAttribute('zero-backdrop') !== 'web') {
     root.style.removeProperty('--zero-backdrop-image'); delete st.backdrop.dataset.painted;
-    // Con el cristal del sistema, detrás está el escritorio y no se sabe su luz: manda el modo del
-    // sistema (la isla lleva un tinte de ese modo, ver zero.css): en claro, tinta; en oscuro, blanco.
-    st.frameInk = win.matchMedia('(prefers-color-scheme: dark)').matches ? 'white' : 'ink';
+    // Con el fondo del sistema, detrás está el escritorio (transparente) y no se sabe su luz: las piezas
+    // son de cristal lechoso, que se ve sobre cualquier fondo, y lo que llevan va en tinta (decisión de
+    // Risco, 15-10).
+    st.frameInk = 'ink';
     root.toggleAttribute('zero-frame-ink', st.frameInk === 'ink');
   }
   paintColors(win, st);

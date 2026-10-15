@@ -2,13 +2,18 @@
    @-moz-document): todo cuelga de :root[zero], y al apagar se quita la hoja entera. */
 :root[zero] {
   --zero-on: 1;
-  /* El cristal de las piezas (tipo Liquid Glass): casi transparente y claro, con filos de luz y un
-     reflejo arriba; el texto blanco lleva un halo para leerse sobre cualquier fondo. */
-  --zero-glass-fill: linear-gradient(180deg, rgba(255, 255, 255, .2), rgba(255, 255, 255, .08));
-  --zero-glass-edge: inset 0 1px 0 rgba(255, 255, 255, .85), inset 0 -1px 0 rgba(255, 255, 255, .22),
-                     inset 1px 0 0 rgba(255, 255, 255, .4), inset -1px 0 0 rgba(255, 255, 255, .24),
-                     inset 0 10px 16px -12px rgba(255, 255, 255, .6), 0 10px 30px rgba(0, 0, 0, .12);
-  --zero-glass-halo: 0 1px 2px rgba(0, 0, 0, .38), 0 0 10px rgba(0, 0, 0, .3);
+  /* El cristal de las piezas, tipo Liquid Glass (decisión de Risco, 15-10): sin velo en la ventana, son
+     las piezas las que se ven, como objetos de cristal grueso: un relleno claro con su brillo arriba, un
+     anillo de luz (::after, más vivo arriba a la izquierda y abajo a la derecha), sombreado por dentro
+     abajo (grosor) y una sombra fuera que lo separa de cualquier fondo. El texto blanco, con halo. */
+  --zero-glass-fill: radial-gradient(130% 120% at 28% 0%, rgba(255, 255, 255, .30), rgba(255, 255, 255, .09) 55%, rgba(255, 255, 255, .05)),
+                     linear-gradient(180deg, rgba(255, 255, 255, .10), rgba(255, 255, 255, .03));
+  --zero-glass-edge: inset 0 1px 1px rgba(255, 255, 255, .5), inset 0 0 12px rgba(255, 255, 255, .14),
+                     inset 0 -9px 16px -10px rgba(0, 0, 0, .24),
+                     0 10px 28px rgba(0, 0, 0, .22), 0 2px 6px rgba(0, 0, 0, .16), 0 0 0 .5px rgba(0, 0, 0, .14);
+  --zero-glass-rim: linear-gradient(135deg, rgba(255, 255, 255, .95) 0%, rgba(255, 255, 255, .3) 26%, rgba(255, 255, 255, .06) 50%,
+                                    rgba(255, 255, 255, .28) 74%, rgba(255, 255, 255, .85) 100%);
+  --zero-glass-halo: 0 1px 2px rgba(0, 0, 0, .4), 0 0 10px rgba(0, 0, 0, .3);
   /* Curvas y tiempos de Zero: todo frena despacio, nada rebota ni salta. */
   --zero-calm: cubic-bezier(.32, .72, 0, 1);
   --zero-soft: cubic-bezier(.4, 0, .2, 1);
@@ -30,6 +35,13 @@
     transition-duration: 1ms !important; transition-delay: 0ms !important;
     animation: none !important;
   }
+}
+
+/* El anillo de luz del cristal: un borde degradado (vivo arriba a la izquierda y abajo a la derecha). */
+#main-window[zero] #nav-bar::after, #zero-rail::after, #zero-pomo::after, #zero-grow::after, #zero-settings::after {
+  content: ""; position: absolute; inset: 0; border-radius: inherit; padding: 1.4px; pointer-events: none;
+  background: var(--zero-glass-rim);
+  mask-image: linear-gradient(#000 0 0), linear-gradient(#000 0 0); mask-clip: content-box, border-box; mask-composite: exclude;
 }
 
 /* ---------------------------------------------------------------- el marco (zero-frame) */
@@ -536,7 +548,10 @@
   --zero-island-w: 600px !important;
   top: calc(50vh - 22px) !important; height: 44px !important;
 }
-#main-window[zero][zero-empty] #nav-bar { height: 44px !important; min-height: 44px !important; max-height: 44px !important; padding-inline: 6px !important; }
+#main-window[zero][zero-empty] #nav-bar {
+  height: 44px !important; min-height: 44px !important; max-height: 44px !important; padding-inline: 6px !important;
+  box-shadow: var(--zero-glass-edge), 0 18px 48px rgba(0, 0, 0, .28) !important;
+}
 #main-window[zero][zero-empty] #navigator-toolbox #urlbar > .urlbar-input-container {
   opacity: 1 !important; margin-inline: 0 !important; padding-inline-start: 32px !important; background-color: transparent !important;
 }
@@ -553,6 +568,10 @@
 #main-window[zero] #tabbrowser-tabpanels { transition: opacity var(--zero-t-fade) var(--zero-soft), scale var(--zero-t-move) var(--zero-calm); }
 #main-window[zero][zero-empty] #tabbrowser-tabpanels { opacity: 0 !important; scale: .985; pointer-events: none !important; }
 #main-window[zero][zero-empty] #zero-grow { opacity: 0 !important; pointer-events: none !important; }
+/* Al dejar de estar vacía (se ha buscado), mientras sube: lo escrito se va al momento y el dominio
+   entra al final, sin cruzarse. */
+#main-window[zero][zero-leaving-empty] #navigator-toolbox:not([zero-island="typing"]) #urlbar > .urlbar-input-container { opacity: 0 !important; transition: none !important; }
+#main-window[zero][zero-leaving-empty] #zero-host { transition-delay: 420ms !important; }
 /* Las sugerencias, bajo la isla también en el centro, y del mismo cristal (sin web debajo no hay foto). */
 #main-window[zero][zero-empty] #urlbar .urlbarView:popover-open {
   inset: calc(50vh + 22px + 8px) 0 auto 0 !important; width: min(600px, 100vw - 152px) !important;
@@ -606,11 +625,10 @@
   display: flex; flex-direction: column; gap: 2px;
   overflow-x: hidden; overflow-y: auto; scrollbar-width: none;
   color: #fff;
-  background-color: rgba(255, 255, 255, .025);
+  background-color: transparent;
+  background-image: var(--zero-glass-fill);
   backdrop-filter: blur(10px) saturate(1.7) brightness(1.06);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .85), inset 0 -1px 0 rgba(255, 255, 255, .28),
-              inset 1px 0 0 rgba(255, 255, 255, .38), inset -1px 0 0 rgba(255, 255, 255, .26),
-              inset 0 0 14px rgba(255, 255, 255, .14), 0 10px 30px rgba(0, 0, 0, .14);
+  box-shadow: var(--zero-glass-edge);
   transition: width var(--zero-t-morph) var(--zero-calm) var(--zero-wait), transform var(--zero-t-move) var(--zero-calm), opacity var(--zero-t-ink) var(--zero-soft),
               background-color 520ms var(--zero-soft), box-shadow 520ms var(--zero-soft), color var(--zero-t-ink) var(--zero-soft);
 }
@@ -831,7 +849,7 @@
 /* El logo «máscara en el cero», en blanco y muy tenue; al acercarse se enciende despacio. */
 #zero-mark {
   position: fixed; left: 13px; bottom: 16px; z-index: 6;
-  appearance: none; box-sizing: content-box; width: 24px; height: 24px; min-width: 0; padding: 0; margin: 0;
+  appearance: none; box-sizing: content-box; width: 26px; height: 26px; min-width: 0; padding: 0; margin: 0;
   border: none; border-radius: 50%; background: transparent; cursor: pointer;
   color: #fff; opacity: .62;
   filter: drop-shadow(0 1px 2px rgba(0, 0, 0, .28));
@@ -858,6 +876,7 @@
   color: #1d2321; font: 500 12.5px system-ui, sans-serif;
   background: rgba(246, 245, 241, .38);
   backdrop-filter: blur(24px) saturate(1.8);
+  /* (y su anillo de luz, ::after) */
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, .95), inset 0 0 0 1px rgba(255, 255, 255, .55), 0 24px 60px rgba(0, 0, 0, .22);
   transform-origin: -21px calc(100% - 12px);
   opacity: 0; transform: scale(.94) translateY(6px); filter: blur(4px); pointer-events: none;
@@ -1106,7 +1125,20 @@
 /* Con el fondo del sistema (Zero transparente) no se sabe qué hay detrás de la ventana: las piezas son de
    cristal claro, el texto blanco lleva un halo y, con el sistema en claro, pasa a tinta sobre un cristal
    algo más lechoso. */
-#main-window[zero][zero-backdrop="system"][zero-frame-ink]:not([zero-full]) :is(#nav-bar, #zero-pomo, #zero-grow):not([zero-ink]) { background: linear-gradient(180deg, rgba(255, 255, 255, .42), rgba(255, 255, 255, .24)) !important; }
+/* Cristal lechoso (decisión de Risco, 15-10): con la ventana transparente, las piezas blancas y casi
+   opacas, con su brillo y su anillo de luz, para que se vean sobre cualquier fondo. */
+#main-window[zero][zero-backdrop="system"][zero-frame-ink]:not([zero-full]) :is(#nav-bar, #zero-pomo, #zero-grow):not([zero-ink]),
+#main-window[zero][zero-backdrop="system"][zero-frame-ink]:not([zero-full]) #zero-rail:not(:hover, :has(:focus-visible), [zero-ink]) {
+  background: radial-gradient(130% 120% at 28% 0%, rgba(255, 255, 255, .94), rgba(255, 255, 255, .76) 60%, rgba(250, 249, 246, .7)) !important;
+}
+#main-window[zero][zero-backdrop="system"][zero-frame-ink]:not([zero-full]) #urlbar-input::placeholder { color: rgba(29, 35, 33, .5) !important; }
+#main-window[zero][zero-backdrop="system"][zero-frame-ink][zero-empty] #urlbar .urlbarView :is(.urlbarView-row, .urlbarView-title, .urlbarView-action, .urlbarView-url, .urlbarView-title-separator) {
+  color: #1d2321 !important; text-shadow: none !important; -moz-context-properties: fill; fill: #1d2321 !important;
+}
+#main-window[zero][zero-backdrop="system"][zero-frame-ink][zero-empty] #urlbar .urlbarView:popover-open {
+  background: radial-gradient(130% 120% at 28% 0%, rgba(255, 255, 255, .95), rgba(250, 249, 246, .82)) !important;
+  color: #1d2321 !important; text-shadow: none !important;
+}
 #main-window[zero][zero-frame-ink]:not([zero-full]) #nav-bar:not([zero-ink]) {
   color: #1d2321 !important; text-shadow: none !important;
   --toolbarbutton-icon-fill: #1d2321 !important;
@@ -1128,6 +1160,12 @@
 :root[zero-frame-ink]:not([zero-full]) #zero-grow > button:hover { background-color: rgba(29, 35, 33, .1); }
 :root[zero-frame-ink]:not([zero-full]) #zero-mark { color: #1d2321; opacity: .5; filter: none; }
 :root[zero-frame-ink]:not([zero-full]) #zero-mark:is(:hover, [open]) { opacity: .85; }
+/* Con el fondo del sistema, la marca de Kitsune como siempre (blanca, sin disco), pero a la vista: más
+   opaca y con una sombra que la separa de cualquier fondo. */
+:root[zero-backdrop="system"][zero-frame-ink]:not([zero-full]) #zero-mark {
+  color: #fff; opacity: .92; filter: drop-shadow(0 1px 2px rgba(0, 0, 0, .55)) drop-shadow(0 0 6px rgba(0, 0, 0, .35));
+}
+:root[zero-backdrop="system"][zero-frame-ink]:not([zero-full]) #zero-mark:is(:hover, [open]) { opacity: 1; }
 
 /* ---------------------------------------------------------------- el silencio (zero-silence) */
 

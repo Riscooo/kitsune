@@ -21,10 +21,10 @@
     regla, el cristal del sistema): no pasa un momento por la foto de la web (un parpadeo oscuro).
 13. Los botones de ampliar se pueden arrastrar a donde se quiera y se quedan allí (también al salir y
     volver a entrar en Zero); sus iconos, centrados en botones redondos.
-14. Con el fondo del sistema, Zero es transparente y sus piezas son de cristal claro (tipo Liquid Glass,
-    decisión de Risco del 15-10): sobre blanco, la isla, el pomodoro abierto y los botones de ampliar se
-    ven claros (sin tinte oscuro); el marco no lleva velo de color; el panel de ajustes es transparente.
-    El texto: blanco con un halo con el sistema en oscuro; en tinta con el sistema en claro (≥ 3:1).
+14. Con el fondo del sistema, Zero es transparente y sus piezas son de cristal lechoso (decisiones de
+    Risco del 15-10): sobre blanco, la isla, el pomodoro abierto y los botones de ampliar se ven claros
+    (sin tinte oscuro), con el texto en tinta (≥ 3:1) con el sistema en claro y en oscuro; el marco no
+    lleva velo de color; el panel de ajustes es transparente; la marca de Kitsune se ve (≥ 0,85).
 
 --zero-del-repo: Zero sale de zero/ del repositorio (ver zero_harness.py).
 """
@@ -309,8 +309,8 @@ def main():
             light, dark = max(background, lum(text)), min(background, lum(text))
             return {'light': background, 'ratio': (light + 0.05) / (dark + 0.05), 'text': text, 'halo': box[6] not in ('none', '')}
         def clear_glass(g, dark):
-            # Claro sobre blanco (nada de tinte oscuro); el texto, blanco con halo o en tinta legible.
-            return g['light'] >= 0.7 and ((dark and min(g['text']) >= 240 and g['halo']) or (not dark and g['ratio'] >= 3.0))
+            # Claro sobre blanco (nada de tinte oscuro) y el texto en tinta, legible, en los dos modos.
+            return g['light'] >= 0.7 and g['ratio'] >= 3.0
         chrome("Services.prefs.setBoolPref('kitsune.zero.pomodoro', true)")
         eventually(lambda: chrome("return !!document.getElementById('zero-pomo')"), timeout=5)
         veil = "return getComputedStyle(document.getElementById('tabbrowser-tabbox')).backgroundColor"
@@ -334,11 +334,13 @@ def main():
             except AssertionError:
                 raise AssertionError(f'pomodoro con el sistema {"oscuro" if dark else "claro"}: {glass("#zero-pomo", (10, 3, 22, 7), "#zero-pomo .zero-pomo-label")}') from None
             pointer(700, 600)
+        mark = "return Number(getComputedStyle(document.getElementById('zero-mark')).opacity)"
+        eventually(lambda: chrome(mark) >= 0.85, timeout=5)
         panel = "const c = getComputedStyle(document.getElementById('zero-settings')).backgroundColor; const m = c.match(/[\\d.]+/g).map(Number); return m.length > 3 ? m[3] : 1"
         assert chrome(panel) <= 0.4, f'panel de ajustes: alfa {chrome(panel)}'
         chrome("Services.prefs.clearUserPref('kitsune.zero.pomodoro')")
         chrome("Services.prefs.clearUserPref('ui.systemUsesDarkTheme')")
-        check('Con el fondo del sistema, Zero es transparente y sus piezas de cristal claro, con su texto legible')
+        check('Con el fondo del sistema, Zero es transparente y sus piezas de cristal lechoso, con texto en tinta y la marca a la vista')
         report['status'] = 'passed'
     finally:
         if driver: driver.close()

@@ -9,7 +9,8 @@ centro de la pantalla como buscador; al buscar, la isla sube a su sitio con una 
    la isla es el campo (sin otra píldora dentro, también escribiendo) y de cristal (sin foto de la
    página de inicio escondida debajo).
    Los botones de ampliar no salen (no hay nada que ampliar).
-2. Al ir a una web, la isla sube a su sitio con una animación (no de golpe) y la tarjeta vuelve.
+2. Al ir a una web, la isla sube a su sitio con una animación (no de golpe) y la tarjeta vuelve; lo
+   escrito se va al momento (no se cruza con el dominio, que entra al llegar arriba).
 3. Una pestaña nueva (Ctrl+T) vuelve a ser vacía: la isla baja al centro y la tarjeta se va.
 4. Elegir una pestaña con web o una vacía cambia lo uno y lo otro.
 
@@ -108,7 +109,11 @@ def main():
         chrome("gURLBar.blur()")
         check('En una pestaña vacía: sin tarjeta, la isla en el centro como buscador, con su icono')
 
-        chrome("gURLBar.blur(); gBrowser.selectedBrowser.loadURI(Services.io.newURI(arguments[0]), { triggeringPrincipal: Services.scriptSecurityManager.getSystemPrincipal() })", [origin + '/kioto'])
+        driver.context('chrome')
+        gone = driver.script("""const done = arguments[arguments.length - 1];
+            gURLBar.blur(); gBrowser.selectedBrowser.loadURI(Services.io.newURI(arguments[0]), { triggeringPrincipal: Services.scriptSecurityManager.getSystemPrincipal() });
+            setTimeout(() => done(Number(getComputedStyle(document.querySelector('#urlbar > .urlbar-input-container')).opacity)), 60);""", [origin + '/kioto'], asynchronous=True)
+        assert gone < 0.1, f'lo escrito sigue a la vista al subir la isla (se cruzaría con el dominio): {gone}'
         until(lambda: state()['moving'] or at_top(state()), timeout=3)
         moved = state()['moving']
         until(lambda: at_top(state()))
