@@ -109,7 +109,21 @@ export function attach(win, ctx = {}) {
   // Sin venir de su botón, Gecko ancla el panel de traducir al menú ≡, que está en la isla.
   const translate = action('translate', t('Traducir la página', 'Translate page'), event => win.FullPageTranslationsPanel.open(event));
   actions.append(reader, translate);
-  st.host.append(actions);
+  // Lo que suena en otra pestaña (zero-media): en reposo, una onda; abierta, pausa y siguiente.
+  const now = el(doc, 'span', { class: 'zero-now' }, [el(doc, 'span', { class: 'zero-now-wave', 'aria-hidden': 'true' }, [el(doc, 'i'), el(doc, 'i'), el(doc, 'i')])]);
+  const nowButton = (name, title, run) => {
+    const button = el(doc, 'span', { class: `zero-now-${name}`, role: 'button', title, 'aria-label': title });
+    button.addEventListener('click', event => {
+      if (event.button !== 0 || toolbox.getAttribute('zero-island') !== 'open') return;
+      try { run(st.now.data); } catch (error) { console.error('Kitsune Zero:', error); }
+    });
+    return button;
+  };
+  const nowToggle = nowButton('toggle', t('Pausa', 'Pause'), data => data?.toggle());
+  const nowNext = nowButton('next', t('Siguiente', 'Next'), data => data?.next());
+  now.append(nowToggle, nowNext);
+  st.now = { node: now, toggle: nowToggle, next: nowNext, data: null, t };
+  st.host.append(now, actions);
   const mirror = () => {
     const geckoReader = doc.getElementById('reader-mode-button'), geckoTranslate = doc.getElementById('translations-button');
     reader.hidden = !geckoReader || geckoReader.hidden;
@@ -202,6 +216,7 @@ const ICONS = {
   blocked: 'chrome://global/skin/icons/blocked.svg',
   scroll: 'chrome://global/skin/icons/arrow-down.svg',
   quiet: 'chrome://browser/skin/notification-icons/desktop-notification-blocked.svg',
+  media: 'chrome://browser/skin/tabbrowser/tab-audio-playing-small.svg',
   download: 'chrome://browser/skin/downloads/downloads.svg',
   zoom: 'chrome://global/skin/icons/search-glass.svg',
   done: 'chrome://global/skin/icons/check.svg',
@@ -249,6 +264,21 @@ export function activity(win, key, data) {
   st.activities.delete(key);
   st.activities.set(key, data);
   if (!st.alerting) show(win, st, data);
+}
+
+/** Lo que suena en otra pestaña (o null): { playing, title, canNext, toggle(), next(), go() }. En
+ *  reposo, una onda junto al dominio; con la isla abierta, pausa (o seguir) y siguiente. */
+export function nowPlaying(win, data) {
+  const st = state.get(win);
+  if (!st?.now) return;
+  const { node, toggle, next, t } = st.now;
+  st.now.data = data;
+  st.host.toggleAttribute('now', !!data);
+  node.toggleAttribute('playing', !!data?.playing);
+  node.title = data?.title ?? '';
+  next.hidden = !data?.canNext;
+  const label = data?.playing ? t('Pausa', 'Pause') : t('Seguir', 'Play');
+  if (toggle.title !== label) { toggle.title = label; toggle.setAttribute('aria-label', label); }
 }
 
 export function endActivity(win, key) {

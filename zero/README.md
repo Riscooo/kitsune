@@ -22,6 +22,8 @@ la ventana a Zero y la devuelve, con las mismas pestañas. Diseño completo en
     (las reglas, puras, en `zero-silence.mjs`);
   - `zero-sounds`: los sonidos CC0 por capas (el mezclador, puro, en `zero-sounds.mjs`; los
     créditos, en `SONIDOS.md`);
+  - `zero-media`: lo que suena en otra pestaña, en la isla (aviso, onda, pausa y siguiente), con el
+    MediaController de Gecko;
   - `zero-glass`: el cristal en vivo sobre la web y el texto que se adapta (`zero-light.mjs`). Su
     actor (`zero-glass-child.sys.mjs`) solo cuenta el scroll de la página.
   Y uno pequeño que usan el raíl y la isla: `zero-who`, de qué usuario (contenedor) es una pestaña.

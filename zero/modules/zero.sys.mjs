@@ -17,6 +17,7 @@ import * as pomodoro from './zero-pomodoro.sys.mjs';
 import * as silence from './zero-silence.sys.mjs';
 import * as sounds from './zero-sounds.sys.mjs';
 import * as downloads from './zero-downloads.sys.mjs';
+import * as media from './zero-media.sys.mjs';
 import * as glass from './zero-glass.sys.mjs';
 
 const SHEET = 'chrome://browser/content/zero/zero.css';
@@ -24,7 +25,7 @@ const REMEMBER = 'kitsune-zero';
 let host = null;
 // Las piezas de Zero, en orden: al encender se ponen así y al apagar se quitan al revés.
 // El cristal en vivo va el último: se pone detrás de las piezas que ya están.
-const pieces = [frame, island, rail, mark, pomodoro, silence, sounds, downloads, glass];
+const pieces = [frame, island, rail, mark, pomodoro, silence, sounds, downloads, media, glass];
 const decorated = new WeakSet();
 const starting = new WeakSet(); // ventanas que ya esperan a terminar de arrancar
 const early = new WeakSet();    // ventanas que ya se pintan en Zero y esperan a sus piezas
@@ -73,6 +74,7 @@ function toggle(win, on = !active(win)) {
       alert: (text, detail, ms, icon, options) => island.alert(win, text, detail, ms, icon, options),
       activity: (key, data) => island.activity(win, key, data),
       endActivity: key => island.endActivity(win, key),
+      nowPlaying: data => island.nowPlaying(win, data),
     },
   };
   if (on) {

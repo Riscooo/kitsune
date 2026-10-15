@@ -209,6 +209,9 @@ seguir a mano en Zero, con su aspecto:
 - **La información de la web** (permisos, cookies, certificado): el candado de la isla abierta.
 - **Leer y traducir**: con la isla abierta, solo cuando la web lo ofrece (como la Dynamic Island).
 - **Grupos de pestañas**: su fila en el raíl (círculo de su color), que los pliega y despliega.
+- **Lo que suena en otra pestaña** (la tarjeta de Kitsune vive en la barra de herramientas): en la
+  isla, como la música en la Dynamic Island — un aviso al empezar o cambiar de canción, una onda junto
+  al dominio y, abierta, pausa y siguiente.
 - **Ventanas nuevas**: nacen como la ventana desde la que se abren (fila «Ventanas nuevas: como esta
   · en Zero · normales» en los ajustes); la que nace en Zero ya se pinta en Zero desde el primer
   fotograma. Una ventana que restaura la sesión vuelve como era.
