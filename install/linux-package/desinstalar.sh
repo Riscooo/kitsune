@@ -3,7 +3,7 @@
 # Tus datos (perfil, marcadores, contraseñas) se quedan donde están.
 set -eu
 data="${XDG_DATA_HOME:-${HOME}/.local/share}"
-# Lo que puso cristal.py para Kitsune Zero (Hyprland, KDE, GNOME), como estaba.
+# (Una instalación anterior a la 0.8 beta 3 traía las reglas de cristal de Kitsune Zero: se quitan como estaban.)
 if [ -f "${data}/kitsune/zero-linux/cristal.py" ] && command -v python3 >/dev/null 2>&1; then
     python3 "${data}/kitsune/zero-linux/cristal.py" quitar >/dev/null 2>&1 || :
 fi

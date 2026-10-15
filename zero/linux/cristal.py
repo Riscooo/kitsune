@@ -30,8 +30,9 @@ import subprocess
 import sys
 import time
 
-CLASSES = ['kitsune', 'kitsune-browser']  # el motor y el Kitsune de siempre (los perfiles: kitsune-p-<id>)
-CLASS_RE = '^(kitsune|kitsune-browser|kitsune-p-[0-9a-f]+)$'
+# El motor, el Kitsune de siempre (los perfiles: kitsune-p-<id>) y Kitsune Zero, el navegador aparte (0.8 beta 3).
+CLASSES = ['kitsune', 'kitsune-browser', 'kitsune-zero']
+CLASS_RE = '^(kitsune|kitsune-browser|kitsune-zero|kitsune-p-[0-9a-f]+)$'
 GNOME_UUID = 'liquid-glass@thinkingcoding1231.gmail.com'
 GNOME_SCHEMA = 'org.gnome.shell.extensions.liquid-glass@thinkingcoding1231.gmail.com'
 MARK = '# Kitsune Zero'  # las líneas que se añaden llevan esta marca (y se quitan por ella)

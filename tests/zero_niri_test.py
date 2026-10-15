@@ -53,7 +53,7 @@ class NiriRuleTests(unittest.TestCase):
         patterns = re.findall(r'match app-id="([^"]+)"', rule)
         self.assertTrue(patterns)
         matches = lambda app_id: any(re.search(pattern, app_id) for pattern in patterns)
-        for app_id in ("kitsune-browser", "kitsune-p-0123456789abcdef", "kitsune"):
+        for app_id in ("kitsune-browser", "kitsune-p-0123456789abcdef", "kitsune", "kitsune-zero"):
             self.assertTrue(matches(app_id), app_id)
         for app_id in ("kitty", "kitsune-browser-otro", "org.kitsune.algo", "firefox"):
             self.assertFalse(matches(app_id), app_id)

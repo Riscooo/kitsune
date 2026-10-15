@@ -2,8 +2,9 @@
 // tal cual, sin desenfoque (decisión de Risco, 15-10); el cristal lo ponen las piezas de Zero.
 // Fuera de Zero la ventana de Kitsune es opaca, así que esta regla no se nota.
 window-rule {
-    // Todos los perfiles: «kitsune-browser» el de siempre, «kitsune-p-<id>» los demás y «kitsune» el motor.
-    match app-id="^kitsune(-browser|-p-[0-9a-f]+)?$"
+    // Kitsune Zero («kitsune-zero», el navegador aparte desde la 0.8 beta 3) y los perfiles del Kitsune de Risco:
+    // «kitsune-browser» el de siempre, «kitsune-p-<id>» los demás y «kitsune» el motor.
+    match app-id="^kitsune(-browser|-zero|-p-[0-9a-f]+)?$"
     // Sin anillo de foco ni borde de niri (decisión de Risco, 15-10): enmarcaban la ventana transparente.
     // Y por si se vuelven a poner: solo de borde, que lleno se vería a través de toda la ventana.
     focus-ring {

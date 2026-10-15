@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { compareReleases, newerRelease, platformFor, releaseLabel } from '../install/native/kitsune-updates.sys.mjs'
+import { compareReleases, newerRelease, platformFor, releaseLabel, productDownloads } from '../install/native/kitsune-updates.sys.mjs'
 import { expectedSha256, hex, linuxPackage, platformOf, releasePackage } from '../install/native/kitsune-updater.sys.mjs'
 
 test('releases order betas before the final version and compare numbers, not text', () => {
@@ -78,4 +78,21 @@ test('an Intel Mac looks for its own download and package', () => {
   assert.equal(platformOf('Darwin', 'x86_64-gcc3'), 'macos-intel')
   const url = 'https://github.com/Riscooo/kitsune/releases/download/v0.8.0/Kitsune-0.8.0-macOS-Intel.dmg'
   assert.equal(releasePackage('macos-intel', { url, release: '0.8.0' }, '0.8.0').name, 'Kitsune-0.8.0-macOS-Intel.dmg')
+})
+
+test('Kitsune Zero updates from its own part of the downloads list and its own packages, never from Kitsune ones', () => {
+  const downloads = { linux: { release: '0.8.0-beta.3', url: 'k' }, zero: { linux: { release: '0.8.0-beta.4', url: 'z' } } }
+  assert.deepEqual(productDownloads(downloads, 'zero'), downloads.zero)
+  assert.equal(productDownloads(downloads, 'kitsune'), downloads)
+  assert.equal(productDownloads({ linux: {} }, 'zero'), null)
+  assert.deepEqual(newerRelease(productDownloads(downloads, 'zero'), 'linux', '0.8.0-beta.3'), { release: '0.8.0-beta.4' })
+  const base = 'https://github.com/Riscooo/kitsune/releases/download/v0.8.0-beta.3'
+  const zero = (platform, file) => releasePackage(platform, { url: `${base}/${file}`, release: '0.8.0-beta.3' }, '0.8.0-beta.3', undefined, 'zero')
+  assert.equal(zero('linux', 'Kitsune-Zero-0.8.0-beta.3-Linux-x86_64.tar.xz').name, 'Kitsune-Zero-0.8.0-beta.3-Linux-x86_64.tar.xz')
+  assert.equal(zero('windows', 'Kitsune-Zero-0.8.0-beta.3-Windows-x64.exe').name, 'Kitsune-Zero-0.8.0-beta.3-Windows-x64.exe')
+  assert.equal(zero('macos', 'Kitsune-Zero-0.8.0-beta.3-macOS-AppleSilicon.dmg').name, 'Kitsune-Zero-0.8.0-beta.3-macOS-AppleSilicon.dmg')
+  assert.equal(zero('macos-intel', 'Kitsune-Zero-0.8.0-beta.3-macOS-Intel.dmg').name, 'Kitsune-Zero-0.8.0-beta.3-macOS-Intel.dmg')
+  // El paquete de Kitsune no vale para Kitsune Zero (ni al revés).
+  assert.equal(zero('linux', 'Kitsune-0.8.0-beta.3-Linux-x86_64.tar.xz'), null)
+  assert.equal(releasePackage('linux', { url: `${base}/Kitsune-Zero-0.8.0-beta.3-Linux-x86_64.tar.xz`, release: '0.8.0-beta.3' }, '0.8.0-beta.3'), null)
 })

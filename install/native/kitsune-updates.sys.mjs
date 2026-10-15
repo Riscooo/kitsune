@@ -30,6 +30,15 @@ export function compareReleases(a, b) {
   return Math.sign(beta(left[4]) - beta(right[4])) || 0;
 }
 
+/** La parte de downloads.json de un producto: la de Kitsune es la lista misma; la de Kitsune Zero, su clave «zero». */
+export function productDownloads(downloads, product) {
+  if (!downloads || typeof downloads !== 'object') return null;
+  if (product !== 'zero') return downloads;
+  return downloads.zero && typeof downloads.zero === 'object' ? downloads.zero : null;
+}
+const product = () => { try { return Services.prefs.getStringPref('kitsune.product', 'kitsune') === 'zero' ? 'zero' : 'kitsune'; } catch { return 'kitsune'; } };
+const productName = () => product() === 'zero' ? 'Kitsune Zero' : 'Kitsune';
+
 /** La versión publicada para este sistema en downloads.json, si es más nueva que la instalada. */
 export function newerRelease(downloads, platform, installed) {
   const entry = downloads && typeof downloads === 'object' ? downloads[platform] : null;
@@ -63,8 +72,8 @@ export async function showUpdateNotice(win, info) {
   if (!box || box.getNotificationWithValue('kitsune-update')) return;
   if (info.ready) {
     await box.appendNotification('kitsune-update', {
-      label: t(`Kitsune ${releaseLabel(info.release)} está listo: se instala al cerrar Kitsune.`,
-               `Kitsune ${releaseLabel(info.release)} is ready: it installs when you close Kitsune.`),
+      label: t(`${productName()} ${releaseLabel(info.release)} está listo: se instala al cerrar ${productName()}.`,
+               `${productName()} ${releaseLabel(info.release)} is ready: it installs when you close ${productName()}.`),
       priority: box.PRIORITY_INFO_MEDIUM,
     }, [{
       label: t('Reiniciar ahora', 'Restart now'),
@@ -74,7 +83,7 @@ export async function showUpdateNotice(win, info) {
     return;
   }
   await box.appendNotification('kitsune-update', {
-    label: t(`Hay una versión nueva de Kitsune: ${releaseLabel(info.release)}.`, `There is a new version of Kitsune: ${releaseLabel(info.release)}.`),
+    label: t(`Hay una versión nueva de ${productName()}: ${releaseLabel(info.release)}.`, `There is a new version of ${productName()}: ${releaseLabel(info.release)}.`),
     priority: box.PRIORITY_INFO_MEDIUM,
   }, [{
     label: t('Descargar', 'Download'),
@@ -127,10 +136,11 @@ export const KitsuneUpdates = {
       if (!response.ok) return null;
       downloads = await response.json();
     } finally { clearTimeout(timer); }
-    pending = newerRelease(downloads, platform, installed);
+    const list = productDownloads(downloads, product());
+    pending = newerRelease(list, platform, installed);
     if (pending && await updater()?.available()) {
       try {
-        await updater().stage({ release: pending.release, entry: downloads[platform], ...(testing ? { origin: new URL(override).origin } : {}) });
+        await updater().stage({ release: pending.release, entry: list[platform], ...(testing ? { origin: new URL(override).origin } : {}) });
         pending = { ...pending, ready: true };
       } catch (error) {
         console.warn('Kitsune: no se ha podido preparar la versión nueva', error);

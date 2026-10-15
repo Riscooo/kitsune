@@ -6,6 +6,7 @@ import io
 import json
 import re
 import os
+import plistlib
 from pathlib import Path
 import subprocess
 import sys
@@ -68,8 +69,12 @@ class LinuxPackageTests(unittest.TestCase):
             root = Path(folder)
             layout = engine.Layout(root / "data", root / "state", root / "cache")
             build = root / "build/kitsune"
-            build.mkdir(parents=True)
+            (build / "browser").mkdir(parents=True)
             (build / "kitsune").write_text("#!/bin/sh\n")
+            with zipfile.ZipFile(build / "browser/omni.ja", "w") as omni:
+                omni.writestr("localization/en-US/branding/brand.ftl", "-brand-short-name = Kitsune\n-vendor-short-name = Kitsune\n")
+                omni.writestr("chrome/es-ES/locale/branding/brand.properties", "brandShortName=Kitsune\n")
+                omni.writestr("chrome/browser/content/browser/browser.xhtml", "<window/>")
             (layout.cache / "packages").mkdir(parents=True)
             package = layout.cache / "packages" / f"kitsune-157.0.1-{engine.build_fingerprint('157.0.1')[:16]}.tar.xz"
             subprocess.run(["tar", "-cJf", str(package), "-C", str(root / "build"), "kitsune"], check=True)
@@ -81,7 +86,7 @@ class LinuxPackageTests(unittest.TestCase):
                                            addons=addons)
             release = engine.published_release()
             self.assertEqual(archive.name, f"Kitsune-{release}-Linux-x86_64.tar.xz")
-            self.assertEqual(checked, ["kitsune"])
+            self.assertEqual(checked, ["kitsune", "kitsune"])  # el de Kitsune y el de Kitsune Zero
             with tarfile.open(archive) as handle:
                 names = set(handle.getnames())
                 members = {member.name: member for member in handle.getmembers()}
@@ -93,14 +98,34 @@ class LinuxPackageTests(unittest.TestCase):
             self.assertEqual(members["kitsune/instalar.sh"].mode & 0o777, 0o755)
             self.assertEqual((members["kitsune/instalar.sh"].uid, members["kitsune/instalar.sh"].uname), (0, ""))
             self.assertFalse(list((layout.cache / "packages/linux").glob("*.part")))
-            # Kitsune Zero: la regla de su ventana de cristal en niri y, con su complemento, en Hyprland y
-            # GNOME (cristal.py); el instalador las pone y el desinstalador quita lo de cristal.py.
-            for name in ("kitsune/zero-linux/install-niri.sh", "kitsune/zero-linux/kitsune-zero.kdl", "kitsune/zero-linux/cristal.py"):
-                self.assertIn(name, names)
-            installer = (engine.LINUX_PACKAGE / "instalar.sh").read_text()
-            self.assertIn('zero-linux/install-niri.sh', installer)
-            self.assertIn('zero-linux/cristal.py" poner', installer)
-            self.assertIn('zero-linux/cristal.py" quitar', (engine.LINUX_PACKAGE / "desinstalar.sh").read_text())
+            # Desde la 0.8 beta 3, Kitsune no lleva Zero (ni sus reglas de cristal): es Kitsune Zero, a su lado.
+            self.assertFalse([name for name in names if "zero" in name], names)
+            self.assertNotIn("kitsune.product", "".join(names))
+            self.assertNotIn('cristal.py" poner', (engine.LINUX_PACKAGE / "instalar.sh").read_text())
+            zero = layout.cache / "packages/linux" / f"Kitsune-Zero-{release}-Linux-x86_64.tar.xz"
+            with tarfile.open(zero) as handle:
+                zero_names = set(handle.getnames())
+                zero_members = {member.name: member for member in handle.getmembers()}
+                product = handle.extractfile("kitsune-zero/defaults/pref/kitsune-product.js").read().decode()
+                launcher = handle.extractfile("kitsune-zero/kitsune-zero").read().decode()
+                omni = zipfile.ZipFile(io.BytesIO(handle.extractfile("kitsune-zero/browser/omni.ja").read()))
+                icon = handle.extractfile("kitsune-zero/browser/chrome/icons/default/default48.png").read()
+            for name in ("kitsune-zero/kitsune", "kitsune-zero/kitsune.cfg", "kitsune-zero/instalar.sh", "kitsune-zero/desinstalar.sh",
+                         "kitsune-zero/distribution/extensions/uBlock0@raymondhill.net.xpi", "kitsune-zero/defaults/pref/kitsune-release.js",
+                         "kitsune-zero/zero-linux/install-niri.sh", "kitsune-zero/zero-linux/kitsune-zero.kdl", "kitsune-zero/zero-linux/cristal.py"):
+                self.assertIn(name, zero_names)
+            self.assertIn('pref("kitsune.product", "zero");', product)
+            self.assertIn('pref("kitsune.zero.importProfile", true);', product)
+            self.assertIn("MOZ_APP_REMOTINGNAME=kitsune-zero", launcher)
+            self.assertEqual(zero_members["kitsune-zero/kitsune-zero"].mode & 0o777, 0o755)
+            self.assertEqual(omni.read("localization/en-US/branding/brand.ftl").decode(), "-brand-short-name = Kitsune Zero\n-vendor-short-name = Kitsune\n")
+            self.assertEqual(omni.read("chrome/es-ES/locale/branding/brand.properties").decode(), "brandShortName=Kitsune Zero\n")
+            self.assertEqual(omni.read("chrome/browser/content/browser/browser.xhtml"), b"<window/>")
+            self.assertEqual(icon, (ROOT / "install/branding-zero/icon-48.png").read_bytes())
+            zero_installer = (engine.LINUX_PACKAGE / "zero/instalar.sh").read_text()
+            for piece in ('kitsune-zero.desktop', 'StartupWMClass=kitsune-zero', 'zero-linux/install-niri.sh', 'zero-linux/cristal.py" poner'):
+                self.assertIn(piece, zero_installer)
+            self.assertIn('zero-linux/cristal.py" quitar', (engine.LINUX_PACKAGE / "zero/desinstalar.sh").read_text())
 
     def test_without_the_engine_built_there_is_no_linux_package(self):
         with tempfile.TemporaryDirectory() as folder:
@@ -186,6 +211,29 @@ class RecipeTests(unittest.TestCase):
         (content / "browser.xhtml").write_text(f"<window>\n  {engine.BOOTSTRAP}\n</window>\n")
         (content / "aboutDialog.xhtml").write_text(f"<vbox>\n        {engine.ABOUT_ANCHOR}\n</vbox>\n")
         return root
+
+    def test_kitsune_zero_has_its_own_brand_and_windows_shortcut_name_and_kitsune_gets_its_own_back(self):
+        # Kitsune Zero (Risco, 15-10): el mismo motor con su marca; MOZ_APP_DISPLAYNAME no cambia (así no se vuelve a
+        # configurar), y su nombre en Windows lo pone branding.nsi (defines.nsi lo lee, ver el parche).
+        root = self.source_tree()
+        engine.write_branding(root, "zero")
+        brand = root / "browser/branding/kitsune"
+        self.assertIn("-brand-short-name = Kitsune Zero", (brand / "locales/en-US/brand.ftl").read_text())
+        self.assertIn("-vendor-short-name = Kitsune\n", (brand / "locales/en-US/brand.ftl").read_text())
+        self.assertIn("brandShortName=Kitsune Zero", (brand / "locales/en-US/brand.properties").read_text())
+        self.assertIn("MOZ_APP_DISPLAYNAME=Kitsune\n", (brand / "configure.sh").read_text())
+        nsi = (brand / "branding.nsi").read_text()
+        self.assertIn('!define BrandFullName          "Kitsune Zero"', nsi)
+        self.assertIn('!define KitsuneBrandShortName "Kitsune Zero"', nsi)
+        self.assertEqual((brand / "firefox.ico").read_bytes(), (ROOT / "install/branding-zero/windows/firefox.ico").read_bytes())
+        self.assertEqual((brand / "firefox.icns").read_bytes(), (ROOT / "install/branding-zero/macos/firefox.icns").read_bytes())
+        self.assertEqual((brand / "default48.png").read_bytes(), (ROOT / "install/branding-zero/icon-48.png").read_bytes())
+        engine.write_branding(root)
+        self.assertIn("-brand-short-name = Kitsune\n", (brand / "locales/en-US/brand.ftl").read_text())
+        self.assertNotIn("KitsuneBrandShortName", (brand / "branding.nsi").read_text())
+        self.assertEqual((brand / "firefox.ico").read_bytes(), (ROOT / "install/branding/windows/firefox.ico").read_bytes())
+        patch = "".join(new for _, new in engine.TEXT_PATCHES["browser/installer/windows/nsis/defines.nsi.in"])
+        self.assertIn('!ifdef KitsuneBrandShortName\n!define BrandShortName "${KitsuneBrandShortName}"', patch)
 
     def test_branding_and_native_module_are_built_in(self):
         root = self.source_tree()
@@ -854,6 +902,61 @@ class TargetTests(unittest.TestCase):
         self.assertEqual(len(repackages), 2)
         self.assertIn("--use-upx", repackages[0])
 
+
+    def test_kitsune_zero_for_windows_gets_its_product_prefs_and_its_own_installer(self):
+        base = Path(tempfile.mkdtemp())
+        layout = engine.Layout(base / "data", base / "state", base / "cache")
+        dist = layout.cache / "obj-157.0.1-windows/dist"
+        (dist / "bin/uninstall").mkdir(parents=True)
+        (dist / "bin/uninstall/helper.exe").write_bytes(b"MZ")
+        package = dist / "kitsune-157.0.1.en-US.win64.zip"
+        with zipfile.ZipFile(package, "w") as archive:
+            archive.writestr("kitsune/kitsune.exe", b"MZ")
+
+        def addons(layout, target, log):
+            target.mkdir(parents=True, exist_ok=True)
+            (target / "uBlock0@raymondhill.net.xpi").write_bytes(b"xpi")
+        calls = []
+        run = lambda command, **kwargs: calls.append(command) or types.SimpleNamespace(returncode=0)
+        installer = engine.finish_windows_package(layout, "157.0.1", base / "src", {}, base / "build.log", log=lambda *_: None,
+                                                  run=run, addons=addons, product="zero")
+        self.assertEqual(installer.name, "kitsune-zero-157.0.1.en-US.win64.installer.exe")
+        with zipfile.ZipFile(package) as archive:
+            self.assertIn(b'pref("kitsune.product", "zero");', archive.read("kitsune/defaults/pref/kitsune-product.js"))
+        repackage = next(command for command in calls if "repackage" in command)
+        self.assertEqual(repackage[repackage.index("-o") + 1], str(installer))
+
+    def test_kitsune_zero_for_macos_is_its_own_signed_app_with_its_name_icon_and_prefs_in_its_own_dmg(self):
+        base = Path(tempfile.mkdtemp())
+        layout = engine.Layout(base / "data", base / "state", base / "cache")
+        dist = layout.cache / "obj-157.0.1-macos/dist"
+        app = dist / "kitsune/Kitsune.app/Contents"
+        (app / "Resources/browser").mkdir(parents=True)
+        (app / "MacOS").mkdir(parents=True)
+        (app / "MacOS/kitsune").write_bytes(b"\xcf\xfa\xed\xfe")
+        (app / "Resources/kitsune.cfg").write_text("cfg")
+        (app / "Resources/firefox.icns").write_bytes(b"kitsune")
+        with (app / "Info.plist").open("wb") as handle:
+            plistlib.dump({"CFBundleName": "Kitsune", "CFBundleIdentifier": "org.mozilla.kitsune", "CFBundleIconFile": "firefox"}, handle)
+        with zipfile.ZipFile(app / "Resources/browser/omni.ja", "w") as omni:
+            omni.writestr("localization/es-ES/branding/brand.ftl", "-brand-full-name = Kitsune\n")
+        calls = []
+        run = lambda command, **kwargs: calls.append(command) or types.SimpleNamespace(returncode=0)
+        dmg = engine.finish_macos_zero(layout, "157.0.1", base / "src", {}, base / "build.log", log=lambda *_: None, run=run)
+        zero = dist / "kitsune-zero/Kitsune Zero.app/Contents"
+        with (zero / "Info.plist").open("rb") as handle:
+            info = plistlib.load(handle)
+        self.assertEqual((info["CFBundleName"], info["CFBundleDisplayName"], info["CFBundleIdentifier"]), ("Kitsune Zero", "Kitsune Zero", "org.kitsune.zero"))
+        self.assertEqual((zero / "Resources/firefox.icns").read_bytes(), (ROOT / "install/branding-zero/macos/firefox.icns").read_bytes())
+        self.assertIn('pref("kitsune.product", "zero");', (zero / "Resources/defaults/pref/kitsune-product.js").read_text())
+        self.assertEqual(zipfile.ZipFile(zero / "Resources/browser/omni.ja").read("localization/es-ES/branding/brand.ftl").decode(),
+                         "-brand-full-name = Kitsune Zero\n")
+        self.assertEqual((app / "Resources/firefox.icns").read_bytes(), b"kitsune")  # la de Kitsune, igual
+        signed, made = calls
+        self.assertEqual(signed[:2], ["rcodesign", "sign"])
+        self.assertEqual(Path(signed[2]).name, "Kitsune Zero.app")
+        self.assertIn("Kitsune Zero", made)
+        self.assertEqual(dmg.name, "kitsune-zero-157.0.1.en-US.mac.dmg")
 
     def test_the_macos_app_gets_kitsune_cfg_and_ublock_is_signed_and_goes_in_a_new_dmg(self):
         base = Path(tempfile.mkdtemp())

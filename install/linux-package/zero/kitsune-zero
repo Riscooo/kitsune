@@ -1,0 +1,6 @@
+#!/bin/sh
+# Kitsune Zero: el motor de Kitsune con su nombre de ventana (app-id kitsune-zero), para que el escritorio lo trate
+# como su propia app (su icono, su regla de cristal). Su perfil es el de esta carpeta: Gecko da uno a cada instalación.
+here="$(cd "$(dirname "$0")" && pwd)"
+export MOZ_APP_REMOTINGNAME=kitsune-zero
+exec "${here}/kitsune" "$@"

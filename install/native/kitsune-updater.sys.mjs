@@ -21,20 +21,24 @@ const RELEASE = /^\d{1,4}\.\d{1,4}\.\d{1,4}(?:-beta\.\d{1,4})?$/;
 const READY = 'listo.json';
 const MINUTE = 60 * 1000;
 
-// El paquete de cada sistema, como lo publica tools/seguir_firefox.py.
+// El paquete de cada sistema, como lo publica tools/seguir_firefox.py. Kitsune Zero (kitsune.product = "zero", el
+// navegador aparte desde la 0.8 beta 3) tiene los suyos, Kitsune-Zero-<versión>-…, y su carpeta en Linux.
 const PACKAGES = Object.freeze({
-  linux: release => `Kitsune-${release}-Linux-x86_64.tar.xz`,
-  windows: release => `Kitsune-${release}-Windows-x64.exe`,
-  macos: release => `Kitsune-${release}-macOS-AppleSilicon.dmg`,
-  'macos-intel': release => `Kitsune-${release}-macOS-Intel.dmg`,
+  linux: 'Linux-x86_64.tar.xz', windows: 'Windows-x64.exe', macos: 'macOS-AppleSilicon.dmg', 'macos-intel': 'macOS-Intel.dmg',
 });
+const PRODUCTS = Object.freeze({
+  kitsune: { file: 'Kitsune', folder: 'kitsune', name: 'Kitsune' },
+  zero: { file: 'Kitsune-Zero', folder: 'kitsune-zero', name: 'Kitsune Zero' },
+});
+const productNow = () => { try { return Services.prefs.getStringPref('kitsune.product', 'kitsune') === 'zero' ? 'zero' : 'kitsune'; } catch { return 'kitsune'; } };
 export const platformOf = (os, abi = '') => os === 'Darwin' && /^x86_64/.test(abi) ? 'macos-intel'
   : ({ WINNT: 'windows', Darwin: 'macos', Linux: 'linux' })[os] ?? null;
 
-/** El paquete de una versión para un sistema y su lista de SHA-256, si la dirección es la de esa versión. */
-export function releasePackage(platform, entry, release, origin = GITHUB) {
-  if (!PACKAGES[platform] || !RELEASE.test(release ?? '') || !entry || typeof entry.url !== 'string' || entry.release !== release) return null;
-  const name = PACKAGES[platform](release);
+/** El paquete de una versión para un sistema (de Kitsune o de Kitsune Zero) y su lista de SHA-256, si la dirección
+ *  es la de esa versión. */
+export function releasePackage(platform, entry, release, origin = GITHUB, product = 'kitsune') {
+  if (!PACKAGES[platform] || !PRODUCTS[product] || !RELEASE.test(release ?? '') || !entry || typeof entry.url !== 'string' || entry.release !== release) return null;
+  const name = `${PRODUCTS[product].file}-${release}-${PACKAGES[platform]}`;
   const folder = `${origin}/v${release}/`;
   return entry.url === folder + name ? { archive: folder + name, sums: `${folder}SHA256SUMS.txt`, name } : null;
 }
@@ -62,15 +66,16 @@ const modules = () => lazy ??= {
 const home = () => Services.dirsvc.get('Home', Ci.nsIFile).path;
 const xdg = (name, fallback) => Services.env.get(name) || PathUtils.join(home(), ...fallback);
 const platform = () => platformOf(Services.appinfo.OS, Services.appinfo.XPCOMABI);
-/** Dónde se prepara la versión nueva: la caché de cada sistema. */
+/** Dónde se prepara la versión nueva: la caché de cada sistema (Kitsune y Kitsune Zero, cada uno la suya). */
 function cacheRoot() {
-  if (platform().startsWith('macos')) return PathUtils.join(home(), 'Library', 'Caches', 'Kitsune', 'actualizacion');
+  const { name, folder } = PRODUCTS[productNow()];
+  if (platform().startsWith('macos')) return PathUtils.join(home(), 'Library', 'Caches', name, 'actualizacion');
   if (platform() === 'windows') {
     let local = null;
     try { local = Services.dirsvc.get('LocalAppData', Ci.nsIFile).path; } catch { local = Services.env.get('LOCALAPPDATA'); }
-    return PathUtils.join(local || Services.dirsvc.get('TmpD', Ci.nsIFile).path, 'Kitsune', 'actualizacion');
+    return PathUtils.join(local || Services.dirsvc.get('TmpD', Ci.nsIFile).path, name, 'actualizacion');
   }
-  return PathUtils.join(xdg('XDG_CACHE_HOME', ['.cache']), 'kitsune', 'actualizacion');
+  return PathUtils.join(xdg('XDG_CACHE_HOME', ['.cache']), folder, 'actualizacion');
 }
 /** La app de macOS en uso (…/Kitsune.app), o null. */
 function macBundle() {
@@ -98,8 +103,8 @@ async function installed() {
 async function packagedFolder() {
   const folder = testing() ? Services.prefs.getStringPref('kitsune.update.testInstallDir', '') : Services.dirsvc.get('GreBinD', Ci.nsIFile).path;
   if (!folder || !await IOUtils.exists(PathUtils.join(folder, 'instalar.sh'))) return null;
-  // instalar.sh instala en $XDG_DATA_HOME/kitsune: si este Kitsune está en otro sitio, no serviría de nada.
-  if (!testing() && realPath(folder) !== realPath(PathUtils.join(xdg('XDG_DATA_HOME', ['.local', 'share']), 'kitsune'))) return null;
+  // instalar.sh instala en $XDG_DATA_HOME/kitsune (o kitsune-zero): si este está en otro sitio, no serviría de nada.
+  if (!testing() && realPath(folder) !== realPath(PathUtils.join(xdg('XDG_DATA_HOME', ['.local', 'share']), PRODUCTS[productNow()].folder))) return null;
   return folder;
 }
 
@@ -186,7 +191,7 @@ export const KitsuneUpdater = {
 
   /** Descarga, comprueba y deja lista la versión; la instala al cerrar. Devuelve su carpeta o lanza. */
   async stage({ release, entry, origin = GITHUB }) {
-    const found = releasePackage(platform(), entry, release, origin);
+    const found = releasePackage(platform(), entry, release, origin, productNow());
     if (!found) throw new Error('La dirección del paquete no es la de esa versión de Kitsune.');
     const folder = PathUtils.join(cacheRoot(), release);
     const ready = PathUtils.join(folder, READY);
@@ -208,7 +213,7 @@ export const KitsuneUpdater = {
         if (await run(tar, ['-xJf', archive, '-C', folder, '--no-same-owner'], 5 * MINUTE) !== 0) throw new Error('No se ha podido descomprimir el paquete.');
         await IOUtils.remove(archive);
         for (const name of ['instalar.sh', 'kitsune']) {
-          if (!await IOUtils.exists(PathUtils.join(folder, 'kitsune', name))) throw new Error('Al paquete le falta ' + name + '.');
+          if (!await IOUtils.exists(PathUtils.join(folder, PRODUCTS[productNow()].folder, name))) throw new Error('Al paquete le falta ' + name + '.');
         }
       }
       await IOUtils.writeJSON(ready, { release, sha256: expected, file: found.name, at: new Date().toISOString() });
@@ -250,7 +255,7 @@ export const KitsuneUpdater = {
   async install(folder) {
     try {
       let done = false;
-      if (platform() === 'linux') done = await run('/bin/sh', [PathUtils.join(folder, 'kitsune', 'instalar.sh')], 2 * MINUTE) === 0;
+      if (platform() === 'linux') done = await run('/bin/sh', [PathUtils.join(folder, PRODUCTS[productNow()].folder, 'instalar.sh')], 2 * MINUTE) === 0;
       else if (platform().startsWith('macos')) done = await installMac(folder);
       else if (platform() === 'windows') return launchWindowsInstaller(folder);
       if (done) await IOUtils.remove(folder, { recursive: true, ignoreAbsent: true });

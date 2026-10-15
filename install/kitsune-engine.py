@@ -18,6 +18,7 @@ import inspect
 import json
 import os
 from pathlib import Path
+import plistlib
 import re
 import shlex
 import shutil
@@ -182,6 +183,14 @@ TEXT_PATCHES = {
     # Assets.car de la marca genérica de Gecko.
     "browser/app/macbuild/Contents/Info.plist.in": [
         ("\n\t<key>CFBundleIconName</key>\n\t<string>AppIcon</string>", ""),
+    ],
+    # Kitsune Zero (su marca define KitsuneBrandShortName en branding.nsi): sus accesos directos y su nombre en
+    # Windows dicen «Kitsune Zero» (BrandShortName sale de MOZ_APP_DISPLAYNAME, que es «Kitsune» en los dos).
+    "browser/installer/windows/nsis/defines.nsi.in": [
+        ('!define BrandShortName        "@MOZ_APP_DISPLAYNAME@"\n',
+         '; Kitsune: Kitsune Zero se llama así (su branding.nsi define KitsuneBrandShortName).\n'
+         '!ifdef KitsuneBrandShortName\n!define BrandShortName "${KitsuneBrandShortName}"\n!else\n'
+         '!define BrandShortName "@MOZ_APP_DISPLAYNAME@"\n!endif\n'),
     ],
     # Al desinstalar, Gecko ofrece abrir una encuesta de Mozilla: fuera.
     "browser/installer/windows/nsis/uninstaller.nsi": [
@@ -439,6 +448,73 @@ BRANDING_NSI = {
     "URLStubDownloadAArch64": f"{WEBSITE}/#descargar", "URLManualDownload": f"{WEBSITE}/#descargar",
     "URLSystemRequirements": f"{WEBSITE}/#descargar",
 }
+# Kitsune Zero, el navegador aparte (desde la 0.8 beta 3, Risco 15-10): el mismo motor con su marca (iconos de
+# install/branding-zero, de tools/branding/zero.py), su nombre y kitsune.product = "zero" en sus ajustes. Cada sistema
+# lo instala en su sitio, así que Gecko le da su propio perfil; la primera vez trae una copia del de Kitsune.
+ZERO_BRANDING = HERE / "branding-zero"
+ZERO_NAME = "Kitsune Zero"
+ZERO_REMOTING = "kitsune-zero"
+ZERO_BUNDLE_ID = "org.kitsune.zero"
+ZERO_BRANDING_NSI = {"BrandFullNameInternal": ZERO_NAME, "BrandFullName": ZERO_NAME}
+ZERO_BRAND_CONTENT = {"about-logo.png": "icon-192.png", "about-logo@2x.png": "icon-384.png", "about-logo.svg": "icon.svg"}
+ZERO_PREFS = """// Kitsune Zero: el motor de Kitsune como navegador aparte; todas sus ventanas son Zero.
+pref("kitsune.product", "zero");
+// La primera vez trae una copia del perfil de Kitsune (kitsune-zero-host.sys.mjs).
+pref("kitsune.zero.importProfile", true);
+"""
+ZERO_BRAND = re.compile(r"(?m)^(-brand-(?:shorter|short|shortcut|full|product)-name = |brand(?:Shorter|Short|Full)Name=)Kitsune$")
+
+
+def zero_brand_text(text: str) -> str:
+    """Los nombres de la marca de Kitsune («Kitsune») como los de Kitsune Zero; la empresa sigue siendo Kitsune."""
+    return ZERO_BRAND.sub(lambda match: match.group(1) + ZERO_NAME, text)
+
+
+def zero_prefs(folder: Path) -> Path:
+    """defaults/pref/kitsune-product.js: lo que hace de este motor Kitsune Zero."""
+    folder.mkdir(parents=True, exist_ok=True)
+    path = folder / "kitsune-product.js"
+    path.write_text(ZERO_PREFS)
+    return path
+
+
+def zero_omni(omni: Path):
+    """Los nombres de la marca dentro de omni.ja (brand.ftl y brand.properties, en cada idioma) como Kitsune Zero."""
+    branded = [name for name in zipfile.ZipFile(omni).namelist() if name.endswith(("branding/brand.ftl", "branding/brand.properties"))]
+    if not branded:
+        raise EngineError(f"{omni.name} no tiene los nombres de la marca")
+    rewritten = omni.with_suffix(".zero.ja")
+    with zipfile.ZipFile(omni) as original, zipfile.ZipFile(rewritten, "w", zipfile.ZIP_DEFLATED) as archive:
+        for info in original.infolist():
+            data = original.read(info.filename)
+            if info.filename in branded:
+                data = zero_brand_text(data.decode()).encode()
+            archive.writestr(info, data, compress_type=info.compress_type)
+    os.replace(rewritten, omni)
+
+
+def zero_macos_app(app: Path, folder: Path, log=print) -> Path:
+    """Kitsune.app (ya preparada) → <folder>/Kitsune Zero.app: su nombre e identificador (Info.plist), su icono, sus
+    ajustes y su marca. Sin firmar: luego se firma entera."""
+    folder.mkdir(parents=True, exist_ok=True)
+    zero = folder / f"{ZERO_NAME}.app"
+    if zero.exists():
+        shutil.rmtree(zero)
+    shutil.copytree(app, zero, symlinks=True)
+    contents = zero / "Contents"
+    with (contents / "Info.plist").open("rb") as handle:
+        info = plistlib.load(handle)
+    info.update({"CFBundleName": ZERO_NAME, "CFBundleDisplayName": ZERO_NAME, "CFBundleIdentifier": ZERO_BUNDLE_ID})
+    with (contents / "Info.plist").open("wb") as handle:
+        plistlib.dump(info, handle)
+    icon = str(info.get("CFBundleIconFile") or "firefox")
+    shutil.copyfile(ZERO_BRANDING / "macos/firefox.icns", contents / "Resources" / (icon if icon.endswith(".icns") else f"{icon}.icns"))
+    zero_prefs(contents / "Resources/defaults/pref")
+    zero_omni(contents / "Resources/browser/omni.ja")
+    log(f"Preparada {zero.name}")
+    return zero
+
+
 # Gecko's configure insists on an unzip program it barely uses (tests and
 # language repacks). Without root, a minimal stand-in built on Python's zipfile
 # covers its "unzip [-q] [-o] archive [-d dir]" and "-l" forms.
@@ -680,7 +756,9 @@ def replace_once(text: str, anchor: str, replacement: str, what: str) -> str:
     return text.replace(anchor, replacement)
 
 
-def write_branding(source: Path):
+def write_branding(source: Path, product: str = "kitsune"):
+    """La marca de Kitsune en browser/branding/kitsune; con product="zero", la de Kitsune Zero encima (sus iconos,
+    su nombre y su instalador de Windows). MOZ_APP_DISPLAYNAME no cambia: así no hace falta volver a configurar."""
     unofficial = source / "browser/branding/unofficial"
     target = source / "browser/branding/kitsune"
     if target.exists():
@@ -701,11 +779,23 @@ def write_branding(source: Path):
     nsi = target / "branding.nsi"
     if nsi.is_file():
         text = nsi.read_text()
-        for key, value in BRANDING_NSI.items():
+        values = {**BRANDING_NSI, **(ZERO_BRANDING_NSI if product == "zero" else {})}
+        for key, value in values.items():
             text, count = re.subn(rf'(?m)^(!define {key}\s+)"[^"]*"', lambda match: f'{match.group(1)}"{value}"', text)
             if count != 1:
                 raise EngineError(f"branding.nsi cambió ({key}); la receta necesita revisión")
+        if product == "zero":
+            text += f'\n; Kitsune Zero: el nombre de sus accesos directos (defines.nsi).\n!define KitsuneBrandShortName "{ZERO_NAME}"\n'
         nsi.write_text(text)
+    if product == "zero":
+        for size in ICON_SIZES:
+            shutil.copyfile(ZERO_BRANDING / f"icon-{size}.png", target / f"default{size}.png")
+        for name, asset in ZERO_BRAND_CONTENT.items():
+            shutil.copyfile(ZERO_BRANDING / asset, target / "content" / name)
+        for asset in sorted((ZERO_BRANDING / "windows").iterdir()) + sorted((ZERO_BRANDING / "macos").iterdir()):
+            shutil.copyfile(asset, target / asset.name)
+        (target / "locales/en-US/brand.ftl").write_text(zero_brand_text(BRAND_FTL))
+        (target / "locales/en-US/brand.properties").write_text(zero_brand_text(BRAND_PROPERTIES))
 
 
 def home_extension_version(build_fp: str) -> str:
@@ -1319,7 +1409,10 @@ CROSS_MIN_FREE_BYTES = 24 * 2**30
 # Si ya hay una compilación anterior para ese sistema, solo se recompila lo que cambia.
 CROSS_REBUILD_MIN_FREE_BYTES = 8 * 2**30
 # Windows: el paquete .zip y el instalador .exe que arma `mach package` (NSIS).
-TARGET_ARTIFACTS = {"windows": ("*.win64.zip", "*.win64.installer.exe"), "macos": ("*.mac.dmg",), "macos-intel": ("*.mac.dmg",)}
+TARGET_ARTIFACTS = {"windows": ("kitsune-*.win64.zip", "kitsune-[0-9]*.win64.installer.exe"), "macos": ("kitsune-[0-9]*.mac.dmg",),
+                    "macos-intel": ("kitsune-[0-9]*.mac.dmg",)}
+ZERO_TARGET_ARTIFACTS = {"windows": ("kitsune-zero-*.win64.installer.exe",), "macos": ("kitsune-zero-*.mac.dmg",),
+                         "macos-intel": ("kitsune-zero-*.mac.dmg",)}
 
 
 # Programas de Arch que solo hacen falta al compilar para Windows: msiextract
@@ -1511,9 +1604,10 @@ def release_prefs(folder: Path) -> Path:
 
 
 def finish_windows_package(layout: Layout, version: str, source: Path, env, logfile: Path, log=print, run=subprocess.run,
-                           addons=distribution_addons):
+                           addons=distribution_addons, product="kitsune"):
     """Lo que en Linux se añade al instalar el motor, dentro del paquete de Windows:
-    kitsune.cfg con su cargador y uBlock Origin firmado. Luego se rehace el instalador."""
+    kitsune.cfg con su cargador y uBlock Origin firmado. Luego se rehace el instalador. Con product="zero" (tras
+    compilar con la marca de Kitsune Zero), sus ajustes y su propio instalador."""
     objdir = layout.cache / f"obj-{version}-windows"
     package = objdir / "dist" / f"kitsune-{version}.en-US.win64.zip"
     nsis_dir = objdir / "browser/installer/windows"
@@ -1545,6 +1639,8 @@ def finish_windows_package(layout: Layout, version: str, source: Path, env, logf
         if not any(name.endswith(".xpi") for name in extras):
             raise EngineError("No hay copia de uBlock Origin para el paquete de Windows")
         extras["kitsune/defaults/pref/kitsune-release.js"] = release_prefs(Path(folder))
+        if product == "zero":
+            extras["kitsune/defaults/pref/kitsune-product.js"] = zero_prefs(Path(folder) / "zero")
         # Se reescribe el .zip: lo de Gecko tal cual y lo de Kitsune encima.
         rewritten = package.with_suffix(".kitsune.zip")
         with zipfile.ZipFile(package) as original, zipfile.ZipFile(rewritten, "w", zipfile.ZIP_DEFLATED) as archive:
@@ -1554,7 +1650,7 @@ def finish_windows_package(layout: Layout, version: str, source: Path, env, logf
             for name, path in extras.items():
                 archive.write(path, name)
         os.replace(rewritten, package)
-    installer = objdir / "dist" / f"kitsune-{version}.en-US.win64.installer.exe"
+    installer = objdir / "dist" / f"{'kitsune-zero' if product == 'zero' else 'kitsune'}-{version}.en-US.win64.installer.exe"
     mach(source, ["repackage", "installer", "-o", str(installer), "--package-name", "kitsune", "--package", str(package),
                   "--tag", str(source / "browser/installer/windows/app.tag"),
                   "--setupexe", str(objdir / "browser/installer/windows/instgen/setup.exe"),
@@ -1600,9 +1696,35 @@ def finish_macos_package(layout: Layout, version: str, source: Path, env, logfil
     return dmg
 
 
-# Kitsune para descargar en Linux: el motor de Linux de esta receta, como los de Windows y macOS.
+def finish_macos_zero(layout: Layout, version: str, source: Path, env, logfile: Path, log=print, run=subprocess.run, target="macos"):
+    """Kitsune Zero para macOS: su app sale de la de Kitsune ya preparada (finish_macos_package), con su nombre, su
+    identificador, su icono y sus ajustes; se firma ad hoc entera y va en su propio .dmg."""
+    dist = layout.cache / f"obj-{version}-{target}" / "dist"
+    apps = [app for app in sorted(dist.glob("*/Kitsune.app")) if app.parent.name not in ("bin", "kitsune-zero")
+            and (app / "Contents/Resources/kitsune.cfg").is_file()]
+    if len(apps) != 1:
+        raise EngineError(f"No se encuentra la app de Kitsune preparada en {dist}")
+    zero = zero_macos_app(apps[0], dist / "kitsune-zero", log)
+    with logfile.open("a") as handle:
+        handle.write(f"\n=== {now()} rcodesign sign {zero.name}\n")
+        handle.flush()
+        signed = run(["rcodesign", "sign", str(zero)], env=env, stdin=subprocess.DEVNULL, stdout=handle, stderr=subprocess.STDOUT)
+    if signed.returncode != 0:
+        raise EngineError(f"No se pudo firmar la app de Kitsune Zero para macOS; detalles en {logfile}")
+    branding = source / "browser/branding/kitsune"
+    dmg = dist / f"kitsune-zero-{version}.en-US.mac.dmg"
+    mach(source, ["python", "-m", "mozbuild.action.make_dmg", "--dsstore", str(branding / "dsstore"),
+                  "--background", str(branding / "background.png"), "--icon", str(ZERO_BRANDING / "macos/disk.icns"),
+                  "--volume-name", ZERO_NAME, str(zero.parent), str(dmg)], env, logfile, run)
+    return dmg
+
+
+# Kitsune para descargar en Linux: el motor de Linux de esta receta, como los de Windows y macOS. Y Kitsune Zero, el
+# mismo motor con su marca, su lanzador (app-id kitsune-zero) y su instalador (linux-package/zero).
 LINUX_PACKAGE = HERE / "linux-package"
 LINUX_PACKAGE_FILES = ("instalar.sh", "desinstalar.sh")
+ZERO_LINUX_PACKAGE_FILES = ("instalar.sh", "desinstalar.sh", "kitsune-zero")
+ZERO_LINUX_ICONS = (16, 32, 48, 64, 128)
 # Kitsune Zero: la regla de su ventana de cristal en niri y, con su complemento, en Hyprland y GNOME.
 ZERO_LINUX_FILES = ("install-niri.sh", "kitsune-zero.kdl", "cristal.py")
 
@@ -1611,7 +1733,9 @@ def package_linux(layout: Layout, version: str, log=print, run=subprocess.run, c
                   addons=distribution_addons) -> Path:
     """Kitsune-<versión>-Linux-x86_64.tar.xz: el motor de Linux de esta receta con el inicio integrado
     (sin el servidor local ni los servicios del PC de Risco), kitsune.cfg, uBlock Origin, la versión
-    publicada (para el aviso de versión nueva) y un instalador para el menú de aplicaciones."""
+    publicada (para el aviso de versión nueva) y un instalador para el menú de aplicaciones. Y a su lado
+    Kitsune-Zero-<versión>-Linux-x86_64.tar.xz: lo mismo con la marca, el lanzador y el instalador de Kitsune Zero
+    y sus reglas de cristal (zero-linux/)."""
     release = published_release()
     package = layout.cache / "packages" / f"kitsune-{version}-{build_fingerprint(version)[:16]}.tar.xz"
     if not package.is_file():
@@ -1632,24 +1756,42 @@ def package_linux(layout: Layout, version: str, log=print, run=subprocess.run, c
         for name, path in install_files().items():
             shutil.copyfile(path, root / ("defaults/pref" if name == "autoconfig.js" else "") / name)
         release_prefs(root / "defaults/pref")
+        # Kitsune Zero: una copia antes de lo que solo es de Kitsune.
+        zero = stage / "kitsune-zero"
+        shutil.copytree(root, zero, symlinks=True)
         for name in LINUX_PACKAGE_FILES:
             shutil.copyfile(LINUX_PACKAGE / name, root / name)
             (root / name).chmod(0o755)
-        (root / "zero-linux").mkdir()
+        zero_prefs(zero / "defaults/pref")
+        zero_omni(zero / "browser/omni.ja")
+        icons = zero / "browser/chrome/icons/default"
+        icons.mkdir(parents=True, exist_ok=True)
+        for size in ZERO_LINUX_ICONS:
+            shutil.copyfile(ZERO_BRANDING / f"icon-{size}.png", icons / f"default{size}.png")
+        for name in ZERO_LINUX_PACKAGE_FILES:
+            shutil.copyfile(LINUX_PACKAGE / "zero" / name, zero / name)
+            (zero / name).chmod(0o755)
+        (zero / "zero-linux").mkdir()
         for name in ZERO_LINUX_FILES:
-            shutil.copyfile(ZERO / "linux" / name, root / "zero-linux" / name)
-            (root / "zero-linux" / name).chmod(0o644 if name.endswith(".kdl") else 0o755)
+            shutil.copyfile(ZERO / "linux" / name, zero / "zero-linux" / name)
+            (zero / "zero-linux" / name).chmod(0o644 if name.endswith(".kdl") else 0o755)
         log("Prueba de humo del paquete de Linux")
         check(root / "kitsune", version)
-        partial = archive.with_name(archive.name + ".part")
-        packed = run(["tar", "--sort=name", "--owner=0", "--group=0", "--numeric-owner", "-cJf", str(partial),
-                      "-C", str(stage), "kitsune"], capture_output=True, text=True)
-        if packed.returncode != 0:
-            partial.unlink(missing_ok=True)
-            raise EngineError("No se pudo empaquetar Kitsune para Linux")
-        os.replace(partial, archive)
-    log(f"Listo: {archive}")
+        check(zero / "kitsune", version)
+        for folder, name in (("kitsune", archive), ("kitsune-zero", zero_linux_archive(out, release))):
+            partial = name.with_name(name.name + ".part")
+            packed = run(["tar", "--sort=name", "--owner=0", "--group=0", "--numeric-owner", "-cJf", str(partial),
+                          "-C", str(stage), folder], capture_output=True, text=True)
+            if packed.returncode != 0:
+                partial.unlink(missing_ok=True)
+                raise EngineError("No se pudo empaquetar Kitsune para Linux")
+            os.replace(partial, name)
+            log(f"Listo: {name}")
     return archive
+
+
+def zero_linux_archive(out: Path, release: str) -> Path:
+    return out / f"Kitsune-Zero-{release}-Linux-x86_64.tar.xz"
 
 
 def build_target(layout: Layout, version: str, target: str, log=print, run=subprocess.run) -> list:
@@ -1693,13 +1835,38 @@ def build_target(layout: Layout, version: str, target: str, log=print, run=subpr
             dist = layout.cache / f"obj-{version}-{target}" / "dist"
             out = layout.private(layout.cache / "packages" / target)
             ready = []
-            for pattern in TARGET_ARTIFACTS[target]:
-                for artifact in sorted(dist.glob(pattern)):
-                    destination = out / artifact.name.replace("kitsune-", f"kitsune-{build_fp[:8]}-", 1)
-                    shutil.copyfile(artifact, destination)
-                    ready.append(destination)
+
+            def keep(patterns):
+                for pattern in patterns:
+                    for artifact in sorted(dist.glob(pattern)):
+                        destination = out / artifact.name.replace("kitsune-", f"kitsune-{build_fp[:8]}-", 1)
+                        shutil.copyfile(artifact, destination)
+                        ready.append(destination)
+            keep(TARGET_ARTIFACTS[target])
             if not ready:
                 raise EngineError(f"No se encontró el paquete de Kitsune para {target} tras compilar")
+            # Kitsune Zero, el navegador aparte (Risco, 15-10). En macOS sale de la app de Kitsune; en Windows, sus iconos
+            # van dentro de kitsune.exe: otra pasada (solo recursos, enlazado y empaquetado) con su marca, y la de
+            # Kitsune vuelve a su sitio al acabar.
+            if target.startswith("macos"):
+                finish_macos_zero(layout, version, source, env, logfile, log, run, target=target)
+            if target == "windows":
+                try:
+                    write_branding(source, "zero")
+                    for resource in (layout.cache / f"obj-{version}-{target}" / "browser").rglob("*.res"):
+                        resource.unlink()
+                    log(f"Kitsune Zero para {target}: su marca (registro: {logfile})")
+                    mach(source, ["build", f"-j{jobs}"], env, logfile, run)
+                    mach(source, ["package-multi-locale", "--locales", "en-US", *L10N_LOCALES], env, logfile, run)
+                    finish_windows_package(layout, version, source, env, logfile, log, run, product="zero")
+                finally:
+                    write_branding(source)
+                    for resource in (layout.cache / f"obj-{version}-{target}" / "browser").rglob("*.res"):
+                        resource.unlink()
+            before = len(ready)
+            keep(ZERO_TARGET_ARTIFACTS[target])
+            if len(ready) == before:
+                raise EngineError(f"No se encontró el paquete de Kitsune Zero para {target} tras compilar")
         except Exception as error:
             message = str(error) if isinstance(error, EngineError) else f"{type(error).__name__}: {error}"
             write_status(layout, building=None, lastTarget={"target": target, "version": version, "result": "error",

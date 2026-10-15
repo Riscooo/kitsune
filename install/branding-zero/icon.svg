@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256">
+  <!-- Kitsune Zero: la máscara en el cero (zero/assets/zero-logo.svg), en blanco sobre un cristal ahumado con el filo de una pompa. -->
+  <defs>
+    <radialGradient id="cristal" cx="30%" cy="18%" r="95%">
+      <stop offset="0" stop-color="#4a5163"/><stop offset=".55" stop-color="#1d212b"/><stop offset="1" stop-color="#0c0e13"/>
+    </radialGradient>
+    <linearGradient id="brillo" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#fff" stop-opacity=".22"/><stop offset=".45" stop-color="#fff" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="filo" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#ffe6f3"/><stop offset=".33" stop-color="#d6efff"/><stop offset=".66" stop-color="#ddffe7"/><stop offset="1" stop-color="#fff0d2"/>
+    </linearGradient>
+  </defs>
+  <rect x="8" y="8" width="240" height="240" rx="58" fill="url(#cristal)"/>
+  <rect x="8" y="8" width="240" height="240" rx="58" fill="url(#brillo)"/>
+  <rect x="10" y="10" width="236" height="236" rx="56" fill="none" stroke="url(#filo)" stroke-width="3.5" opacity=".9"/>
+  <g transform="translate(36 36) scale(.92)" color="#fff">
+    <circle cx="100" cy="100" r="90" fill="none" stroke="currentColor" stroke-width="9"/>
+    <g transform="translate(100 102) scale(.66) translate(-100 -101)" fill="none" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M100 178 L62 132 C50 112 48 84 56 52 L66 24 L92 58 L108 58 L134 24 L144 52 C152 84 150 112 138 132 Z" stroke="currentColor" stroke-width="12"/>
+      <path d="M72 50 L80.5 61.5 M128 50 L119.5 61.5" stroke="currentColor" stroke-width="10"/>
+      <path d="M72.5 103 Q82.5 95.5 92.5 104.5 M127.5 103 Q117.5 95.5 107.5 104.5" stroke="currentColor" stroke-width="10"/>
+    </g>
+  </g>
+</svg>
