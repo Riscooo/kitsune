@@ -40,6 +40,11 @@ const spaces = {
   select: (win, id) => spacesModule()?.switchTo(win, id),
   /** El editor de «Nuevo espacio» de Kitsune, junto a `anchor` (en Zero, la bolita del perfil). */
   openEditor: (win, anchor) => spacesModule()?.openEditor(win, anchor),
+  // Crear, cambiar (nombre, color, icono; lo demás se queda) y borrar (sus pestañas pasan al primero que
+  // quede; nunca el último): la ficha de perfil de Zero.
+  create: spec => spacesModule()?.create(spec) ?? null,
+  edit: (id, patch) => spacesModule()?.edit(id, patch),
+  remove: id => spacesModule()?.remove(id),
   watch(win, fn) {
     const doc = win.document;
     const observer = new win.MutationObserver(() => fn());

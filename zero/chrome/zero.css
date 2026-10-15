@@ -762,12 +762,12 @@
   box-shadow: 0 0 0 1.5px rgba(255, 255, 255, .9), 0 1px 3px rgba(0, 0, 0, .25);
 }
 .zero-profile-bubble img { width: 100%; height: 100%; object-fit: cover; }
-.zero-profile-bubble[data-color="blue"] { --zero-profile-ink: #4a7bd8; }
-.zero-profile-bubble[data-color="pink"] { --zero-profile-ink: #d65a9a; }
-.zero-profile-bubble[data-color="violet"] { --zero-profile-ink: #8a63d2; }
-.zero-profile-bubble[data-color="teal"] { --zero-profile-ink: #2fa59a; }
-.zero-profile-bubble[data-color="amber"] { --zero-profile-ink: #e3a03b; }
-.zero-profile-bubble[data-color="red"] { --zero-profile-ink: #d6574b; }
+:is(.zero-profile-bubble, .zero-profile-colors > button)[data-color="blue"] { --zero-profile-ink: #4a7bd8; }
+:is(.zero-profile-bubble, .zero-profile-colors > button)[data-color="pink"] { --zero-profile-ink: #d65a9a; }
+:is(.zero-profile-bubble, .zero-profile-colors > button)[data-color="violet"] { --zero-profile-ink: #8a63d2; }
+:is(.zero-profile-bubble, .zero-profile-colors > button)[data-color="teal"] { --zero-profile-ink: #2fa59a; }
+:is(.zero-profile-bubble, .zero-profile-colors > button)[data-color="amber"] { --zero-profile-ink: #e3a03b; }
+:is(.zero-profile-bubble, .zero-profile-colors > button)[data-color="red"] { --zero-profile-ink: #d6574b; }
 /* El modo: un interruptor vertical que se desliza entre currar (arriba, ámbar) y chill (abajo, verde
    agua); sin elegir, el botón queda en medio, apagado. */
 #zero-mode { height: 54px; padding: 0; cursor: pointer; }
@@ -778,29 +778,85 @@
 }
 #zero-mode[data-mode="work"] .zero-mode-knob { translate: 0 -12px; background: #ffb454; }
 #zero-mode[data-mode="chill"] .zero-mode-knob { translate: 0 12px; background: #8fe3c6; }
-/* El menú de perfiles: cristal ahumado (se lee sobre cualquier fondo), junto a la bolita. */
+/* Los perfiles, uno encima de otro (Risco, 15-10: «para cambiar de forma rápida»): el de ahora, entero y con
+   su aro; los demás, algo más pequeños y velados, y se encienden al pasar por encima. Debajo, el «+». */
+#zero-dock > #zero-profile { display: flex; flex-direction: column; align-items: center; gap: 5px; padding: 5px; }
+#zero-profile > .zero-profile-bubble {
+  opacity: .6; scale: .82;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, .5), 0 1px 3px rgba(0, 0, 0, .25);
+  transition: scale var(--zero-t-morph) var(--zero-calm), opacity var(--zero-t-fade) var(--zero-soft), box-shadow var(--zero-t-fade) var(--zero-soft);
+}
+#zero-profile > .zero-profile-bubble:hover { opacity: .95; scale: .9; }
+#zero-profile > .zero-profile-bubble[current] {
+  opacity: 1; scale: 1;
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, .95), 0 0 12px rgba(255, 255, 255, .3), 0 1px 3px rgba(0, 0, 0, .25);
+}
+#zero-profile > .zero-profile-add {
+  appearance: none; box-sizing: border-box; width: 22px; height: 22px; min-width: 0; margin: 0; padding: 0 0 2px; border: none; border-radius: 50%;
+  display: grid; place-items: center; color: #fff; font: 400 16px/1 system-ui, sans-serif; cursor: pointer;
+  background: rgba(255, 255, 255, .14); opacity: .7;
+  transition: opacity var(--zero-t-fade) var(--zero-soft), background-color var(--zero-t-fade) var(--zero-soft), scale var(--zero-t-morph) var(--zero-calm);
+}
+#zero-profile > .zero-profile-add:hover { opacity: 1; background: rgba(255, 255, 255, .26); scale: 1.08; }
+#zero-profile > .zero-profile-add[hidden] { display: none; }
+/* La ficha de un perfil: cristal ahumado (se lee sobre cualquier fondo), al lado de la pastilla. Lo que se
+   cambia se guarda al momento; «Borrar» pregunta antes, en la misma ficha. */
 #zero-profiles {
   position: fixed; z-index: 8; left: var(--zero-menu-x, 52px); top: var(--zero-menu-y, 50%);
-  min-width: 200px; padding: 6px; border-radius: 16px;
-  display: flex; flex-direction: column; gap: 2px;
-  background: rgba(24, 24, 28, .7); color: #fff; font: 500 13px system-ui, sans-serif;
+  box-sizing: border-box; width: 244px; padding: 12px; border-radius: 18px;
+  display: flex; flex-direction: column; gap: 10px;
+  background: rgba(24, 24, 28, .72); color: #fff; font: 500 13px system-ui, sans-serif;
+  backdrop-filter: blur(18px) saturate(1.6);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, .28), inset 0 0 18px rgba(255, 255, 255, .06), 0 20px 50px rgba(0, 0, 0, .35);
-  opacity: 0; scale: .96; transform-origin: left top; pointer-events: none; visibility: hidden;
-  transition: opacity var(--zero-t-fade) var(--zero-soft), scale var(--zero-t-morph) var(--zero-calm), visibility 0s linear var(--zero-t-fade);
+  opacity: 0; scale: .96; translate: -6px 0; transform-origin: left top; pointer-events: none; visibility: hidden;
+  transition: opacity var(--zero-t-fade) var(--zero-soft), scale var(--zero-t-morph) var(--zero-calm), translate var(--zero-t-morph) var(--zero-calm),
+              visibility 0s linear var(--zero-t-fade);
 }
-#zero-profiles[open] { opacity: 1; scale: 1; pointer-events: auto; visibility: visible; transition-delay: 0s; }
-#zero-profiles > button {
-  appearance: none; display: flex; align-items: center; gap: 10px; height: 34px; margin: 0; padding: 0 10px 0 6px; border: none;
-  border-radius: 10px; background: transparent; color: inherit; font: inherit; text-align: start; cursor: pointer;
-  transition: background-color 200ms var(--zero-soft);
+#zero-profiles[open] { opacity: 1; scale: 1; translate: 0 0; pointer-events: auto; visibility: visible; transition-delay: 0s; }
+/* (Con !important: los campos de Kitsune llevan su fondo claro y su aro de foco.) */
+#zero-profiles .zero-profile-name {
+  appearance: none !important; box-sizing: border-box; width: 100%; height: 34px; margin: 0 !important; padding: 0 12px !important;
+  border: none !important; border-radius: 11px !important; outline: none !important;
+  background: rgba(255, 255, 255, .1) !important; color: #fff !important; font: 600 14px system-ui, sans-serif;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .14) !important; transition: box-shadow 200ms var(--zero-soft), background-color 200ms var(--zero-soft);
 }
-#zero-profiles > button:hover { background-color: rgba(255, 255, 255, .1); }
-#zero-profiles > button[current] { background-color: rgba(255, 255, 255, .16); }
-#zero-profiles > button > .zero-profile-bubble { width: 24px; height: 24px; font-size: 11px; box-shadow: none; pointer-events: none; }
-#zero-profiles > button[current] > .zero-profile-bubble { box-shadow: 0 0 0 1.5px rgba(255, 255, 255, .9); }
-#zero-profiles .zero-profiles-sep { height: 1px; margin: 4px 6px; background: rgba(255, 255, 255, .14); }
-#zero-profiles .zero-profiles-plus { width: 24px; text-align: center; font-size: 17px; font-weight: 400; opacity: .8; }
-#zero-profiles > button[data-action="image"] { padding-inline-start: 40px; }
+#zero-profiles .zero-profile-name::placeholder { color: rgba(255, 255, 255, .45); }
+#zero-profiles .zero-profile-name::selection { background: rgba(255, 255, 255, .3); color: #fff; }
+#zero-profiles .zero-profile-name:focus { background: rgba(255, 255, 255, .14) !important; box-shadow: inset 0 0 0 1.5px rgba(255, 255, 255, .55) !important; }
+#zero-profiles .zero-profile-icons { display: grid; grid-template-columns: repeat(9, 1fr); gap: 2px; }
+#zero-profiles .zero-profile-icons > button {
+  appearance: none; box-sizing: border-box; height: 24px; min-width: 0; margin: 0; padding: 0; border: none; border-radius: 8px;
+  background: transparent; color: #fff; font: 600 13px/1 system-ui, sans-serif; cursor: pointer; transition: background-color 160ms var(--zero-soft);
+}
+#zero-profiles .zero-profile-icons > button[data-icon=""] { font-size: 10.5px; opacity: .85; }
+#zero-profiles .zero-profile-icons > button:hover { background: rgba(255, 255, 255, .12); }
+#zero-profiles .zero-profile-icons > button[aria-checked="true"] { background: rgba(255, 255, 255, .22); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .5); }
+#zero-profiles .zero-profile-colors { display: flex; justify-content: space-between; padding: 2px 6px; }
+#zero-profiles .zero-profile-colors > button {
+  appearance: none; box-sizing: border-box; width: 22px; height: 22px; min-width: 0; margin: 0; padding: 0; border: none; border-radius: 50%;
+  background: var(--zero-profile-ink); cursor: pointer; box-shadow: 0 1px 3px rgba(0, 0, 0, .3);
+  transition: scale var(--zero-t-morph) var(--zero-calm), box-shadow 200ms var(--zero-soft);
+}
+#zero-profiles .zero-profile-colors > button:hover { scale: 1.1; }
+#zero-profiles .zero-profile-colors > button[aria-checked="true"] { scale: 1.06; box-shadow: 0 0 0 2px rgba(24, 24, 28, .9), 0 0 0 3.5px #fff; }
+#zero-profiles .zero-profile-row { display: flex; gap: 6px; }
+#zero-profiles .zero-profile-row[hidden], #zero-profiles .zero-profile-row > [hidden] { display: none; }
+#zero-profiles .zero-profile-row > button {
+  appearance: none; flex: 1; box-sizing: border-box; height: 30px; min-width: 0; margin: 0; padding: 0 10px; border: none; border-radius: 10px;
+  background: rgba(255, 255, 255, .1); color: inherit; font: 500 12.5px system-ui, sans-serif; cursor: pointer;
+  transition: background-color 160ms var(--zero-soft), opacity 160ms var(--zero-soft);
+}
+#zero-profiles .zero-profile-row > button:hover { background: rgba(255, 255, 255, .18); }
+#zero-profiles .zero-profile-row > button[data-action="delete"] { color: #ffb4a8; }
+#zero-profiles .zero-profile-row > button[data-action="delete"]:disabled { opacity: .4; cursor: default; background: rgba(255, 255, 255, .06); }
+#zero-profiles .zero-profile-row > button[data-action="create"] { background: rgba(255, 255, 255, .9); color: #1d2321; font-weight: 600; }
+#zero-profiles .zero-profile-row > button[data-action="create"]:hover { background: #fff; }
+#zero-profiles .zero-profile-row > button[data-action="confirm"] { background: #d6574b; color: #fff; font-weight: 600; }
+#zero-profiles .zero-profile-row > button[data-action="confirm"]:hover { background: #e2685c; }
+#zero-profiles .zero-profile-confirm { display: none; flex-direction: column; gap: 8px; }
+#zero-profiles[confirming] .zero-profile-confirm { display: flex; }
+#zero-profiles[confirming] .zero-profile-foot { display: none; }
+#zero-profiles .zero-profile-question { font: 500 12.5px/1.4 system-ui, sans-serif; color: rgba(255, 255, 255, .92); }
 @media (prefers-reduced-motion: reduce) { #zero-profiles, #zero-mode .zero-mode-knob { transition-duration: 1ms; } }
 /* Los accesos directos: una pastilla con sus iconos (como los del raíl) y un «+» abajo. */
 #zero-dock > #zero-shortcuts { display: flex; flex-direction: column; gap: 4px; padding: 6px 5px; }

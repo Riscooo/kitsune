@@ -1,9 +1,12 @@
 /* Kitsune Zero · los perfiles y su modo: las dos pastillas de arriba de la columna de la izquierda.
  *
- * Decisión de Risco (15-10): entre los botones de ventana y la marca, una columna de pastillas: arriba el
- * perfil (una bolita, la del perfil en el que estás; al pulsarla, un menú con tus perfiles, «Nuevo perfil»
- * e «Imagen»), debajo un interruptor para pasar entre «Currar» y «Chill», en medio las pestañas y abajo los
- * accesos directos. «Así también aprovechamos la barra de la izquierda.»
+ * Decisión de Risco (15-10): entre los botones de ventana y la marca, una columna de pastillas: arriba los
+ * perfiles, debajo un interruptor para pasar entre «Currar» y «Chill», en medio las pestañas y abajo los
+ * accesos directos. «Así también aprovechamos la barra de la izquierda.» Y por la tarde: «que me salgan los
+ * diferentes perfiles uno encima de otro para cambiar de forma rápida», y poder editarlos y borrarlos. En la
+ * pastilla, una bolita por perfil (la del de ahora, entera y con su aro) y un «+»: un clic en otra cambia de
+ * perfil; en la de ahora (o el clic derecho en cualquiera), su ficha al lado: nombre, icono, color, imagen
+ * y «Borrar» (pregunta antes; sus pestañas pasan al primero que quede; el último no se borra).
  *
  * Los perfiles son los espacios del navegador (host.spaces; en Kitsune, sus espacios): cada uno guarda sus
  * pestañas (las de los demás se esconden), su color, su icono y, si se quiere, su usuario (su contenedor).
@@ -28,6 +31,10 @@ const DEFAULTS = Object.freeze({
   chill: { [PREFS.pomodoro]: false, [PREFS.silence]: false, [PREFS.sounds]: false },
 });
 const state = new WeakMap();
+// Como los espacios de Kitsune: sus seis tintas, hasta nueve y unos iconos a mano (o su inicial).
+const COLORS = Object.freeze(['blue', 'pink', 'violet', 'teal', 'amber', 'red']);
+const ICONS = Object.freeze(['🦊', '💼', '🎓', '🏠', '🎮', '🎵', '📚', '✈️']);
+const MAX_PROFILES = 9;
 
 const el = (doc, tag, attrs = {}, kids = []) => {
   const node = doc.createElementNS(HTML, tag);
@@ -109,44 +116,95 @@ function render(win, st) {
   const doc = win.document;
   const { list, current } = profilesOf(win, st);
   const images = readJSON(st.host, IMAGES_PREF, {});
-  const profile = list.find(p => p.id === current) ?? list[0];
-  paintBubble(doc, st.bubble, profile, images);
-  const mode = modeOf(st, profile.id);
+  // La pila: una bolita por perfil, en su orden, y el «+» debajo (hasta nueve).
+  const nodes = list.map(profile => {
+    let node = st.bubbles.get(profile.id);
+    if (!node) { node = el(doc, 'button', { type: 'button', class: 'zero-profile-bubble' }); st.bubbles.set(profile.id, node); }
+    paintBubble(doc, node, profile, images);
+    const on = profile.id === current;
+    node.toggleAttribute('current', on);
+    node.setAttribute('aria-pressed', String(on));
+    node.setAttribute('aria-label', on ? `${st.t('Perfil', 'Profile')}: ${profile.name}` : `${st.t('Cambiar a', 'Switch to')} ${profile.name}`);
+    node.title = on ? `${profile.name} · ${st.t('clic para editarlo', 'click to edit')}` : profile.name;
+    return node;
+  });
+  for (const [id, node] of st.bubbles) if (!list.some(profile => profile.id === id)) { node.remove(); st.bubbles.delete(id); }
+  st.add.hidden = list.length >= MAX_PROFILES;
+  const want = [...nodes, st.add], now = [...st.pill.children];
+  if (now.length !== want.length || now.some((node, i) => node !== want[i])) st.pill.replaceChildren(...want);
+
+  const mode = modeOf(st, current);
   const words = { work: st.t('Currar', 'Work'), chill: st.t('Chill', 'Chill') };
-  st.bubble.setAttribute('aria-label', `${st.t('Perfil', 'Profile')}: ${profile.name}`);
-  st.bubble.title = profile.name;
   if (mode) st.mode.dataset.mode = mode; else delete st.mode.dataset.mode;
   st.mode.setAttribute('aria-pressed', String(mode === 'work'));
   st.mode.setAttribute('aria-label', mode ? `${st.t('Modo', 'Mode')}: ${words[mode]}` : st.t('Modo: elige Currar o Chill', 'Mode: choose Work or Chill'));
   st.mode.title = mode ? words[mode] : `${words.work} / ${words.chill}`;
-  if (st.menu.hasAttribute('open')) fillMenu(win, st);
+  if (st.menu.hasAttribute('open')) fillEditor(win, st);
 }
 
-function fillMenu(win, st) {
-  const doc = win.document;
-  const { list, current } = profilesOf(win, st);
-  const images = readJSON(st.host, IMAGES_PREF, {});
-  const rows = list.map(profile => {
-    const bubble = el(doc, 'span', { class: 'zero-profile-bubble', 'aria-hidden': 'true' });
-    paintBubble(doc, bubble, profile, images);
-    const row = el(doc, 'button', { type: 'button', role: 'menuitemradio', 'data-space': profile.id }, [bubble, el(doc, 'span', {}, [profile.name])]);
-    row.toggleAttribute('current', profile.id === current);
-    row.setAttribute('aria-checked', String(profile.id === current));
-    return row;
-  });
-  st.menu.replaceChildren(...rows, el(doc, 'span', { class: 'zero-profiles-sep', 'aria-hidden': 'true' }),
-    el(doc, 'button', { type: 'button', role: 'menuitem', 'data-action': 'new' }, [el(doc, 'span', { class: 'zero-profiles-plus', 'aria-hidden': 'true' }, ['+']), st.t('Nuevo perfil', 'New profile')]),
-    el(doc, 'button', { type: 'button', role: 'menuitem', 'data-action': 'image' }, [st.t('Imagen', 'Picture')]));
+/** La ficha de un perfil (o en blanco, para uno nuevo): cristal ahumado, al lado de la pastilla. */
+function buildEditor(win, st) {
+  const doc = win.document, t = st.t;
+  const action = (name, label) => el(doc, 'button', { type: 'button', 'data-action': name }, [label]);
+  st.name = el(doc, 'input', { type: 'text', class: 'zero-profile-name', maxlength: '24', placeholder: t('Nombre', 'Name'), 'aria-label': t('Nombre del perfil', 'Profile name') });
+  st.icons = el(doc, 'div', { class: 'zero-profile-icons', role: 'radiogroup', 'aria-label': t('Icono', 'Icon') },
+    ['', ...ICONS].map(icon => el(doc, 'button', { type: 'button', role: 'radio', 'data-icon': icon, title: icon || t('Su inicial', 'Its initial') }, [icon || 'Aa'])));
+  const colorNames = { blue: t('Añil', 'Indigo'), pink: t('Rosa', 'Pink'), violet: t('Violeta', 'Violet'), teal: t('Jade', 'Jade'), amber: t('Ámbar', 'Amber'), red: t('Óxido', 'Rust') };
+  st.colors = el(doc, 'div', { class: 'zero-profile-colors', role: 'radiogroup', 'aria-label': t('Color', 'Colour') },
+    COLORS.map(color => el(doc, 'button', { type: 'button', role: 'radio', 'data-color': color, title: colorNames[color], 'aria-label': colorNames[color] })));
+  st.pictures = el(doc, 'div', { class: 'zero-profile-row' }, [action('image', t('Poner imagen…', 'Set picture…')), action('unimage', t('Quitar imagen', 'Remove picture'))]);
+  st.foot = el(doc, 'div', { class: 'zero-profile-row zero-profile-foot' }, [action('delete', t('Borrar perfil', 'Delete profile')), action('create', t('Crear', 'Create'))]);
+  st.question = el(doc, 'span', { class: 'zero-profile-question' });
+  st.confirm = el(doc, 'div', { class: 'zero-profile-confirm' }, [st.question, el(doc, 'div', { class: 'zero-profile-row' }, [action('cancel', t('Cancelar', 'Cancel')), action('confirm', t('Borrar', 'Delete'))])]);
+  st.menu = el(doc, 'div', { id: 'zero-profiles', role: 'dialog', 'aria-label': t('Perfil', 'Profile') }, [st.name, st.icons, st.colors, st.pictures, st.foot, st.confirm]);
 }
 
-function openMenu(win, st) {
-  const r = st.pill.getBoundingClientRect();
-  st.menu.style.setProperty('--zero-menu-x', `${Math.round(r.right + 8)}px`);
-  st.menu.style.setProperty('--zero-menu-y', `${Math.round(r.top)}px`);
-  fillMenu(win, st);
+/** Lo que enseña la ficha: lo del perfil (o lo del borrador de uno nuevo). */
+function fillEditor(win, st) {
+  const { list } = profilesOf(win, st);
+  const id = st.menu.dataset.space;
+  const profile = id ? list.find(item => item.id === id) : null;
+  if (id && !profile) { closeMenu(st); return; } // lo han borrado
+  const value = profile ?? st.draft;
+  for (const button of st.icons.children) button.setAttribute('aria-checked', String(button.dataset.icon === (value.icon || '')));
+  for (const button of st.colors.children) button.setAttribute('aria-checked', String(button.dataset.color === value.color));
+  st.pictures.hidden = !profile;
+  st.pictures.querySelector('[data-action=unimage]').hidden = !readJSON(st.host, IMAGES_PREF, {})[id];
+  st.foot.querySelector('[data-action=create]').hidden = !!profile;
+  const remove = st.foot.querySelector('[data-action=delete]');
+  remove.hidden = !profile;
+  remove.disabled = list.length <= 1;
+  remove.title = list.length <= 1 ? st.t('Es tu único perfil', 'It is your only profile') : '';
+}
+
+function openEditor(win, st, id, anchor) {
+  const { list } = profilesOf(win, st);
+  const profile = id ? list.find(item => item.id === id) : null;
+  if (id && !profile) return;
+  const used = new Set(list.map(item => item.color));
+  st.draft = profile ? null : { name: '', icon: '', color: COLORS.find(color => !used.has(color)) ?? COLORS[list.length % COLORS.length] };
+  st.menu.dataset.space = profile?.id ?? '';
+  st.menu.removeAttribute('confirming');
+  st.name.value = profile?.name ?? '';
+  fillEditor(win, st);
+  const pill = st.pill.getBoundingClientRect(), at = (anchor ?? st.pill).getBoundingClientRect();
+  st.menu.style.setProperty('--zero-menu-x', `${Math.round(pill.right + 10)}px`);
+  st.menu.style.setProperty('--zero-menu-y', `${Math.round(Math.max(8, Math.min(at.top - 12, win.innerHeight - st.menu.offsetHeight - 8)))}px`);
   st.menu.setAttribute('open', '');
+  st.name.focus();
+  if (profile) st.name.select();
 }
-const closeMenu = st => st.menu.removeAttribute('open');
+const closeMenu = st => { st.menu.removeAttribute('open'); st.menu.removeAttribute('confirming'); };
+
+/** Lo que Zero guarda de un perfil que se va: su modo, su imagen y sus accesos directos. */
+function forget(st, id) {
+  const modes = readJSON(st.host, MODES_PREF, {});
+  if (modes.profiles?.[id]) { delete modes.profiles[id]; writeJSON(st.host, MODES_PREF, modes); }
+  for (const name of [IMAGES_PREF, 'shortcuts']) {
+    const all = readJSON(st.host, name, {});
+    if (all && id in all) { delete all[id]; writeJSON(st.host, name, all); }
+  }
+}
 
 /** Una imagen para el perfil: se elige un archivo y se guarda pequeña (64 px), como data:. */
 function chooseImage(win, st, id) {
@@ -180,26 +238,85 @@ export function attach(win, ctx) {
   state.set(win, st);
   const listen = (target, type, fn, options) => { target.addEventListener(type, fn, options); st.cleanups.push(() => target.removeEventListener(type, fn, options)); };
 
-  st.bubble = el(doc, 'button', { type: 'button', class: 'zero-profile-bubble', 'aria-haspopup': 'menu' });
-  st.pill = el(doc, 'div', { id: 'zero-profile', class: 'zero-pill' }, [st.bubble]);
+  st.bubbles = new Map();
+  st.add = el(doc, 'button', { type: 'button', class: 'zero-profile-add', title: t('Nuevo perfil', 'New profile'), 'aria-label': t('Nuevo perfil', 'New profile') }, ['+']);
+  st.pill = el(doc, 'div', { id: 'zero-profile', class: 'zero-pill', role: 'group', 'aria-label': t('Perfiles', 'Profiles') }, [st.add]);
   st.mode = el(doc, 'button', { type: 'button', id: 'zero-mode', class: 'zero-pill' }, [el(doc, 'span', { class: 'zero-mode-knob', 'aria-hidden': 'true' })]);
-  st.menu = el(doc, 'div', { id: 'zero-profiles', role: 'menu', 'aria-label': t('Perfiles', 'Profiles') });
+  buildEditor(win, st);
   dock.prepend(st.pill, st.mode);
   doc.body.append(st.menu);
   st.cleanups.push(() => { st.pill.remove(); st.mode.remove(); st.menu.remove(); });
 
-  st.bubble.addEventListener('click', () => { if (st.menu.hasAttribute('open')) closeMenu(st); else openMenu(win, st); });
+  const after = promise => void Promise.resolve(promise).then(() => render(win, st), error => { console.error('Zero: perfiles', error); render(win, st); });
+  st.pill.addEventListener('click', event => {
+    if (event.target.closest('.zero-profile-add')) {
+      if (st.menu.hasAttribute('open') && !st.menu.dataset.space) closeMenu(st); else openEditor(win, st, null, st.add);
+      return;
+    }
+    const bubble = event.target.closest('.zero-profile-bubble[data-space]');
+    if (!bubble) return;
+    const { current } = profilesOf(win, st);
+    if (bubble.dataset.space === current) {
+      if (st.menu.hasAttribute('open') && st.menu.dataset.space === current) closeMenu(st); else openEditor(win, st, current, bubble);
+      return;
+    }
+    closeMenu(st);
+    after(host.spaces?.select(win, bubble.dataset.space));
+  });
+  st.pill.addEventListener('contextmenu', event => {
+    const bubble = event.target.closest('.zero-profile-bubble[data-space]');
+    if (!bubble) return;
+    event.preventDefault();
+    openEditor(win, st, bubble.dataset.space, bubble);
+  });
   st.mode.addEventListener('click', () => setMode(win, st, modeOf(st, profilesOf(win, st).current) === 'work' ? 'chill' : 'work'));
+
+  // La ficha: lo que se cambia, al momento; uno nuevo, al pulsar «Crear» (o Intro).
+  const editing = () => st.menu.dataset.space || null;
+  const change = patch => { const id = editing(); if (id) after(host.spaces?.edit(id, patch)); else { Object.assign(st.draft, patch); fillEditor(win, st); } };
+  const create = () => {
+    const { list } = profilesOf(win, st);
+    const name = st.name.value.trim() || `${t('Perfil', 'Profile')} ${list.length + 1}`;
+    const { color, icon } = st.draft;
+    closeMenu(st);
+    after(Promise.resolve(host.spaces?.create({ name, color, icon, user: null })).then(id => id && host.spaces?.select(win, id)));
+  };
+  const rename = () => {
+    const id = editing(), name = st.name.value.trim();
+    if (!id) return;
+    const profile = profilesOf(win, st).list.find(item => item.id === id);
+    if (!name) { st.name.value = profile?.name ?? ''; return; }
+    if (profile && name !== profile.name) change({ name });
+  };
+  st.name.addEventListener('change', rename);
+  st.name.addEventListener('keydown', event => {
+    if (event.key !== 'Enter') return;
+    event.preventDefault();
+    if (editing()) rename(); else create();
+  });
   st.menu.addEventListener('click', event => {
     const button = event.target.closest('button');
-    if (!button) return;
-    closeMenu(st);
-    if (button.dataset.space) { void Promise.resolve(host.spaces?.select(win, button.dataset.space)).catch(() => {}); return; }
-    if (button.dataset.action === 'new') host.spaces?.openEditor?.(win, st.bubble);
-    else if (button.dataset.action === 'image') chooseImage(win, st, profilesOf(win, st).current);
+    if (!button || button.disabled) return;
+    if ('icon' in button.dataset) { change({ icon: button.dataset.icon }); return; }
+    if (button.dataset.color) { change({ color: button.dataset.color }); return; }
+    const id = editing(), action = button.dataset.action;
+    if (action === 'create') create();
+    else if (action === 'image' && id) { closeMenu(st); chooseImage(win, st, id); }
+    else if (action === 'unimage' && id) { const images = readJSON(host, IMAGES_PREF, {}); delete images[id]; writeJSON(host, IMAGES_PREF, images); }
+    else if (action === 'delete' && id) {
+      const { list } = profilesOf(win, st);
+      const profile = list.find(item => item.id === id), next = list.find(item => item.id !== id);
+      if (!profile || !next) return;
+      st.question.textContent = t(`¿Borrar «${profile.name}»? Sus pestañas pasan a «${next.name}».`, `Delete «${profile.name}»? Its tabs move to «${next.name}».`);
+      st.menu.setAttribute('confirming', '');
+    } else if (action === 'cancel') st.menu.removeAttribute('confirming');
+    else if (action === 'confirm' && id) {
+      closeMenu(st);
+      after(Promise.resolve(host.spaces?.remove(id)).then(() => forget(st, id)));
+    }
   });
   listen(win, 'mousedown', event => { if (st.menu.hasAttribute('open') && !st.menu.contains(event.target) && !st.pill.contains(event.target)) closeMenu(st); }, true);
-  listen(win, 'keydown', event => { if (event.key === 'Escape') closeMenu(st); }, true);
+  listen(win, 'keydown', event => { if (event.key === 'Escape' && st.menu.hasAttribute('open')) closeMenu(st); }, true);
 
   // Al cambiar de perfil (de espacio), su modo; y lo de la bolita.
   st.last = profilesOf(win, st).current;
