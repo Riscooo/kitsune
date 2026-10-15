@@ -144,7 +144,10 @@ function render(win, st) {
     node.setAttribute('aria-label', label);
     return node;
   });
-  st.box.replaceChildren(...nodes);
+  // Solo si cambia algo: quitar y volver a poner las bolitas en cada cambio de pestaña movía el raíl (y su
+  // efecto Dock) bajo el ratón.
+  const now = [...st.box.children];
+  if (now.length !== nodes.length || now.some((node, i) => node !== nodes[i])) st.box.replaceChildren(...nodes);
   st.users = users;
 }
 

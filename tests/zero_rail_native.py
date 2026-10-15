@@ -416,6 +416,8 @@ def main():
 
         def modified_click(selector, key):
             driver.context('chrome')
+            # La fila, a la vista dentro del raíl (con muchas pestañas, el raíl se desplaza).
+            chrome("document.querySelector(arguments[0])?.scrollIntoView({ block: 'nearest' })", [selector])
             target = element(selector)
             driver.command('POST', '/actions', {'actions': [
                 {'type': 'key', 'id': 'teclado', 'actions': [{'type': 'keyDown', 'value': key}, {'type': 'pause', 'duration': 0}, {'type': 'pause', 'duration': 0}, {'type': 'pause', 'duration': 0}, {'type': 'keyUp', 'value': key}]},
@@ -430,17 +432,22 @@ def main():
         nth = lambda label: f'#zero-rail .zero-tab[aria-label="{label}"]'
         others = [r for r in rows if r != first][:3]
         CTRL, SHIFT = '', ''
+        step = 'inicio'
         try:
+            step = 'Ctrl + clic añade'
             modified_click(nth(others[1]), CTRL)
             until(lambda: set(chrome(marked)['gecko']) == {first, others[1]} and set(chrome(marked)['rail']) >= {others[1]} and chrome(marked)['ring'], timeout=5)
+            step = 'Ctrl + clic quita'
             modified_click(nth(others[1]), CTRL)
             until(lambda: chrome(marked)['gecko'] == [first], timeout=5)
+            step = 'Mayús + clic, un tramo'
             modified_click(nth(others[2]), SHIFT)
             until(lambda: len(chrome(marked)['gecko']) >= 3, timeout=5)
+            step = 'un clic deja solo esa'
             driver.command('POST', f"/element/{list(element(nth(others[0])).values())[0]}/click", {})
             until(lambda: chrome(marked)['gecko'] == [others[0]] and chrome(marked)['rail'] == [], timeout=5)
         except AssertionError:
-            raise AssertionError(f'varias a la vez: {chrome(marked)}') from None
+            raise AssertionError(f'varias a la vez ({step}; primera {first!r}, otras {others}): {chrome(marked)}') from None
         check('Varias a la vez: Ctrl + clic añade o quita, Mayús + clic un tramo, y se ven marcadas')
 
         chrome("gBrowser.selectedTab = gBrowser.visibleTabs.find(t => !t.pinned)")
