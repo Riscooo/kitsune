@@ -78,7 +78,7 @@ function zeroSection(win, host) {
       {
         // Quien ya sabe qué hace cada cosa no necesita la «i».
         kind: 'switch', id: PREFS.hints,
-        label: host.t('La «i» de ayuda', 'The help «i»'),
+        label: 'Info',
         get: () => { try { return prefs.getBoolPref(prefName(prefix, PREFS.hints), true); } catch { return true; } },
         set: on => prefs.setBoolPref(prefName(prefix, PREFS.hints), !!on),
         watch: watchPref(PREFS.hints),

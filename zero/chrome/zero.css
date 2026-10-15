@@ -1044,8 +1044,12 @@
   background: var(--zero-glass-fill);
   backdrop-filter: blur(10px) saturate(1.7) brightness(1.06);
   box-shadow: var(--zero-glass-edge);
-  transition: width var(--zero-t-morph) var(--zero-calm) var(--zero-wait), opacity var(--zero-t-fade) var(--zero-soft), transform var(--zero-t-morph) var(--zero-calm), color var(--zero-t-ink) var(--zero-soft);
+  /* Al cerrarse, sin tirones (Risco, 15-10): la hora se apaga primero, en su sitio, y luego la píldora y
+     sus botones se recogen a la vez (antes los botones encogían solos y la hora se deslizaba 40 px). */
+  --zero-pomo-wait: 130ms;
+  transition: width var(--zero-t-morph) var(--zero-calm) var(--zero-pomo-wait), opacity var(--zero-t-fade) var(--zero-soft), transform var(--zero-t-morph) var(--zero-calm), color var(--zero-t-ink) var(--zero-soft);
 }
+@media (prefers-reduced-motion: reduce) { #zero-pomo { --zero-pomo-wait: 0ms; } }
 #zero-pomo:is(:hover, :focus-within) { width: 140px; transition-delay: 0ms; }
 /* En pausa, la hora a media luz (sin decir «En pausa»: lo dice el anillo). */
 #zero-pomo[paused] .zero-pomo-label { opacity: .55; }
@@ -1054,14 +1058,17 @@
 #zero-pomo .zero-pomo-label {
   flex: 1; min-width: 0; padding-inline: 12px 4px; white-space: nowrap; overflow: hidden; text-align: right;
   opacity: 0; filter: blur(3px); transform: translateX(6px);
-  transition: opacity var(--zero-t-fade) var(--zero-soft), filter var(--zero-t-fade) var(--zero-soft), transform var(--zero-t-morph) var(--zero-calm);
+  transition: opacity 120ms var(--zero-soft), filter 120ms var(--zero-soft), transform var(--zero-t-morph) var(--zero-calm) var(--zero-pomo-wait);
 }
-#zero-pomo:is(:hover, :focus-within) .zero-pomo-label { opacity: 1; filter: none; transform: none; transition-delay: var(--zero-enter); }
+#zero-pomo:is(:hover, :focus-within) .zero-pomo-label {
+  opacity: 1; filter: none; transform: none;
+  transition: opacity var(--zero-t-fade) var(--zero-soft) var(--zero-enter), filter var(--zero-t-fade) var(--zero-soft) var(--zero-enter), transform var(--zero-t-morph) var(--zero-calm) var(--zero-enter);
+}
 #zero-pomo .zero-pomo-action {
   appearance: none; flex: none; box-sizing: border-box; width: 0; height: 24px; min-width: 0; margin: 0; padding: 0;
   border: none; border-radius: 50%; background: transparent; color: inherit; cursor: pointer; overflow: hidden;
   opacity: 0;
-  transition: width var(--zero-t-morph) var(--zero-calm), opacity var(--zero-t-fade) var(--zero-soft), background-color 200ms var(--zero-soft);
+  transition: width var(--zero-t-morph) var(--zero-calm) var(--zero-pomo-wait), opacity 120ms var(--zero-soft), background-color 200ms var(--zero-soft);
 }
 #zero-pomo .zero-pomo-action::before {
   content: ""; display: block; width: 24px; height: 24px; background-color: currentColor;

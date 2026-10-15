@@ -9,7 +9,7 @@
 4. No salen filas de fases sin hacer (pomodoro, silencio, sonidos…).
 5. Con la web ampliada la marca se aparta, y vuelve al acercarse al borde izquierdo.
 7. Sin textos descriptivos bajo las opciones: las que lo tienen llevan una «i» que, con el ratón encima,
-   lo dice en una etiqueta junto a ella; la fila «La i de ayuda» las quita todas (y las vuelve a poner).
+   lo dice en una etiqueta junto a ella; la fila «Info» las quita todas (y las vuelve a poner).
 6. Los ajustes no repiten el atajo en la cabecera. Nada pasa de golpe: al encender una opción, sus filas
    entran con una animación (y al apagarla se van igual); el interruptor que se pulsa es el mismo (no se
    rehace) y su bolita recorre el camino; en un segmento, la pastilla de la elegida se desliza hasta ella.
@@ -227,6 +227,9 @@ def main():
         until(lambda: (t := chrome(hints)['tip']) and t['shown'] and t['text'] == detail, timeout=5)
         pointer([{'type': 'pointerMove', 'origin': 'viewport', 'x': 1200, 'y': 400}])
         until(lambda: not chrome(hints)['tip']['shown'], timeout=5)
+        # Se llama «Info», sin más (Risco, 15-10).
+        name = chrome("return document.querySelector('#zero-settings [data-pref=\"hints\"]').closest('.zero-row').textContent.trim()")
+        assert name == 'Info', f'la fila de la «i» se llama {name!r}'
         click('#zero-settings [data-pref="hints"]')
         until(lambda: chrome(hints)['infos'] == 0 and chrome("return Services.prefs.getBoolPref('kitsune.zero.hints', true)") is False, timeout=5)
         click('#zero-settings [data-pref="hints"]')

@@ -18,6 +18,8 @@ El tiempo se adelanta con el reloj del módulo (clock.now), para no esperar 25 m
 10. Apagarlo quita todo.
 11. Un clic en el texto del tiempo no pausa (solo el anillo empieza o pausa), y con el teclado el
     anillo se abre igual que con el ratón.
+12. Al cerrarse, sin tirones (Risco, 15-10): la hora se apaga en su sitio (mientras se ve no se desliza) y
+    la píldora y sus botones se recogen a la vez, sin saltos de un fotograma a otro.
 
 --zero-del-repo: Zero sale de zero/ del repositorio (ver zero_harness.py).
 """
@@ -228,6 +230,32 @@ def main():
         until(lambda: state()['pomo']['labelSeen'] and chrome("return document.querySelector('#zero-pomo [data-action=skip]').getBoundingClientRect().width") > 10)
         chrome("document.querySelector('#zero-pomo .zero-pomo-ring').blur()")
         check('Un clic en el texto no pausa, y con el teclado el anillo se abre igual')
+
+        # El cierre, fotograma a fotograma (se graba dentro de la ventana: Marionette hace una cosa cada vez).
+        pointer([{'type': 'pointerMove', 'origin': element('#zero-pomo'), 'x': 0, 'y': 0}])
+        until(lambda: state()['pomo']['labelSeen'] and chrome("return document.querySelector('#zero-pomo [data-action=skip]').getBoundingClientRect().width") > 23)
+        time.sleep(0.8)
+        chrome("""window.__pomo = []; const t0 = performance.now(); const p = document.getElementById('zero-pomo');
+            const label = p.querySelector('.zero-pomo-label');
+            const step = () => { const r = label.getBoundingClientRect(), q = p.getBoundingClientRect();
+              window.__pomo.push({ right: r.right, op: +getComputedStyle(label).opacity, w: q.width, acts: [...p.querySelectorAll('.zero-pomo-action')].map(a => a.getBoundingClientRect().width) });
+              if (performance.now() - t0 < 1200) requestAnimationFrame(step); };
+            requestAnimationFrame(step);""")
+        away()
+        time.sleep(1.5)
+        rec = chrome("return window.__pomo")
+        seen = [f for f in rec if f['op'] >= 0.15]
+        drift = max(abs(f['right'] - rec[0]['right']) for f in seen)
+        # Un salto: un fotograma que se mueve mucho más que sus vecinos (la velocidad del cierre depende de
+        # los fotogramas por segundo; un pico no).
+        moves = [abs(b['w'] - a['w']) for a, b in zip(rec, rec[1:])]
+        steps = max((moves[i] - (moves[i - 1] + moves[i + 1]) / 2 for i in range(1, len(moves) - 1)), default=0)
+        # Los botones se recogen con la píldora: mientras la píldora no se ha movido, ellos tampoco.
+        early = [f for f in rec if abs(f['w'] - rec[0]['w']) < 0.5]
+        apart = max((abs(f['acts'][0] - rec[0]['acts'][0]) for f in early), default=0)
+        assert drift <= 4 and steps <= 4 and apart <= 0.5 and rec[-1]['w'] <= 33, \
+            f'cierre con tirón: la hora se desliza {drift:.1f} px mientras se ve, pico de {steps:.1f} px sobre sus vecinos, botones antes que la píldora {apart:.1f} px · {rec[-1]}'
+        check('Al cerrarse, la hora se apaga en su sitio y la píldora se recoge sin tirones')
 
         chrome("Services.prefs.setBoolPref('kitsune.zero.pomodoro', false)")
         until(lambda: state()['pomo'] is None and state()['brk'] is None)
