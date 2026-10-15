@@ -21,6 +21,10 @@
     sonando, todo cabe en la isla.
 11. Con el modo compacto de Kitsune (Ctrl+Alt+C), la isla sigue a la vista: Zero ya es lo mínimo, y
     escondida no volvía ni con el ratón arriba.
+12. Buscar en la página, como la isla: una píldora flotante abajo, centrada en la tarjeta y separada de
+    su borde, sobre la web sin encogerla; sus opciones (resaltar todo, mayúsculas…) asoman al pasar el
+    ratón por encima, no a todas horas. Con DevTools abajo, la barra de siempre (flotando taparía la
+    consola).
 
 --zero-del-repo: Zero sale de zero/ del repositorio (ver zero_harness.py).
 """
@@ -242,6 +246,40 @@ def main():
             raise AssertionError(f'compacto: {chrome(island)}') from None
         chrome("Services.prefs.clearUserPref('kitsune.compact.enabled')")
         check('Con el modo compacto de Kitsune, la isla sigue a la vista')
+
+        find = """const fb = gBrowser.getCachedFindBar(); const r = fb.getBoundingClientRect(); const c = gBrowser.selectedBrowser.closest('.browserContainer').getBoundingClientRect();
+            const options = [...fb.querySelectorAll('checkbox')].map(o => Number(getComputedStyle(o).opacity) > 0.5 && o.getBoundingClientRect().height > 10);
+            return { open: !fb.hidden, left: r.left, right: r.right, bottom: r.bottom, w: r.width, card: [c.left, c.right, c.bottom], radius: parseFloat(getComputedStyle(fb).borderTopLeftRadius),
+                     web: gBrowser.selectedBrowser.getBoundingClientRect().height, options };"""
+        # En una pestaña nueva: la de antes puede seguir con el diálogo de imprimir cerrándose.
+        chrome("gBrowser.selectedTab = gBrowser.addTab(arguments[0], { triggeringPrincipal: Services.scriptSecurityManager.getSystemPrincipal() })", [origin + '/'])
+        eventually(lambda: chrome("return !gBrowser.selectedTab.hasAttribute('busy') && gBrowser.selectedBrowser.currentURI.spec") == origin + '/', timeout=5)
+        web = chrome("return gBrowser.selectedBrowser.getBoundingClientRect().height")
+        chrome("gBrowser.getFindBar().then(fb => fb.open())")
+        def floating(f):
+            centre = (f['card'][0] + f['card'][1]) / 2
+            return (f['open'] and abs((f['left'] + f['right']) / 2 - centre) <= 2 and f['w'] <= 620 and f['card'][2] - f['bottom'] >= 8
+                    and f['radius'] >= 12 and abs(f['web'] - web) < 1)
+        try:
+            eventually(lambda: floating(f := chrome(find)) and not any(f['options']), timeout=5)
+            driver.context('chrome')
+            bar = driver.command('POST', '/element', {'using': 'css selector', 'value': '.deck-selected findbar'})
+            driver.command('POST', '/actions', {'actions': [{'type': 'pointer', 'id': 'raton', 'parameters': {'pointerType': 'mouse'}, 'actions': [{'type': 'pointerMove', 'origin': bar, 'x': 0, 'y': 0}]}]})
+            eventually(lambda: floating(f := chrome(find)) and all(f['options']), timeout=5)
+        except AssertionError:
+            raise AssertionError(f'buscar: {chrome(find)} · la web medía {web} · encima {chrome("const r = gBrowser.getCachedFindBar().getBoundingClientRect(); const at = document.elementFromPoint((r.left + r.right) / 2, (r.top + r.bottom) / 2); return at && at.localName + '.' + at.className")}') from None
+        # Con DevTools abajo, flotando taparía la consola: la barra de siempre, entre la web y DevTools.
+        chrome("const { gDevTools } = ChromeUtils.importESModule('resource://devtools/shared/loader/Loader.sys.mjs').require('devtools/client/framework/devtools'); gDevTools.showToolboxForTab(gBrowser.selectedTab, { hostType: 'bottom', toolId: 'webconsole' })")
+        docked = """const fb = gBrowser.getCachedFindBar(); const s = fb.parentNode.querySelector('.for-bottom-host'); if (!s) return null;
+            return { position: getComputedStyle(fb).position, open: !fb.hidden, bottom: fb.getBoundingClientRect().bottom, splitter: s.getBoundingClientRect().top };"""
+        try:
+            eventually(lambda: (k := chrome(docked)) and k['open'] and k['position'] == 'static', timeout=15)
+        except AssertionError:
+            raise AssertionError(f'buscar con DevTools abajo: {chrome(docked)}') from None
+        chrome("const { gDevTools } = ChromeUtils.importESModule('resource://devtools/shared/loader/Loader.sys.mjs').require('devtools/client/framework/devtools'); gDevTools.closeToolboxForTab(gBrowser.selectedTab)")
+        eventually(lambda: chrome("return !gBrowser.getCachedFindBar().parentNode.querySelector('.for-bottom-host')"), timeout=10)
+        chrome("gBrowser.getCachedFindBar().close()")
+        check('Buscar en la página: una píldora flotante abajo, sobre la web; las opciones asoman al pasar el ratón; con DevTools abajo, la barra de siempre')
         report['status'] = 'passed'
     finally:
         if driver: driver.close()

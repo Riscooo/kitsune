@@ -123,6 +123,40 @@
 }
 :root[zero] #statuspanel[mirror] > #statuspanel-label { margin: 0 8px 8px 0 !important; }
 
+/* Buscar en la página: como la isla, una píldora flotante abajo y en el centro de la tarjeta, sobre la
+   web sin encogerla. Sus opciones (resaltar todo, mayúsculas…) asoman encima al pasar el ratón o al
+   llegar a ellas con Tab. Con DevTools abajo se queda como la barra de siempre: flotando taparía la
+   consola. */
+:root[zero] .browserContainer:not(:has(> .for-bottom-host)) > findbar {
+  position: absolute !important; bottom: 14px !important; inset-inline: 0 !important; z-index: 2 !important;
+  width: min(560px, calc(100% - 32px)) !important; min-height: 0 !important; margin: 0 auto !important;
+  padding: 6px 6px 6px 10px !important;
+  border: none !important; border-radius: 20px !important;
+  box-shadow: 0 10px 32px rgba(0, 0, 0, .18), 0 0 0 1px rgba(127, 127, 127, .18) !important;
+  align-items: flex-end !important;
+  transition: opacity var(--zero-t-fade) var(--zero-soft), transform var(--zero-t-move) var(--zero-calm), visibility 0s !important;
+}
+:root[zero] .browserContainer:not(:has(> .for-bottom-host)) > findbar[hidden] {
+  opacity: 0; transform: translateY(10px) scale(.98);
+  transition-delay: 0s, 0s, var(--zero-t-fade) !important;
+}
+:root[zero] .browserContainer:not(:has(> .for-bottom-host)) > findbar > .findbar-container {
+  flex-wrap: wrap-reverse !important; align-content: flex-end !important; align-items: center !important;
+  height: auto !important; margin-inline-start: 0 !important; padding-inline-start: 0 !important; opacity: 1 !important;
+}
+/* Un salto de línea: el campo y la cuenta abajo; las opciones, encima. */
+:root[zero] .browserContainer:not(:has(> .for-bottom-host)) > findbar > .findbar-container::after { content: ""; flex-basis: 100%; order: 1; height: 0; }
+:root[zero] .browserContainer:not(:has(> .for-bottom-host)) > findbar > .findbar-container > checkbox {
+  order: 2; max-height: 0; margin-block: 0 !important; overflow: hidden; opacity: 0;
+  transition: max-height var(--zero-t-move) var(--zero-calm), margin var(--zero-t-move) var(--zero-calm), opacity var(--zero-t-fade) var(--zero-soft);
+}
+:root[zero] .browserContainer > findbar:is(:hover, :has(checkbox:focus-visible)) > .findbar-container > checkbox { max-height: 28px; margin-block: 2px 8px !important; opacity: 1; }
+:root[zero] .browserContainer:not(:has(> .for-bottom-host)) > findbar > .findbar-closebutton { align-self: flex-end !important; margin-bottom: 2px !important; border-radius: 50% !important; opacity: 1 !important; }
+:root[zero] .browserContainer:not(:has(> .for-bottom-host)) > findbar .findbar-textbox { border-radius: 14px !important; }
+:root[zero] .browserContainer:not(:has(> .for-bottom-host)) > findbar .findbar-textbox:focus { outline: none !important; border-color: rgba(127, 127, 127, .45) !important; }
+/* La dirección de un enlace sube por encima de la píldora mientras está abierta. */
+:root[zero] .browserContainer:has(> findbar:not([hidden])):not(:has(> .for-bottom-host)) #statuspanel-label { margin-bottom: 66px !important; }
+
 /* Vista dividida (2 a 4): tarjetas separadas por 10 px. */
 :root[zero] #tabbrowser-tabpanels[splitview] > .split-view-panel.split-view-panel-active { margin: 0 !important; }
 :root[zero] #tabbrowser-tabpanels[splitview] > .split-view-splitter {
