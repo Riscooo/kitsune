@@ -23,11 +23,10 @@
 13. Los botones de ampliar se pueden arrastrar a donde se quiera y se quedan allí (también al salir y
     volver a entrar en Zero); sus iconos, centrados en botones redondos.
 14. Con el fondo del sistema, Zero es una lámina de cristal tipo Apple (decisiones de Risco del 15-10):
-    la ventana con las esquinas redondeadas y el canto de un cristal puesto encima (captura 45), sin
-    ninguna línea blanca ni franja con límites (captura 46: «segmentado, no se fusiona»): una luz que nace
-    del filo y se funde hacia dentro sin volver a subir, reflejos suaves en las esquinas (más vivos que a
-    media altura, donde casi no hay nada) y los mismos a la izquierda que a la derecha; transparente por
-    dentro, sin velo. Ningún filo de las piezas es un anillo recortado con máscara (a escala 1 se veían
+    la ventana con las esquinas redondeadas (48 px) y su borde como el de una pompa de jabón (la lámina,
+    zero-pane: ver zero_pane_native): sin líneas dibujadas ni franjas con límites (captura 46), una luz
+    que nace del filo y se funde hacia dentro sin volver a subir, la misma a la izquierda que a la
+    derecha; transparente por dentro, sin velo. Ningún filo de las piezas es un anillo recortado con máscara (a escala 1 se veían
     los píxeles). Los botones de ventana se ven sobre blanco y sobre oscuro; el raíl,
     algo más presente sobre oscuro. Sus piezas, de cristal transparente: sobre
     blanco, la isla, el pomodoro abierto y los botones de ampliar se ven claros (sin tinte oscuro); el
@@ -367,18 +366,15 @@ def main():
                 'glow': (sum(left[1:6]) / 5, sum(right[1:6]) / 5), 'behind': left[30],
                 # Se funde: desde el filo hacia dentro, la luz no vuelve a subir (ni línea ni franja).
                 'rise': max(left[i + 1] - left[i] for i in range(3, 39)),
-                # El reflejo de la esquina de abajo a la derecha, en su diagonal (la curva de 48 px la cruza
-                # a 14 px del rincón); arriba a la izquierda están los botones de ventana.
-                'corner': max(row(W - t, W - t + 1, H - t)[0] for t in range(14, 23)), 'middle': max(row(0, 3, H * 0.5)),
+                'middle': max(row(0, 3, H * 0.5)),
             }
         chrome("window.windowUtils.loadSheetUsingURIString(arguments[0], window.windowUtils.AGENT_SHEET)", [dark_sheet])
         try:
             time.sleep(0.4)
             lam = lamina()
-            fused = lam['glow'][0] >= lam['behind'] + 3 and lam['rise'] <= 3 and lam['middle'] <= lam['behind'] + 20
-            lit = lam['corner'] >= lam['middle'] + 20
+            fused = lam['glow'][0] >= lam['behind'] + 3 and lam['rise'] <= 3
             even = abs(lam['rim'][0] - lam['rim'][1]) <= 12 and abs(lam['glow'][0] - lam['glow'][1]) <= 6
-            assert fused and lit and even, f'el canto no es cristal fundido con reflejos (sin líneas, esquinas, simetría): {lam}'
+            assert fused and even, f'el borde no se funde (o no es igual a los dos lados): {lam}'
             # Los botones de ventana, sobre oscuro: claros.
             img, k, W, H, row = photo('botones-oscuro.png')
             light = chrome("const r = document.querySelector('#zero-lights > button').getBoundingClientRect(); return [r.left + r.width / 2, r.top + r.height / 2]")

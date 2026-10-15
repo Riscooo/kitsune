@@ -96,9 +96,7 @@ function paintColors(win, st) {
   if (st.painting) { st.again = true; return; }
   st.painting = true;
   const done = () => { st.painting = false; if (st.again) { st.again = false; schedule(win, st); } };
-  // Una foto de 400 px: la del marco (CSS) es diminuta y muy suave; la de la lámina de vidrio, más
-  // grande, para que su canto tenga algo que doblar.
-  snapshot(win, 400, 250).then(async shot => {
+  snapshot(win, 96, 60).then(async shot => {
     if (!shot || !state.has(win)) return;
     const root = win.document.documentElement;
     const tint = dominantColor(shot.bytes);
@@ -112,12 +110,6 @@ function paintColors(win, st) {
       ctx.drawImage(shot.canvas, -8, -8, 112, 76);
       root.style.setProperty('--zero-backdrop-image', `url("${canvas.toDataURL('image/png')}")`);
       canvas.dataset.painted = '1';
-      // La de la lámina (zero-pane): suave, pero con forma.
-      const pane = new win.OffscreenCanvas(shot.canvas.width, shot.canvas.height);
-      const pctx = pane.getContext('2d');
-      pctx.filter = 'blur(6px) saturate(1.35)';
-      pctx.drawImage(shot.canvas, -6, -6, pane.width + 12, pane.height + 12);
-      win.dispatchEvent(new win.CustomEvent('zero-backdrop', { detail: { canvas: pane } }));
       // El marco es esa foto: si es clara, lo que va encima (isla, anillo, raíl, botones) pasa a tinta.
       st.frameInk = inkFor(lightOf(ctx.getImageData(0, 0, canvas.width, canvas.height).data), st.frameInk);
       root.toggleAttribute('zero-frame-ink', st.frameInk === 'ink');
@@ -136,7 +128,6 @@ function applyBackdrop(win, st) {
   root.setAttribute('zero-backdrop', backdropMode(pref, st.env));
   if (root.getAttribute('zero-backdrop') !== 'web') {
     root.style.removeProperty('--zero-backdrop-image'); delete st.backdrop.dataset.painted;
-    win.dispatchEvent(new win.CustomEvent('zero-backdrop', { detail: { canvas: null } }));
     // Con el fondo del sistema, detrás está el escritorio (transparente) y no se sabe su luz: las piezas
     // son de cristal transparente (decisión de Risco, 15-10) y su texto sigue el modo del sistema: en
     // oscuro, blanco con halo; en claro, tinta.

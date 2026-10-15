@@ -1,37 +1,27 @@
-/* Kitsune Zero · la lámina de vidrio alrededor de la ventana.
+/* Kitsune Zero · la lámina alrededor de la ventana: una burbuja.
  *
- * Decisión de Risco (15-10, maqueta «D»): Zero es una lámina de vidrio con el canto redondo que dobla lo
- * que tiene detrás, alrededor de toda la ventana, con brillos en el canto, como el vidrio de Apple. Tiene
- * que ir en Windows, macOS y cualquier Linux: la dibuja Kitsune, con WebGL, en un <canvas> detrás de todo
- * (la tarjeta y las piezas van encima).
+ * Decisión de Risco (15-10): no un vidrio grueso que dobla lo de detrás, sino una pompa de jabón («rollo
+ * burbuja, que es la clave de Opera Air y de Liquid Glass, por eso es liquid»). En una pompa, el borde es una
+ * película finísima: brilla más cuanto más de lado se mira (Fresnel), con los colores irisados de una capa
+ * fina (su grosor cambia despacio a lo largo del borde) y reflejos suaves de la luz; el centro, limpio.
+ * Apenas dobla lo de detrás: no necesita verlo, y por eso sale igual en Windows, macOS y cualquier Linux,
+ * con la ventana transparente o con la foto de la web detrás. La dibuja Kitsune, con WebGL, en un <canvas>
+ * detrás de todo (la tarjeta y las piezas van encima), con alfa premultiplicado sobre lo que haya.
  *
- * El modelo, sencillo pero físico: la lámina es plana por dentro y su canto, de BAND px, tiene el perfil de
- * una superelipse (1 - u^P)^(1/P): empieza casi plano y se curva al final, así el doblez entra sin un límite
- * que se vea («chill», pidió Risco). La vista baja en vertical, se refracta en la superficie (Snell, vidrio
- * n ≈ 1,5, un poco distinto para cada color: dispersión) y atraviesa un grueso DEPTH hasta el fondo. Encima,
- * los brillos: especular de una luz arriba a la izquierda y de su reflejo abajo a la derecha, y el Fresnel.
+ * El borde se ve como el de una esfera de frente: en la franja de BAND px la superficie se va poniendo de
+ * lado (N.z = √(1 − u²)) y ahí crecen el Fresnel y los reflejos.
  *
- * Qué hay detrás depende del fondo de Zero (zero-frame):
- * - «web» (Windows, macOS, Linux sin compositor que ayude): una foto de la web, que pinta zero-frame y
- *   llega en el evento «zero-backdrop». Se dobla en el canto.
- * - «system» (ventana transparente): detrás está el escritorio, que solo ve el compositor. Aquí la lámina
- *   pone los brillos; doblar el escritorio le toca al compositor.
- *
- * Se pinta solo cuando cambia algo (el tamaño, la foto, el fondo, la fuerza): quieta no cuesta nada. Sin
+ * Se pinta solo cuando cambia algo (el tamaño, la fuerza, la web ampliada): quieta no cuesta nada. Sin
  * WebGL, no está (y zero.css pone su luz de siempre).
  */
 import { prefName, PREFS } from './zero-config.sys.mjs';
 
 const HTML = 'http://www.w3.org/1999/xhtml';
-// La maqueta elegida (D), en px CSS.
 const RADIUS = 48;   // esquinas de la ventana (= zero.css)
-const BAND = 34;     // el canto redondo
-const DEPTH = 70;    // el grueso de la lámina
-const SHINE = 1.25;  // cuánto brillan los cantos
-const SPREAD = 0.05; // dispersión: el rojo y el azul se doblan un poco distinto
-const PROFILE = 3;   // P de la superelipse del canto
+const BAND = 30;     // la franja del borde de la pompa, en px CSS
+const FILM = 0.55;   // cuánto se ve la película irisada en el filo
 
-const state = new WeakMap(); // ventana → { canvas, gl, program, texture, back, draws, … }
+const state = new WeakMap(); // ventana → { canvas, gl, draws, … }
 
 const VERTEX = `#version 300 es
 in vec2 aPos;
@@ -41,10 +31,7 @@ const FRAGMENT = `#version 300 es
 precision highp float;
 uniform vec2 uSize;       // la ventana, en px CSS
 uniform float uScale;     // px del lienzo por px CSS
-uniform float uRadius, uBand, uDepth, uShine, uSpread, uProfile;
-uniform bool uHasBack;    // hay una foto detrás (fondo «web»)
-uniform sampler2D uBack;
-uniform vec4 uBackFit;    // la foto, ajustada a la ventana («cover»): uv = (p - xy) / zw
+uniform float uRadius, uBand, uFilm, uStrength;
 out vec4 outColor;
 
 // Distancia al borde de un rectángulo redondeado (positiva dentro) y su normal hacia fuera.
@@ -56,8 +43,6 @@ float inner(vec2 p, float r, out vec2 n) {
   return r - (len + min(max(q.x, q.y), 0.0));
 }
 
-vec3 back(vec2 p) { return texture(uBack, (p - uBackFit.xy) / uBackFit.zw).rgb; }
-
 float blinn(vec3 N, vec3 L, float power) {
   vec3 H = normalize(L + vec3(0.0, 0.0, 1.0));
   return pow(max(dot(N, H), 0.0), power);
@@ -67,51 +52,24 @@ void main() {
   vec2 p = vec2(gl_FragCoord.x, uScale * uSize.y - gl_FragCoord.y) / uScale;
   vec2 nw, n;
   float window = inner(p, uRadius, nw);
-  // El canto sigue una esquina al menos tan redonda como él es ancho: el doblez gira suave.
+  if (window <= 0.0 || uStrength <= 0.0) { outColor = vec4(0.0); return; }
   float d = min(inner(p, max(uRadius, uBand), n), window);
-  float edge = uBand > 0.0 ? clamp(1.0 - d / uBand, 0.0, 0.999) : 0.0;
-  float slope = min(pow(edge, uProfile - 1.0) * pow(1.0 - pow(edge, uProfile), (1.0 - uProfile) / uProfile), 5.0);
-  vec3 N = normalize(vec3(n * slope, 1.0));
-  bool inside = window > 0.0;
-
-  vec3 color = vec3(0.0);
-  if (uHasBack) {
-    if (inside && uDepth > 0.0) {
-      // Refracción por color (la vista baja por -z): dónde cae en el fondo.
-      float etas[3] = float[3](1.0 / (1.5 - uSpread), 1.0 / 1.5, 1.0 / (1.5 + uSpread));
-      for (int i = 0; i < 3; i++) {
-        vec3 T = refract(vec3(0.0, 0.0, -1.0), N, etas[i]);
-        vec2 at = p + T.xy / abs(T.z) * uDepth;
-        color[i] = back(at)[i];
-      }
-    } else {
-      color = back(p);
-    }
-  }
-  // Los brillos del canto.
-  float light = 0.0;
-  if (inside && uShine > 0.0) {
-    vec3 L1 = normalize(vec3(-1.0, -1.25, 1.1)), L2 = normalize(vec3(1.0, 1.25, 1.1));
-    float spec = (edge > 0.02 ? 1.0 : 0.0) * (blinn(N, L1, 48.0) + 0.75 * blinn(N, L2, 48.0));
-    // (Sin el 4 % de base del vidrio: sería un velo blanco en toda la lámina.)
-    float fresnel = 0.96 * pow(1.0 - N.z, 5.0);
-    // El filo. Sobre una foto doblada se lee como vidrio; sin nada que doblar (ventana transparente), un filo
-    // entero sería una raya blanca alrededor (Risco, captura 46): ahí solo donde le da la luz, en las esquinas.
-    float lit = clamp(blinn(N, L1, 6.0) + blinn(N, L2, 6.0), 0.0, 1.0);
-    float rim = clamp(1.6 - window, 0.0, 1.0) * (uHasBack ? 0.35 + 0.65 * lit : lit);
-    // Y, sin foto, una luz suave que nace del canto (el grosor del vidrio) y se funde hacia dentro.
-    float glow = uHasBack ? 0.0 : 0.05 * pow(edge, 2.5);
-    light = clamp(uShine * (spec + (uHasBack ? 0.8 : 0.05) * fresnel + 0.8 * rim + glow), 0.0, 1.0);
-  }
-  if (uHasBack) {
-    // Opaca (la ventana es un rectángulo): fuera de las esquinas, la foto tal cual.
-    color = color * (1.0 - light) + light;
-    if (inside) color *= 1.0 - 0.18 * pow(edge, 3.0) * min(uShine, 1.0);
-    outColor = vec4(color, 1.0);
-  } else {
-    // Transparente: solo la luz (alfa premultiplicado).
-    outColor = vec4(vec3(light), light);
-  }
+  float u = clamp(1.0 - d / uBand, 0.0, 0.999);         // 0 dentro, 1 en el filo
+  float nz = sqrt(1.0 - u * u);                          // el borde de una esfera, de frente
+  vec3 N = vec3(n * u, nz);
+  float side = 1.0 - nz;                                 // cuánto se pone de lado
+  float fresnel = side * side;
+  // La película: su grosor cambia despacio a lo largo del borde (y crece hacia el filo); de él salen los
+  // colores, como en una pompa de jabón (interferencia, aproximada con una paleta de cosenos).
+  float t = 0.55 + 0.22 * sin((p.x + 1.3 * p.y) / 140.0) + 0.12 * sin(p.y / 97.0 - p.x / 213.0) + 0.35 * u;
+  vec3 film = mix(vec3(1.0), 0.5 + 0.5 * cos(6.2831 * (t * 1.6 + vec3(0.0, 0.33, 0.67))), 0.75);
+  float a = uFilm * fresnel;
+  // Los reflejos de la luz, suaves (una arriba a la izquierda y su eco abajo a la derecha).
+  float onEdge = smoothstep(0.25, 0.65, u);
+  float glint = onEdge * (0.85 * blinn(N, normalize(vec3(-1.0, -1.25, 1.1)), 24.0) + 0.45 * blinn(N, normalize(vec3(1.0, 1.25, 1.1)), 30.0));
+  float alpha = clamp((a + glint) * uStrength, 0.0, 1.0);
+  vec3 color = min((film * a + vec3(glint)) * uStrength, vec3(alpha));   // premultiplicado
+  outColor = vec4(color, alpha);
 }`;
 
 function compile(gl, type, source) {
@@ -137,12 +95,9 @@ function setup(canvas) {
   const at = gl.getAttribLocation(program, 'aPos');
   gl.enableVertexAttribArray(at);
   gl.vertexAttribPointer(at, 2, gl.FLOAT, false, 0, 0);
-  const texture = gl.createTexture();
-  gl.bindTexture(gl.TEXTURE_2D, texture);
-  for (const [k, v] of [[gl.TEXTURE_MIN_FILTER, gl.LINEAR], [gl.TEXTURE_MAG_FILTER, gl.LINEAR], [gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE], [gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE]]) gl.texParameteri(gl.TEXTURE_2D, k, v);
   const u = name => gl.getUniformLocation(program, name);
-  const uniforms = Object.fromEntries(['uSize', 'uScale', 'uRadius', 'uBand', 'uDepth', 'uShine', 'uSpread', 'uProfile', 'uHasBack', 'uBack', 'uBackFit'].map(n => [n, u(n)]));
-  return { gl, program, texture, uniforms };
+  const uniforms = Object.fromEntries(['uSize', 'uScale', 'uRadius', 'uBand', 'uFilm', 'uStrength'].map(n => [n, u(n)]));
+  return { gl, program, uniforms };
 }
 
 function strength(win, st) {
@@ -161,25 +116,13 @@ function draw(win, st) {
   if (canvas.width !== width) canvas.width = width;
   if (canvas.height !== height) canvas.height = height;
   const { gl, uniforms: u } = st.gl;
-  const web = root.getAttribute('zero-backdrop') === 'web' && !!st.back;
-  const s = strength(win, st);
   gl.viewport(0, 0, width, height);
   gl.uniform2f(u.uSize, W, H);
   gl.uniform1f(u.uScale, k);
   gl.uniform1f(u.uRadius, RADIUS);
   gl.uniform1f(u.uBand, BAND);
-  gl.uniform1f(u.uDepth, DEPTH * s);
-  gl.uniform1f(u.uShine, SHINE * s);
-  gl.uniform1f(u.uSpread, SPREAD);
-  gl.uniform1f(u.uProfile, PROFILE);
-  gl.uniform1i(u.uHasBack, web ? 1 : 0);
-  gl.uniform1i(u.uBack, 0);
-  if (web) {
-    // La foto, a pantalla completa como un «cover» (como la del CSS).
-    const scale = Math.max(W / st.back.width, H / st.back.height);
-    const bw = st.back.width * scale, bh = st.back.height * scale;
-    gl.uniform4f(u.uBackFit, (W - bw) / 2, (H - bh) / 2, bw, bh);
-  }
+  gl.uniform1f(u.uFilm, FILM);
+  gl.uniform1f(u.uStrength, strength(win, st));
   gl.clearColor(0, 0, 0, 0);
   gl.clear(gl.COLOR_BUFFER_BIT);
   gl.drawArrays(gl.TRIANGLES, 0, 3);
@@ -195,29 +138,17 @@ export function attach(win, ctx) {
   const canvas = doc.createElementNS(HTML, 'canvas');
   canvas.id = 'zero-pane';
   canvas.setAttribute('aria-hidden', 'true');
-  const st = { host: ctx.host, canvas, gl: null, back: null, draws: 0, frame: 0, cleanups: [] };
+  const st = { host: ctx.host, canvas, gl: null, draws: 0, frame: 0, cleanups: [] };
   state.set(win, st);
   try { st.gl = setup(canvas); } catch (error) { console.error('Zero: la lámina no tiene WebGL', error); }
   if (!st.gl) { state.delete(win); return; }
   doc.body.prepend(canvas);
   doc.documentElement.setAttribute('zero-pane', '');
   const listen = (target, type, fn) => { target.addEventListener(type, fn); st.cleanups.push(() => target.removeEventListener(type, fn)); };
-  // La foto de la web que pinta zero-frame (con el fondo «web»); sin foto, null.
-  listen(win, 'zero-backdrop', event => {
-    const image = event.detail?.canvas ?? null;
-    st.back = image;
-    if (image) {
-      const { gl, texture } = st.gl;
-      gl.bindTexture(gl.TEXTURE_2D, texture);
-      gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, false);
-      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
-    }
-    schedule(win, st);
-  });
   listen(win, 'resize', () => schedule(win, st));
-  // La web ampliada (no hay lámina) y el fondo (con foto o transparente).
+  // Con la web ampliada no hay lámina.
   const observer = new win.MutationObserver(() => schedule(win, st));
-  observer.observe(doc.documentElement, { attributes: true, attributeFilter: ['zero-full', 'zero-backdrop'] });
+  observer.observe(doc.documentElement, { attributes: true, attributeFilter: ['zero-full'] });
   st.cleanups.push(() => observer.disconnect());
   const pref = prefName(ctx.host.prefix, PREFS.glassStrength);
   const prefs = { observe: () => schedule(win, st) };

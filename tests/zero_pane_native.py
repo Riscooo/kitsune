@@ -1,16 +1,16 @@
 """Kitsune Zero · la lámina de vidrio alrededor de la ventana, en el motor real (perfil temporal, sin ventana en pantalla).
 
-Decisión de Risco (15-10, maqueta «D»): Zero es una lámina de vidrio con el canto redondo (34 px, con una
-entrada suave: el doblez empieza casi plano y se curva al final) que dobla lo que tiene detrás, alrededor de
-toda la ventana, con brillos en el canto. Tiene que funcionar en Windows, macOS y cualquier Linux: la dibuja
-Kitsune (WebGL), sobre el fondo que Kitsune conoce.
+Decisión de Risco (15-10): el borde de Zero, alrededor de toda la ventana, como una pompa de jabón («rollo
+burbuja, la clave de Opera Air y de Liquid Glass»): una película irisada en el filo, que brilla más de lado y
+se funde hacia dentro, con reflejos suaves; el centro, limpio. Tiene que funcionar en Windows, macOS y
+cualquier Linux: la dibuja Kitsune (WebGL), y no necesita ver lo de detrás.
 
 1. Al entrar en Zero, detrás de todo (la tarjeta y las piezas) hay una lámina que cubre la ventana; con la
    web ampliada no está, y al dejar de ampliar vuelve.
-2. Con el fondo de la web (el de Windows, macOS y Linux sin compositor que ayude), el canto dobla esa foto:
-   en la franja del canto cambia al quitarle la fuerza al vidrio (kitsune.zero.glass.strength = 0) y más
-   adentro, no.
-3. Quieta no se repinta (no cuesta nada mientras no cambie la web, el tamaño o el fondo).
+2. Su filo es una película de pompa, sobre lo que haya detrás (un gris oscuro liso, solo para la foto): con
+   color (irisada, no una raya blanca), que se funde hacia dentro sin volver a subir; más adentro, nada (sin
+   velo). Con kitsune.zero.glass.strength = 0 no hay nada. Igual con el fondo de la web.
+3. Quieta no se repinta (no cuesta nada mientras no cambie el tamaño o la fuerza).
 
 --zero-del-repo: Zero sale de zero/ del repositorio (ver zero_harness.py).
 """
@@ -21,6 +21,7 @@ from pathlib import Path
 import tempfile
 import threading
 import time
+import urllib.parse
 
 from browser_smoke import WebDriver, prepare_profile, eventually
 import zero_harness
@@ -100,23 +101,35 @@ def main():
         check('Detrás de todo, una lámina que cubre la ventana; con la web ampliada no está')
 
         from PIL import Image
-        def margin(name):
-            """El margen izquierdo (entre el filo y la tarjeta), a una altura sin raíl ni botones."""
+        GREY = 42
+        dark = 'data:text/css,' + urllib.parse.quote(f':root {{ background: rgb({GREY}, {GREY}, {GREY}) !important; }}')
+        def edge(name):
+            """El filo izquierdo, a una altura sin raíl ni botones: [(r, g, b)] de x = 0 a 47."""
             time.sleep(0.8)
             img = Image.open(driver.screenshot(name, chrome=True)).convert('RGB')
             k = chrome("return devicePixelRatio"); y = int(chrome("return innerHeight") * 0.22 * k)
             return [img.getpixel((int(x * k), y)) for x in range(0, 48)]
-        def apart(a, b):
-            return sum(abs(p - q) for p, q in zip(a, b)) / 3
-        chrome("Services.prefs.setIntPref('kitsune.zero.glass.strength', 100)")
-        glass = margin('vidrio.png')
-        chrome("Services.prefs.setIntPref('kitsune.zero.glass.strength', 0)")
-        flat = margin('sin-vidrio.png')
-        chrome("Services.prefs.clearUserPref('kitsune.zero.glass.strength')")
-        edge = sum(apart(glass[x], flat[x]) for x in range(2, 28)) / 26
-        inside = sum(apart(glass[x], flat[x]) for x in range(38, 46)) / 8
-        assert edge >= 12 and inside <= 4, f'el canto no dobla la foto (o dobla también más adentro): canto {edge:.1f}, dentro {inside:.1f}'
-        check('Con el fondo de la web, el canto dobla la foto del marco; más adentro, nada')
+        chrome("window.windowUtils.loadSheetUsingURIString(arguments[0], window.windowUtils.AGENT_SHEET)", [dark])
+        try:
+            for mode in ('system', 'web'):
+                chrome("Services.prefs.setStringPref('kitsune.zero.backdrop', arguments[0])", [mode])
+                time.sleep(1.8)  # el marco cambia de fondo con su fundido (el tinte, 1,4 s)
+                chrome("Services.prefs.setIntPref('kitsune.zero.glass.strength', 0)")
+                off = edge(f'sin-pompa-{mode}.png')
+                chrome("Services.prefs.clearUserPref('kitsune.zero.glass.strength')")
+                rim = edge(f'pompa-{mode}.png')
+                light = [sum(c) / 3 for c in rim]
+                chroma = max(max(c) - min(c) for c in rim[0:6])
+                rise = max(light[i + 1] - light[i] for i in range(2, 40))
+                lift = light[1] - sum(off[1]) / 3
+                clean = all(abs(a - b) <= 3 for a, b in zip(rim[40], off[40]))
+                assert chroma >= 25 and lift >= 12 and rise <= 3 and clean, \
+                    f'{mode}: el filo no es una película de pompa (color {chroma}, sube la luz {lift:.0f}, rebota {rise}, dentro {rim[40]} / sin {off[40]})'
+        finally:
+            chrome("Services.prefs.clearUserPref('kitsune.zero.glass.strength')")
+            chrome("Services.prefs.setStringPref('kitsune.zero.backdrop', 'system')")
+            chrome("window.windowUtils.removeSheetUsingURIString(arguments[0], window.windowUtils.AGENT_SHEET)", [dark])
+        check('El filo es una película de pompa: irisada, se funde hacia dentro y el centro queda limpio')
 
         time.sleep(1.0)  # lo que dejó pendiente el último cambio de ajuste
         before = pane()['draws']
