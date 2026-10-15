@@ -221,8 +221,9 @@
 }
 
 /* Botones de ventana: en fila arriba a la izquierda, discretos hasta que te acercas. */
+/* Separados de la curva de la esquina (48 px de radio): pegados al borde se veían mal (Risco, 15-10). */
 #zero-lights {
-  position: fixed; top: 16px; left: 15px; z-index: 6;
+  position: fixed; top: 20px; left: 24px; z-index: 6;
   display: flex; gap: 8px;
 }
 /* Perlas blancas con su contorno y su sombra: se ven sobre claro y sobre oscuro (Risco, 15-10). */
@@ -312,7 +313,7 @@
   z-index: 4 !important; /* Kitsune la deja en 0, y la tarjeta (con el velo) va en 2 */
   /* Nunca más ancha que el hueco entre los botones de ventana (a 76 px de cada lado): en una ventana
      estrecha (una columna de niri) encoge, centrada, en vez de pisarlos o salirse. */
-  width: min(var(--zero-island-w, 176px), 100vw - 152px) !important;
+  width: min(var(--zero-island-w, 176px), 100vw - 168px) !important;
   height: 32px !important; min-height: 0 !important;
   border: none !important; box-shadow: none !important;
   background: transparent !important;
@@ -604,7 +605,7 @@
 #main-window[zero][zero-leaving-empty] #zero-host { transition-delay: 420ms !important; }
 /* Las sugerencias, bajo la isla también en el centro, y del mismo cristal (sin web debajo no hay foto). */
 #main-window[zero][zero-empty] #urlbar .urlbarView:popover-open {
-  inset: calc(50vh + 22px + 8px) 0 auto 0 !important; width: min(600px, 100vw - 152px) !important;
+  inset: calc(50vh + 22px + 8px) 0 auto 0 !important; width: min(600px, 100vw - 168px) !important;
   background: var(--zero-glass-fill) !important; box-shadow: var(--zero-glass-edge) !important;
   color: #fff !important; text-shadow: var(--zero-glass-halo) !important;
 }
@@ -613,7 +614,7 @@
   position-area: none !important;
   inset: calc(7px + 32px + 8px) 0 auto 0 !important;
   margin-inline: auto !important;
-  width: min(var(--zero-island-w, 560px), 100vw - 152px) !important;
+  width: min(var(--zero-island-w, 560px), 100vw - 168px) !important;
   justify-self: auto !important;
   padding: 6px !important;
   border-radius: 18px !important;
@@ -881,7 +882,7 @@
 
 /* El logo «máscara en el cero», en blanco y muy tenue; al acercarse se enciende despacio. */
 #zero-mark {
-  position: fixed; left: 13px; bottom: 16px; z-index: 6;
+  position: fixed; left: 22px; bottom: 22px; z-index: 6; /* separada de la curva de la esquina, como los botones */
   appearance: none; box-sizing: content-box; width: 26px; height: 26px; min-width: 0; padding: 0; margin: 0;
   border: none; border-radius: 50%; background: transparent; cursor: pointer;
   color: #fff; opacity: .62;
@@ -903,7 +904,7 @@
 
 /* Los ajustes: una hoja de cristal esmerilado que brota de la marca. */
 #zero-settings {
-  position: fixed; left: 46px; bottom: 16px; z-index: 7;
+  position: fixed; left: 58px; bottom: 22px; z-index: 7; /* junto a la marca */
   box-sizing: border-box; width: 320px; max-height: calc(100% - 80px); overflow-y: auto; scrollbar-width: none;
   padding: 14px 14px 6px; border-radius: 22px;
   color: #1d2321; font: 500 12.5px system-ui, sans-serif;
@@ -911,7 +912,7 @@
   backdrop-filter: blur(24px) saturate(1.8);
   /* (y su anillo de luz, ::after) */
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, .95), inset 0 0 0 1px rgba(255, 255, 255, .55), 0 24px 60px rgba(0, 0, 0, .22);
-  transform-origin: -21px calc(100% - 12px);
+  transform-origin: -23px calc(100% - 13px); /* desde la marca */
   opacity: 0; transform: scale(.94) translateY(6px); filter: blur(4px); pointer-events: none;
   /* Al cerrar, el contenido se va antes que la forma. */
   transition: opacity 280ms var(--zero-soft), transform var(--zero-t-morph) var(--zero-calm), filter 280ms var(--zero-soft);

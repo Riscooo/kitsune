@@ -119,7 +119,7 @@ def main():
         # El puntero, lejos de la marca (sin moverlo, su sitio es cualquiera y puede quedar encima de ella).
         pointer([{'type': 'pointerMove', 'origin': 'viewport', 'x': 800, 'y': 400}])
 
-        until(lambda: (m := mark())['mark'] is not None and abs(m['mark']['x'] - 13) <= 1 and abs(m['H'] - m['mark']['bottom'] - 16) <= 1
+        until(lambda: (m := mark())['mark'] is not None and abs(m['mark']['x'] - 22) <= 1 and abs(m['H'] - m['mark']['bottom'] - 22) <= 1
               and m['color'] == 'rgb(255, 255, 255)' and abs(m['opacity'] - 0.92) < 0.01)
         # Con el sistema en claro (y el cristal del sistema), el marco pasa a tinta y la marca también.
         chrome("Services.prefs.setIntPref('ui.systemUsesDarkTheme', 0)")

@@ -19,7 +19,7 @@ import { prefName, PREFS } from './zero-config.sys.mjs';
 const HTML = 'http://www.w3.org/1999/xhtml';
 const RADIUS = 48;   // esquinas de la ventana (= zero.css)
 const BAND = 30;     // la franja del borde de la pompa, en px CSS
-const FILM = 0.55;   // cuánto se ve la película irisada en el filo
+const FILM = 0.24;   // cuánto se ve la película en el filo: poco, como una pompa (no «luces de feria»)
 
 const state = new WeakMap(); // ventana → { canvas, gl, draws, … }
 
@@ -62,7 +62,7 @@ void main() {
   // La película: su grosor cambia despacio a lo largo del borde (y crece hacia el filo); de él salen los
   // colores, como en una pompa de jabón (interferencia, aproximada con una paleta de cosenos).
   float t = 0.55 + 0.22 * sin((p.x + 1.3 * p.y) / 140.0) + 0.12 * sin(p.y / 97.0 - p.x / 213.0) + 0.35 * u;
-  vec3 film = mix(vec3(1.0), 0.5 + 0.5 * cos(6.2831 * (t * 1.6 + vec3(0.0, 0.33, 0.67))), 0.75);
+  vec3 film = mix(vec3(1.0), 0.5 + 0.5 * cos(6.2831 * (t * 1.0 + vec3(0.0, 0.33, 0.67))), 0.55);
   float a = uFilm * fresnel;
   // Los reflejos de la luz, suaves (una arriba a la izquierda y su eco abajo a la derecha).
   float onEdge = smoothstep(0.25, 0.65, u);

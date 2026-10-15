@@ -6,7 +6,8 @@
 3. Con la vista dividida de 2, son dos tarjetas separadas por 10 px.
 4. Ampliar la deja a 0 px y radio 0; dejar de ampliar la devuelve. Mientras se anima, la web cambia
    de tamaño una sola vez (la animación es de transformación, no de márgenes).
-5. Los botones de ventana van en fila arriba a la izquierda; el marco se arrastra y la web no.
+5. Los botones de ventana van en fila arriba a la izquierda, sin pegarse al borde (a 12 px o más de la
+   curva de la esquina); el marco se arrastra y la web no.
    Con la web en tarjeta, los de ampliar y dividir van en el marco, a su derecha: no tapan la web.
 6. Con el fondo de la web, detrás hay una foto de la web y la raíz ya no es transparente.
 7. El velo del marco (alrededor de la tarjeta) toma el color de la web (rojo con una página roja).
@@ -178,6 +179,15 @@ def main():
         lights = f['lights']
         assert len(lights) == 3 and len({round(l['y']) for l in lights}) == 1, lights
         assert lights[0]['x'] < lights[1]['x'] < lights[2]['x'] and lights[0]['x'] < 40 and lights[0]['y'] < 30, lights
+        # Lejos del filo (Risco, 15-10: «muy pegados al borde»): el primero, a 12 px o más de la curva de la
+        # esquina (48 px de radio).
+        c = (lights[0]['x'] + lights[0]['w'] / 2, lights[0]['y'] + lights[0]['h'] / 2)
+        gap = 48 - ((48 - c[0]) ** 2 + (48 - c[1]) ** 2) ** 0.5 - lights[0]['w'] / 2
+        assert gap >= 12, f'botones de ventana pegados al borde: {gap:.1f} px de la curva · {lights[0]}'
+        # Lo mismo la marca de Kitsune, abajo a la izquierda.
+        m = chrome("const r = document.getElementById('zero-mark').getBoundingClientRect(); return [r.left + r.width / 2, innerHeight - (r.top + r.height / 2), r.width / 2]")
+        mark_gap = 48 - ((48 - m[0]) ** 2 + (48 - m[1]) ** 2) ** 0.5 - m[2]
+        assert mark_gap >= 12, f'la marca, pegada al borde: {mark_gap:.1f} px de la curva · {m}'
         assert f['drag'] == 'drag' and f['webDrag'] == 'no-drag', f
         grow = chrome("const r = document.getElementById('zero-grow').getBoundingClientRect(); return { x: r.left, y: r.top, right: r.right, bottom: r.bottom }")
         assert grow['bottom'] <= f['panels']['y'] and grow['x'] > lights[2]['x'] + lights[2]['w'], (grow, f['panels'], lights)

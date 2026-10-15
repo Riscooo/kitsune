@@ -8,7 +8,8 @@ cualquier Linux: la dibuja Kitsune (WebGL), y no necesita ver lo de detrás.
 1. Al entrar en Zero, detrás de todo (la tarjeta y las piezas) hay una lámina que cubre la ventana; con la
    web ampliada no está, y al dejar de ampliar vuelve.
 2. Su filo es una película de pompa, sobre lo que haya detrás (un gris oscuro liso, solo para la foto): con
-   color (irisada, no una raya blanca), que se funde hacia dentro sin volver a subir; más adentro, nada (sin
+   algo de color (irisada, no una raya blanca) pero contenida, como una pompa de verdad («menos notorio…
+   no luces de feria», Risco 15-10), que se funde hacia dentro sin volver a subir; más adentro, nada (sin
    velo). Con kitsune.zero.glass.strength = 0 no hay nada. Igual con el fondo de la web.
 3. Quieta no se repinta (no cuesta nada mientras no cambie el tamaño o la fuerza).
 
@@ -119,11 +120,12 @@ def main():
                 chrome("Services.prefs.clearUserPref('kitsune.zero.glass.strength')")
                 rim = edge(f'pompa-{mode}.png')
                 light = [sum(c) / 3 for c in rim]
-                chroma = max(max(c) - min(c) for c in rim[0:6])
+                # El color que añade la pompa (lo de detrás puede traer el suyo, como la foto de la web).
+                chroma = max(max(d) - min(d) for d in ([a - b for a, b in zip(r, o)] for r, o in zip(rim[0:6], off[0:6])))
                 rise = max(light[i + 1] - light[i] for i in range(2, 40))
                 lift = light[1] - sum(off[1]) / 3
                 clean = all(abs(a - b) <= 3 for a, b in zip(rim[40], off[40]))
-                assert chroma >= 25 and lift >= 12 and rise <= 3 and clean, \
+                assert 10 <= chroma <= 36 and 5 <= lift <= 20 and rise <= 3 and clean, \
                     f'{mode}: el filo no es una película de pompa (color {chroma}, sube la luz {lift:.0f}, rebota {rise}, dentro {rim[40]} / sin {off[40]})'
         finally:
             chrome("Services.prefs.clearUserPref('kitsune.zero.glass.strength')")
