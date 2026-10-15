@@ -17,6 +17,7 @@
  * Todo se para 1,5 s después de lo último que se movió. Con el modo ahorro, a 15 fps.
  */
 import { lightOf, inkFor } from './zero-light.mjs';
+const { setTimeout, clearTimeout } = ChromeUtils.importESModule('resource://gre/modules/Timer.sys.mjs');
 
 const HTML = 'http://www.w3.org/1999/xhtml';
 const SCALE = 0.5;       // la foto, a mitad de resolución
@@ -53,8 +54,10 @@ export class KitsuneZeroGlassParent extends JSWindowActorParent {
 }
 
 let actorUsers = 0;
+let actorDrop = 0;
 
 function useActor() {
+  if (actorDrop) { clearTimeout(actorDrop); actorDrop = 0; }
   if (actorUsers++ > 0) return;
   try {
     ChromeUtils.registerWindowActor(ACTOR, {
@@ -70,10 +73,17 @@ function useActor() {
   } catch { /* ya estaba */ }
 }
 
+// Se quita un poco después del último uso: una pregunta a la web aún de camino encuentra su actor (si
+// no, Gecko lo apunta como error en la consola), y entrar y salir seguido no lo quita y lo pone cada vez.
 function dropActor() {
   if (--actorUsers > 0) return;
   actorUsers = 0;
-  try { ChromeUtils.unregisterWindowActor(ACTOR); } catch { /* ya no estaba */ }
+  if (actorDrop) clearTimeout(actorDrop);
+  actorDrop = setTimeout(() => {
+    actorDrop = 0;
+    if (actorUsers > 0) return;
+    try { ChromeUtils.unregisterWindowActor(ACTOR); } catch { /* ya no estaba */ }
+  }, 2000);
 }
 
 /** Dónde está el scroll de esa web; si aún no lo ha dicho, se le pregunta (y de momento, null). */

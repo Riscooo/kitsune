@@ -19,6 +19,9 @@
    terminado de entrar; las siguientes, no. (El arnés lo da por visto en las demás pruebas.)
 10. Zero está en el menú ≡ de Kitsune, con su atajo a la vista: «Kitsune Zero» entra; dentro de Zero, la
     misma fila dice «Salir de Kitsune Zero» y sale.
+11. Entrar y salir varias veces, y apartarse para personalizar, no deja errores de Zero en la consola
+    (tampoco el del actor del cristal, si se quita con un mensaje de la web aún de camino); fuera de Zero,
+    ese actor se va (las webs dejan de avisar de su scroll).
 
 --zero-del-repo: Zero sale de zero/ y de install/native del repositorio (ver zero_harness.py).
 """
@@ -159,6 +162,28 @@ def main():
         except AssertionError as error:
             raise AssertionError(f'menú ≡: {error}') from None
         check('Zero está en el menú ≡ con su atajo; dentro, la misma fila sale')
+
+        errors = """return Services.console.getMessageArray().filter(m => m instanceof Ci.nsIScriptError && !(m.flags & Ci.nsIScriptError.warningFlag)
+            && /zero/i.test(m.sourceName + ' ' + m.errorMessage)).map(m => m.errorMessage.slice(0, 160) + ' @ ' + m.sourceName.split('/').pop() + ':' + m.lineNumber);"""
+        chrome("Services.console.reset()")
+        chrome("gBrowser.selectedBrowser.loadURI(Services.io.newURI('data:text/html,<body style=height:5000px>zorro'), { triggeringPrincipal: Services.scriptSecurityManager.getSystemPrincipal() })")
+        time.sleep(1)
+        for _ in range(3):
+            press_zero(); eventually(lambda: not state()['zero'], timeout=5)
+            press_zero(); eventually(lambda: state()['zero'], timeout=5)
+        chrome("gCustomizeMode.enter()")
+        eventually(lambda: chrome("return document.documentElement.hasAttribute('customizing')"), timeout=10)
+        chrome("gCustomizeMode.exit()")
+        eventually(lambda: state()['zero'] and not chrome("return document.documentElement.hasAttribute('customizing')"), timeout=10)
+        time.sleep(1.5)
+        assert chrome(errors) == [], chrome(errors)
+        # Y fuera de Zero el actor del cristal sí se va (las webs dejan de avisar de su scroll).
+        has_actor = "try { gBrowser.selectedBrowser.browsingContext.currentWindowGlobal.getActor('KitsuneZeroGlass'); return true; } catch { return false; }"
+        assert chrome(has_actor) is True
+        press_zero(); eventually(lambda: not state()['zero'], timeout=5)
+        eventually(lambda: chrome(has_actor) is False, timeout=6)
+        press_zero(); eventually(lambda: state()['zero'], timeout=5)
+        check('Entrar, salir y personalizar no dejan errores de Zero en la consola; fuera de Zero, el actor del cristal se va')
 
         windows = chrome(STATE, ['all'])
         assert sum(w['zero'] for w in windows) == 1, windows
