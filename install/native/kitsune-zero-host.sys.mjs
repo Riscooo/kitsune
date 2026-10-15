@@ -53,7 +53,18 @@ const saver = { get active() { return Services.prefs.getStringPref('kitsune.perf
 // Las pestañas «de paso», que el raíl no enseña: la vista rápida (va unida a la de debajo).
 const tabs = { passing: tab => tab.hasAttribute('kitsune-glance') };
 
-const host = () => ({ t, prefs: Services.prefs, prefix: 'kitsune.zero.', keys: { add: addKey }, spaces, saver, tabs });
+// Los usuarios de Kitsune: Zero los lee de los contenedores de Gecko; de aquí, el nombre del base.
+const users = {
+  baseName() {
+    try {
+      const { KitsuneUsers } = ChromeUtils.importESModule('chrome://browser/content/kitsune-users.sys.mjs');
+      const { users: list, baseId } = KitsuneUsers.list();
+      return list.find(user => user.id === baseId)?.name ?? null;
+    } catch { return null; }
+  },
+};
+
+const host = () => ({ t, prefs: Services.prefs, prefix: 'kitsune.zero.', keys: { add: addKey }, spaces, saver, tabs, users });
 
 /** «Kitsune Zero» en el menú ≡ de Kitsune (con Retoques… y Copia…), con su atajo a la vista: entra, y
  *  dentro de Zero la misma fila dice «Salir de Kitsune Zero» y sale. */
