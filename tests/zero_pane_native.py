@@ -9,9 +9,13 @@ cualquier Linux: la dibuja Kitsune (WebGL), y no necesita ver lo de detrás.
    web ampliada no está, y al dejar de ampliar vuelve.
 2. Su filo es una película de pompa, sobre lo que haya detrás (un gris oscuro liso, solo para la foto): con
    algo de color (irisada, no una raya blanca) pero contenida, como una pompa de verdad («menos notorio…
-   no luces de feria», Risco 15-10), que se funde hacia dentro sin volver a subir; más adentro, nada (sin
+   no luces de feria», Risco 15-10), que hace de borde: está en el filo (a 6 px hacia dentro ya ha caído a
+   menos de un tercio, «que hicieran de borde… más limpio») y no vuelve a subir; más adentro, nada (sin
    velo). Con kitsune.zero.glass.strength = 0 no hay nada. Igual con el fondo de la web.
 3. Quieta no se repinta (no cuesta nada mientras no cambie el tamaño o la fuerza).
+4. Ese filo hace de borde de la ventana, bien definido (Risco, 15-10: «que hicieran de borde»), y también de
+   la tarjeta de la web: pegado a ella por fuera, en lugar de su línea blanca. Y las piezas (isla, raíl,
+   botones, pomodoro, ajustes) llevan su filo con los colores de la pompa, no blanco.
 
 --zero-del-repo: Zero sale de zero/ del repositorio (ver zero_harness.py).
 """
@@ -105,33 +109,47 @@ def main():
         GREY = 42
         dark = 'data:text/css,' + urllib.parse.quote(f':root {{ background: rgb({GREY}, {GREY}, {GREY}) !important; }}')
         def edge(name):
-            """El filo izquierdo, a una altura sin raíl ni botones: [(r, g, b)] de x = 0 a 47."""
+            """El filo izquierdo, a una altura sin raíl ni botones: [(r, g, b)] de x = 0 a 47; y, a esa altura,
+            los 3 px de fuera de la tarjeta (donde va su borde)."""
             time.sleep(0.8)
             img = Image.open(driver.screenshot(name, chrome=True)).convert('RGB')
-            k = chrome("return devicePixelRatio"); y = int(chrome("return innerHeight") * 0.22 * k)
-            return [img.getpixel((int(x * k), y)) for x in range(0, 48)]
+            k = chrome("return devicePixelRatio"); y = chrome("return innerHeight") * 0.22
+            card = chrome("return document.querySelector('#tabbrowser-tabpanels > .deck-selected').getBoundingClientRect().left")
+            edge.card = [img.getpixel((int((card - 3 + i) * k), int(y * k))) for i in range(3)]
+            return [img.getpixel((int(x * k), int(y * k))) for x in range(0, 48)]
         chrome("window.windowUtils.loadSheetUsingURIString(arguments[0], window.windowUtils.AGENT_SHEET)", [dark])
         try:
             for mode in ('system', 'web'):
                 chrome("Services.prefs.setStringPref('kitsune.zero.backdrop', arguments[0])", [mode])
                 time.sleep(1.8)  # el marco cambia de fondo con su fundido (el tinte, 1,4 s)
                 chrome("Services.prefs.setIntPref('kitsune.zero.glass.strength', 0)")
-                off = edge(f'sin-pompa-{mode}.png')
+                off = edge(f'sin-pompa-{mode}.png'); off_card = edge.card
                 chrome("Services.prefs.clearUserPref('kitsune.zero.glass.strength')")
-                rim = edge(f'pompa-{mode}.png')
+                rim = edge(f'pompa-{mode}.png'); rim_card = edge.card
                 light = [sum(c) / 3 for c in rim]
                 # El color que añade la pompa (lo de detrás puede traer el suyo, como la foto de la web).
                 chroma = max(max(d) - min(d) for d in ([a - b for a, b in zip(r, o)] for r, o in zip(rim[0:6], off[0:6])))
                 rise = max(light[i + 1] - light[i] for i in range(2, 40))
                 lift = light[1] - sum(off[1]) / 3
+                inner = light[6] - sum(off[6]) / 3
                 clean = all(abs(a - b) <= 3 for a, b in zip(rim[40], off[40]))
-                assert 10 <= chroma <= 36 and 5 <= lift <= 20 and rise <= 3 and clean, \
-                    f'{mode}: el filo no es una película de pompa (color {chroma}, sube la luz {lift:.0f}, rebota {rise}, dentro {rim[40]} / sin {off[40]})'
+                # El borde de la tarjeta: lo que añade la pompa justo fuera de ella.
+                card_add = max(sum(abs(a - b) for a, b in zip(r, o)) / 3 for r, o in zip(rim_card, off_card))
+                assert card_add >= 6, f'{mode}: la tarjeta no lleva el borde de pompa ({rim_card} / sin {off_card})'
+                assert 10 <= chroma <= 36 and 12 <= lift <= 26 and inner <= lift / 3 and rise <= 3 and clean, \
+                    f'{mode}: el filo no es una película de pompa que hace de borde (color {chroma}, luz {lift:.0f} en el filo y {inner:.0f} a 6 px, rebota {rise}, dentro {rim[40]} / sin {off[40]})'
         finally:
             chrome("Services.prefs.clearUserPref('kitsune.zero.glass.strength')")
             chrome("Services.prefs.setStringPref('kitsune.zero.backdrop', 'system')")
             chrome("window.windowUtils.removeSheetUsingURIString(arguments[0], window.windowUtils.AGENT_SHEET)", [dark])
         check('El filo es una película de pompa: irisada, se funde hacia dentro y el centro queda limpio')
+        ring = chrome("return getComputedStyle(document.querySelector('#tabbrowser-tabpanels > .deck-selected')).boxShadow")
+        assert '0px 0px 0px 1px' not in ring, f'la tarjeta sigue con su línea blanca: {ring}'
+        rims = chrome("""return ['nav-bar', 'zero-rail', 'zero-grow', 'zero-pomo'].map(id => document.getElementById(id)).filter(Boolean).map(el => {
+            const cs = getComputedStyle(el, '::after'); return [el.id, cs.borderTopColor, cs.borderRightColor, cs.borderBottomColor, cs.borderLeftColor]; });""")
+        white = [r for r in rims if len(set(r[1:])) == 1 or any(c.startswith('rgb(255, 255, 255') for c in r[1:])]
+        assert rims and not white, f'piezas con el filo blanco: {white}'
+        check('Ese filo hace de borde de la ventana y de la tarjeta; las piezas llevan el suyo con los colores de la pompa')
 
         time.sleep(1.0)  # lo que dejó pendiente el último cambio de ajuste
         before = pane()['draws']
