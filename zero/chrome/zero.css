@@ -899,6 +899,11 @@
 /* Con el fondo de la web y una web clara, el marco queda claro: lo que va encima de él pasa a tinta
    (zero-frame-ink, lo pone zero-frame según la luz de la foto). Con la web ampliada no hay marco: ahí
    manda el cristal en vivo de cada pieza (zero-ink). */
+/* Con el cristal del sistema no se sabe qué hay detrás de la ventana (es del compositor): la isla, sobre
+   el marco, lleva un tinte del modo del sistema para que su texto se lea hasta sobre blanco (como los
+   materiales de macOS). En un escritorio del mismo tono ni se nota; el marco sigue casi transparente. */
+#main-window[zero][zero-backdrop="system"]:not([zero-full]) #nav-bar:not([zero-ink]) { background-color: rgba(18, 20, 24, .5) !important; }
+#main-window[zero][zero-backdrop="system"][zero-frame-ink]:not([zero-full]) #nav-bar:not([zero-ink]) { background-color: rgba(246, 245, 241, .62) !important; }
 #main-window[zero][zero-frame-ink]:not([zero-full]) #nav-bar:not([zero-ink]) {
   color: #1d2321 !important; text-shadow: none !important;
   --toolbarbutton-icon-fill: #1d2321 !important;

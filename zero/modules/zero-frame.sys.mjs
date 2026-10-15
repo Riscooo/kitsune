@@ -127,8 +127,10 @@ function applyBackdrop(win, st) {
   root.setAttribute('zero-backdrop', backdropMode(pref, st.env));
   if (root.getAttribute('zero-backdrop') !== 'web') {
     root.style.removeProperty('--zero-backdrop-image'); delete st.backdrop.dataset.painted;
-    // Con el cristal del sistema, detrás está el escritorio: no se sabe su luz, se queda en blanco.
-    root.removeAttribute('zero-frame-ink'); st.frameInk = 'white';
+    // Con el cristal del sistema, detrás está el escritorio y no se sabe su luz: manda el modo del
+    // sistema (la isla lleva un tinte de ese modo, ver zero.css): en claro, tinta; en oscuro, blanco.
+    st.frameInk = win.matchMedia('(prefers-color-scheme: dark)').matches ? 'white' : 'ink';
+    root.toggleAttribute('zero-frame-ink', st.frameInk === 'ink');
   }
   paintColors(win, st);
 }
@@ -271,6 +273,11 @@ export function attach(win, ctx) {
   st.cleanups.push(() => host.prefs.removeObserver(`${host.prefix}backdrop`, observer));
 
   applyBackdrop(win, st);
+  // Si el sistema pasa de claro a oscuro (o al revés), la tinta de lo de encima también.
+  const scheme = win.matchMedia('(prefers-color-scheme: dark)');
+  const onScheme = () => applyBackdrop(win, st);
+  scheme.addEventListener('change', onScheme);
+  st.cleanups.push(() => scheme.removeEventListener('change', onScheme));
   // Se vuelve a mirar (la regla de niri se puede haber instalado o quitado), y solo se repinta si cambia.
   compositorEnv().then(env => {
     if (state.get(win) !== st || (env.niri === st.env.niri && env.rule === st.env.rule)) return;

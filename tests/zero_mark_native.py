@@ -1,6 +1,7 @@
 """Kitsune Zero · la marca de agua y los ajustes, en el motor real (perfil temporal, sin ventana en pantalla).
 
-1. La marca está abajo a la izquierda (a 13 px y 16 px de los bordes), en blanco y con opacidad 0,34.
+1. La marca está abajo a la izquierda (a 13 px y 16 px de los bordes): con el sistema en oscuro, en blanco
+   y con opacidad 0,34; en claro (el marco pasa a tinta), en tinta.
 2. Un clic abre los ajustes (#zero-settings), que brotan de la marca; se cierran con un clic fuera o con Esc.
 3. «Ventanas nuevas» (como esta / en Zero / normales) cambia kitsune.zero.inherit y kitsune.zero.always,
    y «Fondo» (del sistema / de la web) cambia kitsune.zero.backdrop y el aspecto al momento. «Isla» (con texto / solo iconos) cambia
@@ -107,11 +108,16 @@ def main():
         zero_harness.prepare(chrome, args.zero_del_repo)
         driver.navigate(origin + '/kioto')
         eventually(lambda: chrome("return !!document.getElementById('kitsune-zero-key')"), timeout=10)
+        chrome("Services.prefs.setIntPref('ui.systemUsesDarkTheme', 1)")
         chrome("document.getElementById('kitsune-zero-key').doCommand()")
 
         until(lambda: (m := mark())['mark'] is not None and abs(m['mark']['x'] - 13) <= 1 and abs(m['H'] - m['mark']['bottom'] - 16) <= 1
               and m['color'] == 'rgb(255, 255, 255)' and abs(m['opacity'] - 0.34) < 0.01)
-        check('La marca está abajo a la izquierda, en blanco y con opacidad 0,34')
+        # Con el sistema en claro (y el cristal del sistema), el marco pasa a tinta y la marca también.
+        chrome("Services.prefs.setIntPref('ui.systemUsesDarkTheme', 0)")
+        until(lambda: (m := mark())['color'] == 'rgb(29, 35, 33)' and abs(m['opacity'] - 0.26) < 0.01)
+        chrome("Services.prefs.clearUserPref('ui.systemUsesDarkTheme')")
+        check('La marca está abajo a la izquierda: blanca a 0,34 con el sistema en oscuro, en tinta en claro')
 
         click('#zero-mark')
         until(lambda: mark()['open'] and mark()['panelOpacity'] == 1)

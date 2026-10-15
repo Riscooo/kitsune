@@ -21,6 +21,9 @@
     regla, el cristal del sistema): no pasa un momento por la foto de la web (un parpadeo oscuro).
 13. En una ventana estrecha, con la web ampliada y la esquina abierta (botones de ventana, ampliar y el
     pomodoro), la isla no se monta sobre la esquina.
+14. Con el cristal del sistema no se sabe qué hay detrás de la ventana: la isla lleva un tinte según el
+    modo del sistema y su texto se lee hasta sobre blanco (≥ 3:1): oscuro y texto blanco con el sistema en
+    oscuro; claro y texto en tinta con el sistema en claro.
 
 --zero-del-repo: Zero sale de zero/ del repositorio (ver zero_harness.py).
 """
@@ -266,6 +269,36 @@ def main():
         chrome("document.querySelector('#zero-grow button[data-action=full]').click(); Services.prefs.clearUserPref('kitsune.zero.pomodoro');")
         driver.command('POST', '/window/rect', {'width': 1540, 'height': 1000})
         check('En una ventana estrecha, con la esquina abierta, la isla no se monta sobre ella')
+
+        # Sin pantalla no hay compositor: detrás de la ventana, blanco (el peor caso para el texto blanco).
+        from PIL import Image
+        chrome("Services.prefs.setStringPref('kitsune.zero.backdrop', 'system')")
+        eventually(lambda: chrome("return innerWidth") == 1540 and chrome("return document.documentElement.getAttribute('zero-backdrop')") == 'system', timeout=5)
+        def lum(c):
+            v = [x / 255 for x in c[:3]]
+            v = [x / 12.92 if x <= 0.03928 else ((x + 0.055) / 1.055) ** 2.4 for x in v]
+            return 0.2126 * v[0] + 0.7152 * v[1] + 0.0722 * v[2]
+        def island_contrast():
+            box = chrome("const r = document.getElementById('nav-bar').getBoundingClientRect(); const c = getComputedStyle(document.getElementById('zero-host')).color; return [r.left, r.top, r.right, r.bottom, devicePixelRatio, c]")
+            shot = Image.open(driver.screenshot('isla-sistema.png', chrome=True)).convert('RGB')
+            k = box[4]
+            # El fondo de la píldora, sin texto: su punta izquierda.
+            strip = shot.crop((int((box[0] + 12) * k), int((box[1] + 10) * k), int((box[0] + 26) * k), int((box[3] - 10) * k)))
+            values = sorted(lum(c) for c in strip.getdata())
+            background = values[len(values) // 2]
+            text = [int(x) for x in box[5][box[5].index('(') + 1:-1].split(',')[:3]]
+            light, dark = max(background, lum(text)), min(background, lum(text))
+            return (light + 0.05) / (dark + 0.05), text
+        for dark in (1, 0):
+            chrome(f"Services.prefs.setIntPref('ui.systemUsesDarkTheme', {dark})")
+            eventually(lambda: chrome("return matchMedia('(prefers-color-scheme: dark)').matches") == bool(dark), timeout=5)
+            try:
+                eventually(lambda: island_contrast()[0] >= 3.0, timeout=5)
+            except AssertionError:
+                ratio, text = island_contrast()
+                raise AssertionError(f'isla con el sistema {"oscuro" if dark else "claro"}: contraste {ratio:.1f}:1, texto {text}') from None
+        chrome("Services.prefs.clearUserPref('ui.systemUsesDarkTheme')")
+        check('Con el cristal del sistema, la isla lleva un tinte según el modo y su texto se lee hasta sobre blanco')
         report['status'] = 'passed'
     finally:
         if driver: driver.close()
