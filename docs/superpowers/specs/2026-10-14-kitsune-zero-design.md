@@ -220,6 +220,13 @@ seguir a mano en Zero, con su aspecto:
 - **Ventanas nuevas**: nacen como la ventana desde la que se abren (fila «Ventanas nuevas: como esta
   · en Zero · normales» en los ajustes); la que nace en Zero ya se pinta en Zero desde el primer
   fotograma. Una ventana que restaura la sesión vuelve como era.
+- **Cargando**: una línea fina en el borde de abajo de la isla, que avanza y se va al terminar (la
+  barra de direcciones, donde Gecko lo enseña, está escondida).
+- **Buscar en la página** (Ctrl+F): una píldora flotante abajo y en el centro de la tarjeta, el reflejo
+  de la isla, sobre la web sin encogerla; las opciones asoman encima al pasar el ratón. Con DevTools
+  abajo, la barra de siempre (flotando taparía la consola).
+- **Personalizar la barra** (menú ≡): Zero se aparta mientras dura y vuelve al terminar.
+- **Pestañas descargadas de memoria**: el icono apagado en el raíl, como en la barra de pestañas.
 
 ## Pruebas
 
