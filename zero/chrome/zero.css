@@ -860,9 +860,10 @@
 }
 :root[zero-full] :is(#zero-break, #zero-blocked) { inset: 0; border-radius: 0; }
 @keyframes zero-break-in { from { opacity: 0; transform: scale(.985); filter: blur(6px); } }
+/* La tarjeta, algo más oscura que el velo: el texto blanco se lee (≥ 4,5:1) también sobre una web blanca. */
 :is(#zero-break, #zero-blocked) .zero-break-panel {
   box-sizing: border-box; width: min(440px, 80%); padding: 34px 28px 26px; border-radius: 34px; text-align: center;
-  background: rgba(255, 255, 255, .06);
+  background: rgba(16, 20, 24, .38);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, .6), inset 0 0 0 1px rgba(255, 255, 255, .16), 0 30px 80px rgba(0, 0, 0, .25);
   font-family: system-ui, sans-serif;
 }
@@ -878,7 +879,7 @@
 #zero-break[data-guide="stretch"] .zero-breath { animation: zero-breath-slow 6s cubic-bezier(.45, 0, .55, 1) infinite; transform: scale(.7); }
 @keyframes zero-breath-slow { 50% { transform: scale(.78); } }
 #zero-break .zero-break-cue { font: 300 30px system-ui, sans-serif; letter-spacing: -.01em; min-height: 1.3em; }
-:is(#zero-break, #zero-blocked) .zero-break-hint { margin-top: 4px; font-size: 13px; opacity: .7; }
+:is(#zero-break, #zero-blocked) .zero-break-hint { margin-top: 4px; font-size: 13px; opacity: .85; }
 :is(#zero-break, #zero-blocked) .zero-hold {
   appearance: none; position: relative; overflow: hidden; margin-top: 24px; padding: 10px 22px; min-width: 0;
   border: none; border-radius: 999px; color: #fff; cursor: pointer; font: 600 12.5px system-ui, sans-serif;

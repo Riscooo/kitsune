@@ -22,6 +22,7 @@ import time
 
 from browser_smoke import WebDriver, prepare_profile, eventually
 import zero_harness
+from PIL import Image
 
 MIN = 60_000
 
@@ -143,13 +144,28 @@ def main():
         # El cristal entra con su animación (escala 0,985 → 1): se mide cuando ya ha llegado.
         until(lambda: (s := state())['blocked'] and abs(s['blocked']['box']['x'] - s['card']['x']) <= 1 and abs(s['blocked']['box']['w'] - s['card']['w']) <= 1)
         until(lambda: 'localhost' in state()['alert'] and 'vetada' in state()['alert'])
+        # Se lee: sobre una web blanca, el fondo de la tarjeta queda oscuro para el texto blanco (≥ 4,5:1).
+        time.sleep(0.8)
+        panel = chrome("const r = document.querySelector('#zero-blocked .zero-break-panel').getBoundingClientRect(); return [r.left, r.top, r.right, r.bottom, devicePixelRatio]")
+        shot = Image.open(driver.screenshot('vetada.png', chrome=True)).convert('RGB')
+        k = panel[4]
+        # Una franja del fondo de la tarjeta, sin texto: justo bajo su borde de arriba.
+        strip = shot.crop((int((panel[0] + 40) * k), int((panel[1] + 8) * k), int((panel[2] - 40) * k), int((panel[1] + 18) * k)))
+        def lum(c):
+            v = [x / 255 for x in c]
+            v = [x / 12.92 if x <= 0.03928 else ((x + 0.055) / 1.055) ** 2.4 for x in v]
+            return 0.2126 * v[0] + 0.7152 * v[1] + 0.0722 * v[2]
+        values = sorted(lum(c) for c in strip.getdata())
+        background = values[len(values) // 2]
+        ratio = 1.05 / (background + 0.05)
+        assert ratio >= 4.5, f'contraste del texto blanco sobre la tarjeta de web vetada: {ratio:.1f}:1'
         driver.context('chrome')
         hold = element('#zero-blocked .zero-hold')
         driver.command('POST', '/actions', {'actions': [{'type': 'pointer', 'id': 'raton', 'parameters': {'pointerType': 'mouse'}, 'actions': [
             {'type': 'pointerMove', 'origin': {'element-6066-11e4-a52e-4f735466cecf': hold}, 'x': 0, 'y': 0}, {'type': 'pointerDown', 'button': 0},
             {'type': 'pause', 'duration': 1800}, {'type': 'pointerUp', 'button': 0}]}]})
         until(lambda: not (state()['blocked'] and state()['blocked']['seen']))
-        check('Webs vetadas: durante el trabajo, tapadas con su dominio y aviso; mantener 1,5 s deja entrar')
+        check('Webs vetadas: durante el trabajo, tapadas con su dominio y aviso (que se lee); mantener 1,5 s deja entrar')
 
         chrome("ChromeUtils.importESModule('chrome://browser/content/zero/zero-silence.sys.mjs').forgetAllowed()")
         pref('Bool', 'kitsune.zero.silence.onlyWork', True)
