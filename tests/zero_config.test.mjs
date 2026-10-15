@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { PREFS, DEFAULTS, prefName, readPrefs } from '../zero/modules/zero-config.sys.mjs'
+import { PREFS, DEFAULTS, prefName, readPrefs, shortcutText } from '../zero/modules/zero-config.sys.mjs'
 
 test('Zero keeps every setting name in one place, under the prefix its host gives', () => {
   assert.equal(prefName('kitsune.zero.', PREFS.backdrop), 'kitsune.zero.backdrop')
@@ -15,10 +15,17 @@ test('Zero reads its settings from the host prefs, and falls back to its default
   assert.deepEqual(DEFAULTS, { always: false, inherit: true, backdrop: 'auto', islandIcons: false,
     pomodoro: false, pomodoroPreset: '25', pomodoroBreak: 'soft', pomodoroGuide: 'breathe', pomodoroState: '',
     silence: false, silenceNotify: true, silenceBlock: true, silenceBlocked: '', silenceOnlyWork: false, silenceScroll: true,
-    sounds: false, soundsLevels: '{"lluvia":0.5}', soundsPause: true })
+    sounds: false, soundsLevels: '{"lluvia":0.5}', soundsPause: true, welcomed: false })
+  assert.equal(prefName('kitsune.zero.', PREFS.welcomed), 'kitsune.zero.welcomed')
   assert.equal(prefName('kitsune.zero.', PREFS.soundsLevels), 'kitsune.zero.sounds.levels')
   assert.equal(prefName('kitsune.zero.', PREFS.silenceBlocked), 'kitsune.zero.silence.blocked')
   assert.equal(prefName('kitsune.zero.', PREFS.pomodoroBreak), 'kitsune.zero.pomodoro.break')
   assert.equal(prefName('kitsune.zero.', PREFS.islandIcons), 'kitsune.zero.islandIcons')
   assert.equal(prefName('kitsune.zero.', PREFS.inherit), 'kitsune.zero.inherit')
+})
+
+test('the shortcut is written as each system writes it (Cmd and Option on a Mac)', () => {
+  assert.equal(shortcutText('Darwin'), '⌘⌥0')
+  assert.equal(shortcutText('Linux'), 'Ctrl+Alt+0')
+  assert.equal(shortcutText('WINNT'), 'Ctrl+Alt+0')
 })

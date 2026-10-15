@@ -13,7 +13,7 @@
  * ([{ value, label }], para segment), placeholder? (para list), get() → valor, set(valor),
  * watch?(fn) → dejar, when?() → si sale }.
  */
-import { prefName, PREFS, readPrefs } from './zero-config.sys.mjs';
+import { prefName, PREFS, readPrefs, shortcutText } from './zero-config.sys.mjs';
 
 const HTML = 'http://www.w3.org/1999/xhtml';
 const state = new WeakMap();      // ventana → { cleanups, mark, panel, … }
@@ -145,13 +145,14 @@ export function attach(win, ctx) {
   state.set(win, st);
   const listen = (target, type, fn, options) => { target.addEventListener(type, fn, options); st.cleanups.push(() => target.removeEventListener(type, fn, options)); };
   const title = host.t('Ajustes de Kitsune Zero', 'Kitsune Zero settings');
+  const keys = shortcutText(Services.appinfo.OS);
 
   st.mark = el(doc, 'button', { type: 'button', id: 'zero-mark', title, 'aria-label': title, 'aria-expanded': 'false', 'aria-controls': 'zero-settings' },
     [el(doc, 'span', { class: 'zero-logo', 'aria-hidden': 'true' })]);
   st.rows = el(doc, 'div', { class: 'zero-rows' });
   st.panel = el(doc, 'section', { id: 'zero-settings', role: 'dialog', 'aria-label': title }, [
     el(doc, 'h4', {}, [el(doc, 'span', { class: 'zero-logo', 'aria-hidden': 'true' }), 'Kitsune Zero',
-      el(doc, 'small', {}, [host.t('Ctrl+Alt+0 entra y sale', 'Ctrl+Alt+0 to enter and leave')])]),
+      el(doc, 'small', {}, [host.t(`${keys} entra y sale`, `${keys} to enter and leave`)])]),
     st.rows,
   ]);
   doc.body.append(st.mark, st.panel);

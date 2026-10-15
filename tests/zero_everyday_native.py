@@ -45,7 +45,9 @@ class Handler(http.server.BaseHTTPRequestHandler):
         self.send_response(200)
         self.send_header('Content-Type', 'text/html; charset=utf-8')
         self.end_headers()
-        self.wfile.write(b'<!doctype html><meta charset=utf-8><title>Kioto</title><h1>Los zorros de Kioto</h1>')
+        # La de Dani, con su título: la prueba de usuarios busca su fila por el título.
+        title = b'Dani' if self.path == '/dani' else b'Kioto'
+        self.wfile.write(b'<!doctype html><meta charset=utf-8><title>' + title + b'</title><h1>Los zorros de Kioto</h1>')
 
     def log_message(self, *args):
         pass

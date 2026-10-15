@@ -21,14 +21,18 @@ export const PREFS = Object.freeze({
   sounds: 'sounds',                   // los sonidos, encendidos o no (apagados de serie)
   soundsLevels: 'sounds.levels',      // el nivel de cada capa (JSON, de 0 a 1; ver zero-sounds.mjs)
   soundsPause: 'sounds.pauseInBreak', // callarse en los descansos del pomodoro
+  welcomed: 'welcomed',               // ya se dijo una vez cómo volver de Zero
 });
 
 export const DEFAULTS = Object.freeze({ always: false, inherit: true, backdrop: 'auto', islandIcons: false,
   pomodoro: false, pomodoroPreset: '25', pomodoroBreak: 'soft', pomodoroGuide: 'breathe', pomodoroState: '',
   silence: false, silenceNotify: true, silenceBlock: true, silenceBlocked: '', silenceOnlyWork: false, silenceScroll: true,
-  sounds: false, soundsLevels: '{"lluvia":0.5}', soundsPause: true });
+  sounds: false, soundsLevels: '{"lluvia":0.5}', soundsPause: true, welcomed: false });
 
 export const prefName = (prefix, key) => `${prefix}${key}`;
+
+/** El atajo de Zero, escrito como lo escribe cada sistema (en Mac, Cmd y Opción). */
+export const shortcutText = os => os === 'Darwin' ? '⌘⌥0' : 'Ctrl+Alt+0';
 
 /** Los ajustes de Zero; si no se pueden leer, los de serie. */
 export function readPrefs(prefs, prefix) {

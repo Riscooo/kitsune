@@ -8,7 +8,7 @@
  * Cada pieza de Zero (marco, isla, raíl…) es un módulo con attach(win, ctx) y detach(win), en la
  * lista «pieces». El CSS, zero.css, solo se carga en las ventanas con Zero.
  */
-import { readPrefs } from './zero-config.sys.mjs';
+import { readPrefs, PREFS, prefName, shortcutText } from './zero-config.sys.mjs';
 import * as frame from './zero-frame.sys.mjs';
 import * as island from './zero-island.sys.mjs';
 import * as rail from './zero-rail.sys.mjs';
@@ -71,6 +71,14 @@ function fadeIn(win, ids, ms) {
 }
 const fadeOf = win => parseFloat(win.getComputedStyle(win.document.documentElement).getPropertyValue('--zero-t-fade')) || 0;
 
+/** La primera vez que se entra en Zero, la isla dice un momento cómo volver (al acabar de entrar). */
+function welcome(win) {
+  const name = prefName(host.prefix, PREFS.welcomed);
+  try { if (host.prefs.getBoolPref(name, false)) return; host.prefs.setBoolPref(name, true); } catch { return; }
+  const keys = shortcutText(Services.appinfo.OS);
+  win.setTimeout(() => { if (active(win)) island.alert(win, 'Kitsune Zero', host.t(`${keys} para volver`, `${keys} to go back`), 3600); }, 900);
+}
+
 function toggle(win, on = !active(win), { keep = false } = {}) {
   // Personalizando la barra, Zero no se pone encima: vuelve solo al terminar (ver decorate).
   if (on && win.document.documentElement.hasAttribute('customizing')) return;
@@ -94,6 +102,7 @@ function toggle(win, on = !active(win), { keep = false } = {}) {
     if (!waiting) frame.flip(win, () => { win.document.documentElement.setAttribute('zero', ''); sheet(win, true); });
     for (const p of pieces) { try { p.attach(win, ctx); } catch (error) { console.error('Kitsune Zero:', error); } }
     fadeIn(win, ['navigator-toolbox', 'zero-rail', 'zero-lights', 'zero-mark', 'zero-pomo'], fadeOf(win));
+    welcome(win);
   } else {
     const fade = fadeOf(win);
     // La web vuelve a su sitio viajando, como al entrar: desde donde se ve ahora (antes de quitar las

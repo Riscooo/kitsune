@@ -15,6 +15,8 @@
    apagados (de serie), ningún temporizador periódico; al encender el pomodoro, el suyo.
 8. Personalizar la barra (menú ≡ → Personalizar) aparta Zero mientras dura —sin barra a la vista no hay
    nada que personalizar— y lo vuelve a poner al terminar; Ctrl+Alt+0 en medio no lo pone encima.
+9. La primera vez que se entra en Zero, la isla dice un momento cómo volver (Ctrl+Alt+0), cuando ya ha
+   terminado de entrar; las siguientes, no. (El arnés lo da por visto en las demás pruebas.)
 
 --zero-del-repo: Zero sale de zero/ y de install/native del repositorio (ver zero_harness.py).
 """
@@ -106,6 +108,26 @@ def main():
         except AssertionError:
             raise AssertionError(f'personalizar: {chrome(customizing)}') from None
         check('Personalizar aparta Zero mientras dura y lo vuelve a poner al terminar')
+
+        hint = "const t = document.getElementById('navigator-toolbox'); return t?.hasAttribute('zero-island-alert') ? document.getElementById('zero-island-msg').textContent : ''"
+        chrome("Services.prefs.clearUserPref('kitsune.zero.welcomed')")
+        press_zero()
+        eventually(lambda: not state()['zero'], timeout=5)
+        press_zero()
+        eventually(lambda: state()['zero'], timeout=5)
+        try:
+            eventually(lambda: 'Ctrl+Alt+0' in chrome(hint), timeout=5)
+        except AssertionError:
+            raise AssertionError(f'primera vez: «{chrome(hint)}»') from None
+        assert chrome("return Services.prefs.getBoolPref('kitsune.zero.welcomed', false)") is True
+        eventually(lambda: chrome(hint) == '', timeout=8)
+        press_zero()
+        eventually(lambda: not state()['zero'], timeout=5)
+        press_zero()
+        eventually(lambda: state()['zero'], timeout=5)
+        time.sleep(2)
+        assert chrome(hint) == '', f'la segunda vez también: «{chrome(hint)}»'
+        check('La primera vez, la isla dice cómo volver; las siguientes, no')
 
         windows = chrome(STATE, ['all'])
         assert sum(w['zero'] for w in windows) == 1, windows

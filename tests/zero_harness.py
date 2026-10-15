@@ -62,6 +62,9 @@ def manifest_from_repo(folder: Path, profile: Path | None = None) -> Path:
 
 def prepare(chrome, from_repo: bool):
     """Deja Zero listo en todas las ventanas. `chrome(script, args)` ejecuta en contexto chrome."""
+    # El aviso de la primera vez («Ctrl+Alt+0 para volver») ensancharía la isla al entrar: se da por visto
+    # (zero_native lo prueba aparte).
+    chrome("Services.prefs.setBoolPref('kitsune.zero.welcomed', true)")
     if from_repo:
         profile = Path(chrome("return Services.dirsvc.get('ProfD', Ci.nsIFile).path"))
         manifest = manifest_from_repo(Path(tempfile.mkdtemp(prefix="kitsune-zero-manifest-")), profile)
