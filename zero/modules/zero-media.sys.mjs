@@ -32,11 +32,12 @@ export function attach(win, ctx) {
   };
   st.unfollow = () => follow(null);
 
-  // Cuál: la que ya se seguía mientras siga activa (sonando o en pausa); si no, la que suene.
+  // Cuál: la que ya se seguía mientras siga sonando (o en pausa, si no suena otra); si no, la que suene.
   const choose = () => {
     const active = win.gBrowser.tabs.filter(tab => live(tab) && controllerOf(tab)?.isActive);
-    if (active.includes(st.tab)) return st.tab;
-    return active.find(tab => controllerOf(tab).isPlaying) ?? active[0] ?? null;
+    const playing = active.filter(tab => controllerOf(tab).isPlaying);
+    if (active.includes(st.tab) && (playing.includes(st.tab) || !playing.length)) return st.tab;
+    return playing[0] ?? active[0] ?? null;
   };
 
   const refresh = () => {

@@ -10,6 +10,7 @@ la isla): la isla hace de actividad en directo, como la música en la Dynamic Is
 3. Con la isla abierta, un botón pausa y sigue; el de siguiente sale solo si la web lo permite, y va.
 4. Un clic en el aviso lleva a la pestaña que suena.
 5. Si se cierra la pestaña que sonaba, la onda se va.
+6. Si la que se seguía está en pausa y empieza a sonar otra, la isla pasa a la que suena.
 
 --zero-del-repo: Zero sale de zero/ del repositorio (ver zero_harness.py).
 """
@@ -40,7 +41,10 @@ def quiet_wav(seconds=8, rate=22050):
 WAV = quiet_wav()
 PAGE = '''<!doctype html><meta charset=utf-8><title>Radio zorro</title><audio id=a loop src="/cancion.wav"></audio>
 <script>
-navigator.mediaSession.metadata = new MediaMetadata({ title: 'Kitsune no yomeiri', artist: 'Lluvia con sol' });
+navigator.mediaSession.metadata = location.search.includes('otra')
+  ? new MediaMetadata({ title: 'Tanuki bayashi', artist: 'Viento del norte' })
+  : new MediaMetadata({ title: 'Kitsune no yomeiri', artist: 'Lluvia con sol' });
+if (location.search.includes('auto')) document.getElementById('a').play();
 // «Siguiente», como un reproductor de verdad: otra canción (y el título, para que la prueba lo vea).
 if (location.search.includes('siguiente')) navigator.mediaSession.setActionHandler('nexttrack', () => {
   document.title = 'siguiente'; navigator.mediaSession.metadata = new MediaMetadata({ title: 'Inari no tsuki', artist: 'Lluvia con sol' }); });
@@ -86,7 +90,8 @@ def main():
     profile, _ = prepare_profile(root)
     # Nada por los altavoces: la salida de Gecko a volumen 0 desde antes de arrancar.
     with (profile / 'user.js').open('a') as prefs:
-        prefs.write('user_pref("media.volume_scale", "0.0");\nuser_pref("media.autoplay.default", 0);\n')
+        prefs.write('user_pref("media.volume_scale", "0.0");\nuser_pref("media.autoplay.default", 0);\n'
+                    'user_pref("media.block-autoplay-until-in-foreground", false);\n')
     server = http.server.ThreadingHTTPServer(('127.0.0.1', 0), Handler)
     threading.Thread(target=server.serve_forever, daemon=True).start()
     origin = f'http://127.0.0.1:{server.server_port}'
@@ -171,6 +176,21 @@ def main():
         chrome("gBrowser.removeTab(gBrowser.tabs.find(t => t.label === 'siguiente'))")
         until(lambda: not island()['now'])
         check('Si se cierra la pestaña que sonaba, la onda se va')
+
+        # Dos radios de fondo: la primera suena y se pausa; luego empieza la segunda.
+        def radio(query):
+            return f"gBrowser.tabs.find(t => t.linkedBrowser.currentURI.spec.endsWith('{query}'))"
+        now_title = "return document.querySelector('#zero-host .zero-now')?.title ?? ''"
+        chrome("gBrowser.addTab(arguments[0], { triggeringPrincipal: Services.scriptSecurityManager.getSystemPrincipal() })", [origin + '/radio?auto-una'])
+        until(lambda: chrome(f"return {radio('?auto-una')}?.linkedBrowser.browsingContext.mediaController.isPlaying ?? false") and chrome(now_title) == 'Kitsune no yomeiri', timeout=10)
+        chrome(f"{radio('?auto-una')}.linkedBrowser.browsingContext.mediaController.pause('user')")
+        until(lambda: not island()['playing'] and island()['now'])
+        chrome("gBrowser.addTab(arguments[0], { triggeringPrincipal: Services.scriptSecurityManager.getSystemPrincipal() })", [origin + '/radio?auto-otra'])
+        try:
+            until(lambda: chrome(now_title) == 'Tanuki bayashi' and island()['playing'], timeout=10)
+        except AssertionError:
+            raise AssertionError(f'dos radios: {chrome(now_title)} · {island()}') from None
+        check('Si la que se seguía está en pausa y empieza a sonar otra, la isla pasa a la que suena')
         report['status'] = 'passed'
     finally:
         if driver: driver.close()
