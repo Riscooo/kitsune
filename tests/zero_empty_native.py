@@ -17,6 +17,9 @@ centro de la pantalla como buscador; al buscar, la isla sube a su sitio con una 
 5. Una pestaña nueva esconde la tarjeta al momento, sin fundido: lo que se fundiría ya es la página nueva
    aún sin pintar (en negro), y si el dibujo se para a medias (la ventana sin ver: Gecko no la anima) se
    quedaba así hasta volver a Kitsune (Risco, 15-10). Al volver a una web, la tarjeta sí entra fundida.
+6. Se puede elegir el buscador (Risco, 15-10: «que puedas elegir el buscador que quieras»): en la pestaña
+   vacía, el icono del buscador es un botón; al pulsarlo sale la lista de los buscadores, con el de ahora
+   marcado, y el que se elige pasa a ser el de siempre (su icono, en la barra); la lista se va.
 
 --zero-del-repo: Zero sale de zero/ del repositorio (ver zero_harness.py).
 """
@@ -53,7 +56,8 @@ return {
   island: { top: n.top, middle: (n.top + n.bottom) / 2, w: n.width, h: n.height },
   H: innerHeight,
   card: Number(getComputedStyle(panels).opacity),
-  field: Number(getComputedStyle(field).opacity), placeholder: getComputedStyle(input, '::placeholder').color,
+  field: Number(getComputedStyle(field).opacity),
+  placeholder: (cs => cs.textShadow === 'none' ? cs.color : 'con sombra: ' + cs.textShadow)(getComputedStyle(input, '::placeholder')),
   engine: engine && { shown: Number(getComputedStyle(engine).opacity) > 0.9 && engine.getBoundingClientRect().width >= 12, src: engine.getAttribute('src') || '' },
   grow: grow ? Number(getComputedStyle(grow).opacity) : 0,
   glass: (c => !!c && !c.hidden)(document.getElementById('zero-glass-nav-bar')),
@@ -111,6 +115,12 @@ def main():
         chrome("gURLBar.focus()")
         until(lambda: centered(state()) and chrome("return document.getElementById('navigator-toolbox').getAttribute('zero-island')") == 'typing')
         chrome("gURLBar.blur()")
+        # En oscuro el campo lleva un halo (sombra) para leerse: el texto de ayuda, ni con su sombra.
+        chrome("Services.prefs.setIntPref('ui.systemUsesDarkTheme', 1)")
+        try:
+            until(lambda: chrome("return matchMedia('(prefers-color-scheme: dark)').matches") and centered(state()))
+        finally:
+            chrome("Services.prefs.clearUserPref('ui.systemUsesDarkTheme')")
         check('En una pestaña vacía: sin tarjeta, la isla en el centro como buscador, con su icono')
 
         driver.context('chrome')
@@ -155,6 +165,32 @@ def main():
             chrome("window.browsingContext.isActive = true")
         until(lambda: centered(state()))
         check('Una pestaña nueva esconde la tarjeta al momento (también con la ventana sin ver)')
+
+        default = """const done = arguments[arguments.length - 1];
+            ChromeUtils.importESModule('moz-src:///toolkit/components/search/SearchService.sys.mjs').SearchService.getDefault().then(e => done(e.name));"""
+        def engine_name():
+            driver.context('chrome'); return driver.script(default, [], asynchronous=True)
+        before = engine_name()
+        icon_before = chrome("return document.querySelector('#nav-bar .zero-engine').getAttribute('src')")
+        driver.context('chrome')
+        driver.command('POST', f"/element/{list(driver.command('POST', '/element', {'using': 'css selector', 'value': '#nav-bar .zero-engine'}).values())[0]}/click", {})
+        listing = """const l = document.getElementById('zero-engines');
+            return l && { open: l.hasAttribute('open') && Number(getComputedStyle(l).opacity) > 0.5,
+                          items: [...l.querySelectorAll('[data-engine]')].map(b => [b.dataset.engine, b.hasAttribute('current')]) };"""
+        until(lambda: (l := chrome(listing)) and l['open'] and len(l['items']) >= 3)
+        items = chrome(listing)['items']
+        assert [n for n, cur in items if cur] == [before], items
+        other = next(n for n, cur in items if not cur)
+        chrome("document.querySelector(`#zero-engines [data-engine=\"${arguments[0]}\"]`).click()", [other])
+        try:
+            until(lambda: engine_name() == other and not chrome(listing)['open']
+                  and chrome("return document.querySelector('#nav-bar .zero-engine').getAttribute('src')") != icon_before)
+        finally:
+            driver.context('chrome')
+            driver.script("""const done = arguments[arguments.length - 1];
+                const { SearchService } = ChromeUtils.importESModule('moz-src:///toolkit/components/search/SearchService.sys.mjs');
+                Promise.resolve(SearchService.getEngineByName(arguments[0])).then(e => SearchService.setDefault(e, SearchService.CHANGE_REASON.USER)).then(() => done(), () => done());""", [before], asynchronous=True)
+        check('Se puede elegir el buscador desde su icono, en la pestaña vacía')
         report['status'] = 'passed'
     finally:
         if driver: driver.close()

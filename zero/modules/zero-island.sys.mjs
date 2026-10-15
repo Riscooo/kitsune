@@ -196,6 +196,41 @@ export function attach(win, ctx = {}) {
     } catch { /* sin buscador */ }
   };
   paintEngine();
+  // Elegir el buscador (Risco, 15-10: «que puedas elegir el buscador que quieras»): en la pestaña vacía el
+  // icono es un botón; abre una píldora con los buscadores (solo sus iconos; el nombre, al pasar el ratón) y
+  // el que se elige pasa a ser el de siempre.
+  const picker = el(doc, 'div', { id: 'zero-engines', role: 'listbox', 'aria-label': t('Buscador', 'Search engine') });
+  doc.body.append(picker);
+  st.cleanups.push(() => picker.remove());
+  const searchService = () => { try { return ChromeUtils.importESModule('moz-src:///toolkit/components/search/SearchService.sys.mjs').SearchService; } catch { return Services.search ?? null; } };
+  const closePicker = () => picker.removeAttribute('open');
+  const openPicker = async () => {
+    const search = searchService();
+    if (!search) return;
+    const [list, current] = await Promise.all([search.getVisibleEngines(), search.getDefault()]);
+    const items = await Promise.all(list.map(async engine => {
+      const button = el(doc, 'button', { 'data-engine': engine.name, title: engine.name, 'aria-label': engine.name, role: 'option' });
+      const url = await engine.getIconURL?.(32);
+      if (url) button.append(el(doc, 'img', { src: url, alt: '' }));
+      else button.append(engine.name.slice(0, 1));
+      button.toggleAttribute('current', engine.name === current?.name);
+      button.setAttribute('aria-selected', String(engine.name === current?.name));
+      button.addEventListener('click', () => {
+        Promise.resolve(search.setDefault(engine, search.CHANGE_REASON?.USER ?? 0)).catch(() => {});
+        closePicker();
+      });
+      return button;
+    }));
+    picker.replaceChildren(...items);
+    picker.setAttribute('open', '');
+  };
+  engine.addEventListener('mousedown', event => event.preventDefault()); // sin quitarle el foco a nada
+  engine.addEventListener('click', () => { if (picker.hasAttribute('open')) closePicker(); else openPicker(); });
+  listen(win, 'mousedown', event => { if (picker.hasAttribute('open') && !picker.contains(event.target) && event.target !== engine) closePicker(); }, true);
+  listen(win, 'keydown', event => { if (event.key === 'Escape') closePicker(); }, true);
+  const pickerWatch = new win.MutationObserver(() => { if (!root.hasAttribute('zero-empty')) closePicker(); });
+  pickerWatch.observe(root, { attributes: true, attributeFilter: ['zero-empty'] });
+  st.cleanups.push(() => pickerWatch.disconnect());
   const engines = { observe: paintEngine };
   Services.obs.addObserver(engines, 'browser-search-engine-modified');
   st.cleanups.push(() => Services.obs.removeObserver(engines, 'browser-search-engine-modified'));
