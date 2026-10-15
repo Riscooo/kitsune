@@ -8,7 +8,7 @@ El tiempo se adelanta con el reloj del módulo (clock.now), para no esperar 25 m
 3. Un clic empieza: con el ratón encima se abre con «25:00 · Trabajo 1 de 4», saltar y reiniciar; el
    anillo se va vaciando.
 4. Es uno para todas las ventanas: otra ventana en Zero enseña el mismo tiempo.
-5. El último minuto, el anillo respira («ending»).
+5. El último minuto, el anillo respira («ending»), con opacidad y transform (sin repintar cada fotograma).
 6. Descanso suave: al acabar el trabajo la isla avisa y el anillo cambia de color.
 7. Al acabar el descanso, la isla dice «¿Seguimos?» y el anillo espera a que se pulse.
 8. Descanso estricto: un cristal tapa la web (no la isla ni el raíl) con la guía y el tiempo; soltar
@@ -160,6 +160,12 @@ def main():
 
         forward(14 * MIN + 20_000)
         until(lambda: state()['pomo']['ending'])
+        # Respira con opacidad y transform (el compositor), sin repintar en cada fotograma.
+        endless = """const box = document.getElementById(arguments[0]); const own = ['offset', 'easing', 'composite', 'computedOffset', 'simulateComputeValuesFailure'];
+            const anims = document.getAnimations().filter(a => a.effect?.getTiming().iterations === Infinity && box?.contains(a.effect.target));
+            return { count: anims.length, props: [...new Set(anims.flatMap(a => a.effect.getKeyframes().flatMap(k => Object.keys(k).filter(p => !own.includes(p)))))] };"""
+        moving = chrome(endless, ['zero-pomo'])
+        assert moving['count'] >= 1 and set(moving['props']) <= {'opacity', 'transform'}, f'animaciones que no paran en el pomodoro: {moving}'
         check('El último minuto, el anillo respira')
 
         forward(MIN)

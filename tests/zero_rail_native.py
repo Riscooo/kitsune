@@ -13,7 +13,8 @@
 10. El clic derecho en una pestaña abre el menú de pestaña de Gecko para esa pestaña, con sus textos y
     el aspecto del menú ≡ de Zero.
 11. Una pestaña que suena lleva un altavoz en su icono; un clic en él la silencia (y otro le devuelve el
-    sonido) sin elegirla.
+    sonido) sin elegirla. Su pulso, que dura lo que la música, solo anima opacidad y transform (el
+    compositor), sin repintar en cada fotograma.
 12. Un grupo de pestañas de Gecko lleva una fila propia (un círculo de su color; abierto el raíl, su
     nombre) y sus pestañas, una raya de su color. Un clic en la fila lo pliega (sus pestañas se van y el
     círculo dice cuántas tiene) y otro lo despliega (o Intro, con el teclado); si lo pliega Gecko, el
@@ -288,6 +289,13 @@ def main():
         badge = """const row = [...document.querySelectorAll('#zero-rail .zero-tab')].at(-1); const b = row?.querySelector('.zero-sound');
             return b ? { seen: getComputedStyle(b).display !== 'none' && b.getBoundingClientRect().width >= 8, muted: row.hasAttribute('muted') } : null;"""
         until(lambda: (b := chrome(badge)) and b['seen'])
+        # Su pulso dura lo que la música (horas): solo opacidad y transform, que mueve el compositor sin
+        # repintar en cada fotograma.
+        endless = """const box = document.getElementById(arguments[0]); const own = ['offset', 'easing', 'composite', 'computedOffset', 'simulateComputeValuesFailure'];
+            const anims = document.getAnimations().filter(a => a.effect?.getTiming().iterations === Infinity && box?.contains(a.effect.target));
+            return { count: anims.length, props: [...new Set(anims.flatMap(a => a.effect.getKeyframes().flatMap(k => Object.keys(k).filter(p => !own.includes(p)))))] };"""
+        moving = chrome(endless, ['zero-rail'])
+        assert moving['count'] >= 1 and set(moving['props']) <= {'opacity', 'transform'}, f'animaciones que no paran en el raíl: {moving}'
         selected = chrome("return gBrowser.selectedTab.label")
         driver.command('POST', f"/element/{list(element('#zero-rail .zero-tab:last-child .zero-sound').values())[0]}/click", {})
         until(lambda: chrome("return gBrowser.visibleTabs.at(-1).hasAttribute('muted')") and chrome(badge)['muted'])

@@ -686,8 +686,13 @@
 }
 #zero-rail .zero-tab:is([soundplaying], [muted]) .zero-sound { display: block; }
 #zero-rail .zero-tab[muted] .zero-sound::before { mask-image: url("chrome://browser/skin/tabbrowser/tab-audio-muted-small.svg"); }
-#zero-rail .zero-tab[soundplaying]:not([muted]) .zero-sound { animation: zero-sound 2.4s var(--zero-soft) infinite; }
-@keyframes zero-sound { 50% { box-shadow: 0 0 0 1.5px rgba(255, 255, 255, .9), 0 0 0 4px rgba(255, 255, 255, .25); } }
+/* Sonando, un halo que late (solo opacidad, que mueve el compositor: dura lo que la música). */
+#zero-rail .zero-sound::after {
+  content: ""; position: absolute; inset: 0; border-radius: 50%; pointer-events: none; opacity: 0;
+  box-shadow: 0 0 0 4px rgba(255, 255, 255, .25);
+}
+#zero-rail .zero-tab[soundplaying]:not([muted]) .zero-sound::after { animation: zero-sound 2.4s var(--zero-soft) infinite; }
+@keyframes zero-sound { 50% { opacity: 1; } }
 #zero-rail .zero-sound:hover { background-color: #1d2321; }
 
 /* Cerrar: una × pequeña al final de la fila bajo el ratón, solo con el raíl abierto (como Arc, Zen,
@@ -920,9 +925,20 @@
 #zero-pomo[paused] .zero-pomo-ring::before { opacity: .55; }
 #zero-pomo[phase="idle"] .zero-pomo-ring::before { opacity: .7; }
 /* El último minuto, respira; esperando a que lo pulses, late despacio. */
+/* (Solo opacidad y tamaño, que mueve el compositor: el halo es un degradado ya difuminado.) */
 #zero-pomo[ending] .zero-pomo-ring::before { animation: zero-pomo-breathe 2.4s var(--zero-soft) infinite; }
+#zero-pomo[ending] .zero-pomo-ring::after {
+  content: ""; grid-area: 1 / 1; width: 30px; height: 30px; border-radius: 50%; pointer-events: none; opacity: 0;
+  background: radial-gradient(circle, transparent 30%, color-mix(in srgb, var(--zero-pomo-glow, var(--zero-pomo-color)) 55%, transparent) 45%, transparent 70%);
+  animation: zero-pomo-glow 2.4s var(--zero-soft) infinite;
+}
+#zero-pomo .zero-pomo-ring::before { grid-area: 1 / 1; }
+/* Sobre lo claro el anillo va en tinta: el halo, también. */
+#zero-pomo[zero-ink], :root[zero-frame-ink]:not([zero-full]) #zero-pomo:not([zero-ink]) { --zero-pomo-glow: rgba(200, 85, 61, .9); }
+:root[zero-frame-ink]:not([zero-full]) #zero-pomo:is([phase="short"], [phase="long"]):not([zero-ink]) { --zero-pomo-glow: rgba(58, 143, 116, .95); }
 #zero-pomo[phase="waiting"] .zero-pomo-ring::before { animation: zero-pomo-wait 3.2s var(--zero-soft) infinite; }
-@keyframes zero-pomo-breathe { 50% { filter: drop-shadow(0 0 6px var(--zero-pomo-color)); transform: scale(1.08); } }
+@keyframes zero-pomo-breathe { 50% { transform: scale(1.08); } }
+@keyframes zero-pomo-glow { 50% { opacity: 1; transform: scale(1.08); } }
 @keyframes zero-pomo-wait { 50% { opacity: .45; } }
 
 /* Con la web ampliada se guarda en la esquina, a la izquierda de los botones de ventana, y sale con
