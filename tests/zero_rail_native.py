@@ -18,6 +18,8 @@
     nombre) y sus pestañas, una raya de su color. Un clic en la fila lo pliega (sus pestañas se van y el
     círculo dice cuántas tiene) y otro lo despliega (o Intro, con el teclado); si lo pliega Gecko, el
     raíl también se entera.
+13. Con el teclado (Tab por sus filas) el raíl se abre con los títulos, como con el ratón; al volver a
+    la web, se cierra. Un clic de ratón no lo deja abierto.
 
 --zero-del-repo: Zero sale de zero/ del repositorio (ver zero_harness.py).
 """
@@ -291,6 +293,24 @@ def main():
         except AssertionError:
             raise AssertionError(f'grupos: {chrome(groups)}') from None
         check('Un grupo lleva su fila y sus pestañas su raya; un clic lo pliega y otro lo despliega, y si lo pliega Gecko también')
+
+        away()
+        width = "return document.getElementById('zero-rail').getBoundingClientRect().width"
+        until(lambda: chrome(width) < 40, timeout=5)
+        # Un clic de ratón en una fila (que se lleva el foco) no lo deja abierto al irse el ratón.
+        pointer([{'type': 'pointerMove', 'origin': element('#zero-rail .zero-tab:nth-child(2)'), 'x': 0, 'y': 0}, {'type': 'pointerDown', 'button': 0}, {'type': 'pointerUp', 'button': 0}])
+        away()
+        until(lambda: chrome(width) < 40, timeout=5)
+        # Con el teclado: Tab de una fila a otra.
+        chrome("document.querySelector('#zero-rail .zero-tab').focus()")
+        driver.command('POST', '/actions', {'actions': [{'type': 'key', 'id': 'teclado', 'actions': [{'type': 'keyDown', 'value': ''}, {'type': 'keyUp', 'value': ''}]}]})
+        try:
+            until(lambda: chrome(width) > 180 and chrome("return !!document.activeElement?.closest?.('#zero-rail')"), timeout=5)
+        except AssertionError:
+            raise AssertionError(f'raíl con teclado: {chrome("return [document.activeElement?.className, document.getElementById(\'zero-rail\').getBoundingClientRect().width]")}') from None
+        chrome("gBrowser.selectedBrowser.focus()")
+        until(lambda: chrome(width) < 40, timeout=5)
+        check('Con el teclado el raíl se abre con los títulos; al volver a la web se cierra, y un clic no lo deja abierto')
         report['status'] = 'passed'
     finally:
         if driver: driver.close()

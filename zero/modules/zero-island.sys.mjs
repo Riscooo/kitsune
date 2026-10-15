@@ -145,19 +145,24 @@ export function attach(win, ctx = {}) {
   win.gBrowser.addProgressListener(progress);
   st.cleanups.push(() => win.gBrowser.removeProgressListener(progress));
 
-  // El estado: «typing» con el foco en la barra de direcciones; «open» con el ratón encima o con
-  // un menú suyo abierto (el de Kitsune, el historial de atrás…), para que no se encoja bajo el menú.
+  // El estado: «typing» con el foco en la barra de direcciones; «open» con el ratón encima, con el
+  // foco en uno de sus botones o con un menú suyo abierto (el de Kitsune, el historial de atrás…),
+  // para que no se encoja bajo el menú.
   const input = win.gURLBar?.inputField;
   st.hover = false;
   st.menus = new Set();
   const refresh = () => {
-    const value = input && doc.activeElement === input ? 'typing' : st.hover || st.menus.size ? 'open' : '';
+    const value = input && doc.activeElement === input ? 'typing' : st.hover || st.menus.size || st.focused ? 'open' : '';
     if (value) toolbox.setAttribute('zero-island', value); else toolbox.removeAttribute('zero-island');
   };
   if (input) {
     listen(input, 'focus', refresh);
     listen(input, 'blur', refresh);
   }
+  // Con el teclado (F6, Mayús+Tab): el foco en un botón de la isla también la abre, para que se vea.
+  const focus = () => { const active = doc.activeElement; st.focused = !!active && active !== input && navbar.contains(active); refresh(); };
+  listen(navbar, 'focusin', focus);
+  listen(navbar, 'focusout', () => win.setTimeout(focus, 0));
   listen(navbar, 'mouseenter', () => { st.hover = true; refresh(); });
   listen(navbar, 'mouseleave', () => { st.hover = false; refresh(); });
   const fromIsland = popup => {

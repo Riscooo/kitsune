@@ -460,8 +460,9 @@
 
 /* ---------------------------------------------------------------- el raíl (zero-rail) */
 
-/* Pequeño, centrado a la izquierda y casi transparente; al pasar el ratón se abre con los títulos y,
-   como entonces queda encima de la web, se esmerila (un velo claro) para que se lea. */
+/* Pequeño, centrado a la izquierda y casi transparente; al pasar el ratón (o con el teclado por sus
+   filas) se abre con los títulos y, como entonces queda encima de la web, se esmerila (un velo claro)
+   para que se lea. */
 #zero-rail {
   position: fixed; left: 7px; top: 50%; z-index: 5;
   transform: translateY(-50%);
@@ -478,7 +479,7 @@
   transition: width var(--zero-t-morph) var(--zero-calm) var(--zero-wait), transform var(--zero-t-move) var(--zero-calm), opacity var(--zero-t-ink) var(--zero-soft),
               background-color 520ms var(--zero-soft), box-shadow 520ms var(--zero-soft), color var(--zero-t-ink) var(--zero-soft);
 }
-#zero-rail:hover {
+#zero-rail:is(:hover, :has(:focus-visible)) {
   transition-delay: 0ms;
   width: 186px;
   color: #1d2321;
@@ -488,7 +489,7 @@
 #zero-rail :is(.zero-spaces, .zero-tabs) { display: flex; flex-direction: column; gap: 2px; }
 #zero-rail [hidden] { display: none !important; }
 #zero-rail .zero-sep { flex: none; height: 1px; margin: 3px 6px; background: rgba(255, 255, 255, .3); transition: background-color var(--zero-t-ink) var(--zero-soft); }
-#zero-rail:hover .zero-sep { background: rgba(29, 35, 33, .18); }
+#zero-rail:is(:hover, :has(:focus-visible)) .zero-sep { background: rgba(29, 35, 33, .18); }
 
 /* Cada icono: una esfera de 24 px. --s lo pone el efecto Dock (crece y aparta a los vecinos). */
 #zero-rail .zero-item {
@@ -513,13 +514,13 @@
 #zero-rail .zero-fav > img { width: 14px; height: 14px; }
 #zero-rail .zero-fav[letter] { background: hsl(var(--zero-fav-hue, 20) 42% 46%); }
 #zero-rail .zero-item[selected] .zero-fav { box-shadow: 0 0 0 1.5px rgba(255, 255, 255, .95), inset 0 1px 0 rgba(255, 255, 255, .35), 0 1px 3px rgba(0, 0, 0, .18); }
-#zero-rail:hover .zero-item[selected] .zero-fav { box-shadow: 0 0 0 1.5px rgba(29, 35, 33, .6), inset 0 1px 0 rgba(255, 255, 255, .35), 0 1px 3px rgba(0, 0, 0, .18); }
+#zero-rail:is(:hover, :has(:focus-visible)) .zero-item[selected] .zero-fav { box-shadow: 0 0 0 1.5px rgba(29, 35, 33, .6), inset 0 1px 0 rgba(255, 255, 255, .35), 0 1px 3px rgba(0, 0, 0, .18); }
 #zero-rail .zero-item[busy] .zero-fav { animation: zero-breathe 1.6s var(--zero-soft) infinite alternate; }
 @keyframes zero-breathe { to { opacity: .55; } }
 #zero-rail :is(.zero-space, .zero-new) .zero-fav { background: rgba(255, 255, 255, .14); font-size: 13px; font-weight: 600; box-shadow: none; }
 #zero-rail .zero-space[selected] .zero-fav { background: rgba(255, 255, 255, .34); }
-#zero-rail:hover :is(.zero-space, .zero-new) .zero-fav { background: rgba(29, 35, 33, .08); color: #1d2321; }
-#zero-rail:hover .zero-space[selected] .zero-fav { background: rgba(29, 35, 33, .16); }
+#zero-rail:is(:hover, :has(:focus-visible)) :is(.zero-space, .zero-new) .zero-fav { background: rgba(29, 35, 33, .08); color: #1d2321; }
+#zero-rail:is(:hover, :has(:focus-visible)) .zero-space[selected] .zero-fav { background: rgba(29, 35, 33, .16); }
 
 /* Los títulos entran uno tras otro (28 ms entre cada uno) cuando el raíl ya ha empezado a abrirse. */
 #zero-rail .zero-tt {
@@ -527,8 +528,8 @@
   opacity: 0; transform: translateX(-4px); filter: blur(2px);
   transition: opacity var(--zero-t-fade) var(--zero-soft), transform var(--zero-t-morph) var(--zero-calm), filter var(--zero-t-fade) var(--zero-soft);
 }
-#zero-rail:hover .zero-tt { opacity: .95; transform: none; filter: none; transition-delay: calc(var(--zero-enter) - 30ms + var(--i, 0) * 28ms); }
-#zero-rail:hover .zero-item:hover .zero-tt { font-weight: 600; }
+#zero-rail:is(:hover, :has(:focus-visible)) .zero-tt { opacity: .95; transform: none; filter: none; transition-delay: calc(var(--zero-enter) - 30ms + var(--i, 0) * 28ms); }
+#zero-rail:is(:hover, :has(:focus-visible)) .zero-item:is(:hover, :focus-visible) .zero-tt { font-weight: 600; }
 #zero-rail .zero-tab:focus-visible { outline: 2px solid rgba(58, 143, 116, .8); outline-offset: -2px; }
 
 /* Reordenar arrastrando: la que se arrastra va levantada (sin transición: sigue al ratón) y las demás
@@ -607,7 +608,7 @@
 :root[zero-full] #zero-edge { pointer-events: auto; }
 :root[zero-full] #zero-rail { transform: translate(-64px, -50%); opacity: 0; pointer-events: none; }
 :root[zero-full] #zero-edge:hover ~ #zero-rail,
-:root[zero-full] #zero-rail:hover { transform: translateY(-50%); opacity: 1; pointer-events: auto; }
+:root[zero-full] #zero-rail:is(:hover, :has(:focus-visible)) { transform: translateY(-50%); opacity: 1; pointer-events: auto; }
 
 /* ---------------------------------------------------------------- cristal en vivo (zero-glass) */
 
@@ -892,10 +893,10 @@
 :root[zero-frame-ink]:not([zero-full]) #zero-pomo:not([zero-ink]) .zero-pomo-ring::before { background: conic-gradient(rgba(200, 85, 61, .9) 0 calc(var(--zero-pomo-p, 1) * 100%), rgba(29, 35, 33, .14) 0); }
 :root[zero-frame-ink]:not([zero-full]) #zero-pomo:is([phase="short"], [phase="long"]):not([zero-ink]) .zero-pomo-ring::before { background: conic-gradient(rgba(58, 143, 116, .95) 0 calc(var(--zero-pomo-p, 1) * 100%), rgba(29, 35, 33, .14) 0); }
 :root[zero-frame-ink]:not([zero-full]) #zero-pomo .zero-pomo-action:hover { background-color: rgba(29, 35, 33, .1); }
-:root[zero-frame-ink]:not([zero-full]) #zero-rail:not(:hover, [zero-ink]) { color: #1d2321; }
-:root[zero-frame-ink]:not([zero-full]) #zero-rail:not(:hover, [zero-ink]) :is(.zero-space, .zero-new) .zero-fav { background: rgba(29, 35, 33, .08); color: #1d2321; }
-:root[zero-frame-ink]:not([zero-full]) #zero-rail:not(:hover, [zero-ink]) .zero-sep { background: rgba(29, 35, 33, .18); }
-:root[zero-frame-ink]:not([zero-full]) #zero-rail:not(:hover, [zero-ink]) .zero-item[selected] .zero-fav { box-shadow: 0 0 0 1.5px rgba(29, 35, 33, .55), inset 0 1px 0 rgba(255, 255, 255, .35), 0 1px 3px rgba(0, 0, 0, .18); }
+:root[zero-frame-ink]:not([zero-full]) #zero-rail:not(:hover, :has(:focus-visible), [zero-ink]) { color: #1d2321; }
+:root[zero-frame-ink]:not([zero-full]) #zero-rail:not(:hover, :has(:focus-visible), [zero-ink]) :is(.zero-space, .zero-new) .zero-fav { background: rgba(29, 35, 33, .08); color: #1d2321; }
+:root[zero-frame-ink]:not([zero-full]) #zero-rail:not(:hover, :has(:focus-visible), [zero-ink]) .zero-sep { background: rgba(29, 35, 33, .18); }
+:root[zero-frame-ink]:not([zero-full]) #zero-rail:not(:hover, :has(:focus-visible), [zero-ink]) .zero-item[selected] .zero-fav { box-shadow: 0 0 0 1.5px rgba(29, 35, 33, .55), inset 0 1px 0 rgba(255, 255, 255, .35), 0 1px 3px rgba(0, 0, 0, .18); }
 :root[zero-frame-ink]:not([zero-full]) #zero-lights > button { background-color: rgba(29, 35, 33, .28); box-shadow: none; }
 :root[zero-frame-ink]:not([zero-full]) #zero-grow:not([zero-ink]) { color: #1d2321; background: rgba(255, 255, 255, .45); }
 :root[zero-frame-ink]:not([zero-full]) #zero-grow > button:hover { background-color: rgba(29, 35, 33, .1); }

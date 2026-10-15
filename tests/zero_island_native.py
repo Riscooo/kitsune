@@ -22,6 +22,8 @@
     En la vista de lectura, la isla dice el dominio de la web que se lee (no el título).
 14. Un título largo (una página que no es una web, como about:…) se corta al final con «…», dentro de
     la isla: no se sale por los dos lados.
+15. Con el teclado: si el foco llega a un botón de la isla (F6, Mayús+Tab), la isla se abre y el botón
+    se ve; al irse el foco, vuelve a reposo.
 
 --zero-del-repo: Zero sale de zero/ del repositorio (ver zero_harness.py).
 """
@@ -293,6 +295,21 @@ def main():
         driver.navigate(origin + '/kioto')
         until(lambda: sized(176) and island()['host'] == '127.0.0.1', timeout=5)
         check('Un título largo se corta al final con «…», dentro de la isla')
+
+        away()
+        until(lambda: sized(176), timeout=5)
+        # Como lo haría alguien con el teclado: a la dirección y Mayús+Tab (la navegación de Gecko por la barra).
+        chrome("gURLBar.focus()")
+        driver.command('POST', '/actions', {'actions': [{'type': 'key', 'id': 'teclado', 'actions': [
+            {'type': 'keyDown', 'value': '\ue008'}, {'type': 'keyDown', 'value': '\ue004'}, {'type': 'keyUp', 'value': '\ue004'}, {'type': 'keyUp', 'value': '\ue008'}]}]})
+        focused = "const a = document.activeElement; return a && a !== gURLBar.inputField && document.getElementById('nav-bar').contains(a) ? (a.id || a.localName) : null"
+        try:
+            until(lambda: chrome(focused) and sized(400) and chrome("const a = document.activeElement; return a.getBoundingClientRect().width > 10 && Number(getComputedStyle(a).opacity) > 0.3"), timeout=5)
+        except AssertionError:
+            raise AssertionError(f'foco en la isla: {chrome("const a = document.activeElement; return [a?.id || a?.localName, a?.getBoundingClientRect().width, document.getElementById(\'navigator-toolbox\').getAttribute(\'zero-island\')]")}') from None
+        chrome("gBrowser.selectedBrowser.focus()")
+        until(lambda: sized(176), timeout=5)
+        check('Con el teclado, el foco en un botón abre la isla y el botón se ve; al irse, vuelve')
 
         chrome("ChromeUtils.importESModule('chrome://browser/content/zero/zero-island.sys.mjs').alert(window, 'Tres avisos esperando', 'te los enseño en el descanso', 1500, 'quiet')")
         until(lambda: sized(470) and clear_of_card(), timeout=5)
