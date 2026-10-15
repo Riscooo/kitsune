@@ -4,6 +4,8 @@
 2. Al soltarla queda en su sitio nuevo (también en Gecko), sin elegirla.
 3. Un arrastre corto (menos de 6 px) es un clic: elige la pestaña y no la mueve.
 4. Una fijada no se mezcla con las demás.
+5. Soltar una pestaña lejos del raíl (a la derecha) la lleva a una ventana nueva, que nace en Zero, como
+   arrastrarla fuera de la barra de pestañas en Kitsune.
 
 --zero-del-repo: Zero sale de zero/ del repositorio (ver zero_harness.py).
 """
@@ -119,6 +121,20 @@ def main():
                  {'type': 'pointerMove', 'origin': 'pointer', 'x': 0, 'y': round(kioto_y - kobe_y + 12), 'duration': 240}, {'type': 'pointerUp', 'button': 0}])
         until(lambda: order()[0] == 'Kioto' and order()[1] == 'Kobe' and chrome("return gBrowser.visibleTabs[0].pinned && !gBrowser.visibleTabs[1].pinned"))
         check('Una fijada no se mezcla con las demás')
+
+        osaka = element(f"#zero-rail .zero-tab:nth-child({rail().index('Osaka') + 1})")
+        actions([{'type': 'pointerMove', 'origin': osaka, 'x': 0, 'y': 0}, {'type': 'pointerDown', 'button': 0},
+                 {'type': 'pointerMove', 'origin': 'pointer', 'x': 40, 'y': 10, 'duration': 80},
+                 {'type': 'pointerMove', 'origin': 'pointer', 'x': 260, 'y': 20, 'duration': 240}])
+        assert chrome("return document.querySelector('#zero-rail .zero-tab[dragging]')?.hasAttribute('tearing')"), 'debería avisar de que se va a otra ventana'
+        actions([{'type': 'pointerUp', 'button': 0}])
+        windows = "return [...Services.wm.getEnumerator('navigator:browser')].map(w => ({ tabs: w.gBrowser.visibleTabs.map(t => t.label), zero: w.document.documentElement.hasAttribute('zero') }))"
+        until(lambda: len(chrome(windows)) == 2 and any(w['tabs'] == ['Osaka'] for w in chrome(windows)), timeout=15)
+        other = next(w for w in chrome(windows) if w['tabs'] == ['Osaka'])
+        assert other['zero'], chrome(windows)
+        assert 'Osaka' not in order(), order()
+        chrome("for (const w of Services.wm.getEnumerator('navigator:browser')) if (w !== window) w.close();")
+        check('Soltar una pestaña lejos del raíl la lleva a una ventana nueva, en Zero')
         report['status'] = 'passed'
     finally:
         if driver: driver.close()

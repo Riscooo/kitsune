@@ -556,6 +556,8 @@
   background-color: rgba(255, 255, 255, .55) !important;
   box-shadow: 0 6px 18px rgba(0, 0, 0, .16);
 }
+/* Arrastrada lejos del raíl: al soltarla se va a una ventana nueva (se aparta un poco, como despegándose). */
+#zero-rail .zero-tab[dragging][tearing] { opacity: .55; }
 #zero-rail[settling] .zero-tab { transition: none !important; }
 #zero-rail[reordering] .zero-tt { transition-delay: 0ms !important; }
 

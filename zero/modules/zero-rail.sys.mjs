@@ -242,19 +242,20 @@ function fillGroup(win, st, group, node) {
  *  mueve. Un arrastre más corto es un clic. */
 function reorder(win, st) {
   let drag = null;
-  const DEAD = 6;
+  const DEAD = 6, TEAR = 80;
   st.rail.addEventListener('pointerdown', event => {
     st.dragged = false;
     if (event.button !== 0) return;
     const node = event.target.closest('.zero-tab');
     if (!node || node.hasAttribute('leaving') || event.target.closest('.zero-close, .zero-sound')) return;
-    drag = { node, tab: st.tabOf.get(node), startY: event.clientY, pointerId: event.pointerId, active: false };
+    drag = { node, tab: st.tabOf.get(node), startY: event.clientY, startX: event.clientX, pointerId: event.pointerId, active: false };
   });
   st.rail.addEventListener('pointermove', event => {
     if (!drag || event.pointerId !== drag.pointerId || !drag.tab) return;
     const dy = event.clientY - drag.startY;
+    const dx = event.clientX - drag.startX;
     if (!drag.active) {
-      if (Math.abs(dy) < DEAD) return;
+      if (Math.abs(dy) < DEAD && Math.abs(dx) < DEAD) return;
       drag.active = true;
       try { st.rail.setPointerCapture(event.pointerId); } catch { /* sin captura */ }
       st.rail.setAttribute('reordering', '');
@@ -272,6 +273,10 @@ function reorder(win, st) {
     while (target > 0 && center < drag.centers[target - 1]) target--;
     while (target < drag.centers.length - 1 && center > drag.centers[target + 1]) target++;
     drag.target = target;
+    // Lejos del raíl (a la derecha), soltarla la lleva a una ventana nueva, como sacarla de la barra de
+    // pestañas en Kitsune; la fila lo avisa. Una fijada o la única pestaña, no.
+    drag.outside = event.clientX - st.rail.getBoundingClientRect().right > TEAR && !drag.tab.pinned && win.gBrowser.visibleTabs.length > 1;
+    drag.node.toggleAttribute('tearing', drag.outside);
     drag.rows.forEach((row, i) => {
       if (row === drag.node) return;
       const shift = target < drag.index && i >= target && i < drag.index ? drag.step
@@ -289,8 +294,11 @@ function reorder(win, st) {
     st.rail.setAttribute('settling', '');
     for (const row of done.rows) row.style.transform = '';
     done.node.removeAttribute('dragging');
+    done.node.removeAttribute('tearing');
     st.rail.removeAttribute('reordering');
-    if (done.target !== undefined && done.target !== done.index) {
+    if (done.outside && !done.tab.closing) {
+      win.gBrowser.replaceTabWithWindow(done.tab);
+    } else if (done.target !== undefined && done.target !== done.index) {
       const anchor = st.tabOf.get(done.rows[done.target]);
       if (anchor && !done.tab.closing) {
         if (done.target < done.index) win.gBrowser.moveTabBefore(done.tab, anchor);
