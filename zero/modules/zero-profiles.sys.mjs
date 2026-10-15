@@ -316,10 +316,17 @@ export function attach(win, ctx) {
   st.identityGlyph = el(doc, 'span', { class: 'zero-empty-profile-glyph', 'aria-hidden': 'true' });
   st.identityName = el(doc, 'strong');
   st.identityAccount = el(doc, 'small');
-  st.identity = el(doc, 'div', { id: 'zero-empty-profile', 'aria-label': t('Perfil actual', 'Current profile') }, [st.identityImage, st.identityGlyph, st.identityName, st.identityAccount]);
+  // La foto es un botón: abre la ficha del perfil (para cambiarlo, editarlo o crear otro) sin ir a la columna.
+  st.identityFace = el(doc, 'button', { type: 'button', class: 'zero-empty-profile-face', title: t('Tu perfil', 'Your profile'), 'aria-label': t('Abrir tu perfil', 'Open your profile') }, [st.identityImage, st.identityGlyph]);
+  st.identity = el(doc, 'div', { id: 'zero-empty-profile', 'aria-label': t('Perfil actual', 'Current profile') }, [st.identityFace, st.identityName, st.identityAccount]);
   buildEditor(win, st);
   dock.prepend(st.pill, st.mode);
   doc.body.append(st.menu, st.identity);
+  st.identityFace.addEventListener('click', () => {
+    const { current } = profilesOf(win, st);
+    if (st.menu.hasAttribute('open') && st.menu.dataset.space === current) { closeMenu(st); return; }
+    openEditor(win, st, current, st.pill.querySelector('.zero-profile-bubble[current]') ?? st.pill);
+  });
   st.cleanups.push(() => { st.pill.remove(); st.mode.remove(); st.menu.remove(); st.identity.remove(); });
 
   const after = promise => void Promise.resolve(promise).then(() => render(win, st), error => { console.error('Zero: perfiles', error); render(win, st); });

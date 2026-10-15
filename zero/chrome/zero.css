@@ -1905,3 +1905,17 @@
 :root[zero] #kitsune-palette .kitsune-palette-item { border-radius: 10px !important; }
 :root[zero] #kitsune-palette .kitsune-palette-item[aria-selected="true"] { background: var(--zero-piece-hover) !important; box-shadow: none !important; }
 :root[zero] #kitsune-palette :is(.kitsune-palette-kind, .kitsune-palette-detail) { color: var(--zero-piece-quiet) !important; }
+
+/* Tu foto en la pestaña nueva se puede pulsar: abre tu ficha de perfil. */
+#zero-empty-profile .zero-empty-profile-face {
+  appearance: none; margin: 0; padding: 0; border: none; border-radius: 50%; background: transparent; color: inherit; cursor: pointer;
+  pointer-events: auto; transition: transform 200ms var(--zero-calm);
+}
+#zero-empty-profile .zero-empty-profile-face:hover { transform: scale(1.05); }
+#zero-empty-profile .zero-empty-profile-face:focus-visible { outline: 2px solid rgba(255, 255, 255, .7); outline-offset: 3px; }
+#zero-sound .zero-sound-fav[letter] { background: #5f7d8c; color: #fff; font: 700 10.5px system-ui, sans-serif; }
+
+/* El filo de la ventana, finísimo, como el de las ventanas de macOS en oscuro y en claro. */
+:root[zero]:not([zero-frame-ink]) #zero-bg { box-shadow: inset 0 0 0 .5px rgba(255, 255, 255, .16), inset 0 1px 0 rgba(255, 255, 255, .06); }
+:root[zero][zero-frame-ink] #zero-bg { box-shadow: inset 0 0 0 .5px rgba(0, 0, 0, .14); }
+:root[zero]:is([inFullscreen], [sizemode="fullscreen"]) #zero-bg { box-shadow: none; }

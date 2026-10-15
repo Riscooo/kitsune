@@ -112,7 +112,9 @@ function render(win, st) {
     try { meta = controller?.isActive ? controller.getMetadata() : null; } catch { /* la web no dice nada */ }
     const row = el(doc, 'div', { class: 'zero-sound-row', role: 'listitem' });
     const icon = iconOf(win, tab);
-    const fav = el(doc, 'span', { class: 'zero-sound-fav', 'aria-hidden': 'true' }, icon ? [el(doc, 'img', { src: icon, alt: '' })] : []);
+    // Su icono, o su inicial si no tiene (como en el raíl).
+    const fav = el(doc, 'span', { class: 'zero-sound-fav', 'aria-hidden': 'true' }, icon ? [el(doc, 'img', { src: icon, alt: '' })] : [([...String(tab.label || '·').trim()][0] ?? '·').toLocaleUpperCase()]);
+    if (!icon) fav.setAttribute('letter', '');
     const name = el(doc, 'button', { type: 'button', class: 'zero-sound-name', title: t('Ir a la pestaña', 'Go to the tab') }, [
       el(doc, 'b', {}, [String(meta?.title || tab.label || '')]),
       el(doc, 'small', {}, [String(meta?.artist || (() => { try { return tab.linkedBrowser.currentURI.host; } catch { return ''; } })())]),
