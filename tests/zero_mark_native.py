@@ -155,11 +155,11 @@ def main():
         check('«Ventanas nuevas» y «Fondo» cambian sus ajustes y el aspecto al momento')
 
         # (Las filas que dependen del fondo se van al repintar la hoja, un momento después.)
-        until(lambda: len(mark()['rows']) == 8)
+        until(lambda: len(mark()['rows']) == 9)
         rows = mark()['rows']
-        # Las de Zero (ventanas nuevas, fondo, modo concentración, pestañas, info; con el fondo de la web, sin
+        # Las de Zero (ventanas nuevas, fondo, foto de fondo, modo concentración, pestañas, info; con el fondo de la web, sin
         # la opacidad) y los interruptores del pomodoro, el silencio y los sonidos, apagados: sin sus opciones.
-        assert len(rows) == 8 and [r.split(' ')[0][:8] for r in rows[5:]] == ['Pomodoro', 'Silencio', 'Sonidos'], rows
+        assert len(rows) == 9 and [r.split(' ')[0][:8] for r in rows[6:]] == ['Pomodoro', 'Silencio', 'Sonidos'], rows
         assert not any(word in ' '.join(rows) for word in ('Tiempos', 'Webs vetadas', 'Aviso de scroll', 'Lluvia')), rows
         assert chrome("return !document.querySelector('#zero-settings [data-pref=islandIcons]')"), 'la isla de arriba no lleva «solo iconos»'
         click('#zero-settings [data-pref="railIcons"] [data-value="icons"]')
@@ -206,7 +206,7 @@ def main():
               const animated = leaving.filter(r => r.getAnimations().some(a => a.playState === 'running')).length;
               setTimeout(() => done({ before, leaving: leaving.length, animated, after: document.querySelectorAll('#zero-settings .zero-row').length, live: count() }), 800);
             }, 60);""", [], asynchronous=True)
-        assert gone['leaving'] >= 2 and gone['animated'] == gone['leaving'] and gone['after'] == gone['live'] == 8, gone
+        assert gone['leaving'] >= 2 and gone['animated'] == gone['leaving'] and gone['after'] == gone['live'] == 9, gone
         chrome("Services.prefs.clearUserPref('kitsune.zero.pomodoro.preset')")
         check('Sin el atajo en la cabecera; las filas entran y se van con animación, el interruptor y el segmento se deslizan')
 

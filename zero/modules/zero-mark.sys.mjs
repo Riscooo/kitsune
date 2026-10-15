@@ -69,8 +69,10 @@ function zeroSection(win, host) {
           { value: 'photo', label: host.t('Foto', 'Photo') }, { value: 'web', label: host.t('Web', 'Page') }],
         // Con «auto» se marca el que está puesto de verdad.
         get: () => win.document.documentElement.getAttribute('zero-backdrop'),
+        // «Foto» sin foto elegida, o pulsada otra vez con la foto puesta, abre el selector para elegirla.
         set: value => {
-          if (value === 'photo' && !prefs.getStringPref(prefName(prefix, PREFS.backgroundImage), '')) chooseBackground(win, host);
+          const photo = prefs.getStringPref(prefName(prefix, PREFS.backgroundImage), '');
+          if (value === 'photo' && (!photo || win.document.documentElement.getAttribute('zero-backdrop') === 'photo')) chooseBackground(win, host);
           else prefs.setStringPref(prefName(prefix, PREFS.backdrop), value);
         },
         watch: fn => {
@@ -80,11 +82,11 @@ function zeroSection(win, host) {
         },
       },
       {
+        // Siempre a la vista (Dani, 15-10: «no se puede cambiar la imagen de fondo»): elegir una pone la foto.
         kind: 'action', id: PREFS.backgroundImage,
-        label: host.t('Foto del fondo', 'Background photo'),
+        label: host.t('Foto de fondo', 'Background photo'),
         actionLabel: host.t('Elegir…', 'Choose…'),
         run: () => chooseBackground(win, host),
-        when: () => win.document.documentElement.getAttribute('zero-backdrop') === 'photo',
         watch: watchPref(PREFS.backgroundImage),
       },
       {

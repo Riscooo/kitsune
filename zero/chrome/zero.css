@@ -1936,3 +1936,10 @@
 
 /* La hoja de ajustes nunca se sale por abajo: si crece (al encender los sonidos) se desplaza por dentro. */
 #zero-settings { max-height: calc(100vh - var(--zero-settings-y, 80px) - 12px) !important; }
+
+/* A pantalla completa en un Mac con cámara en la pantalla, macOS deja negra la franja de arriba (la ventana va
+   por debajo, y Kitsune no puede pintar ahí): el fondo de Zero se oscurece hacia arriba y se funde con ella. */
+:root[zero][zero-os="mac"]:is([inFullscreen], [sizemode="fullscreen"]) #zero-bg::before {
+  content: ""; position: absolute; inset: 0 0 auto 0; height: 96px; pointer-events: none;
+  background: linear-gradient(#000, rgba(0, 0, 0, 0));
+}
