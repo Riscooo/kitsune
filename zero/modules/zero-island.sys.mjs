@@ -34,6 +34,20 @@ function label(win) {
   return { text: win.gBrowser.selectedTab.label || '', site: null };
 }
 
+/** Lo más delicado que comparte alguna pestaña de la ventana: la pantalla, la cámara o el micrófono
+ *  (Gecko lo marca en «sharing»; ventana, aplicación o pestaña cuentan como pantalla). */
+export function sharingOf(win) {
+  let best = null;
+  for (const tab of win.gBrowser.tabs) {
+    const value = tab.getAttribute('sharing');
+    if (!value) continue;
+    const kind = value === 'camera' || value === 'microphone' ? value : 'screen';
+    if (kind === 'screen') return 'screen';
+    if (kind === 'camera' || !best) best = kind;
+  }
+  return best;
+}
+
 export function attach(win, ctx = {}) {
   const doc = win.document;
   const toolbox = doc.getElementById('navigator-toolbox');
@@ -63,7 +77,15 @@ export function attach(win, ctx = {}) {
   const text = el(doc, 'span', { class: 'zero-host-text' });
   // De qué usuario es la web: un punto de su color que, con la isla abierta, dice su nombre.
   const user = el(doc, 'span', { class: 'zero-user' });
-  st.host.append(icon, user, lock, text);
+  // Una web de la ventana usa la cámara, el micrófono o la pantalla: un punto tras el dominio, como el
+  // de iOS. De cualquier pestaña, no solo la que se ve: lo que importa es saber que está encendida.
+  const rec = el(doc, 'span', { class: 'zero-rec', role: 'img' });
+  st.host.append(icon, user, lock, text, rec);
+  const recLabels = {
+    camera: t('Una web usa la cámara', 'A site is using the camera'),
+    microphone: t('Una web usa el micrófono', 'A site is using the microphone'),
+    screen: t('Una web comparte la pantalla', 'A site is sharing the screen'),
+  };
   const update = () => {
     const { text: value, site } = label(win);
     text.textContent = value;
@@ -73,6 +95,9 @@ export function attach(win, ctx = {}) {
     st.host.toggleAttribute('user', !!who);
     paintUser(user, who);
     if (user.textContent !== (who?.name ?? '')) user.textContent = who?.name ?? '';
+    const sharing = sharingOf(win);
+    if (sharing) { st.host.setAttribute('sharing', sharing); rec.setAttribute('aria-label', recLabels[sharing]); rec.setAttribute('title', recLabels[sharing]); }
+    else { st.host.removeAttribute('sharing'); rec.removeAttribute('aria-label'); rec.removeAttribute('title'); }
     let src = null;
     try { src = win.gBrowser.getIcon(win.gBrowser.selectedTab); } catch { /* sin icono */ }
     if (icon.getAttribute('src') !== (src || NO_ICON)) icon.setAttribute('src', src || NO_ICON);

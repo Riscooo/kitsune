@@ -32,6 +32,8 @@
     tramo, y se ven marcadas; un clic normal deja solo esa.
 19. Una pestaña descargada de memoria (menú de pestaña → Descargar) lleva el icono apagado, como en la
     barra de pestañas de Kitsune; al volver a ella, se enciende.
+20. La pestaña que usa la cámara, el micrófono o comparte la pantalla lleva un punto de su color (verde,
+    naranja, rojo, como en la isla) en la esquina de arriba a la izquierda de su icono; al apagarse, se va.
 
 --zero-del-repo: Zero sale de zero/ del repositorio (ver zero_harness.py).
 """
@@ -438,6 +440,22 @@ def main():
         except AssertionError:
             raise AssertionError(f'descargada: {chrome(faded)}') from None
         check('Una pestaña descargada lleva el icono apagado; al volver a ella, se enciende')
+
+        rec = """const t = document.querySelector('tab[data-prueba]'); const row = [...document.querySelectorAll('#zero-rail .zero-tab')].find(r => r.getAttribute('aria-label') === t.label);
+            const d = row?.querySelector('.zero-rec'); if (!d) return null; const cs = getComputedStyle(d); const b = d.getBoundingClientRect(); const f = row.querySelector('.zero-fav').getBoundingClientRect();
+            const [red, green, blue] = cs.backgroundColor.match(/[\\d.]+/g).map(Number);
+            return { shown: cs.display !== 'none' && b.width >= 5, corner: b.left <= f.left + 4 && b.top <= f.top + 4, red, green, blue };"""
+        share = "gBrowser.updateBrowserSharing(document.querySelector('tab[data-prueba]').linkedBrowser, { webRTC: arguments[0] })"
+        try:
+            chrome(share, [{'sharing': 'camera', 'camera': True}])
+            eventually(lambda: (r := chrome(rec)) and r['shown'] and r['corner'] and r['green'] > r['red'] and r['green'] > r['blue'], timeout=5)
+            chrome(share, [{'sharing': 'microphone', 'microphone': True}])
+            eventually(lambda: (r := chrome(rec)) and r['shown'] and r['red'] > 200 and 100 < r['green'] < 200, timeout=5)
+            chrome(share, [{}])
+            eventually(lambda: (r := chrome(rec)) and not r['shown'], timeout=5)
+        except AssertionError:
+            raise AssertionError(f'cámara en el raíl: {chrome(rec)}') from None
+        check('La pestaña que usa la cámara o el micrófono lleva un punto de su color en el icono')
         report['status'] = 'passed'
     finally:
         if driver: driver.close()

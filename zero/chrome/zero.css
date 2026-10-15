@@ -463,6 +463,16 @@
               font-size var(--zero-t-fade) var(--zero-soft), color var(--zero-t-fade) var(--zero-soft) !important;
 }
 #main-window[zero] #zero-host[user] .zero-user { display: block !important; }
+/* Cámara (verde), micrófono (naranja) o pantalla (rojo) en uso en la ventana: un punto tras el
+   dominio, como el de iOS, con un halo suave. */
+#main-window[zero] #zero-host .zero-rec {
+  display: none !important; flex: none !important; width: 6px !important; height: 6px !important; border-radius: 50% !important;
+  background: var(--zero-rec) !important; box-shadow: 0 0 6px var(--zero-rec) !important;
+}
+#main-window[zero] #zero-host[sharing] .zero-rec { display: block !important; }
+#main-window[zero] #zero-host[sharing="camera"] { --zero-rec: #30d158; }
+#main-window[zero] #zero-host[sharing="microphone"] { --zero-rec: #ff9f0a; }
+#main-window[zero] #zero-host[sharing="screen"] { --zero-rec: #ff453a; }
 /* Ventana privada: el antifaz de Gecko delante del dominio (en Zero no está la barra de pestañas,
    donde Gecko lo pone). */
 #main-window[zero][privatebrowsingmode="temporary"] #zero-host::before {
@@ -607,7 +617,6 @@
   background-color: rgba(255, 255, 255, .55) !important;
   box-shadow: 0 6px 18px rgba(0, 0, 0, .16);
 }
-/* Marcada junto con otras (Ctrl + clic, Mayús + clic): un anillo del color de Kitsune. */
 /* Descargada de memoria: el icono apagado, con las mismas preferencias que la barra de pestañas. */
 @media -moz-pref("browser.tabs.fadeOutUnloadedTabs") {
   #zero-rail .zero-tab[pending] .zero-fav { filter: grayscale(100%); opacity: .5; transition: filter 1s, opacity 1s; }
@@ -615,6 +624,7 @@
 @media -moz-pref("browser.tabs.fadeOutExplicitlyUnloadedTabs") {
   #zero-rail .zero-tab[pending][discarded] .zero-fav { filter: grayscale(100%); opacity: .5; transition: filter 1s, opacity 1s; }
 }
+/* Marcada junto con otras (Ctrl + clic, Mayús + clic): un anillo del color de Kitsune. */
 #zero-rail .zero-tab[multiselected] .zero-fav { box-shadow: 0 0 0 2px rgba(232, 116, 59, .95), 0 1px 3px rgba(0, 0, 0, .18) !important; }
 #zero-rail:is(:hover, :has(:focus-visible)) .zero-tab[multiselected] { background-color: rgba(232, 116, 59, .12) !important; }
 /* Una de fondo con algo nuevo (cambió su título o pide atención): un punto en su icono. */
@@ -623,6 +633,15 @@
   background: #e8743b; box-shadow: 0 0 0 1.5px rgba(255, 255, 255, .92); pointer-events: none;
 }
 #zero-rail .zero-tab[attention] .zero-dot { display: block; }
+/* Usa la cámara (verde), el micrófono (naranja) o la pantalla (rojo): un punto en la otra esquina. */
+#zero-rail .zero-rec {
+  display: none; position: absolute; left: 0; top: 0; width: 7px; height: 7px; border-radius: 50%;
+  background: var(--zero-rec); box-shadow: 0 0 0 1.5px rgba(255, 255, 255, .92); pointer-events: none;
+}
+#zero-rail .zero-tab[sharing] .zero-rec { display: block; }
+#zero-rail .zero-tab[sharing="camera"] { --zero-rec: #30d158; }
+#zero-rail .zero-tab[sharing="microphone"] { --zero-rec: #ff9f0a; }
+#zero-rail .zero-tab[sharing="screen"] { --zero-rec: #ff453a; }
 /* Con un enlace encima, listo para abrirlo: un filo de luz. */
 #zero-rail[dropping] { box-shadow: inset 0 0 0 1.5px rgba(255, 255, 255, .8), 0 10px 30px rgba(0, 0, 0, .18); }
 /* Arrastrada lejos del raíl: al soltarla se va a una ventana nueva (se aparta un poco, como despegándose). */

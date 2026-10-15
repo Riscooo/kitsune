@@ -34,6 +34,9 @@
     oscuro para verse sobre el cristal claro; uno oscuro, no.
 20. Mientras carga la web que se ve, la isla lleva una línea fina de progreso en su borde de abajo, que
     avanza y se va al terminar.
+21. Si una web de la ventana usa la cámara, el micrófono o comparte la pantalla, la isla lleva un punto
+    tras el dominio, como el de iOS: verde la cámara, naranja el micrófono, rojo la pantalla. Aunque sea
+    otra pestaña (lo que importa es saber que está encendida); al apagarse, se va.
 
 --zero-del-repo: Zero sale de zero/ del repositorio (ver zero_harness.py).
 """
@@ -420,6 +423,27 @@ def main():
             raise AssertionError(f'progreso de carga: {chrome(line)} · visto {seen}') from None
         assert seen == sorted(seen), seen
         check('Mientras carga la web, la isla lleva una línea de progreso que avanza y se va al terminar')
+
+        rec = """const r = document.querySelector('#zero-host .zero-rec'); if (!r) return null; const cs = getComputedStyle(r); const b = r.getBoundingClientRect();
+            const t = document.querySelector('#zero-host .zero-host-text').getBoundingClientRect();
+            const [red, green, blue] = cs.backgroundColor.match(/[\\d.]+/g).map(Number);
+            return { shown: cs.display !== 'none' && b.width >= 5 && Number(cs.opacity) > 0.5, after: b.left >= t.right - 1, red, green, blue, label: r.getAttribute('aria-label') || '' };"""
+        share = "gBrowser.updateBrowserSharing(arguments[0] ? gBrowser.visibleTabs.find(t => t !== gBrowser.selectedTab).linkedBrowser : gBrowser.selectedBrowser, { webRTC: arguments[1] })"
+        chrome("gBrowser.addTab('about:blank', { triggeringPrincipal: Services.scriptSecurityManager.getSystemPrincipal() })")
+        try:
+            chrome(share, [False, {'sharing': 'camera', 'camera': True}])
+            until(lambda: (r := chrome(rec)) and r['shown'] and r['after'] and r['green'] > r['red'] and r['green'] > r['blue'] and 'cámara' in r['label'].lower(), timeout=5)
+            chrome(share, [False, {}])
+            until(lambda: not chrome(rec)['shown'], timeout=5)
+            chrome(share, [True, {'sharing': 'microphone', 'microphone': True}])
+            until(lambda: (r := chrome(rec)) and r['shown'] and r['red'] > 200 and 100 < r['green'] < 200 and 'micrófono' in r['label'].lower(), timeout=5)
+            chrome(share, [True, {'sharing': 'screen', 'screen': 'Screen'}])
+            until(lambda: (r := chrome(rec)) and r['shown'] and r['red'] > 200 and r['green'] < 100 and 'pantalla' in r['label'].lower(), timeout=5)
+            chrome(share, [True, {}])
+            until(lambda: not chrome(rec)['shown'], timeout=5)
+        except AssertionError:
+            raise AssertionError(f'cámara/micrófono: {chrome(rec)}') from None
+        check('Con la cámara, el micrófono o la pantalla en uso (en cualquier pestaña), un punto tras el dominio')
 
         chrome("ChromeUtils.importESModule('chrome://browser/content/zero/zero-island.sys.mjs').alert(window, 'Tres avisos esperando', 'te los enseño en el descanso', 1500, 'quiet')")
         until(lambda: sized(470) and clear_of_card(), timeout=5)

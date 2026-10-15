@@ -46,6 +46,7 @@ function tabItem(doc, host) {
   return el(doc, 'div', { class: 'zero-item zero-tab', role: 'tab', tabindex: '0' }, [
     el(doc, 'span', { class: 'zero-fav', 'aria-hidden': 'true' }),
     el(doc, 'span', { class: 'zero-dot', 'aria-hidden': 'true' }),
+    el(doc, 'span', { class: 'zero-rec', 'aria-hidden': 'true' }),
     el(doc, 'button', { type: 'button', class: 'zero-sound', tabindex: '-1', title: host.t('Silenciar o volver a oír', 'Mute or unmute'), 'aria-label': host.t('Silenciar o volver a oír', 'Mute or unmute') }),
     el(doc, 'span', { class: 'zero-tt' }),
     el(doc, 'button', { type: 'button', class: 'zero-close', tabindex: '-1', title: host.t('Cerrar pestaña', 'Close tab'), 'aria-label': host.t('Cerrar pestaña', 'Close tab') }),
@@ -107,6 +108,10 @@ function fill(win, st, tab, node) {
   // fijadas de Kitsune. Al elegirla, Gecko lo quita.
   node.toggleAttribute('attention', tab.hasAttribute('attention') || tab.hasAttribute('titlechanged'));
   node.toggleAttribute('multiselected', !!tab.multiselected);
+  // Usa la cámara, el micrófono o la pantalla: un punto de su color, como en la isla.
+  const sharing = tab.getAttribute('sharing');
+  if (sharing) node.setAttribute('sharing', sharing === 'camera' || sharing === 'microphone' ? sharing : 'screen');
+  else node.removeAttribute('sharing');
   // Descargada de memoria: el icono apagado, como en la barra de pestañas (lo decide el CSS con las
   // mismas preferencias de Gecko).
   node.toggleAttribute('pending', tab.hasAttribute('pending'));
