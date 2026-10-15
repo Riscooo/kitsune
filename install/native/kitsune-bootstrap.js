@@ -20,10 +20,13 @@
     const { KitsuneLayout } = ChromeUtils.importESModule('chrome://browser/content/kitsune-layout.sys.mjs');
     void KitsuneLayout.decorate(window).catch(() => {});
   } catch { /* sin atajos de distribución, Kitsune sigue igual */ }
-  // Kitsune Zero (Ctrl+Alt+0): la ventana de cristal, en zero/ y separado de Kitsune.
+  // Kitsune Zero, la ventana de cristal (en zero/): desde la 0.8 beta 3 es un navegador aparte, el mismo motor con
+  // su propio paquete (kitsune.product = "zero"); el Kitsune de siempre ya no lo lleva (Risco, 15-10).
   try {
-    const { KitsuneZeroHost } = ChromeUtils.importESModule('chrome://browser/content/kitsune-zero-host.sys.mjs');
-    void KitsuneZeroHost.decorate(window)?.catch?.(() => {});
+    if (Services.prefs.getStringPref('kitsune.product', 'kitsune') === 'zero') {
+      const { KitsuneZeroHost } = ChromeUtils.importESModule('chrome://browser/content/kitsune-zero-host.sys.mjs');
+      void KitsuneZeroHost.decorate(window)?.catch?.(() => {});
+    }
   } catch { /* sin Zero, Kitsune sigue igual */ }
   // Traer de otro navegador (Zen, Firefox, Chrome…).
   try {

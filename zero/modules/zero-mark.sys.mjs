@@ -44,8 +44,9 @@ function zeroSection(win, host) {
     },
     rows: [
       {
-        // Una fila para dos ajustes: como la ventana de origen (de serie), siempre en Zero o normales.
-        kind: 'segment', id: 'windows',
+        // Una fila para dos ajustes: como la ventana de origen (de serie), siempre en Zero o normales. Como navegador
+        // aparte (Kitsune Zero), todas son Zero: no está.
+        kind: 'segment', id: 'windows', when: () => !host.app,
         label: host.t('Ventanas nuevas', 'New windows'),
         options: [{ value: 'inherit', label: host.t('Como esta', 'Like this') }, { value: 'always', label: host.t('En Zero', 'In Zero') },
                   { value: 'normal', label: host.t('Normales', 'Normal') }],

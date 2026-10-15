@@ -74,5 +74,7 @@ def prepare(chrome, from_repo: bool):
         profile = Path(chrome("return Services.dirsvc.get('ProfD', Ci.nsIFile).path"))
         manifest = manifest_from_repo(Path(tempfile.mkdtemp(prefix="kitsune-zero-manifest-")), profile)
         chrome(REGISTER, [str(manifest)])
-        chrome(BOOT, [HOST])
-        chrome(WATCH_NEW, [HOST])
+    # Desde la 0.8 beta 3, el Kitsune de siempre no arranca Zero (es un navegador aparte, con su paquete): las
+    # pruebas lo encienden a mano, como el entrar y salir de antes (sin kitsune.product = "zero").
+    chrome(BOOT, [HOST])
+    chrome(WATCH_NEW, [HOST])

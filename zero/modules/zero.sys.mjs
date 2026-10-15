@@ -78,8 +78,10 @@ function fadeIn(win, ids, ms) {
 }
 const fadeOf = win => parseFloat(win.getComputedStyle(win.document.documentElement).getPropertyValue('--zero-t-fade')) || 0;
 
-/** La primera vez que se entra en Zero, la isla dice un momento cómo volver (al acabar de entrar). */
+/** La primera vez que se entra en Zero, la isla dice un momento cómo volver (al acabar de entrar). Como
+ *  navegador aparte (host.app) no se vuelve a nada: no lo dice. */
 function welcome(win) {
+  if (host.app) return;
   const name = prefName(host.prefix, PREFS.welcomed);
   try { if (host.prefs.getBoolPref(name, false)) return; host.prefs.setBoolPref(name, true); } catch { return; }
   const keys = shortcutText(Services.appinfo.OS);
@@ -142,7 +144,9 @@ async function decorate(win) {
   // Si ya se sabe que nace en Zero, su aspecto se pone ahora, antes de que se pinte por primera vez:
   // así no enseña un momento Kitsune normal para luego transformarse. Las piezas llegan al arrancar.
   const first = readPrefs(host.prefs, host.prefix);
-  if (win.toolbar?.visible !== false && (first.always || (first.inherit && from && active(from)))) {
+  // Como navegador aparte (host.app: Kitsune Zero), todas las ventanas nacen en Zero.
+  const always = () => !!host.app || readPrefs(host.prefs, host.prefix).always;
+  if (win.toolbar?.visible !== false && (always() || (first.inherit && from && active(from)))) {
     const root = win.document.documentElement;
     root.setAttribute('zero', '');
     root.setAttribute('zero-variant', frame.variantOf(first.variant));
@@ -156,7 +160,7 @@ async function decorate(win) {
   let restored = false;
   win.addEventListener('SSWindowRestored', () => {
     restored = true;
-    if (decorated.has(win)) toggle(win, readPrefs(host.prefs, host.prefix).always || remembered(win));
+    if (decorated.has(win)) toggle(win, always() || remembered(win));
   });
   // El arranque de Kitsune llama mientras se lee browser.xhtml, cuando aún no hay gBrowser: se espera
   // a que la ventana termine de arrancar antes de mirar nada.
@@ -166,15 +170,15 @@ async function decorate(win) {
     return;
   }
   decorated.add(win);
-  host.keys?.add(win, 'kitsune-zero-key', '0', 'accel,alt', () => toggle(win));
+  if (!host.app) host.keys?.add(win, 'kitsune-zero-key', '0', 'accel,alt', () => toggle(win));
   // Ampliar la web y dejar de ampliarla (Risco, 15-10); se cambia en «Atajos de teclado…».
   host.keys?.add(win, 'kitsune-zero-full-key', 'F', 'accel,alt', () => { if (active(win)) frame.toggleFull(win); });
   // Personalizar la barra (menú ≡ → Personalizar) necesita verla: mientras dura, Zero se aparta (sin
   // olvidarse para la próxima sesión) y vuelve al terminar.
   win.gNavToolbox?.addEventListener('beforecustomization', () => { if (active(win)) { aside.add(win); toggle(win, false, { keep: true }); } });
   win.gNavToolbox?.addEventListener('aftercustomization', () => { if (aside.delete(win)) toggle(win, true, { keep: true }); });
-  const { always, inherit } = readPrefs(host.prefs, host.prefix);
-  const wanted = always || remembered(win) || (inherit && !restored && from && active(from));
+  const { inherit } = readPrefs(host.prefs, host.prefix);
+  const wanted = always() || remembered(win) || (inherit && !restored && from && active(from));
   if (wanted || early.has(win)) toggle(win, wanted);
 }
 

@@ -82,7 +82,11 @@ const users = {
   },
 };
 
-const host = () => ({ t, prefs: Services.prefs, prefix: 'kitsune.zero.', keys: { add: addKey }, spaces, saver, tabs, users });
+// Kitsune Zero como navegador aparte (su paquete pone kitsune.product = "zero"): todas sus ventanas son Zero y no hay
+// atajo ni fila del menú para entrar o salir. Sin eso (las pruebas, que lo encienden a mano), Zero se entra y se sale.
+const isApp = () => { try { return Services.prefs.getStringPref('kitsune.product', 'kitsune') === 'zero'; } catch { return false; } };
+
+const host = () => ({ t, prefs: Services.prefs, prefix: 'kitsune.zero.', app: isApp(), keys: { add: addKey }, spaces, saver, tabs, users });
 
 /** «Kitsune Zero» en el menú ≡ de Kitsune (con Retoques… y Copia…), con su atajo a la vista: entra, y
  *  dentro de Zero la misma fila dice «Salir de Kitsune Zero» y sale. */
@@ -118,7 +122,7 @@ export const KitsuneZeroHost = {
   decorate(win) {
     const { Zero } = ChromeUtils.importESModule(ZERO);
     if (!started) { Zero.start(host()); started = true; }
-    addMenuRow(win, Zero);
+    if (!isApp()) addMenuRow(win, Zero);
     return Zero.decorate(win);
   },
 };
