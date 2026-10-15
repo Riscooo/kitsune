@@ -888,7 +888,7 @@
 
 /* En una pestaña nueva se ve de inmediato con qué perfil se va a buscar. */
 #zero-empty-profile {
-  position: fixed; z-index: 4; left: 50%; top: calc(50% - 106px); translate: -50% 0;
+  position: fixed; z-index: 4; left: 50%; top: calc(50% - 132px); translate: -50% 0;
   display: none; flex-direction: column; align-items: center; gap: 5px; min-width: 120px;
   color: #fff; text-align: center; text-shadow: var(--zero-glass-halo); pointer-events: none;
 }
@@ -1865,3 +1865,32 @@
 :root[zero-frame-ink] #zero-profile > .zero-profile-add { color: #1d2321; background: rgba(29, 35, 33, .06); }
 :root[zero-frame-ink] #zero-profile > .zero-profile-add:hover { background: rgba(29, 35, 33, .12); }
 :root[zero-frame-ink] #zero-mode .zero-mode-knob { background: rgba(29, 35, 33, .22); box-shadow: inset 0 -1px 2px rgba(0, 0, 0, .12); }
+
+/* Las cuentas del perfil: una lista de etiquetas (con su × para quitarla) y el campo para añadir otra. */
+#zero-profiles .zero-profile-account-box { display: flex; flex-direction: column; gap: 6px; }
+#zero-profiles .zero-profile-accounts { display: flex; flex-wrap: wrap; gap: 4px; margin: 0; padding: 0; list-style: none; }
+#zero-profiles .zero-profile-accounts[hidden] { display: none; }
+#zero-profiles .zero-profile-accounts > li {
+  display: inline-flex; align-items: center; gap: 2px; max-width: 100%; height: 24px; padding: 0 2px 0 9px; border-radius: 999px;
+  font: 500 11.5px system-ui, sans-serif; background: rgba(255, 255, 255, .1);
+}
+#zero-profiles .zero-profile-accounts > li > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#zero-profiles .zero-profile-accounts > li > button {
+  appearance: none; flex: none; width: 20px; height: 20px; min-width: 0; margin: 0; padding: 0; border: none; border-radius: 50%;
+  background: transparent; color: inherit; cursor: pointer; opacity: .6; display: grid; place-items: center;
+}
+#zero-profiles .zero-profile-accounts > li > button::before { content: ""; width: 10px; height: 10px; background-color: currentColor; mask: url("chrome://global/skin/icons/close.svg") center / contain no-repeat; }
+#zero-profiles .zero-profile-accounts > li > button:hover { opacity: 1; background: rgba(255, 255, 255, .12); }
+/* El altavoz, del color del texto de las piezas (no el oscuro de los accesos directos de antes). */
+#zero-shortcuts .zero-sound-button .zero-fav { color: inherit; }
+
+/* Con las pestañas al lado, la cabecera de Kitsune pone su logo en la barra (#nav-bar::before): en Zero, la
+   barra es la isla y el logo asomaba detrás del icono del buscador (la «G doble», Dani 15-10). Fuera; el
+   ::before solo es el destello de la isla vacía al escribir. */
+#main-window[zero] #navigator-toolbox #nav-bar::before { content: none !important; }
+#main-window[zero][zero-empty] #navigator-toolbox[zero-island="typing"] #nav-bar::before {
+  content: "" !important; position: absolute !important; inset: 0 !important; order: 0 !important; flex: none !important;
+  width: auto !important; height: auto !important; margin: 0 !important; border-radius: inherit !important;
+  background: linear-gradient(105deg, transparent 0%, rgba(255, 255, 255, 0) 35%, rgba(255, 255, 255, .28) 50%, rgba(255, 255, 255, 0) 65%, transparent 100%) no-repeat !important;
+  background-size: 45% 100% !important;
+}

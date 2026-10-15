@@ -148,13 +148,27 @@ function render(win, st) {
   if (st.menu.hasAttribute('open')) fillEditor(win, st);
 }
 
+/** Lo que se cuenta de un perfil, limpio: su correo (una etiqueta, no inicia sesión) y sus cuentas, cada una
+ *  en una línea («Google · tu@gmail.com»), sin repetir y como mucho 12. Lo de antes (las cuentas en un texto
+ *  separado por comas) también vale. */
+export function cleanDetails(value) {
+  const text = (v, max) => String(v ?? '').replace(/[\u0000-\u001f\u007f]/g, '').trim().slice(0, max);
+  const list = Array.isArray(value?.accounts) ? value.accounts : String(value?.accounts ?? '').split(',');
+  const accounts = [];
+  for (const item of list) {
+    const account = text(item, 80);
+    if (account && !accounts.some(known => known.toLocaleLowerCase() === account.toLocaleLowerCase())) accounts.push(account);
+  }
+  return { email: text(value?.email, 120), accounts: accounts.slice(0, 12) };
+}
+
 function paintIdentity(win, st, profile, image) {
   if (!profile || !st.identity) return;
-  const details = readJSON(st.host, DETAILS_PREF, {})[profile.id] ?? {};
+  const details = cleanDetails(readJSON(st.host, DETAILS_PREF, {})[profile.id]);
   if (image) { st.identityImage.src = image; st.identityImage.hidden = false; st.identityGlyph.hidden = true; }
   else { st.identityImage.hidden = true; st.identityGlyph.hidden = false; st.identityGlyph.textContent = profile.icon || initialOf(profile.name); st.identityGlyph.dataset.color = profile.color || 'teal'; }
   st.identityName.textContent = profile.name;
-  st.identityAccount.textContent = details.email || details.accounts || '';
+  st.identityAccount.textContent = details.email || details.accounts[0] || '';
   st.identityAccount.hidden = !st.identityAccount.textContent;
 }
 
@@ -164,7 +178,11 @@ function buildEditor(win, st) {
   const action = (name, label) => el(doc, 'button', { type: 'button', 'data-action': name }, [label]);
   st.name = el(doc, 'input', { type: 'text', class: 'zero-profile-name', maxlength: '24', placeholder: t('Nombre', 'Name'), 'aria-label': t('Nombre del perfil', 'Profile name') });
   st.email = el(doc, 'input', { type: 'email', class: 'zero-profile-detail', maxlength: '120', placeholder: t('Correo de este perfil', 'Email for this profile'), 'aria-label': t('Correo del perfil', 'Profile email') });
-  st.accounts = el(doc, 'input', { type: 'text', class: 'zero-profile-detail', maxlength: '180', placeholder: t('Cuentas: Google, trabajo…', 'Accounts: Google, work…'), 'aria-label': t('Cuentas del perfil', 'Profile accounts') });
+  // Sus cuentas, como en la ficha de un usuario de Kitsune: para saber de un vistazo con qué entras en cada
+  // perfil (Dani, 15-10). Son etiquetas locales: no inician sesión en nada.
+  st.accountList = el(doc, 'ul', { class: 'zero-profile-accounts', 'aria-label': t('Cuentas de este perfil', 'Accounts in this profile') });
+  st.accounts = el(doc, 'input', { type: 'text', class: 'zero-profile-detail', maxlength: '80', placeholder: t('Añadir cuenta (Google · tu@correo)', 'Add account (Google · you@mail)'), 'aria-label': t('Añadir una cuenta', 'Add an account') });
+  st.accountsBox = el(doc, 'div', { class: 'zero-profile-account-box' }, [el(doc, 'span', { class: 'zero-profile-label' }, [t('Cuentas', 'Accounts')]), st.accountList, st.accounts]);
   st.icons = el(doc, 'div', { class: 'zero-profile-icons', role: 'radiogroup', 'aria-label': t('Icono', 'Icon') },
     ['', ...ICONS].map(icon => el(doc, 'button', { type: 'button', role: 'radio', 'data-icon': icon, title: icon || t('Su inicial', 'Its initial') }, [icon || 'Aa'])));
   const colorNames = { blue: t('Añil', 'Indigo'), pink: t('Rosa', 'Pink'), violet: t('Violeta', 'Violet'), teal: t('Jade', 'Jade'), amber: t('Ámbar', 'Amber'), red: t('Óxido', 'Rust') };
@@ -181,7 +199,7 @@ function buildEditor(win, st) {
   st.foot = el(doc, 'div', { class: 'zero-profile-row zero-profile-foot' }, [action('delete', t('Borrar perfil', 'Delete profile')), action('create', t('Crear', 'Create'))]);
   st.question = el(doc, 'span', { class: 'zero-profile-question' });
   st.confirm = el(doc, 'div', { class: 'zero-profile-confirm' }, [st.question, el(doc, 'div', { class: 'zero-profile-row' }, [action('cancel', t('Cancelar', 'Cancel')), action('confirm', t('Borrar', 'Delete'))])]);
-  st.menu = el(doc, 'div', { id: 'zero-profiles', role: 'dialog', 'aria-label': t('Perfil', 'Profile') }, [st.name, st.email, st.accounts, st.icons, st.colors, st.sessions, st.pictures, st.foot, st.confirm]);
+  st.menu = el(doc, 'div', { id: 'zero-profiles', role: 'dialog', 'aria-label': t('Perfil', 'Profile') }, [st.name, st.email, st.accountsBox, st.icons, st.colors, st.sessions, st.pictures, st.foot, st.confirm]);
 }
 
 /** Lo que enseña la ficha: lo del perfil (o lo del borrador de uno nuevo). */
@@ -191,9 +209,13 @@ function fillEditor(win, st) {
   const profile = id ? list.find(item => item.id === id) : null;
   if (id && !profile) { closeMenu(st); return; } // lo han borrado
   const value = profile ?? st.draft;
-  const details = profile ? (readJSON(st.host, DETAILS_PREF, {})[profile.id] ?? {}) : st.draft.details;
-  if (win.document.activeElement !== st.email) st.email.value = details?.email ?? '';
-  if (win.document.activeElement !== st.accounts) st.accounts.value = details?.accounts ?? '';
+  const details = cleanDetails(profile ? readJSON(st.host, DETAILS_PREF, {})[profile.id] : st.draft.details);
+  if (win.document.activeElement !== st.email) st.email.value = details.email;
+  st.accountList.replaceChildren(...details.accounts.map(account => el(win.document, 'li', {}, [
+    el(win.document, 'span', {}, [account]),
+    el(win.document, 'button', { type: 'button', 'data-action': 'unaccount', 'data-account': account, title: st.t('Quitar', 'Remove'), 'aria-label': st.t(`Quitar ${account}`, `Remove ${account}`) }),
+  ])));
+  st.accountList.hidden = !details.accounts.length;
   for (const button of st.icons.children) button.setAttribute('aria-checked', String(button.dataset.icon === (value.icon || '')));
   for (const button of st.colors.children) button.setAttribute('aria-checked', String(button.dataset.color === value.color));
   // Sus sesiones: las del perfil (o las del borrador); sin saberlo este Kitsune, no se enseñan.
@@ -230,7 +252,7 @@ function openEditor(win, st, id, anchor) {
   if (id && !profile) return;
   const used = new Set(list.map(item => item.color));
   // Uno nuevo, con sus propias sesiones de serie (como un perfil de Chrome); se puede cambiar.
-  st.draft = profile ? null : { name: '', icon: '', color: COLORS.find(color => !used.has(color)) ?? COLORS[list.length % COLORS.length], sessions: 'own', details: { email: '', accounts: '' } };
+  st.draft = profile ? null : { name: '', icon: '', color: COLORS.find(color => !used.has(color)) ?? COLORS[list.length % COLORS.length], sessions: 'own', details: { email: '', accounts: [] } };
   st.menu.dataset.space = profile?.id ?? '';
   st.menu.removeAttribute('confirming');
   st.name.value = profile?.name ?? '';
@@ -334,18 +356,26 @@ export function attach(win, ctx) {
     closeMenu(st);
     after(Promise.resolve(host.spaces?.create({ name, color, icon, user: null })).then(async id => {
       if (!id) return;
-      if (details.email || details.accounts) { const all = readJSON(host, DETAILS_PREF, {}); all[id] = details; writeJSON(host, DETAILS_PREF, all); }
+      if (details.email || details.accounts.length) { const all = readJSON(host, DETAILS_PREF, {}); all[id] = details; writeJSON(host, DETAILS_PREF, all); }
       if (sessions === 'own') await host.spaces?.setSessions?.(id, 'own');
       await host.spaces?.select(win, id);
     }));
   };
-  const saveDetails = () => {
-    const id = editing(), details = { email: st.email.value.trim(), accounts: st.accounts.value.trim() };
+  // Lo que se cuenta del perfil: se guarda al momento (el de uno nuevo, en su borrador, hasta crearlo).
+  const detailsOf = () => { const id = editing(); return cleanDetails(id ? readJSON(host, DETAILS_PREF, {})[id] : st.draft.details); };
+  const saveDetails = patch => {
+    const id = editing(), details = cleanDetails({ ...detailsOf(), ...patch });
     if (id) {
       const all = readJSON(host, DETAILS_PREF, {});
-      if (details.email || details.accounts) all[id] = details; else delete all[id];
+      if (details.email || details.accounts.length) all[id] = details; else delete all[id];
       writeJSON(host, DETAILS_PREF, all);
-    } else { st.draft.details = details; }
+    } else { st.draft.details = details; fillEditor(win, st); }
+  };
+  const addAccount = () => {
+    const account = st.accounts.value.trim();
+    if (!account) return;
+    st.accounts.value = '';
+    saveDetails({ accounts: [...detailsOf().accounts, account] });
   };
   const rename = () => {
     const id = editing(), name = st.name.value.trim();
@@ -355,8 +385,13 @@ export function attach(win, ctx) {
     if (profile && name !== profile.name) change({ name });
   };
   st.name.addEventListener('change', rename);
-  st.email.addEventListener('change', saveDetails);
-  st.accounts.addEventListener('change', saveDetails);
+  st.email.addEventListener('change', () => saveDetails({ email: st.email.value }));
+  st.accounts.addEventListener('keydown', event => { if (event.key === 'Enter') { event.preventDefault(); event.stopPropagation(); addAccount(); } });
+  st.accounts.addEventListener('change', addAccount);
+  st.accountList.addEventListener('click', event => {
+    const button = event.target.closest('[data-action=unaccount]');
+    if (button) saveDetails({ accounts: detailsOf().accounts.filter(account => account !== button.dataset.account) });
+  });
   st.name.addEventListener('keydown', event => {
     if (event.key !== 'Enter') return;
     event.preventDefault();
