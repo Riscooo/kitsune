@@ -125,6 +125,13 @@ def main():
               done({ width: all.some(a => a.transitionProperty === 'width'), sweep: all.some(a => a.animationName === 'zero-sweep') }); }));""", [], asynchronous=True)
         assert grows['width'] and grows['sweep'], f'al pulsarla, la barra no crece con su animación y su destello: {grows}'
         until(lambda: centered(state(), wide=True) and chrome("return document.getElementById('navigator-toolbox').getAttribute('zero-island')") == 'typing')
+        # Lo que se escribe, legible y en medio («el texto está muy pequeño y descentrado», Risco 15-10).
+        text = chrome("""const i = document.getElementById('urlbar-input'), n = document.getElementById('nav-bar');
+            i.value = 'opera air'; const r = i.getBoundingClientRect(), b = n.getBoundingClientRect();
+            const range = document.createRange(); const cs = getComputedStyle(i);
+            return { size: parseFloat(cs.fontSize), input: (r.top + r.bottom) / 2, bar: (b.top + b.bottom) / 2 };""")
+        assert text['size'] >= 16 and abs(text['input'] - text['bar']) <= 1, f'lo escrito, pequeño o descentrado: {text}'
+        chrome("gURLBar.value = ''")
         chrome("gURLBar.blur()")
         until(lambda: centered(state(), wide=False))
         # En oscuro el campo lleva un halo (sombra) para leerse: el texto de ayuda, ni con su sombra.

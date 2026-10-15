@@ -606,7 +606,10 @@
 #main-window[zero][zero-empty] #navigator-toolbox #urlbar > .urlbar-input-container {
   opacity: 1 !important; margin-inline: 0 !important; padding-inline-start: 32px !important; background-color: transparent !important;
 }
-#main-window[zero][zero-empty] #urlbar-input { font-size: 14px !important; }
+/* Lo que se escribe, legible y en medio de la barra («el texto está muy pequeño y descentrado», Risco 15-10):
+   el campo de Gecko mide 28 px e iba pegado arriba en la barra de 44. */
+#main-window[zero][zero-empty] #urlbar-input { font-size: 16px !important; }
+#main-window[zero][zero-empty] #nav-bar :is(#nav-bar-customization-target, #urlbar-container) { align-self: center !important; align-items: center !important; margin-block: 0 !important; }
 /* Sin texto: la barra y ya, y se escribe lo que se quiera (Risco, 15-10). */
 #main-window[zero][zero-empty]:is(*, [zero-backdrop="system"][zero-frame-ink]) #nav-bar:is(*, [zero-ink]) #urlbar-input::placeholder { color: transparent !important; text-shadow: none !important; }
 #main-window[zero][zero-empty] #zero-host { opacity: 0 !important; }
