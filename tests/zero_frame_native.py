@@ -1,7 +1,8 @@
 """Kitsune Zero · el marco, en el motor real (perfil temporal, sin ventana en pantalla).
 
 1. Con el cristal del sistema, la raíz y el marco son transparentes (Gecko hace la ventana transparente).
-2. La web es una tarjeta a 50/46/12/12 px de los bordes, con radio de 18 px.
+2. La web es una tarjeta a 50/46/26/26 px de los bordes, con radio de 18 px (26 a la derecha y abajo: así
+   el vidrio del canto se ve alrededor de toda la ventana también con una web, Risco 15-10).
 3. Con la vista dividida de 2, son dos tarjetas separadas por 10 px.
 4. Ampliar la deja a 0 px y radio 0; dejar de ampliar la devuelve. Mientras se anima, la web cambia
    de tamaño una sola vez (la animación es de transformación, no de márgenes).
@@ -148,8 +149,8 @@ def main():
         eventually(lambda: all(frame()[k] == 'rgba(0, 0, 0, 0)' for k in ('root', 'body', 'browser')), timeout=5)
         check('Con el cristal del sistema, la raíz y el marco son transparentes')
 
-        eventually(lambda: card_at(frame(), 50, 46, 12, 12, 0.5) and frame()['radius'] == '18px', timeout=5)
-        check('La web es una tarjeta a 50/46/12/12 px de los bordes, con radio de 18 px')
+        eventually(lambda: card_at(frame(), 50, 46, 26, 26, 0.5) and frame()['radius'] == '18px', timeout=5)
+        check('La web es una tarjeta a 50/46/26/26 px de los bordes, con radio de 18 px')
 
         chrome("const t = gBrowser.addTab(arguments[0], { triggeringPrincipal: Services.scriptSecurityManager.getSystemPrincipal() });"
                "gBrowser.addTabSplitView([gBrowser.selectedTab, t]);", [origin + '/claro'])
@@ -171,7 +172,7 @@ def main():
         assert len(sizes) <= 2, sizes
         eventually(lambda: frame()['full'] and card_at(frame(), 0, 0, 0, 0, 0.5) and frame()['radius'] == '0px', timeout=5)
         chrome("document.querySelector('#zero-grow button[data-action=full]').click()")
-        eventually(lambda: not frame()['full'] and card_at(frame(), 50, 46, 12, 12, 0.5) and frame()['radius'] == '18px', timeout=5)
+        eventually(lambda: not frame()['full'] and card_at(frame(), 50, 46, 26, 26, 0.5) and frame()['radius'] == '18px', timeout=5)
         check('Ampliar la deja a 0 px y radio 0; dejar de ampliar la devuelve')
 
         f = frame()
@@ -332,7 +333,9 @@ def main():
             return g['light'] >= 0.7 and ((dark and min(g['text']) >= 240 and g['halo']) or (not dark and g['ratio'] >= 3.0))
         # La lámina (captura 45 de Risco): un cristal grueso encima. Se mide sobre un gris oscuro liso detrás
         # (una hoja de agente, solo para la foto; sin pantalla, detrás hay blanco y la luz no se ve).
-        assert float(chrome("return parseFloat(getComputedStyle(document.body).borderTopLeftRadius)")) >= 18
+        # Las esquinas de la lámina, de 48 px como en la maqueta elegida: el canto no es más ancho que la
+        # curva (si lo fuera, el doblez se parte en la diagonal).
+        assert float(chrome("return parseFloat(getComputedStyle(document.body).borderTopLeftRadius)")) == 48
         GREY = 42
         dark_sheet = 'data:text/css,' + urllib.parse.quote(f':root {{ background: rgb({GREY}, {GREY}, {GREY}) !important; }}')
         def photo(name):
