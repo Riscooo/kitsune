@@ -197,6 +197,8 @@ def prepare_profile(test_root: Path):
         "kitsune.import.offered": True,
         # Las pruebas miran textos en castellano: sin esto, el perfil nuevo seguiría al sistema.
         "intl.locale.requested": "es-ES",
+        # Ninguna prueba se oye: la salida de Gecko a volumen 0 (el audio va igual y se mide).
+        "media.volume_scale": "0.0",
     }
     template = ROOT / "install/user.js"
     base_prefs = template.read_text() if template.is_file() else ""

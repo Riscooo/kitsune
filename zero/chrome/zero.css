@@ -813,6 +813,62 @@
 #zero-shortcuts .zero-shortcut-add .zero-fav { background: rgba(255, 255, 255, .14); color: #fff; font-size: 14px; font-weight: 500; box-shadow: none; }
 #zero-shortcuts .zero-shortcut-add:hover .zero-fav { background: rgba(255, 255, 255, .24); }
 #zero-shortcuts[dropping] { box-shadow: inset 0 0 0 1.5px rgba(255, 255, 255, .8), 0 10px 30px rgba(0, 0, 0, .18); }
+/* La música: su botón (arriba de los accesos directos), la lista de servicios, el panel con el reproductor y
+   el minipanel flotante, todo de cristal ahumado (se lee sobre cualquier fondo). */
+#zero-shortcuts .zero-music {
+  appearance: none; box-sizing: border-box; width: 26px; height: 26px; min-width: 0; margin: 0; padding: 0; border: none; border-radius: 50%;
+  display: grid; place-items: center; background: transparent; cursor: pointer;
+}
+#zero-shortcuts .zero-music .zero-fav { background: rgba(255, 255, 255, .14); box-shadow: none; }
+#zero-shortcuts .zero-music .zero-fav::before {
+  content: ""; width: 14px; height: 14px; background-color: #fff;
+  mask: url("chrome://global/skin/media/audio.svg") center / contain no-repeat;
+}
+#zero-shortcuts .zero-music[on] .zero-fav { background: #e8743b; }
+:is(#zero-music-services, #zero-music, #zero-mini) {
+  position: fixed; z-index: 9; color: #fff; font: 500 13px system-ui, sans-serif;
+  background: rgba(24, 24, 28, .74);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .28), inset 0 0 18px rgba(255, 255, 255, .06), 0 20px 50px rgba(0, 0, 0, .35);
+  opacity: 0; scale: .96; pointer-events: none; visibility: hidden;
+  transition: opacity var(--zero-t-fade) var(--zero-soft), scale var(--zero-t-morph) var(--zero-calm), visibility 0s linear var(--zero-t-fade);
+  -moz-window-dragging: no-drag;
+}
+:is(#zero-music-services, #zero-music, #zero-mini)[open] { opacity: 1; scale: 1; pointer-events: auto; visibility: visible; transition-delay: 0s; }
+#zero-music-services { min-width: 180px; padding: 6px; border-radius: 16px; display: flex; flex-direction: column; gap: 2px; transform-origin: left top; }
+#zero-music-services > button, #zero-music header > button, #zero-mini > button {
+  appearance: none; margin: 0; border: none; background: transparent; color: inherit; font: inherit; cursor: pointer;
+  transition: background-color 200ms var(--zero-soft);
+}
+#zero-music-services > button { height: 32px; padding: 0 12px; border-radius: 10px; text-align: start; }
+#zero-music-services > button:hover { background-color: rgba(255, 255, 255, .1); }
+#zero-music { top: 46px; bottom: 26px; width: 380px; border-radius: 18px; overflow: clip; display: flex; flex-direction: column; transform-origin: left center; }
+#zero-music header { flex: none; display: flex; align-items: center; gap: 4px; height: 40px; padding: 0 8px 0 16px; }
+#zero-music .zero-music-name { flex: 1; font-weight: 600; }
+#zero-music header > button { width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; }
+#zero-music header > button:hover, #zero-mini > button:hover { background-color: rgba(255, 255, 255, .14); }
+#zero-music header > button::before, #zero-mini > button::before {
+  content: ""; width: 14px; height: 14px; background-color: currentColor; mask: var(--zero-icon) center / contain no-repeat;
+}
+#zero-music .zero-music-minimize { --zero-icon: url("chrome://global/skin/icons/arrow-down.svg"); }
+#zero-music .zero-music-change { --zero-icon: url("chrome://global/skin/icons/settings.svg"); }
+#zero-music .zero-music-player { flex: 1; min-height: 0; border-top: 1px solid rgba(255, 255, 255, .08); }
+/* El minipanel: se arrastra desde su portada y su título; encima de todo. */
+#zero-mini { z-index: 10; display: flex; align-items: center; gap: 2px; height: 56px; padding: 0 8px; border-radius: 28px; }
+#zero-mini .zero-mini-grip { display: flex; align-items: center; gap: 10px; min-width: 0; width: 150px; height: 100%; padding-inline-start: 2px; cursor: grab; }
+#zero-mini[dragging] .zero-mini-grip { cursor: grabbing; }
+#zero-mini .zero-mini-art { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; flex: none; }
+#zero-mini .zero-mini-text { display: flex; flex-direction: column; min-width: 0; }
+#zero-mini :is(.zero-mini-title, .zero-mini-artist) { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#zero-mini .zero-mini-title { font-weight: 600; }
+#zero-mini .zero-mini-artist { font-size: 11.5px; opacity: .7; }
+#zero-mini > button { width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; flex: none; }
+#zero-mini .zero-mini-prev { --zero-icon: url("chrome://global/skin/media/skip-backward.svg"); }
+#zero-mini .zero-mini-play { --zero-icon: url("chrome://global/skin/media/play-fill.svg"); }
+#zero-mini[playing] .zero-mini-play { --zero-icon: url("chrome://global/skin/media/pause-fill.svg"); }
+#zero-mini .zero-mini-next { --zero-icon: url("chrome://global/skin/media/skip-forward.svg"); }
+#zero-mini .zero-mini-open { --zero-icon: url("chrome://global/skin/icons/arrow-up.svg"); }
+#zero-mini .zero-mini-close { --zero-icon: url("chrome://global/skin/icons/close.svg"); }
+@media (prefers-reduced-motion: reduce) { :is(#zero-music-services, #zero-music, #zero-mini) { transition-duration: 1ms; } }
 
 #zero-rail [hidden] { display: none !important; }
 #zero-rail .zero-sep { flex: none; height: 1px; margin: 3px 6px; background: rgba(255, 255, 255, .3); transition: background-color var(--zero-t-ink) var(--zero-soft); }

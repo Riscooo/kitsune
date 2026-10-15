@@ -15,6 +15,7 @@ import * as island from './zero-island.sys.mjs';
 import * as rail from './zero-rail.sys.mjs';
 import * as profiles from './zero-profiles.sys.mjs';
 import * as shortcuts from './zero-shortcuts.sys.mjs';
+import * as music from './zero-music.sys.mjs';
 import * as mark from './zero-mark.sys.mjs';
 import * as pomodoro from './zero-pomodoro.sys.mjs';
 import * as silence from './zero-silence.sys.mjs';
@@ -29,7 +30,7 @@ let host = null;
 // Las piezas de Zero, en orden: al encender se ponen así y al apagar se quitan al revés.
 // La lámina va la primera (detrás de todo, y así recibe ya la primera foto del marco); el cristal en
 // vivo, el último: se pone detrás de las piezas que ya están.
-const pieces = [pane, frame, island, rail, profiles, shortcuts, mark, pomodoro, silence, sounds, downloads, media, glass];
+const pieces = [pane, frame, island, rail, profiles, shortcuts, music, mark, pomodoro, silence, sounds, downloads, media, glass];
 const decorated = new WeakSet();
 const starting = new WeakSet(); // ventanas que ya esperan a terminar de arrancar
 const early = new WeakSet();    // ventanas que ya se pintan en Zero y esperan a sus piezas
