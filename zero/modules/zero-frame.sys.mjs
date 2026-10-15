@@ -167,14 +167,17 @@ const CORNER = { top: 6, right: 8, gap: 6 };
  *  fotograma: la web toma su tamaño nuevo una sola vez y la tarjeta viaja desde donde estaba con una
  *  transformación, que la hace la tarjeta gráfica (FLIP). Avisa con «zero-move» (el cristal en vivo
  *  lo sigue). */
-export function flip(win, change) {
+export function flip(win, change, first = null) {
   const panels = win.document.getElementById('tabbrowser-tabpanels');
   if (!panels) { change(); return null; }
-  const first = panels.getBoundingClientRect();
+  // La duración, la de Zero: al entrar existe después del cambio y al salir, antes.
+  const move = () => parseFloat(win.getComputedStyle(win.document.documentElement).getPropertyValue('--zero-t-move')) || 0;
+  const before = move();
+  first ??= panels.getBoundingClientRect();
   for (const animation of panels.getAnimations()) animation.cancel(); // uno a medias: se sale de donde está ahora
   change();
   const last = panels.getBoundingClientRect();
-  const ms = parseFloat(win.getComputedStyle(win.document.documentElement).getPropertyValue('--zero-t-move')) || 0;
+  const ms = Math.max(before, move());
   if (!first.width || !last.width || ms < 2 || win.matchMedia('(prefers-reduced-motion: reduce)').matches) return null;
   const dx = first.left - last.left, dy = first.top - last.top, sx = first.width / last.width, sy = first.height / last.height;
   if (Math.abs(dx) + Math.abs(dy) < 0.5 && Math.abs(sx - 1) < 0.001 && Math.abs(sy - 1) < 0.001) return null;

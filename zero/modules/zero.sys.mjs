@@ -83,10 +83,15 @@ function toggle(win, on = !active(win)) {
     if (!waiting) frame.flip(win, () => { win.document.documentElement.setAttribute('zero', ''); sheet(win, true); });
     for (const p of pieces) { try { p.attach(win, ctx); } catch (error) { console.error('Kitsune Zero:', error); } }
   } else {
+    // La web vuelve a su sitio viajando, como al entrar: desde donde se ve ahora (antes de quitar las
+    // piezas, que con la web ampliada también la mueven).
+    const first = win.document.getElementById('tabbrowser-tabpanels')?.getBoundingClientRect();
     for (const p of [...pieces].reverse()) { try { p.detach(win); } catch (error) { console.error('Kitsune Zero:', error); } }
     // (Una ventana que se pintó en Zero sin llegar a tener piezas también lleva su fondo.)
-    for (const name of ['zero', 'zero-backdrop']) win.document.documentElement.removeAttribute(name);
-    sheet(win, false);
+    frame.flip(win, () => {
+      for (const name of ['zero', 'zero-backdrop']) win.document.documentElement.removeAttribute(name);
+      sheet(win, false);
+    }, first);
   }
   remember(win, on);
   for (const fn of listeners.get(win) ?? []) { try { fn(on); } catch { /* una escucha rota no para a las demás */ } }

@@ -3,7 +3,8 @@
 1. Las piezas de Zero solo usan dos curvas: «llegar» (forma y sitio) y «aparecer» (opacidad y color).
 2. Al cerrar, el contenido se va antes que la forma (la isla y el raíl encogen un poco después).
 3. Al abrir, primero la forma y luego el contenido (140 ms después).
-4. Con «reducir movimiento», todo lo de Zero es instantáneo.
+4. Al salir de Zero la web vuelve a su sitio viajando, como al entrar (no de golpe).
+5. Con «reducir movimiento», todo lo de Zero es instantáneo.
 
 --zero-del-repo: Zero sale de zero/ del repositorio (ver zero_harness.py).
 """
@@ -91,6 +92,20 @@ def main():
         assert width['delay'] == 0 and abs(buttons['delay'] - 0.14) < 1e-6, (width, buttons)
         chrome("document.getElementById('navigator-toolbox').removeAttribute('zero-island')")
         check('Al abrir, primero la forma y el contenido 140 ms después')
+
+        # Salir: la web vuelve a su sitio con un viaje (transformación), como al entrar.
+        travel = """chrome_travel: { const a = document.getElementById('tabbrowser-tabpanels').getAnimations()
+            .find(a => a.effect?.getKeyframes?.().some(k => k.transform && k.transform !== 'none'));
+          return a ? { ms: a.effect.getComputedTiming().duration, state: a.playState } : null; }"""
+        # (La de entrar dura 720 ms: se espera a que la tarjeta esté quieta.)
+        eventually(lambda: chrome("return document.getElementById('tabbrowser-tabpanels').getAnimations().length === 0"), timeout=5)
+        chrome("document.getElementById('kitsune-zero-key').doCommand()")
+        out = chrome(travel)
+        assert out and out['ms'] > 200, out
+        eventually(lambda: chrome("return !document.documentElement.hasAttribute('zero') && !document.getElementById('zero-mark')"), timeout=5)
+        chrome("document.getElementById('kitsune-zero-key').doCommand()")
+        eventually(lambda: chrome("return !!document.getElementById('zero-mark')"), timeout=5)
+        check('Al salir de Zero la web vuelve a su sitio viajando, como al entrar')
 
         chrome("Services.prefs.setIntPref('ui.prefersReducedMotion', 1)")
         eventually(lambda: chrome("return matchMedia('(prefers-reduced-motion: reduce)').matches"), timeout=5)
