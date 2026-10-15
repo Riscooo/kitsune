@@ -11,6 +11,7 @@ sesión), con su nombre y su tinta.
 4. Al volver a «compartidas», sus pestañas vuelven a las de todos; y si vuelven a ser propias, es el mismo
    contenedor (con lo que tenía).
 5. Al quitar el espacio, su contenedor se queda (sus pestañas, ahora en el primero, siguen con lo suyo).
+6. Un enlace que llega de otra app (Discord, el correo…) entra con las sesiones del espacio en el que estás.
 """
 import argparse
 import json
@@ -97,6 +98,13 @@ def main():
         assert wait(f"return {MODULE}.setSessions(arguments[0], 'own')", [curro]) is True
         until(lambda: all(t['context'] == context for t in state()['tabs'] if t['space'] == 'Oficina'))
         check('Al volver a compartidas, sus pestañas vuelven a las de todos; y si vuelven a ser propias, es el mismo contenedor')
+
+        chrome("gBrowser.selectedTab = [...gBrowser.tabs].find(t => !t.hidden && t.userContextId === arguments[0])", [context])
+        chrome("window.browserDOMWindow.openURI(Services.io.newURI('http://127.0.0.1:9/de-otra-app'), null, Ci.nsIBrowserDOMWindow.OPEN_NEWTAB, Ci.nsIBrowserDOMWindow.OPEN_EXTERNAL, Services.scriptSecurityManager.getSystemPrincipal())")
+        until(lambda: any(t['url'].endswith('/de-otra-app') or t['url'] == 'about:blank' and t['context'] == context for t in state()['tabs'][-1:]))
+        external = chrome("return [...gBrowser.tabs].filter(t => !t.closing).at(-1).userContextId")
+        assert external == context, f'el enlace de otra app entró en el contenedor {external}, no en el del espacio ({context})'
+        check('Un enlace de otra app entra con las sesiones del espacio en el que estás')
 
         wait(f"await {MODULE}.remove(arguments[0])", [curro])
         until(lambda: (s := state())['sessions'] == {'General': 'shared'} and curro not in s['pref'])

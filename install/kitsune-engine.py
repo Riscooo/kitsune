@@ -153,6 +153,16 @@ TEXT_PATCHES = {
          '    SetKitsuneGlass(mWindow, isTransparent && Preferences::GetBool("kitsune.zero.macos-glass", true));\n'
          '  }\n\n  NS_OBJC_END_TRY_IGNORE_BLOCK;\n}\n\nvoid nsCocoaWindow::Enable(bool aState) {}'),
     ],
+    # Un enlace de otra app (Discord, el correo…): si Gecko no adivina el contenedor por las pestañas
+    # abiertas de esa web, el de la pestaña en la que estás, como Ctrl+T (browser-commands.js). Así entra
+    # con las sesiones del perfil (espacio) en el que estás (Risco, 15-10).
+    "browser/modules/BrowserDOMWindow.sys.mjs": [(
+        '    var openingUserContextId =\n      (guessUserContextIdEnabled &&\n        lazy.URILoadingHelper.guessUserContextId(aURI)) ||\n'
+        '      Ci.nsIScriptSecurityManager.DEFAULT_USER_CONTEXT_ID;\n',
+        '    // Kitsune: sin pista, el usuario (contenedor) de la pestaña en la que estás, como Ctrl+T.\n'
+        '    var openingUserContextId =\n      (guessUserContextIdEnabled &&\n        (lazy.URILoadingHelper.guessUserContextId(aURI) ??\n'
+        '          this.win?.gBrowser?.selectedTab?.userContextId)) ||\n'
+        '      Ci.nsIScriptSecurityManager.DEFAULT_USER_CONTEXT_ID;\n')],
     "widget/gtk/nsLookAndFeel.h": [('  int32_t mRoundedCornerProviderRadius = 0;', '  int32_t mRoundedCornerProviderRadius = -1;  // Kitsune: así el proveedor se crea siempre')],
     # Las barras de aviso llevaban el degradado de la marca Firefox: óxido y jade de Kitsune.
     "toolkit/content/widgets/infobar.css": [

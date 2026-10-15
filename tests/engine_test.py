@@ -324,6 +324,16 @@ class RecipeTests(unittest.TestCase):
         engine.rebrand_source(root)
         self.assertEqual((root / "widget/cocoa/nsCocoaWindow.mm").read_text().count("SetKitsuneGlass("), 2)
 
+    def test_a_link_from_another_app_opens_with_the_sessions_you_are_in(self):
+        # Un enlace de otra app (Discord, el correo…): si Gecko no adivina el contenedor por las pestañas
+        # abiertas de esa web, el de la pestaña en la que estás, como Ctrl+T. Así entra con las sesiones del
+        # perfil (espacio) en el que estás.
+        [(old, new)] = engine.TEXT_PATCHES["browser/modules/BrowserDOMWindow.sys.mjs"]
+        self.assertIn("lazy.URILoadingHelper.guessUserContextId(aURI)", old)
+        self.assertIn("this.win?.gBrowser?.selectedTab?.userContextId", new)
+        self.assertLess(new.index("guessUserContextId"), new.index("selectedTab"))
+        self.assertIn("guessUserContextIdEnabled &&", new)
+
     def test_a_missing_gecko_illustration_stops_the_recipe(self):
         root = self.rebrand_tree()
         (root / engine.MASCOT_POSES["guardia"][0]).unlink()
