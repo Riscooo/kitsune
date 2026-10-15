@@ -15,8 +15,9 @@ test('Zero reads its settings from the host prefs, and falls back to its default
   assert.deepEqual(DEFAULTS, { always: false, inherit: true, backdrop: 'auto', islandIcons: false,
     pomodoro: false, pomodoroPreset: '25', pomodoroBreak: 'soft', pomodoroGuide: 'breathe', pomodoroState: '',
     silence: false, silenceNotify: true, silenceBlock: true, silenceBlocked: '', silenceOnlyWork: false, silenceScroll: true,
-    sounds: false, soundsLevels: '{"lluvia":0.5}', soundsPause: true, welcomed: false })
+    sounds: false, soundsLevels: '{"lluvia":0.5}', soundsPause: true, welcomed: false, railIcons: false })
   assert.equal(prefName('kitsune.zero.', PREFS.welcomed), 'kitsune.zero.welcomed')
+  assert.equal(prefName('kitsune.zero.', PREFS.railIcons), 'kitsune.zero.railIcons')
   assert.equal(prefName('kitsune.zero.', PREFS.soundsLevels), 'kitsune.zero.sounds.levels')
   assert.equal(prefName('kitsune.zero.', PREFS.silenceBlocked), 'kitsune.zero.silence.blocked')
   assert.equal(prefName('kitsune.zero.', PREFS.pomodoroBreak), 'kitsune.zero.pomodoro.break')

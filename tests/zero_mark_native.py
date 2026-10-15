@@ -4,8 +4,8 @@
    blanco y con opacidad 0,62; en claro (el marco pasa a tinta), en tinta a 0,5.
 2. Un clic abre los ajustes (#zero-settings), que brotan de la marca; se cierran con un clic fuera o con Esc.
 3. «Ventanas nuevas» (como esta / en Zero / normales) cambia kitsune.zero.inherit y kitsune.zero.always,
-   y «Fondo» (del sistema / de la web) cambia kitsune.zero.backdrop y el aspecto al momento. «Isla» (con texto / solo iconos) cambia
-   kitsune.zero.islandIcons.
+   y «Fondo» (del sistema / de la web) cambia kitsune.zero.backdrop y el aspecto al momento. «Pestañas» (con texto / solo
+   iconos, el raíl) cambia kitsune.zero.railIcons; la isla de arriba no tiene esa opción.
 4. No salen filas de fases sin hacer (pomodoro, silencio, sonidos…).
 5. Con la web ampliada la marca se aparta, y vuelve al acercarse al borde izquierdo.
 6. Los ajustes no repiten el atajo en la cabecera. Nada pasa de golpe: al encender una opción, sus filas
@@ -157,10 +157,11 @@ def main():
         # sonidos, apagados: sin sus opciones.
         assert len(rows) == 6 and [r.split(' ')[0][:8] for r in rows[3:]] == ['Pomodoro', 'Silencio', 'SonidosG'], rows
         assert not any(word in ' '.join(rows) for word in ('Tiempos', 'Webs vetadas', 'Aviso de scroll', 'Lluvia')), rows
-        click('#zero-settings [data-pref="islandIcons"] [data-value="icons"]')
-        until(lambda: chrome("return Services.prefs.getBoolPref('kitsune.zero.islandIcons', false)") is True)
-        click('#zero-settings [data-pref="islandIcons"] [data-value="text"]')
-        until(lambda: chrome("return Services.prefs.getBoolPref('kitsune.zero.islandIcons', false)") is False)
+        assert chrome("return !document.querySelector('#zero-settings [data-pref=islandIcons]')"), 'la isla de arriba no lleva «solo iconos»'
+        click('#zero-settings [data-pref="railIcons"] [data-value="icons"]')
+        until(lambda: chrome("return Services.prefs.getBoolPref('kitsune.zero.railIcons', false)") is True)
+        click('#zero-settings [data-pref="railIcons"] [data-value="text"]')
+        until(lambda: chrome("return Services.prefs.getBoolPref('kitsune.zero.railIcons', false)") is False)
         check('No salen filas de fases sin hacer')
 
         head = chrome("return document.querySelector('#zero-settings h4').textContent")

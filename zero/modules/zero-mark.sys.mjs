@@ -26,7 +26,7 @@ const el = (doc, tag, attributes = {}, children = []) => {
   return node;
 };
 
-/** La sección de Zero: las ventanas nuevas, el fondo de la ventana y la isla. */
+/** La sección de Zero: las ventanas nuevas, el fondo de la ventana y el raíl de pestañas. */
 function zeroSection(win, host) {
   const { prefs, prefix } = host;
   const watchPref = key => fn => {
@@ -67,12 +67,13 @@ function zeroSection(win, host) {
         },
       },
       {
-        kind: 'segment', id: PREFS.islandIcons,
-        label: host.t('Isla', 'Island'),
+        // El raíl de pestañas (la isla de la izquierda): con sus títulos al abrirse, o solo iconos.
+        kind: 'segment', id: PREFS.railIcons,
+        label: host.t('Pestañas', 'Tabs'),
         options: [{ value: 'text', label: host.t('Con texto', 'With text') }, { value: 'icons', label: host.t('Solo iconos', 'Icons only') }],
-        get: () => { try { return prefs.getBoolPref(prefName(prefix, PREFS.islandIcons), false) ? 'icons' : 'text'; } catch { return 'text'; } },
-        set: value => prefs.setBoolPref(prefName(prefix, PREFS.islandIcons), value === 'icons'),
-        watch: watchPref(PREFS.islandIcons),
+        get: () => { try { return prefs.getBoolPref(prefName(prefix, PREFS.railIcons), false) ? 'icons' : 'text'; } catch { return 'text'; } },
+        set: value => prefs.setBoolPref(prefName(prefix, PREFS.railIcons), value === 'icons'),
+        watch: watchPref(PREFS.railIcons),
       },
     ],
   };

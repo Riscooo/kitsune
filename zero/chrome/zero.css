@@ -608,6 +608,23 @@
 #zero-rail:is(:hover, :has(:focus-visible)) .zero-space[selected] .zero-fav { background: rgba(29, 35, 33, .16); }
 
 /* Los títulos entran uno tras otro (28 ms entre cada uno) cuando el raíl ya ha empezado a abrirse. */
+/* «Pestañas: solo iconos»: abierto no se ensancha ni enseña títulos (sigue el efecto Dock); el nombre de
+   la que está bajo el ratón sale en una etiqueta de cristal junto a su icono, como en el Dock. */
+#zero-rail[zero-icons]:is(:hover, :has(:focus-visible)) { width: 36px; }
+#zero-rail[zero-icons] .zero-tt { opacity: 0 !important; }
+#zero-rail[zero-icons] .zero-close { display: none !important; }
+#zero-rail-tip {
+  position: fixed; z-index: 8; transform: translate(-4px, -50%); max-width: 260px;
+  padding: 4px 10px; border-radius: 999px; pointer-events: none;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  color: #1d2321; font: 500 12px system-ui, sans-serif;
+  background: rgba(246, 245, 241, .82); backdrop-filter: blur(18px) saturate(1.6);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .95), 0 8px 24px rgba(0, 0, 0, .16);
+  opacity: 0;
+  transition: opacity 180ms var(--zero-soft), transform 260ms var(--zero-calm), top 160ms var(--zero-calm);
+}
+#zero-rail-tip[shown] { opacity: 1; transform: translate(0, -50%); }
+
 /* Los títulos entran con opacidad y un poco de desplazamiento (el compositor): con desenfoque, Gecko
    repintaba todos los títulos en cada fotograma de la apertura. */
 #zero-rail .zero-tt {

@@ -9,6 +9,7 @@
 import { dockScales } from './zero-dock.mjs';
 import { userOf, paintUser } from './zero-who.sys.mjs';
 import { lightIcon } from './zero-icon.sys.mjs';
+import { prefName, PREFS } from './zero-config.sys.mjs';
 
 const HTML = 'http://www.w3.org/1999/xhtml';
 const state = new WeakMap(); // ventana → { cleanups, items, … }
@@ -445,6 +446,36 @@ export function attach(win, ctx) {
     if (!frame) frame = win.requestAnimationFrame(() => { frame = 0; dock(st, pointerY); });
   });
   st.rail.addEventListener('mouseleave', () => { pointerY = null; win.cancelAnimationFrame(frame); frame = 0; dock(st, null); });
+
+  // «Pestañas: solo iconos» (ajuste de Zero): el raíl no se ensancha; el nombre de la que está bajo el
+  // ratón sale en una etiqueta junto a su icono, como en el Dock.
+  if (host.prefs) {
+    const name = prefName(host.prefix, PREFS.railIcons);
+    const apply = () => { let on = false; try { on = host.prefs.getBoolPref(name, false); } catch { /* de serie */ } st.rail.toggleAttribute('zero-icons', on); if (!on) hideTip(); };
+    const observer = { observe: apply };
+    host.prefs.addObserver(name, observer);
+    st.cleanups.push(() => host.prefs.removeObserver(name, observer));
+    apply();
+  }
+  st.tip = el(doc, 'div', { id: 'zero-rail-tip', 'aria-hidden': 'true' });
+  doc.body.append(st.tip);
+  st.cleanups.push(() => st.tip.remove());
+  function hideTip() { st.tip?.removeAttribute('shown'); }
+  const showTip = event => {
+    if (!st.rail.hasAttribute('zero-icons') || st.rail.hasAttribute('reordering')) return;
+    const node = event.target.closest?.('.zero-item');
+    const label = node?.getAttribute('aria-label') || node?.querySelector('.zero-tt')?.textContent;
+    if (!node || !label) { st.tipFor = null; hideTip(); return; }
+    // Con el efecto Dock la fila se mueve un poco: la etiqueta la sigue mientras el ratón se mueve.
+    const r = node.getBoundingClientRect(), rail = st.rail.getBoundingClientRect();
+    if (st.tipFor !== node) { st.tipFor = node; st.tip.textContent = label; }
+    st.tip.style.left = `${rail.right + 8}px`;
+    st.tip.style.top = `${r.top + r.height / 2}px`;
+    st.tip.setAttribute('shown', '');
+  };
+  st.rail.addEventListener('mouseover', showTip);
+  st.rail.addEventListener('mousemove', showTip);
+  st.rail.addEventListener('mouseleave', () => { st.tipFor = null; hideTip(); });
 
   const container = win.gBrowser.tabContainer;
   // Con muchas pestañas el raíl se desplaza: la elegida siempre a la vista, con un poco de aire.

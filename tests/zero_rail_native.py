@@ -35,6 +35,9 @@
     barra de pestañas de Kitsune; al volver a ella, se enciende.
 20. La pestaña que usa la cámara, el micrófono o comparte la pantalla lleva un punto de su color (verde,
     naranja, rojo, como en la isla) en la esquina de arriba a la izquierda de su icono; al apagarse, se va.
+23. Con «Pestañas: solo iconos», el raíl no se ensancha con el ratón encima (sigue el efecto Dock, sin
+    títulos) y el nombre de la pestaña bajo el ratón sale en una etiqueta junto a su icono, como en el
+    Dock; sin la opción, se abre como siempre.
 22. Lo que una fila enseña con puntos e iconos (suena, silenciada, usa la cámara, algo nuevo, descargada)
     también lo dice a los lectores de pantalla (aria-description); sin nada, no dice nada.
 21. Elegir una pestaña repinta solo las filas que cambian (la que se deja y la elegida), no todas: con
@@ -506,6 +509,33 @@ def main():
         except AssertionError:
             raise AssertionError(f'lo que dice la fila: «{chrome(said)}»') from None
         check('Lo que una fila enseña con puntos e iconos también lo dice a los lectores de pantalla')
+
+        look = """const rail = document.getElementById('zero-rail'); const rows = [...rail.querySelectorAll('.zero-tab')];
+            const tip = document.getElementById('zero-rail-tip'); const t = tip?.getBoundingClientRect(); const r = rail.getBoundingClientRect();
+            return { width: r.width, right: r.right, titles: rows.map(row => Number(getComputedStyle(row.querySelector('.zero-tt')).opacity)),
+                     tip: tip && { text: tip.textContent, shown: Number(getComputedStyle(tip).opacity) > 0.9, left: t.left, top: t.top, bottom: t.bottom } };"""
+        away()
+        chrome("Services.prefs.setBoolPref('kitsune.zero.railIcons', true)")
+        until(lambda: chrome("return document.getElementById('zero-rail').hasAttribute('zero-icons')"), timeout=5)
+        # Con el raíl ya cerrado (el centro de una fila se mide al mover el puntero).
+        until(lambda: chrome(look)['width'] <= 40, timeout=5)
+        driver.context('chrome')
+        rows = chrome("return document.querySelectorAll('#zero-rail .zero-tab').length")
+        third = element('#zero-rail .zero-tab:nth-of-type(3)') if rows >= 3 else element('#zero-rail .zero-tab')
+        driver.command('POST', '/actions', {'actions': [{'type': 'pointer', 'id': 'raton', 'parameters': {'pointerType': 'mouse'}, 'actions': [{'type': 'pointerMove', 'origin': third, 'x': 0, 'y': 0}]}]})
+        label = chrome("const t = document.querySelector('#zero-rail .zero-tab:hover'); return t && t.getAttribute('aria-label')")
+        try:
+            until(lambda: (l := chrome(look))['tip'] and l['tip']['shown'] and l['tip']['text'] == label and l['tip']['left'] >= l['right'] and l['width'] <= 40 and max(l['titles']) < 0.05, timeout=5)
+        except AssertionError:
+            raise AssertionError(f'solo iconos: {chrome(look)} · bajo el ratón {label}') from None
+        away()
+        until(lambda: not chrome(look)['tip']['shown'], timeout=5)
+        chrome("Services.prefs.clearUserPref('kitsune.zero.railIcons')")
+        until(lambda: not chrome("return document.getElementById('zero-rail').hasAttribute('zero-icons')"), timeout=5)
+        driver.command('POST', '/actions', {'actions': [{'type': 'pointer', 'id': 'raton', 'parameters': {'pointerType': 'mouse'}, 'actions': [{'type': 'pointerMove', 'origin': element('#zero-rail .zero-tab'), 'x': 0, 'y': 0}]}]})
+        until(lambda: chrome(look)['width'] > 150, timeout=5)
+        away()
+        check('Con «solo iconos», el raíl no se ensancha y el nombre sale en una etiqueta junto al icono')
         report['status'] = 'passed'
     finally:
         if driver: driver.close()
