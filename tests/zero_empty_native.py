@@ -13,6 +13,9 @@ centro de la pantalla como buscador; al buscar, la isla sube a su sitio con una 
    escrito se va al momento (no se cruza con el dominio, que entra al llegar arriba).
 3. Una pestaña nueva (Ctrl+T) vuelve a ser vacía: la isla baja al centro y la tarjeta se va.
 4. Elegir una pestaña con web o una vacía cambia lo uno y lo otro.
+5. Con la ventana sin ver (otra app delante), una pestaña nueva esconde la tarjeta enseguida: Gecko no
+   anima una ventana que no se ve, y el fundido se quedaba parado con la tarjeta a la vista (en negro)
+   hasta volver a Kitsune (Risco, 15-10).
 
 --zero-del-repo: Zero sale de zero/ del repositorio (ver zero_harness.py).
 """
@@ -129,6 +132,21 @@ def main():
         chrome("gBrowser.selectedTab = gBrowser.tabs.at(-1)")
         until(lambda: centered(state()))
         check('Elegir una pestaña con web o una vacía cambia lo uno y lo otro')
+
+        chrome("gBrowser.selectedTab = gBrowser.tabs[0]")
+        until(lambda: at_top(state()))
+        chrome("window.browsingContext.isActive = false")
+        try:
+            chrome("(window.BrowserCommands?.openTab ?? window.BrowserOpenTab).call(window.BrowserCommands ?? window)")
+            time.sleep(0.4)
+            hidden = chrome("""const p = document.getElementById('tabbrowser-tabpanels');
+                return { empty: document.documentElement.hasAttribute('zero-empty'), card: Number(getComputedStyle(p).opacity),
+                         stuck: p.getAnimations().filter(a => a.playState === 'running').length };""")
+            assert hidden['empty'] and hidden['card'] < 0.05 and not hidden['stuck'], f'con la ventana sin ver, la tarjeta sigue a la vista: {hidden}'
+        finally:
+            chrome("window.browsingContext.isActive = true")
+        until(lambda: centered(state()))
+        check('Con la ventana sin ver, una pestaña nueva esconde la tarjeta enseguida')
         report['status'] = 'passed'
     finally:
         if driver: driver.close()

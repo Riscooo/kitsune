@@ -165,6 +165,15 @@ export function attach(win, ctx = {}) {
     const target = st.loading.get(browser) ?? browser.currentURI?.spec ?? '';
     const empty = isEmptyPage(win, target), was = root.hasAttribute('zero-empty');
     root.toggleAttribute('zero-empty', empty);
+    // Con la ventana sin ver (otra app delante) Gecko no anima: el fundido de la tarjeta se quedaba parado
+    // con ella a la vista (la página nueva, en negro) hasta volver a Kitsune (Risco, 15-10). Ahí, al momento.
+    if (was !== empty && doc.hidden) {
+      for (const id of ['tabbrowser-tabpanels', 'navigator-toolbox']) {
+        for (const animation of doc.getElementById(id)?.getAnimations({ subtree: true }) ?? []) {
+          try { animation.finish(); } catch { /* una que no acaba nunca: se deja */ }
+        }
+      }
+    }
     // Al dejar de estar vacía (se ha buscado algo), mientras la isla sube: lo escrito se va al momento y
     // el dominio entra al llegar arriba, sin cruzarse los dos textos.
     if (was && !empty) {
