@@ -19,6 +19,9 @@ macOS y Linux.
 6. El interruptor pasa entre «Currar» (pomodoro y silencio) y «Chill» (sin ellos); cada perfil guarda su modo
    y lo que se cambia en él: al volver a un perfil, vuelve el suyo.
 7. Con una imagen puesta, la bolita la enseña.
+8. En la ficha, sus sesiones (Risco, 15-10: «¿se guardan las sesiones iniciadas en Google?»): compartidas o
+   propias (su contenedor: su Google, sus cookies); al cambiarlas, sus pestañas pasan a ellas. Uno nuevo
+   sale con las suyas propias. (Con un Kitsune que aún no sabe hacerlo, la ficha no las enseña.)
 
 --zero-del-repo: Zero sale de zero/ del repositorio (ver zero_harness.py).
 """
@@ -223,6 +226,32 @@ def main():
         chrome("Services.prefs.setStringPref('kitsune.zero.profiles.images', JSON.stringify({ [arguments[0]]: arguments[1] }))", [first, image])
         until(lambda: state()['stack'][0]['img'] == image)
         check('Con una imagen puesta, la bolita la enseña')
+
+        sessions = f"return {spaces}.sessions(arguments[0])"
+        seg = "const s = document.querySelector('#zero-profiles .zero-profile-sessions'); return s && !s.hidden ? [...s.querySelectorAll('[data-sessions]')].map(b => [b.dataset.sessions, b.getAttribute('aria-checked') === 'true']) : null"
+        contexts = "return [...gBrowser.tabs].filter(t => !t.hidden && !t.pinned && !t.closing).map(t => t.userContextId)"
+        if chrome(f"return typeof {spaces}.setSessions") != 'function':
+            click(f'#zero-profile .zero-profile-bubble[data-space="{first}"]')
+            until(lambda: (e := state()['editor']) and e['space'] == first)
+            assert chrome(seg) is None, 'la ficha enseña sesiones que este Kitsune no sabe hacer'
+            driver.shortcut('\ue00c')
+            print('SALTA las sesiones propias: este Kitsune aún no sabe hacerlas', flush=True)
+        else:
+            click(f'#zero-profile .zero-profile-bubble[data-space="{first}"]')
+            until(lambda: (e := state()['editor']) and e['space'] == first and chrome(seg) == [['shared', True], ['own', False]])
+            click('#zero-profiles [data-sessions="own"]')
+            until(lambda: chrome(sessions, [first]) == 'own' and all(c > 0 for c in chrome(contexts)) and chrome(seg) == [['shared', False], ['own', True]])
+            assert 'Google' in chrome("return document.querySelector('#zero-profiles .zero-profile-hint').textContent")
+            click('#zero-profiles [data-sessions="shared"]')
+            until(lambda: chrome(sessions, [first]) == 'shared' and all(c == 0 for c in chrome(contexts)))
+            driver.shortcut('\ue00c')
+            click('#zero-profile .zero-profile-add')
+            until(lambda: (e := state()['editor']) and e['space'] == '' and chrome(seg) == [['shared', False], ['own', True]])
+            type_into('#zero-profiles .zero-profile-name', 'Clase')
+            click('#zero-profiles [data-action="create"]')
+            until(lambda: (s := state())['editor'] is None and s['spaces'][-1]['name'] == 'Clase' and s['space'] == s['spaces'][-1]['id'])
+            until(lambda: chrome(sessions, [state()['spaces'][-1]['id']]) == 'own' and all(c > 0 for c in chrome(contexts)))
+            check('En la ficha, sus sesiones: compartidas o propias (sus pestañas pasan a ellas); uno nuevo, con las suyas')
         report['status'] = 'passed'
     finally:
         if driver: driver.close()

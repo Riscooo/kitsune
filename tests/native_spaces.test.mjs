@@ -122,3 +122,23 @@ test('a space can carry one emoji as its icon; without one it keeps the four fie
   assert.deepEqual(spaces.parseSpaces(JSON.stringify(bad)), spaces.defaultSpaces())
   assert.ok(spaces.ICONS.length >= 8 && spaces.ICONS.every(icon => spaces.cleanIcon(icon) === icon))
 })
+
+test('a space can have its own sessions (its own container): what is kept, and what is odd is dropped', () => {
+  assert.deepEqual(spaces.parseSessions(''), {})
+  assert.deepEqual(spaces.parseSessions('no'), {})
+  assert.deepEqual(spaces.parseSessions(JSON.stringify({ 'e-0000000a': { context: 7, own: true }, 'e-0000000b': { context: 9, own: false } })),
+    { 'e-0000000a': { context: 7, own: true }, 'e-0000000b': { context: 9, own: false } })
+  // Lo que no es de un espacio, un contenedor que no vale o campos de más: fuera, sin tirar lo demás.
+  assert.deepEqual(spaces.parseSessions(JSON.stringify({ 'e-0000000a': { context: 7, own: true }, '../x': { context: 3, own: true },
+    'e-0000000c': { context: 0, own: true }, 'e-0000000d': { context: 2.5, own: true }, 'e-0000000e': { context: 4, own: 'sí' } })),
+    { 'e-0000000a': { context: 7, own: true } })
+})
+
+test('the sessions of a space: its own, a Kitsune user\'s, or shared with the rest', () => {
+  const data = spaces.addSpace(two(), { name: 'Casa', color: 'pink', user: 'p-0123456789abcdef' }, ids('e-0000000b')).data
+  const [general, trabajo, casa] = data.spaces
+  const sessions = { 'e-0000000a': { context: 7, own: true }, 'e-0000000b': { context: 8, own: false } }
+  assert.equal(spaces.sessionsOf(general, sessions), 'shared')
+  assert.equal(spaces.sessionsOf(trabajo, sessions), 'own')
+  assert.equal(spaces.sessionsOf(casa, sessions), 'p-0123456789abcdef')
+})

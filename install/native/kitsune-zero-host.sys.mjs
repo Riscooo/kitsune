@@ -45,6 +45,10 @@ const spaces = {
   create: spec => spacesModule()?.create(spec) ?? null,
   edit: (id, patch) => spacesModule()?.edit(id, patch),
   remove: id => spacesModule()?.remove(id),
+  // Sus sesiones: 'own' (las suyas, en su contenedor), 'shared' o el id de un usuario de Kitsune; null si este
+  // Kitsune aún no sabe (entonces la ficha no las enseña).
+  sessions: id => spacesModule()?.sessions?.(id) ?? null,
+  setSessions: (id, choice) => spacesModule()?.setSessions?.(id, choice),
   watch(win, fn) {
     const doc = win.document;
     const observer = new win.MutationObserver(() => fn());
@@ -67,6 +71,13 @@ const users = {
       const { KitsuneUsers } = ChromeUtils.importESModule('chrome://browser/content/kitsune-users.sys.mjs');
       const { users: list, baseId } = KitsuneUsers.list();
       return list.find(user => user.id === baseId)?.name ?? null;
+    } catch { return null; }
+  },
+  /** El nombre de un usuario de Kitsune (para la ficha de un perfil que va con él), o null. */
+  nameOf(id) {
+    try {
+      const { KitsuneUsers } = ChromeUtils.importESModule('chrome://browser/content/kitsune-users.sys.mjs');
+      return KitsuneUsers.list().users.find(user => user.id === id)?.name ?? null;
     } catch { return null; }
   },
 };

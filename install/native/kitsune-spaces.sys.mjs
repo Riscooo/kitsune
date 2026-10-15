@@ -3,6 +3,10 @@
  * - Cada espacio tiene nombre, una de las seis tintas de los usuarios y, si se quiere,
  *   un usuario (su contenedor): la primera pestaña del espacio se abre con él y las
  *   siguientes lo heredan de la pestaña en la que estás.
+ * - O sus propias sesiones (Risco, 15-10: «¿se guardan las sesiones iniciadas en Google?»): un
+ *   contenedor solo suyo, con su nombre y su tinta, con sus cookies, su Google y sus inicios de
+ *   sesión. Qué contenedor es de quién va en kitsune.spaces.sessions (no en la lista: así un
+ *   Kitsune anterior la sigue leyendo). Al cambiarlas, sus pestañas se reabren en las nuevas.
  * - La lista vive en <perfil>/kitsune-spaces.json. El espacio de cada pestaña y el de cada
  *   ventana se guardan en la sesión de Gecko (valores propios), así que sobreviven a cerrar.
  * - Cambiar de espacio oculta las pestañas de los demás (hideTab/showTab de Gecko) y
@@ -116,6 +120,28 @@ export function removeSpace(data, id) {
   return next;
 }
 
+/** kitsune.spaces.sessions → { espacio: { context, own } }: el contenedor de cada espacio que lo tiene y
+ *  si sus sesiones son propias ahora (al volver a «compartidas» se guarda el contenedor, con lo suyo,
+ *  por si vuelven a ser propias). Lo que no vale se queda fuera, sin tirar lo demás. */
+export function parseSessions(text) {
+  let value;
+  try { value = JSON.parse(text); } catch { return {}; }
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return {};
+  const out = {};
+  for (const [id, entry] of Object.entries(value)) {
+    if (!SPACE_ID.test(id) || !entry || typeof entry !== 'object' || Object.keys(entry).length !== 2) continue;
+    if (!Number.isSafeInteger(entry.context) || entry.context <= 0 || typeof entry.own !== 'boolean') continue;
+    out[id] = { context: entry.context, own: entry.own };
+  }
+  return out;
+}
+
+/** Las sesiones de un espacio: 'own' (las suyas), el id de un usuario de Kitsune o 'shared'. */
+export function sessionsOf(space, sessions) {
+  if (sessions?.[space.id]?.own) return 'own';
+  return space.user ?? 'shared';
+}
+
 /** El espacio de un valor guardado: el suyo si existe; si no, el primero. */
 export const resolveSpace = (data, value) => data.spaces.some(space => space.id === value) ? value : data.spaces[0].id;
 
@@ -184,6 +210,7 @@ async function commit(next) {
   if (!next) return false;
   state.data = next;
   await IOUtils.writeJSON(filePath(), next, { tmpPath: filePath() + '.tmp' });
+  syncSessionContainers();
   // Se vuelve a colocar cada ventana: un espacio quitado deja su ventana y sus pestañas en el primero.
   for (const win of state.windows) await switchTo(win, activeSpace(win));
   return true;
@@ -203,7 +230,76 @@ export function activeSpace(win) {
   return resolveSpace(state.data, value);
 }
 
+const SESSIONS_PREF = 'kitsune.spaces.sessions';
+const identities = () => ChromeUtils.importESModule('moz-src:///toolkit/components/contextualidentity/ContextualIdentityService.sys.mjs').ContextualIdentityService;
+const readSessions = () => { try { return parseSessions(Services.prefs.getStringPref(SESSIONS_PREF, '')); } catch { return {}; } };
+const writeSessions = value => Services.prefs.setStringPref(SESSIONS_PREF, JSON.stringify(value));
+const containerColor = color => {
+  try { return ChromeUtils.importESModule('chrome://browser/content/kitsune-users.sys.mjs').geckoColor(color, identities().containerColors ?? null); } catch { return 'blue'; }
+};
+
+/** El contenedor de las sesiones propias de un espacio, si las tiene (y sigue existiendo); si no, 0. */
+function ownContext(id) {
+  const entry = readSessions()[id];
+  if (!entry?.own) return 0;
+  try { return identities().getPublicIdentityFromId(entry.context) ? entry.context : 0; } catch { return 0; }
+}
+
+/** Los contenedores propios llevan el nombre y la tinta de su espacio (al cambiarlos, también). */
+function syncSessionContainers() {
+  const all = readSessions();
+  for (const space of state.data.spaces) {
+    const entry = all[space.id];
+    if (!entry) continue;
+    try {
+      const identity = identities().getPublicIdentityFromId(entry.context);
+      const color = containerColor(space.color);
+      if (identity && (identity.name !== space.name || identity.color !== color)) identities().update(entry.context, space.name, 'fingerprint', color);
+    } catch { /* sin contenedores */ }
+  }
+}
+
+/** Reabre en su sitio las pestañas de un espacio que no estén en `context` (con su dirección). */
+function retab(win, id, context) {
+  const gBrowser = win.gBrowser;
+  for (const tab of [...gBrowser.tabs]) {
+    if (tab.pinned || tab.closing || tabSpace(tab) !== id || tab.userContextId === context) continue;
+    const url = tab.linkedBrowser?.currentURI?.spec;
+    const fresh = gBrowser.addTab(url && url !== 'about:blank' ? url : homeURL(), {
+      triggeringPrincipal: system(), userContextId: context, index: tab._tPos + 1, skipAnimation: true, inBackground: true,
+    });
+    setTabSpace(fresh, id);
+    if (gBrowser.selectedTab === tab) gBrowser.selectedTab = fresh;
+    if (tab.hidden) gBrowser.hideTab(fresh);
+    gBrowser.removeTab(tab, { animate: false });
+  }
+}
+
+/** Cambia las sesiones de un espacio a 'own', 'shared' o un usuario de Kitsune, y lleva a ellas sus pestañas. */
+async function setSessions(id, choice) {
+  await load();
+  const space = state.data.spaces.find(item => item.id === id);
+  if (!space || !(choice === 'own' || choice === 'shared' || USER_ID.test(choice))) return false;
+  const all = readSessions();
+  if (choice === 'own') {
+    let context = all[id]?.context ?? 0;
+    try { if (!context || !identities().getPublicIdentityFromId(context)) context = identities().create(space.name, 'fingerprint', containerColor(space.color)).userContextId; } catch { return false; }
+    all[id] = { context, own: true };
+    writeSessions(all);
+    if (space.user) await commit(editSpace(state.data, id, { user: null }));
+  } else {
+    if (all[id]?.own) { all[id].own = false; writeSessions(all); }
+    const user = choice === 'shared' ? null : choice;
+    if ((space.user ?? null) !== user) await commit(editSpace(state.data, id, { user }));
+  }
+  const context = await contextFor(state.data.spaces.find(item => item.id === id));
+  for (const win of state.windows) retab(win, id, context);
+  return true;
+}
+
 async function contextFor(space) {
+  const own = ownContext(space?.id);
+  if (own) return own;
   if (!space?.user) return 0;
   try { return (await users()?.contextFor(space.user)) ?? 0; } catch { return 0; }
 }
@@ -612,7 +708,16 @@ export const KitsuneSpaces = {
   sleep: (win, id) => sleepSpace(win, id),
   async create(spec) { await load(); const added = addSpace(state.data, spec); if (!added) return null; await commit(added.data); return added.id; },
   async edit(id, patch) { await load(); return commit(editSpace(state.data, id, patch)); },
-  async remove(id) { await load(); return commit(removeSpace(state.data, id)); },
+  async remove(id) {
+    await load();
+    const done = await commit(removeSpace(state.data, id));
+    // Su contenedor se queda (sus pestañas, ahora en el primero, siguen con sus sesiones); el espacio, no.
+    if (done) { const all = readSessions(); if (all[id]) { delete all[id]; writeSessions(all); } }
+    return done;
+  },
+  /** Las sesiones de un espacio ('own', 'shared' o el id de un usuario de Kitsune) y cambiarlas. */
+  sessions(id) { const space = state.data.spaces.find(item => item.id === id); return space ? sessionsOf(space, readSessions()) : null; },
+  setSessions: (id, choice) => setSessions(id, choice),
   moveTab: (win, tab, id) => moveTab(win, tab, id),
   /** El panel de «Nuevo espacio», junto al «+» que se vea (arriba o en la barra lateral). */
   openEditor(win, anchor = null) {

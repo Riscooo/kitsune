@@ -152,11 +152,18 @@ function buildEditor(win, st) {
   const colorNames = { blue: t('Añil', 'Indigo'), pink: t('Rosa', 'Pink'), violet: t('Violeta', 'Violet'), teal: t('Jade', 'Jade'), amber: t('Ámbar', 'Amber'), red: t('Óxido', 'Rust') };
   st.colors = el(doc, 'div', { class: 'zero-profile-colors', role: 'radiogroup', 'aria-label': t('Color', 'Colour') },
     COLORS.map(color => el(doc, 'button', { type: 'button', role: 'radio', 'data-color': color, title: colorNames[color], 'aria-label': colorNames[color] })));
+  // Sus sesiones (Risco, 15-10): con las de los demás perfiles, o las suyas (su Google, sus cookies, sus
+  // inicios de sesión, en su propio contenedor). Solo si este Kitsune sabe hacerlo.
+  st.sessions = el(doc, 'div', { class: 'zero-profile-sessions' }, [
+    el(doc, 'span', { class: 'zero-profile-label' }, [t('Sesiones', 'Sessions')]),
+    el(doc, 'div', { class: 'zero-profile-seg', role: 'radiogroup', 'aria-label': t('Sesiones', 'Sessions') }),
+    el(doc, 'span', { class: 'zero-profile-hint' }),
+  ]);
   st.pictures = el(doc, 'div', { class: 'zero-profile-row' }, [action('image', t('Poner imagen…', 'Set picture…')), action('unimage', t('Quitar imagen', 'Remove picture'))]);
   st.foot = el(doc, 'div', { class: 'zero-profile-row zero-profile-foot' }, [action('delete', t('Borrar perfil', 'Delete profile')), action('create', t('Crear', 'Create'))]);
   st.question = el(doc, 'span', { class: 'zero-profile-question' });
   st.confirm = el(doc, 'div', { class: 'zero-profile-confirm' }, [st.question, el(doc, 'div', { class: 'zero-profile-row' }, [action('cancel', t('Cancelar', 'Cancel')), action('confirm', t('Borrar', 'Delete'))])]);
-  st.menu = el(doc, 'div', { id: 'zero-profiles', role: 'dialog', 'aria-label': t('Perfil', 'Profile') }, [st.name, st.icons, st.colors, st.pictures, st.foot, st.confirm]);
+  st.menu = el(doc, 'div', { id: 'zero-profiles', role: 'dialog', 'aria-label': t('Perfil', 'Profile') }, [st.name, st.icons, st.colors, st.sessions, st.pictures, st.foot, st.confirm]);
 }
 
 /** Lo que enseña la ficha: lo del perfil (o lo del borrador de uno nuevo). */
@@ -168,6 +175,25 @@ function fillEditor(win, st) {
   const value = profile ?? st.draft;
   for (const button of st.icons.children) button.setAttribute('aria-checked', String(button.dataset.icon === (value.icon || '')));
   for (const button of st.colors.children) button.setAttribute('aria-checked', String(button.dataset.color === value.color));
+  // Sus sesiones: las del perfil (o las del borrador); sin saberlo este Kitsune, no se enseñan.
+  const known = st.host.spaces?.sessions?.((profile ?? list[0])?.id) ?? null;
+  const sessions = profile ? known : known && st.draft.sessions;
+  st.sessions.hidden = !sessions;
+  if (sessions) {
+    const t = st.t, user = !['own', 'shared'].includes(sessions) ? sessions : null;
+    const userName = user ? (st.host.users?.nameOf?.(user) ?? t('su usuario', 'its user')) : null;
+    const options = [['shared', t('Compartidas', 'Shared')], ['own', t('Propias', 'Own')], ...(user ? [[user, t(`De ${userName}`, `${userName}'s`)]] : [])];
+    const seg = st.sessions.querySelector('.zero-profile-seg');
+    if (seg.dataset.options !== options.map(o => o[0]).join(' ')) {
+      seg.replaceChildren(...options.map(([value, label]) => el(win.document, 'button', { type: 'button', role: 'radio', 'data-sessions': value }, [label])));
+      seg.dataset.options = options.map(o => o[0]).join(' ');
+    }
+    for (const button of seg.children) button.setAttribute('aria-checked', String(button.dataset.sessions === sessions));
+    st.sessions.querySelector('.zero-profile-hint').textContent = sessions === 'own'
+      ? t('Su propio Google, sus cookies y sus inicios de sesión.', 'Its own Google, cookies and sign-ins.')
+      : sessions === 'shared' ? t('Las mismas cuentas que los demás perfiles.', 'The same accounts as the other profiles.')
+      : t(`Las cuentas de ${userName}.`, `${userName}'s accounts.`);
+  }
   st.pictures.hidden = !profile;
   st.pictures.querySelector('[data-action=unimage]').hidden = !readJSON(st.host, IMAGES_PREF, {})[id];
   st.foot.querySelector('[data-action=create]').hidden = !!profile;
@@ -182,7 +208,8 @@ function openEditor(win, st, id, anchor) {
   const profile = id ? list.find(item => item.id === id) : null;
   if (id && !profile) return;
   const used = new Set(list.map(item => item.color));
-  st.draft = profile ? null : { name: '', icon: '', color: COLORS.find(color => !used.has(color)) ?? COLORS[list.length % COLORS.length] };
+  // Uno nuevo, con sus propias sesiones de serie (como un perfil de Chrome); se puede cambiar.
+  st.draft = profile ? null : { name: '', icon: '', color: COLORS.find(color => !used.has(color)) ?? COLORS[list.length % COLORS.length], sessions: 'own' };
   st.menu.dataset.space = profile?.id ?? '';
   st.menu.removeAttribute('confirming');
   st.name.value = profile?.name ?? '';
@@ -277,9 +304,13 @@ export function attach(win, ctx) {
   const create = () => {
     const { list } = profilesOf(win, st);
     const name = st.name.value.trim() || `${t('Perfil', 'Profile')} ${list.length + 1}`;
-    const { color, icon } = st.draft;
+    const { color, icon, sessions } = st.draft;
     closeMenu(st);
-    after(Promise.resolve(host.spaces?.create({ name, color, icon, user: null })).then(id => id && host.spaces?.select(win, id)));
+    after(Promise.resolve(host.spaces?.create({ name, color, icon, user: null })).then(async id => {
+      if (!id) return;
+      if (sessions === 'own') await host.spaces?.setSessions?.(id, 'own');
+      await host.spaces?.select(win, id);
+    }));
   };
   const rename = () => {
     const id = editing(), name = st.name.value.trim();
@@ -298,6 +329,12 @@ export function attach(win, ctx) {
     const button = event.target.closest('button');
     if (!button || button.disabled) return;
     if ('icon' in button.dataset) { change({ icon: button.dataset.icon }); return; }
+    if (button.dataset.sessions) {
+      const id = editing();
+      if (id) after(host.spaces?.setSessions?.(id, button.dataset.sessions));
+      else { st.draft.sessions = button.dataset.sessions; fillEditor(win, st); }
+      return;
+    }
     if (button.dataset.color) { change({ color: button.dataset.color }); return; }
     const id = editing(), action = button.dataset.action;
     if (action === 'create') create();
