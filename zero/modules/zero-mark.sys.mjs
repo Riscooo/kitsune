@@ -238,6 +238,10 @@ export function attach(win, ctx) {
   const st = { host, cleanups: [] };
   state.set(win, st);
   const listen = (target, type, fn, options) => { target.addEventListener(type, fn, options); st.cleanups.push(() => target.removeEventListener(type, fn, options)); };
+  // Con la web ampliada no hay ajustes, como el pomodoro (Risco, 15-10): si estaban abiertos, se cierran.
+  const fullWatch = new win.MutationObserver(() => { if (doc.documentElement.hasAttribute('zero-full') && st.panel?.hasAttribute('open')) setOpen(win, st, false); });
+  fullWatch.observe(doc.documentElement, { attributes: true, attributeFilter: ['zero-full'] });
+  st.cleanups.push(() => fullWatch.disconnect());
   const title = host.t('Ajustes de Kitsune Zero', 'Kitsune Zero settings');
 
   st.mark = el(doc, 'button', { type: 'button', id: 'zero-mark', title, 'aria-label': title, 'aria-expanded': 'false', 'aria-controls': 'zero-settings' },

@@ -38,6 +38,9 @@
     lo suyo se queda ampliada); con un vídeo a pantalla completa, Esc saca del vídeo y, en la misma
     pulsación, deja de ampliar. Y un atajo, Ctrl+Alt+F (se puede cambiar en «Atajos de teclado…»), que
     amplía y deja de ampliar.
+16. Con la ventana transparente (el fondo del sistema), Kitsune no le dice al compositor que partes de la
+    ventana son opacas (Wayland): al desampliar tras cambiar de app esa información se quedaba vieja y lo
+    transparente salía negro (Risco, 15-10). Es para la sesión (no se guarda) y al salir de Zero vuelve.
 
 --zero-del-repo: Zero sale de zero/ del repositorio (ver zero_harness.py).
 """
@@ -487,6 +490,15 @@ def main():
         esc()
         eventually(lambda: not chrome("return document.documentElement.hasAttribute('inDOMFullscreen')") and not full(), timeout=5)
         check('Esc deja de ampliar (si la web no lo usa) y, con un vídeo a pantalla completa, sale de las dos; Ctrl+Alt+F amplía y deja de ampliar')
+
+        opaque = "return [Services.prefs.getDefaultBranch('').getBoolPref('widget.wayland.opaque-region.enabled', true), Services.prefs.prefHasUserValue('widget.wayland.opaque-region.enabled')]"
+        chrome("Services.prefs.setStringPref('kitsune.zero.backdrop', 'system')")
+        eventually(lambda: chrome(opaque) == [False, False], timeout=5)
+        chrome("document.getElementById('kitsune-zero-key').doCommand()")
+        eventually(lambda: chrome("return !document.documentElement.hasAttribute('zero')") and chrome(opaque) == [True, False], timeout=5)
+        chrome("document.getElementById('kitsune-zero-key').doCommand()")
+        eventually(lambda: chrome(opaque) == [False, False], timeout=5)
+        check('Con la ventana transparente, sin regiones opacas para el compositor (solo en la sesión; al salir, vuelve)')
         report['status'] = 'passed'
     finally:
         if driver: driver.close()

@@ -7,7 +7,8 @@
    y «Fondo» (del sistema / de la web) cambia kitsune.zero.backdrop y el aspecto al momento. «Pestañas» (con texto / solo
    iconos, el raíl) cambia kitsune.zero.railIcons; la isla de arriba no tiene esa opción.
 4. No salen filas de fases sin hacer (pomodoro, silencio, sonidos…).
-5. Con la web ampliada la marca se aparta, y vuelve al acercarse al borde izquierdo.
+5. Con la web ampliada no hay ajustes, como el pomodoro (Risco, 15-10): al acercarse al borde izquierdo
+   sale el raíl, pero la marca no (ni se puede pulsar); si estaban abiertos, se cierran.
 7. Sin textos descriptivos bajo las opciones: las que lo tienen llevan una «i» que, con el ratón encima,
    lo dice en una etiqueta junto a ella; la fila «Info» las quita todas (y las vuelve a poner).
 6. Los ajustes no repiten el atajo en la cabecera. Nada pasa de golpe: al encender una opción, sus filas
@@ -239,11 +240,17 @@ def main():
         keys('')
         until(lambda: not mark()['open'])
 
+        click('#zero-mark')
+        until(lambda: mark()['open'])
         chrome("document.querySelector('#zero-grow button[data-action=full]').click()")
-        until(lambda: mark()['full'] and mark()['opacity'] == 0)
+        until(lambda: mark()['full'] and mark()['opacity'] == 0 and not mark()['open'])
         pointer([{'type': 'pointerMove', 'origin': driver.command('POST', '/element', {'using': 'css selector', 'value': '#zero-edge'}), 'x': 0, 'y': 0}])
-        until(lambda: mark()['opacity'] > 0.3)
-        check('Con la web ampliada la marca se aparta y vuelve al acercarse al borde izquierdo')
+        rail = "return Number(getComputedStyle(document.getElementById('zero-rail')).opacity)"
+        until(lambda: chrome(rail) > 0.9)
+        time.sleep(0.8)
+        hidden = chrome("const m = document.getElementById('zero-mark'); const cs = getComputedStyle(m); return [Number(cs.opacity), cs.pointerEvents, cs.visibility]")
+        assert hidden[0] == 0 and (hidden[1] == 'none' or hidden[2] == 'hidden'), f'con la web ampliada la marca sale: {hidden}'
+        check('Con la web ampliada no hay ajustes: sale el raíl, la marca no')
         report['status'] = 'passed'
     finally:
         if driver: driver.close()

@@ -51,6 +51,21 @@ const HTML = 'http://www.w3.org/1999/xhtml';
 const NIRI_RULE = '.config/niri/kitsune-zero.kdl';
 const state = new WeakMap(); // ventana → { cleanups, … }
 
+// Con la ventana transparente, sin regiones opacas para el compositor (Wayland): Gecko le dice qué partes
+// de la ventana son opacas y, al desampliar tras cambiar de app, eso se quedaba viejo (la web ampliada
+// llenaba la ventana) y lo transparente salía negro (Risco, 15-10). Es una preferencia de toda la sesión:
+// se cambia su valor por defecto (no se guarda en el perfil) mientras haya alguna ventana así, y vuelve.
+const OPAQUE = 'widget.wayland.opaque-region.enabled';
+const transparent = new Set();
+let opaqueDefault = null;
+function syncOpaque() {
+  try {
+    const branch = Services.prefs.getDefaultBranch('');
+    if (opaqueDefault === null) opaqueDefault = branch.getBoolPref(OPAQUE, true);
+    branch.setBoolPref(OPAQUE, transparent.size ? false : opaqueDefault);
+  } catch { /* sin esa preferencia */ }
+}
+
 const el = (doc, tag, attributes = {}, children = []) => {
   const node = doc.createElementNS(HTML, tag);
   for (const [name, value] of Object.entries(attributes)) node.setAttribute(name, value);
@@ -126,6 +141,8 @@ function applyBackdrop(win, st) {
   const root = win.document.documentElement;
   const pref = (() => { try { return st.host.prefs.getStringPref(`${st.host.prefix}backdrop`, 'auto'); } catch { return 'auto'; } })();
   root.setAttribute('zero-backdrop', backdropMode(pref, st.env));
+  if (root.getAttribute('zero-backdrop') === 'system') transparent.add(win); else transparent.delete(win);
+  syncOpaque();
   if (root.getAttribute('zero-backdrop') !== 'web') {
     root.style.removeProperty('--zero-backdrop-image'); delete st.backdrop.dataset.painted;
     // Con el fondo del sistema, detrás está el escritorio (transparente) y no se sabe su luz: las piezas
@@ -363,6 +380,8 @@ export function detach(win) {
   const st = state.get(win);
   if (!st) return;
   state.delete(win);
+  transparent.delete(win);
+  syncOpaque();
   win.clearTimeout(st.timer);
   for (const undo of st.cleanups.reverse()) { try { undo(); } catch { /* ya no estaba */ } }
   const root = win.document.documentElement;

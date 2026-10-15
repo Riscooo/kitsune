@@ -908,9 +908,10 @@
 }
 
 /* Con la web ampliada se aparta, como el raíl, y vuelve desde el borde izquierdo. */
-:root[zero-full] #zero-mark { opacity: 0; transform: translateX(-30px); pointer-events: none; }
-:root[zero-full] #zero-edge:hover ~ #zero-mark,
-:root[zero-full] #zero-mark:is(:hover, [open]) { opacity: .92; transform: none; pointer-events: auto; }
+/* Con la web ampliada no hay ajustes, como el pomodoro (Risco, 15-10): al borde izquierdo sale el raíl, no
+   la marca. */
+:root[zero-full] #zero-mark { opacity: 0; transform: translateX(-30px); pointer-events: none; visibility: hidden;
+  transition: opacity var(--zero-t-fade) var(--zero-soft), transform var(--zero-t-morph) var(--zero-calm), visibility 0s linear var(--zero-t-fade); }
 
 /* Los ajustes: una hoja de cristal esmerilado que brota de la marca. */
 #zero-settings {
