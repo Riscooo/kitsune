@@ -54,10 +54,41 @@ const tabs = { passing: tab => tab.hasAttribute('kitsune-glance') };
 
 const host = () => ({ t, prefs: Services.prefs, prefix: 'kitsune.zero.', keys: { add: addKey }, spaces, saver, tabs });
 
+/** «Kitsune Zero» en el menú ≡ de Kitsune (con Retoques… y Copia…), con su atajo a la vista: entra, y
+ *  dentro de Zero la misma fila dice «Salir de Kitsune Zero» y sale. */
+const withMenu = new WeakSet();
+function addMenuRow(win, Zero) {
+  if (withMenu.has(win)) return;
+  withMenu.add(win);
+  const doc = win.document;
+  const insert = () => {
+    const settings = doc.getElementById('appMenu-settings-button');
+    if (!settings) return;
+    let button = doc.getElementById('appMenu-kitsune-zero');
+    if (!button) {
+      button = doc.createXULElement('toolbarbutton');
+      button.id = 'appMenu-kitsune-zero';
+      button.className = 'subviewbutton';
+      button.addEventListener('command', () => { win.PanelUI?.hide?.(); Zero.toggle(win); });
+      settings.before(button);
+    }
+    button.setAttribute('label', Zero.active(win) ? t('Salir de Kitsune Zero', 'Leave Kitsune Zero') : 'Kitsune Zero');
+    const key = doc.getElementById('kitsune-zero-key');
+    if (key) {
+      try {
+        const { ShortcutUtils } = ChromeUtils.importESModule('resource://gre/modules/ShortcutUtils.sys.mjs');
+        button.setAttribute('shortcut', ShortcutUtils.prettifyShortcut(key));
+      } catch { /* sin atajo a la vista */ }
+    }
+  };
+  doc.addEventListener('ViewShowing', event => { if (event.target.id === 'appMenu-mainView') insert(); }, true);
+}
+
 export const KitsuneZeroHost = {
   decorate(win) {
     const { Zero } = ChromeUtils.importESModule(ZERO);
     if (!started) { Zero.start(host()); started = true; }
+    addMenuRow(win, Zero);
     return Zero.decorate(win);
   },
 };

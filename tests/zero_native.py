@@ -17,6 +17,8 @@
    nada que personalizar— y lo vuelve a poner al terminar; Ctrl+Alt+0 en medio no lo pone encima.
 9. La primera vez que se entra en Zero, la isla dice un momento cómo volver (Ctrl+Alt+0), cuando ya ha
    terminado de entrar; las siguientes, no. (El arnés lo da por visto en las demás pruebas.)
+10. Zero está en el menú ≡ de Kitsune, con su atajo a la vista: «Kitsune Zero» entra; dentro de Zero, la
+    misma fila dice «Salir de Kitsune Zero» y sale.
 
 --zero-del-repo: Zero sale de zero/ y de install/native del repositorio (ver zero_harness.py).
 """
@@ -128,6 +130,35 @@ def main():
         time.sleep(2)
         assert chrome(hint) == '', f'la segunda vez también: «{chrome(hint)}»'
         check('La primera vez, la isla dice cómo volver; las siguientes, no')
+
+        row = """const done = arguments[arguments.length - 1];
+            Promise.resolve(PanelUI.show()).then(() => setTimeout(() => { const b = document.getElementById('appMenu-kitsune-zero');
+              done(b && { label: b.getAttribute('label'), shortcut: b.getAttribute('shortcut') || '' }); }, 500));"""
+        def menu_row():
+            driver.context('chrome')
+            return driver.script(row, [], asynchronous=True)
+        def press_row():
+            chrome("document.getElementById('appMenu-kitsune-zero').doCommand()")
+        try:
+            if state()['zero']:
+                press_zero()
+                eventually(lambda: not state()['zero'], timeout=5)
+            first = menu_row()
+            assert first and first['label'] == 'Kitsune Zero' and 'Ctrl' in first['shortcut'] and '0' in first['shortcut'], first
+            press_row()
+            eventually(lambda: state()['zero'], timeout=5)
+            chrome("PanelUI.hide()")
+            time.sleep(0.5)
+            inside = menu_row()
+            assert inside and inside['label'] == 'Salir de Kitsune Zero', inside
+            press_row()
+            eventually(lambda: not state()['zero'], timeout=5)
+            chrome("PanelUI.hide()")
+            press_zero()  # como estaba, para las siguientes
+            eventually(lambda: state()['zero'], timeout=5)
+        except AssertionError as error:
+            raise AssertionError(f'menú ≡: {error}') from None
+        check('Zero está en el menú ≡ con su atajo; dentro, la misma fila sale')
 
         windows = chrome(STATE, ['all'])
         assert sum(w['zero'] for w in windows) == 1, windows
