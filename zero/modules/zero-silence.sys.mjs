@@ -242,8 +242,16 @@ export function attach(win, ctx) {
         t('¿seguro que buscabas esto?', 'is this what you were looking for?'), 6000, 'scroll');
     }
   });
-  st.timer = win.setInterval(refresh, 1000);
-  st.cleanups.push(() => win.clearInterval(st.timer));
+  // Cada segundo, solo mientras el silencio está encendido: apagado (como viene de serie) no despierta a nadie.
+  const tick = () => {
+    const on = st.p.on();
+    if (on && !st.timer) st.timer = win.setInterval(refresh, 1000);
+    else if (!on && st.timer) { win.clearInterval(st.timer); st.timer = 0; }
+  };
+  const ticking = { observe: tick };
+  host.prefs.addObserver(st.p.name('silence'), ticking);
+  st.cleanups.push(() => { host.prefs.removeObserver(st.p.name('silence'), ticking); if (st.timer) win.clearInterval(st.timer); });
+  tick();
   update(win, st);
 }
 

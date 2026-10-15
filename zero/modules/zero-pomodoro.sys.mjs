@@ -278,8 +278,16 @@ export function attach(win, ctx) {
     host.prefs.addObserver(st.p.name(key), observer);
     st.cleanups.push(() => host.prefs.removeObserver(st.p.name(key), observer));
   }
-  st.timer = win.setInterval(refresh, 1000);
-  st.cleanups.push(() => win.clearInterval(st.timer));
+  // Cada segundo, solo mientras el pomodoro está encendido: apagado (como viene de serie) no despierta a nadie.
+  const tick = () => {
+    const on = st.p.on();
+    if (on && !st.timer) st.timer = win.setInterval(refresh, 1000);
+    else if (!on && st.timer) { win.clearInterval(st.timer); st.timer = 0; }
+  };
+  const ticking = { observe: tick };
+  host.prefs.addObserver(st.p.name('pomodoro'), ticking);
+  st.cleanups.push(() => { host.prefs.removeObserver(st.p.name('pomodoro'), ticking); if (st.timer) win.clearInterval(st.timer); });
+  tick();
   update(win, st);
   st.lastPhase = st.p.on() ? view(st.p.saved(), st.p.preset(), clock.now()).phase : null;
 }

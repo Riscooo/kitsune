@@ -167,8 +167,16 @@ export function attach(win, ctx) {
     host.prefs.addObserver(st.p.name(key), observer);
     st.cleanups.push(() => host.prefs.removeObserver(st.p.name(key), observer));
   }
-  st.timer = win.setInterval(refresh, 1000);
-  st.cleanups.push(() => win.clearInterval(st.timer));
+  // Cada segundo, solo mientras los sonidos está encendido: apagado (como viene de serie) no despierta a nadie.
+  const tick = () => {
+    const on = st.p.on();
+    if (on && !st.timer) st.timer = win.setInterval(refresh, 1000);
+    else if (!on && st.timer) { win.clearInterval(st.timer); st.timer = 0; }
+  };
+  const ticking = { observe: tick };
+  host.prefs.addObserver(st.p.name('sounds'), ticking);
+  st.cleanups.push(() => { host.prefs.removeObserver(st.p.name('sounds'), ticking); if (st.timer) win.clearInterval(st.timer); });
+  tick();
   const unload = () => detach(win);
   win.addEventListener('unload', unload, { once: true });
   st.cleanups.push(() => win.removeEventListener('unload', unload));

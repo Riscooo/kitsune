@@ -11,6 +11,8 @@
    variables «--zero-…» en la raíz.
 6. Tampoco si se apaga en pleno uso: con la web ampliada, escribiendo en la isla, con un aviso y con
    los ajustes abiertos.
+7. En reposo no despierta cada segundo lo que está apagado: con el pomodoro, el silencio y los sonidos
+   apagados (de serie), ningún temporizador periódico; al encender el pomodoro, el suyo.
 
 --zero-del-repo: Zero sale de zero/ y de install/native del repositorio (ver zero_harness.py).
 """
@@ -74,9 +76,21 @@ def main():
         chrome("window.focus()")
         eventually(lambda: chrome("return Services.focus.activeWindow === window"), timeout=5)
 
+        # Los temporizadores periódicos que se programan en esta ventana (para la 7).
+        chrome("""const live = window.__periodicos = new Map(); const set = window.setInterval.bind(window), clear = window.clearInterval.bind(window);
+            window.setInterval = (fn, ms, ...rest) => { const id = set(fn, ms, ...rest); live.set(id, ms); return id; };
+            window.clearInterval = id => { live.delete(id); return clear(id); };""")
         press_zero()
         eventually(lambda: state()['zero'] and state()['sheet'] == '1', timeout=5)
         check('Ctrl+Alt+0 pone Zero en la ventana, con su hoja de estilo')
+
+        periodic = "return [...window.__periodicos.values()].filter(ms => ms <= 1000).length"
+        assert chrome(periodic) == 0, f'con todo apagado, {chrome(periodic)} temporizadores de 1 s'
+        chrome("Services.prefs.setBoolPref('kitsune.zero.pomodoro', true)")
+        eventually(lambda: chrome(periodic) >= 1, timeout=5)
+        chrome("Services.prefs.clearUserPref('kitsune.zero.pomodoro')")
+        eventually(lambda: chrome(periodic) == 0, timeout=5)
+        check('En reposo no despierta cada segundo lo que está apagado')
 
         windows = chrome(STATE, ['all'])
         assert sum(w['zero'] for w in windows) == 1, windows
