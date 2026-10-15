@@ -21,10 +21,12 @@
     regla, el cristal del sistema): no pasa un momento por la foto de la web (un parpadeo oscuro).
 13. Los botones de ampliar se pueden arrastrar a donde se quiera y se quedan allí (también al salir y
     volver a entrar en Zero); sus iconos, centrados en botones redondos.
-14. Con el fondo del sistema, Zero es transparente y sus piezas son de cristal lechoso (decisiones de
-    Risco del 15-10): sobre blanco, la isla, el pomodoro abierto y los botones de ampliar se ven claros
-    (sin tinte oscuro), con el texto en tinta (≥ 3:1) con el sistema en claro y en oscuro; el marco no
-    lleva velo de color; el panel de ajustes es transparente; la marca de Kitsune se ve (≥ 0,85).
+14. Con el fondo del sistema, Zero es una lámina de cristal tipo Apple (decisiones de Risco del 15-10):
+    la ventana con las esquinas redondeadas y un filo de cristal alrededor (anillo de luz y grosor en los
+    bordes), transparente por dentro, sin velo de color. Sus piezas, de cristal transparente: sobre
+    blanco, la isla, el pomodoro abierto y los botones de ampliar se ven claros (sin tinte oscuro); el
+    texto, blanco con un halo con el sistema en oscuro y en tinta (≥ 3:1) en claro. El panel de ajustes,
+    transparente; la marca de Kitsune se ve (≥ 0,85).
 
 --zero-del-repo: Zero sale de zero/ del repositorio (ver zero_harness.py).
 """
@@ -309,8 +311,13 @@ def main():
             light, dark = max(background, lum(text)), min(background, lum(text))
             return {'light': background, 'ratio': (light + 0.05) / (dark + 0.05), 'text': text, 'halo': box[6] not in ('none', '')}
         def clear_glass(g, dark):
-            # Claro sobre blanco (nada de tinte oscuro) y el texto en tinta, legible, en los dos modos.
-            return g['light'] >= 0.7 and g['ratio'] >= 3.0
+            # Claro sobre blanco (nada de tinte oscuro); el texto, blanco con halo o en tinta legible.
+            return g['light'] >= 0.7 and ((dark and min(g['text']) >= 240 and g['halo']) or (not dark and g['ratio'] >= 3.0))
+        # La lámina: esquinas redondeadas y su filo de cristal (anillo de luz y resplandor en los bordes).
+        pane = """const b = getComputedStyle(document.body), ring = getComputedStyle(document.body, '::after');
+            return { radius: parseFloat(b.borderTopLeftRadius), glow: b.boxShadow.includes('inset'), ring: ring.content !== 'none' && ring.backgroundImage.includes('gradient') };"""
+        lamina = chrome(pane)
+        assert lamina['radius'] >= 18 and lamina['glow'] and lamina['ring'], f'la ventana no es una lámina de cristal: {lamina}'
         chrome("Services.prefs.setBoolPref('kitsune.zero.pomodoro', true)")
         eventually(lambda: chrome("return !!document.getElementById('zero-pomo')"), timeout=5)
         veil = "return getComputedStyle(document.getElementById('tabbrowser-tabbox')).backgroundColor"
@@ -340,7 +347,7 @@ def main():
         assert chrome(panel) <= 0.4, f'panel de ajustes: alfa {chrome(panel)}'
         chrome("Services.prefs.clearUserPref('kitsune.zero.pomodoro')")
         chrome("Services.prefs.clearUserPref('ui.systemUsesDarkTheme')")
-        check('Con el fondo del sistema, Zero es transparente y sus piezas de cristal lechoso, con texto en tinta y la marca a la vista')
+        check('Con el fondo del sistema, Zero es una lámina de cristal redondeada y sus piezas de cristal transparente')
         report['status'] = 'passed'
     finally:
         if driver: driver.close()

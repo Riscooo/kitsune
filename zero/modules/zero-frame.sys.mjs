@@ -129,9 +129,9 @@ function applyBackdrop(win, st) {
   if (root.getAttribute('zero-backdrop') !== 'web') {
     root.style.removeProperty('--zero-backdrop-image'); delete st.backdrop.dataset.painted;
     // Con el fondo del sistema, detrás está el escritorio (transparente) y no se sabe su luz: las piezas
-    // son de cristal lechoso, que se ve sobre cualquier fondo, y lo que llevan va en tinta (decisión de
-    // Risco, 15-10).
-    st.frameInk = 'ink';
+    // son de cristal transparente (decisión de Risco, 15-10) y su texto sigue el modo del sistema: en
+    // oscuro, blanco con halo; en claro, tinta.
+    st.frameInk = win.matchMedia('(prefers-color-scheme: dark)').matches ? 'white' : 'ink';
     root.toggleAttribute('zero-frame-ink', st.frameInk === 'ink');
   }
   paintColors(win, st);

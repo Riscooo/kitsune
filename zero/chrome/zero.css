@@ -56,6 +56,23 @@
   background: transparent !important;
   background-image: none !important;
 }
+/* Con el fondo del sistema, Zero es una lámina de cristal tipo Apple (decisión de Risco, 15-10): la
+   ventana con las esquinas redondeadas y un filo de cristal alrededor (un anillo de luz, vivo arriba a la
+   izquierda y abajo a la derecha, y un resplandor que da grosor a los bordes); por dentro, transparente.
+   Encima, las piezas: cristal sobre cristal. Con la web ampliada la web llena la ventana: sin lámina. */
+:root[zero][zero-backdrop="system"]:not([zero-full]) body {
+  border-radius: 26px !important;
+  background-image: linear-gradient(135deg, rgba(255, 255, 255, .08), rgba(255, 255, 255, 0) 32%, rgba(255, 255, 255, 0) 68%, rgba(255, 255, 255, .06)) !important;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .28), inset 0 1.5px 0 rgba(255, 255, 255, .6),
+              inset 0 0 6px rgba(255, 255, 255, .32), inset 0 0 34px rgba(255, 255, 255, .2),
+              inset 0 -14px 28px -18px rgba(0, 0, 0, .25) !important;
+}
+:root[zero][zero-backdrop="system"]:not([zero-full]) body::after {
+  content: ""; position: fixed; inset: 0; z-index: 2147483000; border-radius: 26px; padding: 2.2px; pointer-events: none;
+  background: var(--zero-glass-rim);
+  mask-image: linear-gradient(#000 0 0), linear-gradient(#000 0 0); mask-clip: content-box, border-box; mask-composite: exclude;
+}
+
 /* Sin desenfoque del compositor: detrás, una foto diminuta de la web, estirada y desenfocada. */
 :root[zero][zero-backdrop="web"] {
   background-color: #23272b !important;
@@ -1123,21 +1140,12 @@
    (zero-frame-ink, lo pone zero-frame según la luz de la foto). Con la web ampliada no hay marco: ahí
    manda el cristal en vivo de cada pieza (zero-ink). */
 /* Con el fondo del sistema (Zero transparente) no se sabe qué hay detrás de la ventana: las piezas son de
-   cristal claro, el texto blanco lleva un halo y, con el sistema en claro, pasa a tinta sobre un cristal
-   algo más lechoso. */
-/* Cristal lechoso (decisión de Risco, 15-10): con la ventana transparente, las piezas blancas y casi
-   opacas, con su brillo y su anillo de luz, para que se vean sobre cualquier fondo. */
-#main-window[zero][zero-backdrop="system"][zero-frame-ink]:not([zero-full]) :is(#nav-bar, #zero-pomo, #zero-grow):not([zero-ink]),
-#main-window[zero][zero-backdrop="system"][zero-frame-ink]:not([zero-full]) #zero-rail:not(:hover, :has(:focus-visible), [zero-ink]) {
-  background: radial-gradient(130% 120% at 28% 0%, rgba(255, 255, 255, .94), rgba(255, 255, 255, .76) 60%, rgba(250, 249, 246, .7)) !important;
-}
+   cristal transparente, el texto blanco lleva un halo y, con el sistema en claro, pasa a tinta. */
+/* Con el fondo del sistema y el sistema en claro, el texto de las piezas va en tinta (el cristal sigue
+   siendo transparente: nada de blancos, decisión de Risco, 15-10). */
 #main-window[zero][zero-backdrop="system"][zero-frame-ink]:not([zero-full]) #urlbar-input::placeholder { color: rgba(29, 35, 33, .5) !important; }
 #main-window[zero][zero-backdrop="system"][zero-frame-ink][zero-empty] #urlbar .urlbarView :is(.urlbarView-row, .urlbarView-title, .urlbarView-action, .urlbarView-url, .urlbarView-title-separator) {
   color: #1d2321 !important; text-shadow: none !important; -moz-context-properties: fill; fill: #1d2321 !important;
-}
-#main-window[zero][zero-backdrop="system"][zero-frame-ink][zero-empty] #urlbar .urlbarView:popover-open {
-  background: radial-gradient(130% 120% at 28% 0%, rgba(255, 255, 255, .95), rgba(250, 249, 246, .82)) !important;
-  color: #1d2321 !important; text-shadow: none !important;
 }
 #main-window[zero][zero-frame-ink]:not([zero-full]) #nav-bar:not([zero-ink]) {
   color: #1d2321 !important; text-shadow: none !important;
@@ -1162,10 +1170,10 @@
 :root[zero-frame-ink]:not([zero-full]) #zero-mark:is(:hover, [open]) { opacity: .85; }
 /* Con el fondo del sistema, la marca de Kitsune como siempre (blanca, sin disco), pero a la vista: más
    opaca y con una sombra que la separa de cualquier fondo. */
-:root[zero-backdrop="system"][zero-frame-ink]:not([zero-full]) #zero-mark {
+:root[zero-backdrop="system"]:not([zero-full]) #zero-mark {
   color: #fff; opacity: .92; filter: drop-shadow(0 1px 2px rgba(0, 0, 0, .55)) drop-shadow(0 0 6px rgba(0, 0, 0, .35));
 }
-:root[zero-backdrop="system"][zero-frame-ink]:not([zero-full]) #zero-mark:is(:hover, [open]) { opacity: 1; }
+:root[zero-backdrop="system"]:not([zero-full]) #zero-mark:is(:hover, [open]) { opacity: 1; }
 
 /* ---------------------------------------------------------------- el silencio (zero-silence) */
 
