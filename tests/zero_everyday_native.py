@@ -19,6 +19,8 @@
 10. En una ventana privada, la isla lleva el antifaz de navegación privada delante del dominio (en Zero
     no está la barra de pestañas, donde Gecko lo pone); en una normal, no. Con «solo iconos» y la música
     sonando, todo cabe en la isla.
+11. Con el modo compacto de Kitsune (Ctrl+Alt+C), la isla sigue a la vista: Zero ya es lo mínimo, y
+    escondida no volvía ni con el ratón arriba.
 
 --zero-del-repo: Zero sale de zero/ del repositorio (ver zero_harness.py).
 """
@@ -230,6 +232,16 @@ def main():
         chrome("Services.prefs.setBoolPref('kitsune.zero.islandIcons', false)")
         chrome("window.__privada.close(); delete window.__privada;")
         check('En una ventana privada, la isla lleva el antifaz delante del dominio (y con «solo iconos», cabe)')
+
+        chrome("Services.prefs.setBoolPref('kitsune.compact.enabled', true)")
+        eventually(lambda: chrome("return document.documentElement.hasAttribute('kitsune-compact')"), timeout=5)
+        island = "const r = document.getElementById('nav-bar').getBoundingClientRect(); const t = getComputedStyle(document.getElementById('navigator-toolbox')); return { top: r.top, opacity: Number(t.opacity) };"
+        try:
+            eventually(lambda: (i := chrome(island))['top'] >= 6 and i['opacity'] > 0.9, timeout=5)
+        except AssertionError:
+            raise AssertionError(f'compacto: {chrome(island)}') from None
+        chrome("Services.prefs.clearUserPref('kitsune.compact.enabled')")
+        check('Con el modo compacto de Kitsune, la isla sigue a la vista')
         report['status'] = 'passed'
     finally:
         if driver: driver.close()
