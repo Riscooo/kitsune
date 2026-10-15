@@ -79,10 +79,18 @@ function apply() {
   }
   if (any && audio.ctx.state === 'suspended') audio.ctx.resume().catch(() => {});
   // Todo callado: el contexto se suspende cuando ya no se oye nada (no gasta).
-  if (!any) {
-    const ctx = audio.ctx;
-    audio.win?.setTimeout(() => { if (audio.ctx === ctx && !Object.values(audio.target).some(v => v > 0)) ctx.suspend().catch(() => {}); }, 4000);
-  }
+  if (!any) suspendWhenSilent(audio.ctx, 4000);
+}
+
+/** Suspende el contexto cuando el fundido ha llegado de verdad a cero. Mirarlo, no suponerlo: con
+ *  carga, el reloj del audio va por detrás del de la pared, y suspender antes corta en seco (un
+ *  chasquido) y deja la ganancia a medias. */
+function suspendWhenSilent(ctx, wait) {
+  audio.win?.setTimeout(() => {
+    if (audio.ctx !== ctx || Object.values(audio.target).some(v => v > 0)) return;
+    if ([...audio.layers.values()].every(entry => entry.gain.gain.value < 0.002)) ctx.suspend().catch(() => {});
+    else suspendWhenSilent(ctx, 1000);
+  }, wait);
 }
 
 // ---------------------------------------------------------------- los ajustes
