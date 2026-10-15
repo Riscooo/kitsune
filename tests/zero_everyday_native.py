@@ -279,22 +279,28 @@ def main():
         # En una pestaña nueva: la de antes puede seguir con el diálogo de imprimir cerrándose.
         chrome("gBrowser.selectedTab = gBrowser.addTab(arguments[0], { triggeringPrincipal: Services.scriptSecurityManager.getSystemPrincipal() })", [origin + '/'])
         eventually(lambda: chrome("return !gBrowser.selectedTab.hasAttribute('busy') && gBrowser.selectedBrowser.currentURI.spec") == origin + '/', timeout=5)
-        web = chrome("return gBrowser.selectedBrowser.getBoundingClientRect().height")
+        # Medida ya quieta: al quitar el modo compacto, la tarjeta aún se recoloca un momento.
+        sizes = []
+        def settled():
+            sizes.append(chrome("return gBrowser.selectedBrowser.getBoundingClientRect().height")); time.sleep(0.25)
+            return len(sizes) >= 3 and abs(sizes[-1] - sizes[-3]) < 0.5
+        eventually(settled, timeout=8)
+        web = sizes[-1]
         chrome("gBrowser.getFindBar().then(fb => fb.open())")
         def floating(f):
             centre = (f['card'][0] + f['card'][1]) / 2
             return (f['open'] and abs((f['left'] + f['right']) / 2 - centre) <= 2 and f['w'] <= 620 and f['card'][2] - f['bottom'] >= 8
                     and f['radius'] >= 12 and abs(f['web'] - web) < 1)
+        # Con la cuenta más larga («Más de 1000 coincidencias»), el campo y la cuenta siguen en una línea.
+        line = """const fb = gBrowser.getCachedFindBar(); fb._foundMatches.hidden = false; fb._foundMatches.value = 'Más de 1000 coincidencias';
+            const mid = n => { const r = n.getBoundingClientRect(); return (r.top + r.bottom) / 2; };
+            return [mid(fb._findField), mid(fb._foundMatches), mid(fb.querySelector('.findbar-closebutton'))];"""
         try:
             eventually(lambda: floating(f := chrome(find)) and not any(f['options']), timeout=5)
             driver.context('chrome')
             bar = driver.command('POST', '/element', {'using': 'css selector', 'value': '.deck-selected findbar'})
             driver.command('POST', '/actions', {'actions': [{'type': 'pointer', 'id': 'raton', 'parameters': {'pointerType': 'mouse'}, 'actions': [{'type': 'pointerMove', 'origin': bar, 'x': 0, 'y': 0}]}]})
             eventually(lambda: floating(f := chrome(find)) and all(f['options']), timeout=5)
-            # Con la cuenta más larga («Más de 1000 coincidencias»), el campo y la cuenta siguen en una línea.
-            line = """const fb = gBrowser.getCachedFindBar(); fb._foundMatches.hidden = false; fb._foundMatches.value = 'Más de 1000 coincidencias';
-                const mid = n => { const r = n.getBoundingClientRect(); return (r.top + r.bottom) / 2; };
-                return [mid(fb._findField), mid(fb._foundMatches), mid(fb.querySelector('.findbar-closebutton'))];"""
             eventually(lambda: (m := chrome(line)) and abs(m[0] - m[1]) < 4 and abs(m[0] - m[2]) < 4, timeout=5)
         except AssertionError:
             raise AssertionError(f'buscar: {chrome(find)} · línea {chrome(line)} · la web medía {web} · encima {chrome("const r = gBrowser.getCachedFindBar().getBoundingClientRect(); const at = document.elementFromPoint((r.left + r.right) / 2, (r.top + r.bottom) / 2); return at && at.localName + '.' + at.className")}') from None
