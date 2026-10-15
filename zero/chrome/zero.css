@@ -583,9 +583,22 @@
    alta, con el icono del buscador y el campo a la vista). Al buscar, la isla sube a su sitio y la tarjeta
    vuelve; las dos cosas viajan (top y opacidad), nada salta. */
 #main-window[zero][zero-empty] #navigator-toolbox:not([zero-island-alert]) {
-  --zero-island-w: 600px !important;
+  /* Pequeña en reposo («no tiene sentido que sea tan largo», Risco 15-10); al pulsarla, se ensancha. */
+  --zero-island-w: 260px !important;
   top: calc(50vh - 22px) !important; height: 44px !important;
 }
+#main-window[zero][zero-empty] #navigator-toolbox[zero-island="typing"]:not([zero-island-alert]) {
+  --zero-island-w: 600px !important;
+  transition: width 680ms cubic-bezier(.22, 1, .36, 1), top var(--zero-t-move) var(--zero-calm), height var(--zero-t-move) var(--zero-calm) !important;
+}
+/* Y, mientras crece, un destello de luz que la cruza una vez, como un reflejo pasando por el vidrio. */
+#main-window[zero][zero-empty] #navigator-toolbox[zero-island="typing"] #nav-bar::before {
+  content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
+  background: linear-gradient(105deg, transparent 0%, rgba(255, 255, 255, 0) 35%, rgba(255, 255, 255, .28) 50%, rgba(255, 255, 255, 0) 65%, transparent 100%) no-repeat;
+  background-size: 45% 100%;
+  animation: zero-sweep 900ms cubic-bezier(.4, 0, .2, 1) 120ms 1 both;
+}
+@keyframes zero-sweep { from { background-position: -80% 0; opacity: 1; } 85% { opacity: 1; } to { background-position: 180% 0; opacity: 0; } }
 #main-window[zero][zero-empty] #nav-bar {
   height: 44px !important; min-height: 44px !important; max-height: 44px !important; padding-inline: 6px !important;
   box-shadow: var(--zero-glass-edge), 0 18px 48px rgba(0, 0, 0, .28) !important;

@@ -4,7 +4,9 @@ Decisión de Risco (15-10): sin nada abierto, Zero es solo el fondo transparente
 centro de la pantalla como buscador; al buscar, la isla sube a su sitio con una animación.
 
 1. En una pestaña vacía (la nueva o la de inicio, o en blanco) no hay tarjeta ni página de inicio: la
-   tarjeta se esconde y la isla está en el centro de la ventana, ancha (≥ 500 px) y algo más alta, con
+   tarjeta se esconde y la isla está en el centro de la ventana, algo más alta y pequeña en reposo (unos
+   260 px: «no tiene sentido que sea tan largo», Risco 15-10); al pulsarla se ensancha (≥ 500 px) con su
+   animación y un destello de luz que la cruza, y al salir sin escribir vuelve a encogerse. Con
    el campo a la vista, sin ningún texto (solo la barra: «sin texto siquiera… salga la barra y tú escribas»,
    Risco 15-10), y el icono del buscador delante;
    la isla es el campo (sin otra píldora dentro, también escribiendo) y de cristal (sin foto de la
@@ -63,6 +65,7 @@ return {
   glass: (c => !!c && !c.hidden)(document.getElementById('zero-glass-nav-bar')),
   fieldBox: (() => { const f = getComputedStyle(field); return { bg: f.backgroundColor, margin: parseFloat(f.marginLeft) }; })(),
   moving: toolbox.getAnimations().some(a => a.playState === 'running'),
+  typing: toolbox.getAttribute('zero-island') === 'typing',
 };
 """
 
@@ -96,8 +99,11 @@ def main():
         except AssertionError as error:
             raise AssertionError(f'{error} · {state()}') from None
 
-    def centered(s):
-        return s['empty'] and abs(s['island']['middle'] - s['H'] / 2) < 40 and s['island']['w'] >= 500 and s['island']['h'] >= 38 \
+    def centered(s, wide=None):
+        # Pequeña en reposo y ancha escribiendo (una pestaña nueva pone el cursor en ella: ancha).
+        wide = s['typing'] if wide is None else wide
+        size = s['island']['w'] >= 500 if wide else 220 <= s['island']['w'] <= 300
+        return s['empty'] and abs(s['island']['middle'] - s['H'] / 2) < 40 and size and s['island']['h'] >= 38 \
             and s['card'] < 0.05 and s['field'] > 0.9 and s['placeholder'] in ('rgba(0, 0, 0, 0)', 'transparent') and s['engine'] and s['engine']['shown'] and s['grow'] < 0.05 \
             and not s['glass'] and s['fieldBox']['bg'] in ('rgba(0, 0, 0, 0)', 'transparent') and s['fieldBox']['margin'] < 1
 
@@ -112,9 +118,15 @@ def main():
         chrome("gBrowser.selectedBrowser.loadURI(Services.io.newURI('about:blank'), { triggeringPrincipal: Services.scriptSecurityManager.getSystemPrincipal() })")
         chrome("document.getElementById('kitsune-zero-key').doCommand()")
         until(lambda: centered(state()))
-        chrome("gURLBar.focus()")
-        until(lambda: centered(state()) and chrome("return document.getElementById('navigator-toolbox').getAttribute('zero-island')") == 'typing')
+        driver.context('chrome')
+        grows = driver.script("""const done = arguments[arguments.length - 1]; gURLBar.focus();
+            requestAnimationFrame(() => requestAnimationFrame(() => { const t = document.getElementById('navigator-toolbox');
+              const all = t.getAnimations({ subtree: true }).filter(a => a.playState === 'running');
+              done({ width: all.some(a => a.transitionProperty === 'width'), sweep: all.some(a => a.animationName === 'zero-sweep') }); }));""", [], asynchronous=True)
+        assert grows['width'] and grows['sweep'], f'al pulsarla, la barra no crece con su animación y su destello: {grows}'
+        until(lambda: centered(state(), wide=True) and chrome("return document.getElementById('navigator-toolbox').getAttribute('zero-island')") == 'typing')
         chrome("gURLBar.blur()")
+        until(lambda: centered(state(), wide=False))
         # En oscuro el campo lleva un halo (sombra) para leerse: el texto de ayuda, ni con su sombra.
         chrome("Services.prefs.setIntPref('ui.systemUsesDarkTheme', 1)")
         try:
