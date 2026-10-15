@@ -269,12 +269,64 @@ function fillGroup(win, st, group, node) {
   node.style.setProperty('--zero-group', `var(--tab-group-${group.color || 'blue'})`);
 }
 
+// Las webs que caben en una vista dividida (las de Kitsune: kitsune-layout, MAX_SPLIT).
+const MAX_SPLIT = 4;
+
+/** Dónde caería una pestaña arrastrada sobre la web (Risco, 15-10: «que las páginas sean grabbeables para
+ *  ponerlo en el espacio multitarea»): 'left' o 'right' (a ese lado de la de ahora, en una vista dividida),
+ *  'add' (a la vista dividida que ya hay) o null (no se puede: es la misma, una fijada, ya hay cuatro, o el
+ *  puntero sigue en el raíl, que abierto tapa el borde de la web). */
+export function splitDrop({ point, card, rail, dragged, current, canSplit = true }) {
+  if (!canSplit || !card || !dragged || !current || dragged === current || dragged.pinned || current.pinned) return null;
+  const inside = (r, p) => !!r && p.x >= r.left && p.x <= r.right && p.y >= r.top && p.y <= r.bottom;
+  if (!inside(card, point) || inside(rail, point)) return null;
+  const split = current.splitview;
+  if (split) return split.tabs.length < MAX_SPLIT && !split.tabs.includes(dragged) ? 'add' : null;
+  return point.x < card.left + card.width / 2 ? 'left' : 'right';
+}
+
+/** La tarjeta de la web que se ve (o de toda la vista dividida): #tabbrowser-tabpanels ocupa la ventana entera. */
+function cardRect(doc) {
+  const panels = doc.getElementById('tabbrowser-tabpanels');
+  const rects = [...(panels?.querySelectorAll(':scope > :is(.deck-selected, .split-view-panel)') ?? [])]
+    .map(panel => panel.getBoundingClientRect()).filter(r => r.width > 1 && r.height > 1);
+  if (!rects.length) return null;
+  const left = Math.min(...rects.map(r => r.left)), top = Math.min(...rects.map(r => r.top));
+  const right = Math.max(...rects.map(r => r.right)), bottom = Math.max(...rects.map(r => r.bottom));
+  return { left, top, right, bottom, width: right - left, height: bottom - top };
+}
+
+/** La pone al lado de la de ahora (o en su vista dividida), y la elige. */
+function splitWith(win, tab, side) {
+  const gBrowser = win.gBrowser, current = gBrowser.selectedTab;
+  try {
+    tab.splitview?.unsplitTabs?.();
+    if (side === 'add') current.splitview.addTabs([tab]);
+    else gBrowser.addTabSplitView(side === 'left' ? [tab, current] : [current, tab], { insertBefore: current, trigger: 'drag' });
+    gBrowser.selectedTab = tab;
+  } catch (error) { console.error('Zero: no se pudo dividir', error); }
+}
+
 /** Reordenar arrastrando (con el puntero, para cuidar la animación): pasados 6 px, la pestaña se
  *  levanta y sigue al ratón, las de su grupo (fijadas o no) le hacen hueco, y al soltarla Gecko la
- *  mueve. Un arrastre más corto es un clic. */
+ *  mueve. Un arrastre más corto es un clic. Llevada a la web de otra, se pone a su lado (vista dividida); lejos
+ *  del raíl, fuera de esa web, a una ventana nueva. */
 function reorder(win, st) {
   let drag = null;
   const DEAD = 6, TEAR = 80;
+  const doc = win.document, t = st.host?.t ?? (es => es);
+  // Mientras se arrastra sobre la web, el lado en que caería, en cristal sobre la tarjeta.
+  const hint = el(doc, 'div', { id: 'zero-split-drop', 'aria-hidden': 'true' });
+  doc.body.append(hint);
+  st.cleanups.push(() => hint.remove());
+  const showDrop = (side, card) => {
+    if (!side) { hint.removeAttribute('side'); return; }
+    if (hint.getAttribute('side') !== side) {
+      hint.setAttribute('side', side);
+      hint.dataset.label = side === 'add' ? t('Añadir a la vista dividida', 'Add to the split view') : t('Ponerla aquí, al lado', 'Put it here, side by side');
+    }
+    Object.assign(hint.style, { left: `${card.left}px`, top: `${card.top}px`, width: `${card.width}px`, height: `${card.height}px` });
+  };
   st.rail.addEventListener('pointerdown', event => {
     st.dragged = false;
     if (event.button !== 0) return;
@@ -307,7 +359,11 @@ function reorder(win, st) {
     drag.target = target;
     // Lejos del raíl (a la derecha), soltarla la lleva a una ventana nueva, como sacarla de la barra de
     // pestañas en Kitsune; la fila lo avisa. Una fijada o la única pestaña, no.
-    drag.outside = event.clientX - st.rail.getBoundingClientRect().right > TEAR && !drag.tab.pinned && win.gBrowser.visibleTabs.length > 1;
+    const card = cardRect(doc);
+    drag.split = splitDrop({ point: { x: event.clientX, y: event.clientY }, card, rail: st.rail.getBoundingClientRect(), dragged: drag.tab, current: win.gBrowser.selectedTab,
+      canSplit: typeof win.gBrowser.addTabSplitView === 'function' && !doc.documentElement.hasAttribute('zero-empty') });
+    showDrop(drag.split, card);
+    drag.outside = !drag.split && event.clientX - st.rail.getBoundingClientRect().right > TEAR && !drag.tab.pinned && win.gBrowser.visibleTabs.length > 1;
     drag.node.toggleAttribute('tearing', drag.outside);
     drag.rows.forEach((row, i) => {
       if (row === drag.node) return;
@@ -328,7 +384,10 @@ function reorder(win, st) {
     done.node.removeAttribute('dragging');
     done.node.removeAttribute('tearing');
     st.rail.removeAttribute('reordering');
-    if (done.outside && !done.tab.closing) {
+    showDrop(null);
+    if (done.split && !done.tab.closing) {
+      splitWith(win, done.tab, done.split);
+    } else if (done.outside && !done.tab.closing) {
       win.gBrowser.replaceTabWithWindow(done.tab);
     } else if (done.target !== undefined && done.target !== done.index) {
       const anchor = st.tabOf.get(done.rows[done.target]);

@@ -4,8 +4,12 @@
 2. Al soltarla queda en su sitio nuevo (también en Gecko), sin elegirla.
 3. Un arrastre corto (menos de 6 px) es un clic: elige la pestaña y no la mueve.
 4. Una fijada no se mezcla con las demás.
-5. Soltar una pestaña lejos del raíl (a la derecha) la lleva a una ventana nueva, que nace en Zero, como
-   arrastrarla fuera de la barra de pestañas en Kitsune.
+5. Las páginas se agarran para la multitarea (Risco, 15-10: «que las páginas sean grabbeables para ponerlo en
+   el espacio multitarea»): soltar una pestaña sobre la web de otra la pone a su lado, en una vista dividida,
+   en el lado en que se suelta (mientras se arrastra, la web enseña ese lado); y con la vista ya dividida,
+   otra más se añade (hasta cuatro).
+6. Soltar una pestaña lejos del raíl, fuera de la web de otra, la lleva a una ventana nueva, que nace en
+   Zero (como arrastrarla fuera de la barra de pestañas en Kitsune): el sistema la puede colocar al lado.
 
 --zero-del-repo: Zero sale de zero/ del repositorio (ver zero_harness.py).
 """
@@ -122,13 +126,49 @@ def main():
         until(lambda: order()[0] == 'Kioto' and order()[1] == 'Kobe' and chrome("return gBrowser.visibleTabs[0].pinned && !gBrowser.visibleTabs[1].pinned"))
         check('Una fijada no se mezcla con las demás')
 
+        windows = "return [...Services.wm.getEnumerator('navigator:browser')].map(w => ({ tabs: w.gBrowser.visibleTabs.map(t => t.label), zero: w.document.documentElement.hasAttribute('zero') }))"
+        split = "return gBrowser.selectedTab.splitview?.tabs.map(t => t.label) ?? null"
+        drop = "const d = document.getElementById('zero-split-drop'); return d && getComputedStyle(d).display !== 'none' ? d.getAttribute('side') : null"
+        def grab(label, where):
+            # Agarrar una pestaña del raíl y llevarla, despacio, a un punto de la web (fracciones de la tarjeta).
+            card = chrome("const r = document.querySelector('#tabbrowser-tabpanels > .deck-selected').getBoundingClientRect(); return [r.left, r.top, r.width, r.height]")
+            tab = element(f"#zero-rail .zero-tab:nth-child({rail().index(label) + 1})")
+            actions([{'type': 'pointerMove', 'origin': tab, 'x': 0, 'y': 0}, {'type': 'pointerDown', 'button': 0},
+                     {'type': 'pointerMove', 'origin': 'pointer', 'x': 40, 'y': 0, 'duration': 80},
+                     {'type': 'pointerMove', 'origin': 'viewport', 'x': int(card[0] + card[2] * where[0]), 'y': int(card[1] + card[3] * where[1]), 'duration': 240}])
+        chrome("gBrowser.selectedTab = gBrowser.visibleTabs.find(t => t.label === 'Nara')")
+        until(lambda: chrome("return gBrowser.selectedTab.label") == 'Nara')
+        grab('Uji', (0.75, 0.5))
+        assert chrome(drop) == 'right', f'la web no enseña el lado derecho: {chrome(drop)}'
+        assert not chrome("return document.querySelector('#zero-rail .zero-tab[dragging]')?.hasAttribute('tearing')"), 'no se va a otra ventana'
+        actions([{'type': 'pointerUp', 'button': 0}])
+        until(lambda: chrome(split) == ['Nara', 'Uji'] and chrome(drop) is None)
+        assert len(chrome(windows)) == 1, chrome(windows)
+        chrome("gBrowser.selectedTab.splitview.unsplitTabs()")
+        chrome("gBrowser.selectedTab = gBrowser.visibleTabs.find(t => t.label === 'Nara')")
+        until(lambda: chrome(split) is None and chrome("return gBrowser.selectedTab.label") == 'Nara')
+        grab('Uji', (0.25, 0.5))
+        assert chrome(drop) == 'left', f'la web no enseña el lado izquierdo: {chrome(drop)}'
+        actions([{'type': 'pointerUp', 'button': 0}])
+        until(lambda: chrome(split) == ['Uji', 'Nara'])
+        grab('Kobe', (0.5, 0.5))
+        assert chrome(drop) == 'add', f'con la vista dividida, la web no enseña que se añade: {chrome(drop)}'
+        actions([{'type': 'pointerUp', 'button': 0}])
+        until(lambda: chrome(split) == ['Uji', 'Nara', 'Kobe'])
+        chrome("gBrowser.selectedTab.splitview.unsplitTabs()")
+        until(lambda: chrome(split) is None)
+        check('Soltar una página sobre la web de otra la pone a su lado (vista dividida, en el lado en que se suelta); y otra más se añade')
+
+        # Osaka, la de ahora: sobre su propia web no se divide; lejos del raíl, a una ventana nueva.
+        chrome("gBrowser.selectedTab = gBrowser.visibleTabs.find(t => t.label === 'Osaka')")
+        until(lambda: chrome("return gBrowser.selectedTab.label") == 'Osaka')
         osaka = element(f"#zero-rail .zero-tab:nth-child({rail().index('Osaka') + 1})")
         actions([{'type': 'pointerMove', 'origin': osaka, 'x': 0, 'y': 0}, {'type': 'pointerDown', 'button': 0},
                  {'type': 'pointerMove', 'origin': 'pointer', 'x': 40, 'y': 10, 'duration': 80},
                  {'type': 'pointerMove', 'origin': 'pointer', 'x': 260, 'y': 20, 'duration': 240}])
         assert chrome("return document.querySelector('#zero-rail .zero-tab[dragging]')?.hasAttribute('tearing')"), 'debería avisar de que se va a otra ventana'
+        assert chrome(drop) is None, chrome(drop)
         actions([{'type': 'pointerUp', 'button': 0}])
-        windows = "return [...Services.wm.getEnumerator('navigator:browser')].map(w => ({ tabs: w.gBrowser.visibleTabs.map(t => t.label), zero: w.document.documentElement.hasAttribute('zero') }))"
         until(lambda: len(chrome(windows)) == 2 and any(w['tabs'] == ['Osaka'] for w in chrome(windows)), timeout=15)
         other = next(w for w in chrome(windows) if w['tabs'] == ['Osaka'])
         assert other['zero'], chrome(windows)
