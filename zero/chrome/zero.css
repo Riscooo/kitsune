@@ -207,7 +207,9 @@
   position: fixed !important;
   top: 7px !important; left: 0 !important; right: 0 !important; margin-inline: auto !important;
   z-index: 4 !important; /* Kitsune la deja en 0, y la tarjeta (con el velo) va en 2 */
-  width: var(--zero-island-w, 176px) !important;
+  /* Nunca más ancha que el hueco entre los botones de ventana (a 76 px de cada lado): en una ventana
+     estrecha (una columna de niri) encoge, centrada, en vez de pisarlos o salirse. */
+  width: min(var(--zero-island-w, 176px), 100vw - 152px) !important;
   height: 32px !important; min-height: 0 !important;
   border: none !important; box-shadow: none !important;
   background: transparent !important;
@@ -431,7 +433,7 @@
   position-area: none !important;
   inset: calc(7px + 32px + 8px) 0 auto 0 !important;
   margin-inline: auto !important;
-  width: var(--zero-island-w, 560px) !important;
+  width: min(var(--zero-island-w, 560px), 100vw - 152px) !important;
   justify-self: auto !important;
   padding: 6px !important;
   border-radius: 18px !important;

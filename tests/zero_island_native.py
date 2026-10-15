@@ -26,6 +26,8 @@
     se ve; al irse el foco, vuelve a reposo.
 16. Con las flechas se llega también a los botones propios de Zero (el candado, leer, traducir, la
     música) y con Intro hacen lo suyo (el candado abre la información de la web).
+17. En una ventana estrecha (una columna de niri), la isla no pisa los botones de ventana ni se sale:
+    abierta, con un aviso o escribiendo, encoge para caber, centrada; las sugerencias, igual.
 
 --zero-del-repo: Zero sale de zero/ del repositorio (ver zero_harness.py).
 """
@@ -333,6 +335,26 @@ def main():
         chrome("PanelMultiView.hidePopup(gIdentityHandler._identityPopup); gBrowser.selectedBrowser.focus();")
         until(lambda: sized(176), timeout=5)
         check('Con las flechas se llega a los botones de Zero (el candado) y con Intro hacen lo suyo')
+
+        fit = """const n = document.getElementById('nav-bar').getBoundingClientRect(); const l = document.getElementById('zero-lights').getBoundingClientRect();
+            const v = gURLBar.view.isOpen ? gURLBar.view.panel.getBoundingClientRect() : null;
+            return { W: innerWidth, island: [n.left, n.right], lights: l.right, view: v && [v.left, v.right],
+                     ok: n.left >= l.right + 8 && n.right <= innerWidth - 8 && Math.abs((n.left + n.right) / 2 - innerWidth / 2) <= 1.5
+                         && (!v || (Math.abs(v.left - n.left) <= 1 && Math.abs(v.right - n.right) <= 1)) };"""
+        for narrow in (640, 500):
+            driver.command('POST', '/window/rect', {'width': narrow, 'height': 900})
+            try:
+                until(lambda: chrome("return innerWidth") <= narrow and chrome(fit)['ok'], timeout=5)
+                chrome("document.getElementById('navigator-toolbox').setAttribute('zero-island', 'open')")
+                until(lambda: chrome(fit)['ok'] and chrome("return document.getElementById('nav-bar').getBoundingClientRect().width") > 176, timeout=5)
+                chrome("document.getElementById('navigator-toolbox').removeAttribute('zero-island'); gURLBar.focus(); gURLBar.inputField.value = 'kioto'; gURLBar.startQuery({ searchString: 'kioto' });")
+                until(lambda: chrome("return gURLBar.view.isOpen") and chrome(fit)['ok'], timeout=5)
+            except AssertionError:
+                raise AssertionError(f'ventana de {narrow}: {chrome(fit)}') from None
+            chrome("gURLBar.view.close(); gURLBar.handleRevert(); gBrowser.selectedBrowser.focus();")
+        driver.command('POST', '/window/rect', {'width': 1540, 'height': 1000})
+        until(lambda: chrome("return innerWidth") == 1540 and sized(176), timeout=5)
+        check('En una ventana estrecha la isla encoge para caber, centrada, sin pisar los botones de ventana')
 
         chrome("ChromeUtils.importESModule('chrome://browser/content/zero/zero-island.sys.mjs').alert(window, 'Tres avisos esperando', 'te los enseño en el descanso', 1500, 'quiet')")
         until(lambda: sized(470) and clear_of_card(), timeout=5)
