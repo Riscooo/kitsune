@@ -92,6 +92,9 @@ async function snapshot(win, width, height) {
   return { bytes: ctx.getImageData(0, 0, canvas.width, canvas.height).data, canvas };
 }
 
+// La foto del fondo de la web: 320 × 200, desenfocada 3 px (unos 18 px en una ventana de 1920).
+const PHOTO = Object.freeze({ width: 480, height: 300, blur: 1.5 });
+
 function paintColors(win, st) {
   if (st.painting) { st.again = true; return; }
   st.painting = true;
@@ -102,14 +105,20 @@ function paintColors(win, st) {
     const tint = dominantColor(shot.bytes);
     if (tint) root.style.setProperty('--zero-tint', tint);
     if (root.getAttribute('zero-backdrop') === 'web') {
-      // Fondo de la web: la foto, aún más suave (desenfocada en un lienzo pequeño), estirada detrás de todo.
+      // Fondo de la web: la foto, suave (desenfocada en un lienzo pequeño), estirada detrás de todo. Con
+      // detalle bastante para que el canto de la lámina la doble como una lente (zero-pane): sin él, una
+      // mancha de color no deja ver ningún doblez.
+      const photo = await snapshot(win, PHOTO.width, PHOTO.height) ?? shot;
+      if (!state.has(win)) return;
       const canvas = st.backdrop;
-      canvas.width = 96; canvas.height = 60;
+      canvas.width = PHOTO.width; canvas.height = PHOTO.height;
       const ctx = canvas.getContext('2d');
-      ctx.filter = 'blur(4px) saturate(1.35)';
-      ctx.drawImage(shot.canvas, -8, -8, 112, 76);
+      ctx.filter = `blur(${PHOTO.blur}px) saturate(1.35)`;
+      const m = PHOTO.blur * 2; // sin el borde oscuro que deja el desenfoque
+      ctx.drawImage(photo.canvas, -m, -m, PHOTO.width + 2 * m, PHOTO.height + 2 * m);
       root.style.setProperty('--zero-backdrop-image', `url("${canvas.toDataURL('image/png')}")`);
       canvas.dataset.painted = '1';
+      win.dispatchEvent(new win.CustomEvent('zero-backdrop-photo'));
       // El marco es esa foto: si es clara, lo que va encima (isla, anillo, raíl, botones) pasa a tinta.
       st.frameInk = inkFor(lightOf(ctx.getImageData(0, 0, canvas.width, canvas.height).data), st.frameInk);
       root.toggleAttribute('zero-frame-ink', st.frameInk === 'ink');

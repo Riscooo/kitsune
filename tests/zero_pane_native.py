@@ -16,6 +16,9 @@ cualquier Linux: la dibuja Kitsune (WebGL), y no necesita ver lo de detrás.
 4. Ese filo hace de borde de la ventana, bien definido (Risco, 15-10: «que hicieran de borde»), y también de
    la tarjeta de la web: pegado a ella por fuera, en lugar de su línea blanca. Y las piezas (isla, raíl,
    botones, pomodoro, ajustes) llevan su filo con los colores de la pompa, no blanco.
+5. Con el fondo de la web (el de Windows, macOS y los Linux sin refracción en el compositor), el canto dobla
+   la foto de detrás como una lente (Risco, 15-10: «haremos lo más eficaz y top»): en la franja del filo, la
+   foto cambia (las rayas se doblan, y cada color un poco distinto); más adentro, igual que sin lente.
 
 --zero-del-repo: Zero sale de zero/ del repositorio (ver zero_harness.py).
 """
@@ -31,9 +34,13 @@ import urllib.parse
 from browser_smoke import WebDriver, prepare_profile, eventually
 import zero_harness
 
-# Rayas verticales de colores, anchas: la foto del marco las conserva y el doblez se ve.
-PAGE = ('<!doctype html><meta charset=utf-8><title>Rayas</title><body style="margin:0;height:3000px;'
-        'background:repeating-linear-gradient(90deg,#d23 0 64px,#2a3 64px 128px,#23d 128px 192px)">')
+# Rayas verticales de colores, anchas: la foto del marco las conserva y el doblez se ve. Y un gris oscuro liso
+# (el mismo que la hoja de la foto del filo): ahí doblar no cambia nada y se mide solo la película.
+PAGES = {
+    'rayas': ('<!doctype html><meta charset=utf-8><title>Rayas</title><body style="margin:0;height:3000px;'
+              'background:repeating-linear-gradient(90deg,#d23 0 64px,#2a3 64px 128px,#23d 128px 192px)">'),
+    'gris': '<!doctype html><meta charset=utf-8><title>Gris</title><body style="margin:0;height:3000px;background:rgb(42,42,42)">',
+}
 
 
 class Handler(http.server.BaseHTTPRequestHandler):
@@ -41,7 +48,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
         self.send_response(200)
         self.send_header('Content-Type', 'text/html; charset=utf-8')
         self.end_headers()
-        self.wfile.write(PAGE.encode())
+        self.wfile.write(PAGES.get(self.path.strip('/'), PAGES['rayas']).encode())
 
     def log_message(self, *args):
         pass
@@ -120,6 +127,7 @@ def main():
         chrome("window.windowUtils.loadSheetUsingURIString(arguments[0], window.windowUtils.AGENT_SHEET)", [dark])
         try:
             for mode in ('system', 'web'):
+                if mode == 'web': driver.navigate(origin + '/gris')
                 chrome("Services.prefs.setStringPref('kitsune.zero.backdrop', arguments[0])", [mode])
                 time.sleep(1.8)  # el marco cambia de fondo con su fundido (el tinte, 1,4 s)
                 chrome("Services.prefs.setIntPref('kitsune.zero.glass.strength', 0)")
@@ -150,6 +158,23 @@ def main():
         white = [r for r in rims if len(set(r[1:])) == 1 or any(c.startswith('rgb(255, 255, 255') for c in r[1:])]
         assert rims and not white, f'piezas con el filo blanco: {white}'
         check('Ese filo hace de borde de la ventana y de la tarjeta; las piezas llevan el suyo con los colores de la pompa')
+
+        # La lente del canto, con el fondo de la web: la foto de las rayas, con y sin lente.
+        driver.navigate(origin + '/rayas')
+        chrome("Services.prefs.setStringPref('kitsune.zero.backdrop', 'web')")
+        time.sleep(2.2)
+        chrome("Services.prefs.setIntPref('kitsune.zero.glass.strength', 0)")
+        flat = edge('sin-lente.png')
+        chrome("Services.prefs.clearUserPref('kitsune.zero.glass.strength')")
+        bent = edge('lente.png')
+        diff = lambda a, b: sum(abs(x - y) for x, y in zip(a, b)) / 3
+        band = sum(diff(a, b) for a, b in zip(bent[2:24], flat[2:24])) / 22
+        inside = max(diff(a, b) for a, b in zip(bent[38:46], flat[38:46]))
+        split = max(max(c) - min(c) for c in (tuple(a - b for a, b in zip(x, y)) for x, y in zip(bent[2:24], flat[2:24])))
+        # (Sin lente, solo la película: unos 4 de diferencia en la franja y casi nada de color.)
+        assert band >= 8 and inside <= 4 and split >= 20, f'el canto no dobla la foto: franja {band:.1f}, dentro {inside:.1f}, colores {split}'
+        chrome("Services.prefs.setStringPref('kitsune.zero.backdrop', 'system')")
+        check('Con el fondo de la web, el canto dobla la foto como una lente (y más adentro, igual)')
 
         time.sleep(1.0)  # lo que dejó pendiente el último cambio de ajuste
         before = pane()['draws']

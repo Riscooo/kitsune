@@ -11,8 +11,14 @@
  * El borde se ve como el de una esfera de frente: en la franja de BAND px la superficie se va poniendo de
  * lado (N.z = √(1 − u²)) y ahí crecen el Fresnel y los reflejos.
  *
- * Se pinta solo cuando cambia algo (el tamaño, la fuerza, la web ampliada): quieta no cuesta nada. Sin
- * WebGL, no está (y zero.css pone su luz de siempre).
+ * Con el fondo de la web (el de Windows, macOS y los Linux sin refracción en el compositor), detrás está la
+ * foto de la web que pinta Kitsune, y esa sí la tiene: la lámina la pinta y su canto la dobla como una lente
+ * (Risco, 15-10: «haremos lo más eficaz y top»): el canto de un vidrio redondeado (superelipse, P = 3, como el
+ * de niri-vidrio en Linux), que hacia el filo enseña lo de un poco más adentro, cada color un poco distinto.
+ * Con el fondo del sistema (lo de detrás es el escritorio) no lo ve, y lo dobla el compositor si puede.
+ *
+ * Se pinta solo cuando cambia algo (el tamaño, la fuerza, la web ampliada, la foto): quieta no cuesta nada.
+ * Sin WebGL, no está (y zero.css pone su luz de siempre y la foto sin doblar).
  */
 import { prefName, PREFS } from './zero-config.sys.mjs';
 
@@ -21,6 +27,7 @@ const RADIUS = 48;   // esquinas de la ventana (= zero.css)
 const BAND = 30;     // la franja del borde de la pompa, en px CSS
 const CARD_RADIUS = 18; // las esquinas de la tarjeta (= zero.css)
 const FILM = 0.24;   // cuánto se ve la película en el filo: poco, como una pompa (no «luces de feria»)
+const DEPTH = 70;    // la lente del canto: en el filo enseña lo de hasta 70 px más adentro (= niri-vidrio)
 
 const state = new WeakMap(); // ventana → { canvas, gl, draws, … }
 
@@ -36,7 +43,13 @@ uniform float uRadius, uBand, uFilm, uStrength;
 uniform vec4 uCards[4];   // las tarjetas (x, y, ancho, alto), con su borde de pompa por fuera
 uniform int uCardCount;
 uniform float uCardRadius, uCardAlpha;
+uniform sampler2D uPhoto; // la foto de la web (con su fondo), si está
+uniform float uPhotoOn;
+uniform vec4 uPhotoMap;   // de px CSS a la foto: (escala x, escala y, desplazamiento x, desplazamiento y)
+uniform float uDepth;
 out vec4 outColor;
+
+vec3 photo(vec2 q) { return texture(uPhoto, clamp(q * uPhotoMap.xy + uPhotoMap.zw, vec2(0.0), vec2(1.0))).rgb; }
 
 // Distancia a una caja redondeada (positiva fuera).
 float box(vec2 p, vec4 r, float radius) {
@@ -68,7 +81,8 @@ void main() {
   vec2 p = vec2(gl_FragCoord.x, uScale * uSize.y - gl_FragCoord.y) / uScale;
   vec2 nw, n;
   float window = inner(p, uRadius, nw);
-  if (window <= 0.0 || uStrength <= 0.0) { outColor = vec4(0.0); return; }
+  bool lens = uPhotoOn > 0.5;
+  if (window <= 0.0 || uStrength <= 0.0) { outColor = lens ? vec4(photo(p), 1.0) : vec4(0.0); return; }
   // El borde de cada tarjeta: una línea fina de película pegada a ella por fuera, con un halo corto.
   float cardA = 0.0; vec3 cardC = vec3(0.0);
   for (int i = 0; i < 4; i++) {
@@ -94,7 +108,14 @@ void main() {
   float glint = onEdge * (0.85 * blinn(N, normalize(vec3(-1.0, -1.25, 1.1)), 24.0) + 0.45 * blinn(N, normalize(vec3(1.0, 1.25, 1.1)), 30.0));
   float alpha = clamp((a + glint + cardA) * uStrength, 0.0, 1.0);
   vec3 color = min((film * a + vec3(glint) + cardC * cardA) * uStrength, vec3(alpha));   // premultiplicado
-  outColor = vec4(color, alpha);
+  if (!lens) { outColor = vec4(color, alpha); return; }
+  // La foto de detrás, doblada en el canto: la pendiente del canto (superelipse, P = 3, hasta 4) dice
+  // cuánto se desvía la mirada hacia dentro; el rojo un poco menos y el azul un poco más (dispersión).
+  float P = 3.0, w = pow(u, P);
+  float slope = u > 0.0 ? min(pow(u, P - 1.0) * pow(max(1.0 - w, 1e-4), 1.0 / P - 1.0), 4.0) / 4.0 : 0.0;
+  vec2 bend = -n * uDepth * uStrength * slope;
+  vec3 behind = vec3(photo(p + bend * 0.94).r, photo(p + bend).g, photo(p + bend * 1.06).b);
+  outColor = vec4(behind * (1.0 - alpha) + color, 1.0);
 }`;
 
 function compile(gl, type, source) {
@@ -121,8 +142,13 @@ function setup(canvas) {
   gl.enableVertexAttribArray(at);
   gl.vertexAttribPointer(at, 2, gl.FLOAT, false, 0, 0);
   const u = name => gl.getUniformLocation(program, name);
-  const uniforms = Object.fromEntries(['uSize', 'uScale', 'uRadius', 'uBand', 'uFilm', 'uStrength', 'uCards', 'uCardCount', 'uCardRadius', 'uCardAlpha'].map(n => [n, u(n)]));
-  return { gl, program, uniforms };
+  const uniforms = Object.fromEntries(['uSize', 'uScale', 'uRadius', 'uBand', 'uFilm', 'uStrength', 'uCards', 'uCardCount', 'uCardRadius', 'uCardAlpha',
+    'uPhoto', 'uPhotoOn', 'uPhotoMap', 'uDepth'].map(n => [n, u(n)]));
+  const texture = gl.createTexture();
+  gl.bindTexture(gl.TEXTURE_2D, texture);
+  for (const [k, v] of [[gl.TEXTURE_MIN_FILTER, gl.LINEAR], [gl.TEXTURE_MAG_FILTER, gl.LINEAR], [gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE], [gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE]]) gl.texParameteri(gl.TEXTURE_2D, k, v);
+  gl.uniform1i(uniforms.uPhoto, 0);
+  return { gl, program, uniforms, texture, photo: null };
 }
 
 function strength(win, st) {
@@ -159,6 +185,21 @@ function draw(win, st) {
   gl.uniform1i(u.uCardCount, cards.length);
   gl.uniform1f(u.uCardRadius, CARD_RADIUS);
   gl.uniform1f(u.uCardAlpha, panels ? Number(win.getComputedStyle(panels).opacity) : 0);
+  // Con el fondo de la web, la foto (como la pone zero.css: «cover», centrada) y la lente del canto.
+  const source = root.getAttribute('zero-backdrop') === 'web' ? win.document.getElementById('zero-backdrop') : null;
+  const on = !!source?.dataset.painted && source.width > 1;
+  if (on && st.gl.photo !== st.photoVersion) {
+    gl.bindTexture(gl.TEXTURE_2D, st.gl.texture);
+    gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, false);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, source);
+    st.gl.photo = st.photoVersion;
+  }
+  gl.uniform1f(u.uPhotoOn, on ? 1 : 0);
+  if (on) {
+    const scale = Math.max(W / source.width, H / source.height), dw = source.width * scale, dh = source.height * scale;
+    gl.uniform4f(u.uPhotoMap, 1 / dw, 1 / dh, -(W - dw) / 2 / dw, -(H - dh) / 2 / dh);
+  }
+  gl.uniform1f(u.uDepth, DEPTH);
   gl.clearColor(0, 0, 0, 0);
   gl.clear(gl.COLOR_BUFFER_BIT);
   gl.drawArrays(gl.TRIANGLES, 0, 3);
@@ -176,7 +217,7 @@ export function attach(win, ctx) {
   const canvas = doc.createElementNS(HTML, 'canvas');
   canvas.id = 'zero-pane';
   canvas.setAttribute('aria-hidden', 'true');
-  const st = { host: ctx.host, canvas, gl: null, draws: 0, frame: 0, cleanups: [] };
+  const st = { host: ctx.host, canvas, gl: null, draws: 0, frame: 0, photoVersion: 0, cleanups: [] };
   state.set(win, st);
   try { st.gl = setup(canvas); } catch (error) { console.error('Zero: la lámina no tiene WebGL', error); }
   if (!st.gl) { state.delete(win); return; }
@@ -187,12 +228,14 @@ export function attach(win, ctx) {
   // La tarjeta se mueve o cambia (ampliar, entrar en Zero, otra pestaña, la vista dividida, la barra
   // lateral): se vuelve a pintar su borde (y, mientras se anima, en cada fotograma).
   listen(win, 'zero-move', () => schedule(win, st));
+  // Una foto nueva de la web (con su fondo): a la lámina, que la dobla en el canto.
+  listen(win, 'zero-backdrop-photo', () => { st.photoVersion += 1; schedule(win, st); });
   listen(win.gBrowser.tabContainer, 'TabSelect', () => schedule(win, st));
   const panels = doc.getElementById('tabbrowser-tabpanels');
   if (panels) { listen(panels, 'transitionstart', () => schedule(win, st)); listen(panels, 'transitionend', () => schedule(win, st)); }
   // Con la web ampliada no hay lámina; la pestaña vacía no tiene tarjeta.
   const observer = new win.MutationObserver(() => schedule(win, st));
-  observer.observe(doc.documentElement, { attributes: true, attributeFilter: ['zero-full', 'zero-empty'] });
+  observer.observe(doc.documentElement, { attributes: true, attributeFilter: ['zero-full', 'zero-empty', 'zero-backdrop'] });
   const sidebar = doc.getElementById('sidebar-box');
   if (sidebar) observer.observe(sidebar, { attributes: true, attributeFilter: ['hidden'] });
   if (panels) observer.observe(panels, { attributes: true, attributeFilter: ['splitview'] });
