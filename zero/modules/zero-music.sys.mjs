@@ -47,9 +47,6 @@ export function serviceOf(value) {
 
 const readService = host => { try { return host.prefs.getStringPref(prefName(host.prefix, SERVICE_PREF), ''); } catch { return ''; } };
 
-/** El nombre del servicio elegido (para el panel de sonido), o null. */
-export const musicName = host => serviceOf(readService(host))?.name ?? null;
-
 /** Abre la música desde `anchor` (su botón, o el altavoz del panel de sonido en la variante «Sobrio»): la
  *  primera vez, la lista de servicios; luego, el reproductor (o lo minimiza si ya está a la vista). */
 export function openMusic(win, anchor) {
@@ -62,6 +59,33 @@ export function openMusic(win, anchor) {
   ensurePanel(win, st, service);
   show(win, st, st.view === 'open' ? 'mini' : 'open');
 }
+
+/** Lo que suena en la música (para el panel de sonido): { service, title, artist, art, playing, live }, o null
+ *  sin servicio elegido. */
+export function musicNow(win) {
+  const st = state.get(win);
+  const service = st ? serviceOf(readService(st.host)) : null;
+  if (!service) return null;
+  const c = st.controller;
+  let meta = null;
+  try { meta = c?.isActive ? c.getMetadata() : null; } catch { /* la web no dice nada */ }
+  return { service: service.name, title: meta?.title || '', artist: meta?.artist || '', art: meta?.artwork?.at(-1)?.src ?? null,
+           playing: !!c?.isPlaying, live: !!c?.isActive };
+}
+
+/** Pausa/sigue ('play') o pasa de canción ('next', 'prev'). */
+function drive(st, name) {
+  const c = st?.controller;
+  try {
+    // Gecko 158 pide el motivo de la pausa (las versiones que no lo piden no lo miran).
+    if (name === 'play') { if (c.isPlaying) c.pause('user'); else c.play(); }
+    else if (name === 'next') c.nextTrack();
+    else if (name === 'prev') c.prevTrack();
+  } catch { /* aún no suena nada */ }
+}
+
+/** Lo mismo, desde fuera (el panel de sonido). */
+export function musicControl(win, name) { drive(state.get(win), name); }
 
 function controllerOf(st) {
   try { return st.browser?.browsingContext?.mediaController ?? null; } catch { return null; }
@@ -212,15 +236,7 @@ export function attach(win, ctx) {
   listen(win, 'mousedown', event => { if (st.services.hasAttribute('open') && !st.services.contains(event.target) && !st.anchor?.contains(event.target)) closeServices(st); }, true);
   listen(win, 'keydown', event => { if (event.key === 'Escape') closeServices(st); }, true);
 
-  const act = name => () => {
-    const c = st.controller;
-    try {
-      // Gecko 158 pide el motivo de la pausa (las versiones que no lo piden no lo miran).
-      if (name === 'play') { if (c.isPlaying) c.pause('user'); else c.play(); }
-      else if (name === 'next') c.nextTrack();
-      else if (name === 'prev') c.prevTrack();
-    } catch { /* aún no suena nada */ }
-  };
+  const act = name => () => drive(st, name);
   st.mini.querySelector('.zero-mini-play').addEventListener('click', act('play'));
   st.mini.querySelector('.zero-mini-next').addEventListener('click', act('next'));
   st.mini.querySelector('.zero-mini-prev').addEventListener('click', act('prev'));

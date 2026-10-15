@@ -1,5 +1,4 @@
-/* Kitsune Zero · el sonido: la pastilla del altavoz, abajo en la columna (en la variante «Sobrio»; en «Nácar»
- * están los accesos directos y la música en su pastilla, y esta no se ve: zero.css).
+/* Kitsune Zero · el sonido: el altavoz de la columna, debajo de la nota de la música (en su misma pastilla).
  *
  * Dani (15-10): «que te detecte si te estás escuchando algo y que puedas bajar el volumen ahí del propio
  * navegador, que no te abra una pestaña, y quitarlo»; y en esa pastilla nada de abrir pestañas.
@@ -10,7 +9,7 @@
  * - La pastilla lo dice: el altavoz tachado con todo en silencio y una onda que late si algo suena.
  */
 import { prefName, PREFS } from './zero-config.sys.mjs';
-import { openMusic, musicName } from './zero-music.sys.mjs';
+import { openMusic, musicNow, musicControl } from './zero-music.sys.mjs';
 
 const HTML = 'http://www.w3.org/1999/xhtml';
 const ACTOR = 'KitsuneZeroAudio';
@@ -135,8 +134,15 @@ function render(win, st) {
   });
   if (!rows.length) rows.push(el(doc, 'p', { class: 'zero-sound-none' }, [t('No suena nada ahora mismo.', 'Nothing is playing right now.')]));
   st.list.replaceChildren(...rows);
-  const service = musicName(st.host);
-  st.musicName.textContent = service ?? t('Elige un servicio', 'Choose a service');
+  const now = musicNow(win);
+  st.musicTitle.textContent = now?.title || t('Música', 'Music');
+  st.musicName.textContent = now ? [now.artist, now.service].filter(Boolean).join(' · ') : t('Elige un servicio', 'Choose a service');
+  if (now?.art) { if (st.musicArt.getAttribute('src') !== now.art) st.musicArt.setAttribute('src', now.art); st.musicArt.hidden = false; }
+  else st.musicArt.hidden = true;
+  st.musicPlay.hidden = !now?.live;
+  st.musicPlay.toggleAttribute('playing', !!now?.playing);
+  const playLabel = now?.playing ? t('Pausa', 'Pause') : t('Seguir', 'Play');
+  st.musicPlay.title = playLabel; st.musicPlay.setAttribute('aria-label', playLabel);
 }
 
 function place(win, st) {
@@ -175,23 +181,30 @@ export function attach(win, ctx) {
 
   st.button = el(doc, 'button', { type: 'button', class: 'zero-sound-button', title: t('Sonido', 'Sound'), 'aria-label': t('Sonido', 'Sound'), 'aria-expanded': 'false', 'aria-controls': 'zero-sound' },
     [el(doc, 'span', { class: 'zero-fav', 'aria-hidden': 'true' })]);
-  st.pill = el(doc, 'div', { id: 'zero-sound-pill', class: 'zero-pill', role: 'group', 'aria-label': t('Sonido', 'Sound') }, [st.button]);
-  dock.append(st.pill);
+  // En la pastilla de la música, debajo de la nota (Risco, 15-10: las dos variantes con todo); sin ella, en la suya.
+  const musicPill = doc.getElementById('zero-music-pill');
+  if (musicPill) musicPill.append(st.button);
+  else dock.append(st.pill = el(doc, 'div', { id: 'zero-sound-pill', class: 'zero-pill', role: 'group', 'aria-label': t('Sonido', 'Sound') }, [st.button]));
   st.slider = el(doc, 'input', { type: 'range', class: 'zero-slider', min: '0', max: '100', step: '1', 'aria-label': t('Volumen de Kitsune', 'Kitsune volume') });
   st.percent = el(doc, 'span', { class: 'zero-sound-percent', 'aria-hidden': 'true' });
   st.muteAll = el(doc, 'button', { type: 'button', class: 'zero-sound-all' });
   st.list = el(doc, 'div', { class: 'zero-sound-list', role: 'list', 'aria-label': t('Lo que suena', 'What is playing') });
+  // La música, con lo que suena en ella (Risco, 15-10: «rediseñar lo de la música»): carátula, título, artista,
+  // pausa/seguir y abrirla.
+  st.musicArt = el(doc, 'img', { alt: '', hidden: 'true' });
+  st.musicTitle = el(doc, 'b', {}, [t('Música', 'Music')]);
   st.musicName = el(doc, 'span', { class: 'zero-sound-music-name' });
-  const musicOpen = el(doc, 'button', { type: 'button', class: 'zero-sound-music-open' }, [t('Abrir', 'Open')]);
+  st.musicPlay = el(doc, 'button', { type: 'button', class: 'zero-sound-play', hidden: 'true' });
+  const musicOpen = st.musicOpen = el(doc, 'button', { type: 'button', class: 'zero-sound-music-open' }, [t('Abrir', 'Open')]);
   st.panel = el(doc, 'section', { id: 'zero-sound', role: 'dialog', 'aria-label': t('Sonido', 'Sound') }, [
     el(doc, 'header', {}, [el(doc, 'h4', {}, [t('Sonido', 'Sound')]), st.muteAll]),
     el(doc, 'div', { class: 'zero-sound-volume' }, [el(doc, 'span', { class: 'zero-sound-speaker', 'aria-hidden': 'true' }), st.slider, st.percent]),
     el(doc, 'h5', {}, [t('Suena ahora', 'Playing now')]),
     st.list,
-    el(doc, 'div', { class: 'zero-sound-music' }, [el(doc, 'span', { class: 'zero-sound-note', 'aria-hidden': 'true' }), el(doc, 'div', {}, [el(doc, 'b', {}, [t('Música', 'Music')]), st.musicName]), musicOpen]),
+    el(doc, 'div', { class: 'zero-sound-music' }, [el(doc, 'span', { class: 'zero-sound-note', 'aria-hidden': 'true' }, [st.musicArt]), el(doc, 'div', {}, [st.musicTitle, st.musicName]), st.musicPlay, musicOpen]),
   ]);
   doc.body.append(st.panel);
-  st.cleanups.push(() => { win.clearInterval(st.timer); st.pill.remove(); st.panel.remove(); });
+  st.cleanups.push(() => { win.clearInterval(st.timer); (st.pill ?? st.button).remove(); st.panel.remove(); });
 
   st.button.addEventListener('click', () => { if (st.panel.hasAttribute('open')) close(st); else open(win, st); });
   st.slider.addEventListener('input', () => { setVolume(host, Number(st.slider.value) / 100); render(win, st); });
@@ -200,6 +213,7 @@ export function attach(win, ctx) {
     for (const tab of tabs) if (tab.hasAttribute('muted') === muted) tab.toggleMuteAudio();
   });
   musicOpen.addEventListener('click', () => { close(st); openMusic(win, st.button); });
+  st.musicPlay.addEventListener('click', () => { musicControl(win, 'play'); win.setTimeout(() => render(win, st), 150); });
   // Se cierra al pulsar fuera o con Esc.
   listen(win, 'mousedown', event => { if (st.panel.hasAttribute('open') && !st.panel.contains(event.target) && !st.button.contains(event.target)) close(st); }, true);
   listen(win, 'keydown', event => { if (event.key === 'Escape' && st.panel.hasAttribute('open')) close(st); }, true);

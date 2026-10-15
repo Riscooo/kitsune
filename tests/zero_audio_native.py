@@ -4,10 +4,8 @@ en pantalla y sin sonido: la salida de Gecko va a volumen 0 y el audio es ruido 
 Dani (15-10): «que te detecte si te estás escuchando algo y que puedas bajar el volumen ahí del propio
 navegador, que no te abra una pestaña», y en esa pastilla nada de abrir pestañas.
 
-Va en la variante «Sobrio» (la de Dani; en «Nácar» están los accesos directos y la música en su pastilla).
-
-1. La pastilla de abajo es la del sonido: el altavoz y nada más (ni «+» ni accesos que abran pestañas), y los
-   accesos directos y la pastilla de la música no se ven.
+1. El altavoz va en la pastilla de la música, debajo de la nota (en las dos variantes: Risco, 15-10), sin «+»
+   ni accesos que abran pestañas en ella; los accesos directos siguen en la suya.
 2. Con algo sonando en otra pestaña, el altavoz lo dice; al pulsarlo, el panel de sonido lo enseña.
 3. El volumen de Kitsune multiplica el de lo que suena (y respeta el que pone la web): al 30 %, un audio a
    0,8 queda a 0,24; si la web lo pone a 0,5, a 0,15; al 100 %, a 0,5. Se guarda en kitsune.zero.volume.
@@ -64,12 +62,12 @@ class Handler(http.server.BaseHTTPRequestHandler):
 
 STATE = """
 const seen = el => !!el && !el.hidden && getComputedStyle(el).visibility !== 'hidden' && Number(getComputedStyle(el).opacity) > 0.5 && el.getBoundingClientRect().width > 0;
-const pill = document.getElementById('zero-sound-pill'), button = pill?.querySelector('.zero-sound-button'), panel = document.getElementById('zero-sound');
-const hidden = id => { const n = document.getElementById(id); return !n || getComputedStyle(n).display === 'none'; };
+const button = document.querySelector('#zero-dock .zero-sound-button'), pill = button?.parentNode, panel = document.getElementById('zero-sound');
+const shown = id => { const n = document.getElementById(id); return !!n && getComputedStyle(n).display !== 'none'; };
 const radio = gBrowser.tabs.find(t => t.label === 'Radio zorro');
 return {
   button: seen(button), add: !!pill?.querySelector('.zero-shortcut-add, .zero-shortcut, [data-url]'), kids: pill ? pill.children.length : 0,
-  others: hidden('zero-shortcuts') && hidden('zero-music-pill'),
+  others: pill?.id === 'zero-music-pill' && !!pill.querySelector('.zero-music') && shown('zero-shortcuts'),
   playing: !!button?.hasAttribute('playing'), panel: !!panel?.hasAttribute('open') && seen(panel),
   rows: [...(panel?.querySelectorAll('.zero-sound-row b') ?? [])].map(b => b.textContent),
   muted: !!radio?.hasAttribute('muted'), paused: !(radio?.linkedBrowser.browsingContext.mediaController?.isPlaying ?? false),
@@ -150,19 +148,18 @@ def main():
         driver = WebDriver(profile, evidence, browser=args.browser)
         assert chrome("return Services.prefs.getCharPref('media.volume_scale', '1.0')") == '0.0'
         zero_harness.prepare(chrome, args.zero_del_repo)
-        chrome("Services.prefs.setStringPref('kitsune.zero.variant', 'sobrio')")
         driver.navigate(origin + '/kioto')
         eventually(lambda: chrome("return !!document.getElementById('kitsune-zero-key')"), timeout=10)
         chrome("document.getElementById('kitsune-zero-key').doCommand()")
         until(lambda: state()['button'])
         s = state()
-        assert not s['add'] and s['kids'] == 1 and s['others'], s
-        check('La pastilla de abajo es la del sonido: el altavoz y nada más (ni «+» ni accesos)')
+        assert not s['add'] and s['kids'] == 2 and s['others'], s
+        check('El altavoz va con la nota de la música, sin «+» ni accesos; los accesos directos, en la suya')
 
         chrome("gBrowser.addTab(arguments[0], { triggeringPrincipal: Services.scriptSecurityManager.getSystemPrincipal() })", [origin + '/radio'])
         until(lambda: state()['playing'] and not state()['paused'], timeout=10)
         tabs = state()['tabs']
-        click('#zero-sound-pill .zero-sound-button')
+        click('#zero-dock .zero-sound-button')
         until(lambda: (s := state())['panel'] and s['rows'] == ['Radio zorro'])
         assert state()['tabs'] == tabs, state()
         check('Con algo sonando en otra pestaña, el altavoz lo dice y el panel lo enseña (sin abrir pestañas)')
@@ -177,7 +174,7 @@ def main():
         check('El volumen de Kitsune multiplica el de lo que suena y respeta el de la web (0,24 · 0,15 · 0,5)')
 
         if not state()['panel']:
-            click('#zero-sound-pill .zero-sound-button')
+            click('#zero-dock .zero-sound-button')
             until(lambda: state()['panel'])
         click('#zero-sound .zero-sound-mute')
         until(lambda: state()['muted'])
@@ -197,7 +194,7 @@ def main():
         click('#zero-sound .zero-sound-name')
         until(lambda: (s := state())['selected'] == 'Radio zorro' and not s['panel'])
         chrome("gBrowser.selectedTab = gBrowser.tabs.find(t => t.label === 'Kioto')")
-        click('#zero-sound-pill .zero-sound-button')
+        click('#zero-dock .zero-sound-button')
         until(lambda: state()['panel'])
         driver.context('chrome'); driver.shortcut('')
         until(lambda: not state()['panel'])

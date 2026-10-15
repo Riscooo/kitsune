@@ -207,18 +207,9 @@ def main():
         c = (lights[0]['x'] + lights[0]['w'] / 2, lights[0]['y'] + lights[0]['h'] / 2)
         gap = 48 - ((48 - c[0]) ** 2 + (48 - c[1]) ** 2) ** 0.5 - lights[0]['w'] / 2
         assert gap >= 12, f'botones de ventana pegados al borde: {gap:.1f} px de la curva · {lights[0]}'
-        # Lo mismo la marca de Kitsune, abajo a la izquierda (en «Nácar»).
-        m = chrome("const r = document.getElementById('zero-mark').getBoundingClientRect(); return [r.left + r.width / 2, innerHeight - (r.top + r.height / 2), r.width / 2]")
-        mark_gap = 48 - ((48 - m[0]) ** 2 + (48 - m[1]) ** 2) ** 0.5 - m[2]
-        assert mark_gap >= 12, f'la marca, pegada al borde: {mark_gap:.1f} px de la curva · {m}'
-        # En «Sobrio», los ajustes van en la columna de la izquierda, como su última pastilla (Dani, 15-10).
-        where = "const r = document.getElementById('zero-mark'); return r.parentNode.id + ':' + (r === r.parentNode.lastElementChild)"
-        chrome("Services.prefs.setStringPref('kitsune.zero.variant', 'sobrio')")
-        try:
-            eventually(lambda: chrome(where) == 'zero-dock:true', timeout=5)
-        finally:
-            chrome("Services.prefs.clearUserPref('kitsune.zero.variant')")
-        eventually(lambda: chrome(where).startswith('main-window') or not chrome(where).startswith('zero-dock'), timeout=5)
+        # Los ajustes (la marca de Kitsune) van en la columna de la izquierda, como su última pastilla (Dani, 15-10).
+        m = chrome("const r = document.getElementById('zero-mark'); return r.parentNode.id + ':' + (r === r.parentNode.lastElementChild)")
+        assert m == 'zero-dock:true', f'los ajustes, fuera de la columna: {m}'
         assert f['drag'] == 'drag' and f['webDrag'] == 'no-drag', f
         grow = chrome("const r = document.getElementById('zero-grow').getBoundingClientRect(); return { x: r.left, y: r.top, right: r.right, bottom: r.bottom }")
         assert grow['bottom'] <= f['panels']['y'] and grow['x'] > lights[2]['x'] + lights[2]['w'], (grow, f['panels'], lights)

@@ -1,8 +1,7 @@
 """Kitsune Zero · la marca de agua y los ajustes, en el motor real (perfil temporal, sin ventana en pantalla).
 
-1. Con «Nácar» (de serie), la marca está abajo a la izquierda (a 22 px de los bordes) y se ve: con el fondo
-   del sistema, blanca, sin disco y a 0,92, en oscuro y en claro. Con «Sobrio» (Dani, 15-10), los ajustes son la
-   última pastilla de la columna izquierda, del color de las piezas, y brotan de ella.
+1. Los ajustes son la última pastilla de la columna izquierda (Dani, 15-10; en las dos variantes), del color
+   de las piezas de cada una, y brotan de ella.
 2. Un clic abre los ajustes (#zero-settings), que brotan de la marca; se cierran con un clic fuera o con Esc.
 3. «Ventanas nuevas» (como esta / en Zero / normales) cambia kitsune.zero.inherit y kitsune.zero.always,
    «Estilo» (Nácar / Sobrio) cambia kitsune.zero.variant, y «Fondo» (cristal / espacio / niebla / foto / de la
@@ -124,12 +123,11 @@ def main():
         pointer([{'type': 'pointerMove', 'origin': 'viewport', 'x': 800, 'y': 400}])
 
         chrome("Services.prefs.setStringPref('kitsune.zero.backdrop', 'system')")
-        until(lambda: (m := mark())['mark'] is not None and abs(m['mark']['x'] - 22) <= 1 and abs(m['H'] - m['mark']['bottom'] - 22) <= 1
-              and m['color'] == 'rgb(255, 255, 255)' and abs(m['opacity'] - 0.92) < 0.01 and not m['inDock'])
-        # Con el sistema en claro (y el cristal del sistema), sigue blanca y a la vista.
+        # Con «Nácar», del cristal claro de sus piezas: blanca.
+        until(lambda: (m := mark())['mark'] is not None and m['inDock'] and abs(m['mark']['x'] - 7) <= 1
+              and m['color'] == 'rgb(255, 255, 255)' and m['opacity'] > 0.85)
         chrome("Services.prefs.setIntPref('ui.systemUsesDarkTheme', 0)")
-        until(lambda: (m := mark())['color'] == 'rgb(255, 255, 255)' and abs(m['opacity'] - 0.92) < 0.01)
-        # Con «Sobrio», la última pastilla de la columna, del color de las piezas: tinta en claro, clara en oscuro.
+        # Con «Sobrio», del color de sus piezas: tinta en claro, clara en oscuro.
         chrome("Services.prefs.setStringPref('kitsune.zero.variant', 'sobrio')")
         until(lambda: (m := mark())['inDock'] and abs(m['mark']['x'] - 7) <= 1 and m['color'] == 'rgb(29, 35, 33)' and m['opacity'] > 0.75)
         chrome("Services.prefs.setIntPref('ui.systemUsesDarkTheme', 1)")
@@ -142,9 +140,9 @@ def main():
         until(lambda: not mark()['open'])
         chrome("Services.prefs.clearUserPref('kitsune.zero.variant')")
         chrome("Services.prefs.clearUserPref('kitsune.zero.backdrop')")
-        until(lambda: (m := mark())['variant'] == 'nacar' and not m['inDock'] and abs(m['mark']['x'] - 22) <= 1)
+        until(lambda: (m := mark())['variant'] == 'nacar' and m['inDock'])
         chrome("Services.prefs.clearUserPref('ui.systemUsesDarkTheme')")
-        check('La marca, abajo a la izquierda en «Nácar» (blanca a 0,92) y la última pastilla de la columna en «Sobrio»')
+        check('Los ajustes son la última pastilla de la columna, del color de las piezas de cada variante, y brotan de ella')
 
         click('#zero-mark')
         until(lambda: mark()['open'] and mark()['panelOpacity'] == 1)

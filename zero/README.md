@@ -51,22 +51,22 @@ la ventana a Zero y la devuelve, con las mismas pestañas. Diseño completo en
   la refracción no termine en una franja. Las piezas comparten el relleno, el filo y la sombra corta
   (`--zero-glass-fill`, `--zero-glass-rim`, `--zero-glass-edge`): cristal sobre cristal, también en
   las pastillas de perfiles, modos, música y accesos. No añade capturas ni animaciones al cristal.
-- Dos variantes (ajuste «Estilo», `kitsune.zero.variant`; zero-frame pone `zero-variant` en la raíz):
-  **Nácar** (de serie, la de Risco: la lámina nacarada, los accesos directos con la música en su
-  pastilla, la marca abajo a la izquierda y, sin cristal detrás, la foto de la web) y **Sobrio** (la de
-  Dani: cristal ahumado o esmerilado con filo neutro, la lámina sin color, el panel de sonido en lugar
-  de accesos y música, los ajustes en la columna, tu perfil sobre el buscador y, sin cristal detrás,
-  Espacio o Niebla). Lo demás es común: los dos botones del modo, el pomodoro, los fondos pintados, las
-  cuentas del perfil.
+- Dos variantes (ajuste «Estilo», `kitsune.zero.variant`; zero-frame pone `zero-variant` en la raíz) con las
+  mismas piezas (Risco, 15-10: «todos los cambios, que ambos los tengan»); cambia el aspecto. **Nácar** (de
+  serie, la de Risco): la lámina nacarada y sus piezas de cristal claro y, sin cristal detrás, la foto de la
+  web. **Sobrio** (la de Dani): cristal ahumado o esmerilado con filo neutro, la lámina sin color y, sin
+  cristal detrás, Espacio o Niebla. En las dos: los dos botones del modo, el pomodoro, la música y el sonido
+  en una pastilla (la nota y el altavoz), los accesos directos, los ajustes como última pastilla de la
+  columna, tu perfil sobre el buscador, los fondos pintados y las cuentas del perfil.
 - Cada sistema con sus esquinas: zero-frame pone `zero-os` y `--zero-os-radius` (48 px en Linux, como la
   regla de niri; 16 en macOS 26 y 10 antes; 8 en Windows 11 y 0 en Windows 10), y el cuerpo, el fondo
   pintado, la lámina y el cristal nativo de macOS (`kitsune.zero.macos-glass-radius`, 16) usan las mismas.
-  A pantalla completa, y en Windows maximizada, rectas. En macOS el botón verde es pantalla completa y Zero
-  sigue (la lámina, sin canto y con la franja de la cámara fundida); en Windows y Linux con Nácar, F11 es la
-  web sola.
-- Las páginas se agarran: una pestaña del raíl soltada sobre la web de otra se pone a su lado (vista
-  dividida, en el lado en que se suelta, o se añade a la que hay); lejos del raíl y fuera de esa web, a una
-  ventana nueva que el sistema puede colocar.
+  A pantalla completa, y en Windows maximizada, rectas. A pantalla completa (el botón verde en macOS, F11)
+  Zero sigue, sin canto (en macOS, con la franja de la cámara fundida); para la web sola, «Ampliar».
+- Las páginas se agarran (zero-grab): el asa de debajo de la web, llevada a un lado, deja la web en ese lado
+  de una vista dividida (al otro, la lista de pestañas para elegir); al filo de la ventana, a una ventana
+  propia que el sistema puede colocar. Y una pestaña del raíl soltada sobre la web de otra se pone a su lado
+  (o se añade a la vista dividida que haya).
 - `assets/`: el logo («máscara en el cero») y los seis sonidos (`zero-sonido-*.ogg`, CC0).
 - `linux/`: la regla de niri que desenfoca lo que hay detrás de la ventana (`kitsune-zero.kdl`) y su
   instalador, que la añade a `~/.config/niri/config.kdl` con copia de seguridad. Sin ella, el fondo es

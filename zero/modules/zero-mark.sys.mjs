@@ -372,7 +372,7 @@ export function attach(win, ctx) {
   st.cleanups.push(() => fullWatch.disconnect());
   const title = host.t('Ajustes de Kitsune Zero', 'Kitsune Zero settings');
 
-  st.mark = el(doc, 'button', { type: 'button', id: 'zero-mark', title, 'aria-label': title, 'aria-expanded': 'false', 'aria-controls': 'zero-settings' },
+  st.mark = el(doc, 'button', { type: 'button', id: 'zero-mark', class: 'zero-pill', title, 'aria-label': title, 'aria-expanded': 'false', 'aria-controls': 'zero-settings' },
     [el(doc, 'span', { class: 'zero-logo', 'aria-hidden': 'true' })]);
   st.rows = el(doc, 'div', { class: 'zero-rows' });
   st.panel = el(doc, 'section', { id: 'zero-settings', role: 'dialog', 'aria-label': title }, [
@@ -380,19 +380,11 @@ export function attach(win, ctx) {
     st.rows,
   ]);
   doc.body.append(st.panel);
-  // La marca: en «Nácar», abajo a la izquierda; en «Sobrio», la última pastilla de la columna (Dani, 15-10).
-  // Al cambiar de variante se mueve (y, si los ajustes están abiertos, vuelven a brotar de ella).
-  const place = () => {
-    const dock = doc.getElementById('zero-dock');
-    if (doc.documentElement.getAttribute('zero-variant') === 'sobrio' && dock) {
-      if (dock.lastElementChild !== st.mark) dock.append(st.mark);
-    } else if (st.mark.nextElementSibling !== st.panel) st.panel.before(st.mark);
-    if (st.panel.hasAttribute('open')) setOpen(win, st, true);
-  };
-  place();
-  const variantWatch = new win.MutationObserver(place);
-  variantWatch.observe(doc.documentElement, { attributes: true, attributeFilter: ['zero-variant'] });
-  st.cleanups.push(() => { variantWatch.disconnect(); st.mark.remove(); st.panel.remove(); });
+  // La marca: la última pastilla de la columna (Dani, 15-10), en las dos variantes; sin columna (una ventana
+  // privada no la tiene entera), junto al panel.
+  const dock = doc.getElementById('zero-dock');
+  if (dock) dock.append(st.mark); else st.panel.before(st.mark);
+  st.cleanups.push(() => { st.mark.remove(); st.panel.remove(); });
   renderRows(win, st);
 
   // La explicación de cada «i», en una etiqueta de cristal junto a ella; y quitarlas todas.

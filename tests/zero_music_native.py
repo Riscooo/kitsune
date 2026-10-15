@@ -125,7 +125,7 @@ def main():
     def music():
         # En la variante «Sobrio» (Dani), la música se abre desde el panel de sonido (el altavoz de la columna):
         # «Música → Abrir».
-        click('#zero-sound-pill .zero-sound-button')
+        click('#zero-dock .zero-sound-button')
         eventually(lambda: chrome("return document.getElementById('zero-sound')?.hasAttribute('open')"), timeout=5)
         click('#zero-sound .zero-sound-music-open')
 
@@ -178,16 +178,19 @@ def main():
         until(lambda: (s := state())['mini'] and s['at'] and abs(s['at'][0] - moved[0]) <= 2 and abs(s['at'][1] - moved[1]) <= 2)
         check('Al cerrarlo la música sigue, y el panel vuelve con la misma (y el minipanel, donde se dejó)')
 
-        # En «Sobrio» (Dani, 15-10) no está la pastilla de la música (ni los accesos directos): se abre desde el
-        # panel de sonido, «Música → Abrir», con la misma música.
+        # También desde el panel de sonido (el altavoz, debajo de la nota): «Música», con lo que suena, y «Abrir»
+        # (Risco, 15-10: «rediseñar lo de la música»). En las dos variantes, con la nota y los accesos a la vista.
         click('#zero-mini .zero-mini-close')
         chrome("Services.prefs.setStringPref('kitsune.zero.variant', 'sobrio')")
         until(lambda: chrome("""const shown = id => { const n = document.getElementById(id); return !!n && getComputedStyle(n).display !== 'none' && n.getBoundingClientRect().width > 0; };
-            return !shown('zero-music-pill') && !shown('zero-shortcuts') && shown('zero-sound-pill');"""))
-        music()
+            return shown('zero-music-pill') && shown('zero-shortcuts') && !!document.querySelector('#zero-music-pill .zero-sound-button');"""))
+        click('#zero-dock .zero-sound-button')
+        eventually(lambda: chrome("return document.getElementById('zero-sound')?.hasAttribute('open')"), timeout=5)
+        eventually(lambda: chrome("return document.querySelector('#zero-sound .zero-sound-music b')?.textContent.includes('Zorros de Kioto') && !document.querySelector('#zero-sound .zero-sound-music .zero-sound-play').hidden"), timeout=5)
+        click('#zero-sound .zero-sound-music-open')
         until(lambda: (s := state())['panel'] and s['playing'] and s['url'] == origin + '/radio')
         chrome("Services.prefs.clearUserPref('kitsune.zero.variant')")
-        check('En «Sobrio», la música se abre desde el panel de sonido, con la misma música')
+        check('El panel de sonido enseña lo que suena en la música y la abre (también en «Sobrio», con la nota y los accesos)')
         report['status'] = 'passed'
     finally:
         if driver: driver.close()

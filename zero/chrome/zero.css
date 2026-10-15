@@ -14,6 +14,12 @@
                                     rgba(255, 255, 255, .62) 64%, rgba(255, 255, 255, 1) 100%);
   --zero-glass-button: inset 0 1px .75px rgba(255, 255, 255, .5), inset 0 0 0 .5px rgba(255, 255, 255, .2), 0 1px 2px rgba(0, 0, 0, .14);
   --zero-glass-halo: 0 1px 2px rgba(0, 0, 0, .5), 0 0 12px rgba(0, 0, 0, .42);
+  /* Las hojas que salen de las piezas (el panel de sonido, la paleta, la vista rápida) y su texto: en Nácar, el
+     cristal ahumado de la música; la variante Sobrio pone los suyos. */
+  --zero-sheet: rgba(24, 24, 28, .86);
+  --zero-piece-text: #fff;
+  --zero-piece-quiet: rgba(255, 255, 255, .62);
+  --zero-piece-hover: rgba(255, 255, 255, .14);
   /* Las esquinas de la ventana: las de cada sistema (zero-frame pone --zero-os-radius: 48 px en Linux, como la
      regla de niri; 16 en macOS 26 y 10 en los anteriores; 8 en Windows 11 y 0 en Windows 10). La lámina, el
      cuerpo y el cristal nativo de macOS usan las mismas. */
@@ -167,8 +173,8 @@
 }
 :root[zero] #browser:has(> #sidebar-box:not([hidden], [sidebar-positionend])) #tabbrowser-tabpanels { margin-left: 0 !important; }
 :root[zero] #browser:has(> #sidebar-box[sidebar-positionend]:not([hidden])) #tabbrowser-tabpanels { margin-right: 0 !important; }
-:root[zero]:is([zero-full], [inFullscreen]:not([zero-os="mac"], [zero-variant="sobrio"])) #sidebar-box:not([hidden]) { margin: 0 !important; border-radius: 0 !important; box-shadow: none !important; }
-:root[zero]:is([zero-full], [inFullscreen]:not([zero-os="mac"], [zero-variant="sobrio"])) #sidebar-splitter:not([hidden]) { width: 1px !important; min-width: 1px !important; max-width: 1px !important; opacity: 1; background: rgba(127, 127, 127, .25) !important; }
+:root[zero][zero-full] #sidebar-box:not([hidden]) { margin: 0 !important; border-radius: 0 !important; box-shadow: none !important; }
+:root[zero][zero-full] #sidebar-splitter:not([hidden]) { width: 1px !important; min-width: 1px !important; max-width: 1px !important; opacity: 1; background: rgba(127, 127, 127, .25) !important; }
 :root[zero][inDOMFullscreen] :is(#sidebar-box, #sidebar-splitter) { display: none !important; }
 @keyframes zero-side-in { from { opacity: 0; transform: scale(.985); } }
 
@@ -899,11 +905,11 @@
 /* Los accesos directos: una pastilla con sus iconos (como los del raíl) y un «+» abajo. */
 #zero-dock > #zero-shortcuts { display: flex; flex-direction: column; gap: 4px; padding: 6px 5px; }
 #zero-shortcuts .zero-shortcut-list { display: flex; flex-direction: column; gap: 4px; }
-#zero-shortcuts :is(.zero-shortcut, .zero-shortcut-add), #zero-music-pill .zero-music {
+#zero-shortcuts :is(.zero-shortcut, .zero-shortcut-add), #zero-music-pill :is(.zero-music, .zero-sound-button) {
   appearance: none; box-sizing: border-box; width: 26px; height: 26px; min-width: 0; margin: 0; padding: 0; border: none; border-radius: 50%;
   display: grid; place-items: center; background: transparent; cursor: pointer;
 }
-:is(#zero-shortcuts, #zero-music-pill) .zero-fav {
+:is(#zero-shortcuts, #zero-music-pill, #zero-sound-pill) .zero-fav {
   width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; overflow: hidden;
   font: 700 10.5px system-ui, sans-serif; color: #1d2321;
   background: rgba(255, 255, 255, .92);
@@ -917,7 +923,7 @@
 #zero-shortcuts[dropping] { box-shadow: inset 0 0 0 1.5px rgba(255, 255, 255, .8), 0 10px 30px rgba(0, 0, 0, .18); }
 /* La música: su botón (en su pastilla, encima de la de los accesos directos), la lista de servicios, el panel
    con el reproductor y el minipanel flotante, todo de cristal ahumado (se lee sobre cualquier fondo). */
-#zero-dock > #zero-music-pill { padding: 5px; }
+#zero-dock > #zero-music-pill { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 5px; }
 #zero-music-pill .zero-music .zero-fav { background: rgba(255, 255, 255, .14); box-shadow: var(--zero-glass-button); transition: transform 200ms var(--zero-calm), background-color var(--zero-t-fade) var(--zero-soft); }
 #zero-music-pill .zero-music:hover .zero-fav { transform: scale(1.12); background-color: rgba(255, 255, 255, .24); }
 #zero-music-pill .zero-music .zero-fav::before {
@@ -1597,22 +1603,11 @@
 :root[zero][inDOMFullscreen] #tabbrowser-tabpanels { margin: 0 !important; }
 :root[zero][inDOMFullscreen] #tabbrowser-tabpanels > .browserSidebarContainer { border-radius: 0 !important; box-shadow: none !important; }
 :root[zero][inDOMFullscreen] :is(#zero-dock, #zero-rail, #zero-edge, #zero-mark, #zero-lights, #zero-grow, #zero-notch, #zero-pomo, #zero-settings, #zero-break, #zero-blocked, #zero-bg, #zero-pane, .zero-glass) { display: none !important; }
-/* La ventana a pantalla completa, sin esquinas ni canto. En macOS es como se agranda una ventana (el botón
-   verde): Zero sigue igual, ocupando toda la pantalla (Dani, 15-10: «se escondía todo y quedaba la web sola»);
-   y en la variante «Sobrio», en todos los sistemas. En Windows y Linux, con «Nácar», F11 es la web sola, como
-   un quiosco: la tarjeta llena la pantalla y la isla baja al llevar el ratón al filo (como las barras de Gecko). */
+/* La ventana a pantalla completa (el botón verde en macOS, F11): Zero sigue igual, ocupando toda la pantalla,
+   sin esquinas ni canto (Dani, 15-10: «se escondía todo y quedaba la web sola»). Para la web sola, «Ampliar». */
 :root[zero]:is([inFullscreen], [sizemode="fullscreen"]) { --zero-win-radius: 0px; --zero-bg-opacity: 1 !important; }
 /* Windows no redondea una ventana maximizada. */
 :root[zero][zero-os="windows"][sizemode="maximized"] { --zero-win-radius: 0px; }
-:root[zero][inFullscreen]:not([zero-os="mac"], [zero-variant="sobrio"]) #tabbrowser-tabpanels { margin: 0 !important; }
-:root[zero][inFullscreen]:not([zero-os="mac"], [zero-variant="sobrio"]) #tabbrowser-tabpanels > .browserSidebarContainer { border-radius: 0 !important; box-shadow: none !important; }
-:root[zero][inFullscreen]:not([zero-os="mac"], [zero-variant="sobrio"]) :is(#zero-dock, #zero-edge, #zero-mark, #zero-lights, #zero-grow, #zero-notch, #zero-pomo, #zero-settings, #zero-break, #zero-blocked, .zero-glass) { display: none !important; }
-#main-window[zero][inFullscreen]:not([inDOMFullscreen], [zero-os="mac"], [zero-variant="sobrio"]) #navigator-toolbox:not(:hover, [zero-island="typing"]) {
-  transform: translateY(-37px) !important; opacity: 0 !important;
-}
-#main-window[zero][inFullscreen]:not([inDOMFullscreen], [zero-os="mac"], [zero-variant="sobrio"]) #navigator-toolbox {
-  transition: width var(--zero-t-morph) var(--zero-calm), transform var(--zero-t-morph) var(--zero-calm), opacity var(--zero-t-fade) var(--zero-soft) !important;
-}
 /* Con el cristal de macOS, detrás de las piezas no hay nada que desenfocar (la ventana es transparente y el
    desenfoque lo pone macOS): sin el de CSS, que dejaba una raya recta bajo la isla (Dani, 15-10). */
 :root[zero][zero-os="mac"][zero-backdrop="system"] :is(#nav-bar, #zero-rail, #zero-dock > .zero-pill, #zero-mark, #zero-grow, #zero-settings, #zero-lights::before, #zero-engines, #urlbar .urlbarView) {
@@ -1643,6 +1638,27 @@
 #zero-split-drop[side="left"]::after { left: 25%; }
 #zero-split-drop[side="right"]::after { left: 75%; }
 @media (prefers-reduced-motion: reduce) { #zero-split-drop::before, #zero-split-drop::after { transition: none; } }
+
+/* El asa de la página (zero-grab): una barrita bajo la web, como la de un iPad, que se agarra y se lleva a un lado
+   (vista dividida) o fuera de la ventana. Con la web a toda la ventana, en una pestaña vacía o con un vídeo a
+   pantalla completa, no está. */
+#zero-grab {
+  position: fixed; z-index: 6; width: 96px; height: 18px; margin: -9px 0 0 -48px;
+  display: grid; place-items: center; cursor: grab; touch-action: none; -moz-window-dragging: no-drag;
+}
+#zero-grab[hidden], :root[zero]:is([zero-full], [zero-empty], [inDOMFullscreen]) #zero-grab { display: none; }
+#zero-grab::before {
+  content: ""; width: 44px; height: 5px; border-radius: 3px;
+  background: rgba(255, 255, 255, .62); box-shadow: 0 0 0 .5px rgba(0, 0, 0, .2), 0 1px 3px rgba(0, 0, 0, .22);
+  transition: width 220ms var(--zero-calm), background-color 200ms var(--zero-soft);
+}
+#zero-grab:hover::before, #zero-grab[grabbing]::before { width: 64px; background: rgba(255, 255, 255, .92); }
+#zero-grab[grabbing] { cursor: grabbing; z-index: 9; }
+:root[zero-frame-ink] #zero-grab::before { background: rgba(29, 35, 33, .38); box-shadow: 0 0 0 .5px rgba(255, 255, 255, .5); }
+:root[zero-frame-ink] #zero-grab:is(:hover, [grabbing])::before { background: rgba(29, 35, 33, .6); }
+/* Al filo de la ventana: el aviso cubre toda la ventana. */
+#zero-split-drop[side="window"]::before { inset: 6px; }
+@media (prefers-reduced-motion: reduce) { #zero-grab::before { transition: none; } }
 
 /* ---------------------------------------------------------------- los fondos que pinta Zero (Dani, 15-10) */
 
@@ -1723,12 +1739,27 @@
 
 /* ---------------------------------------------------------------- las dos variantes */
 
-/* «Nácar» (Risco, de serie): la lámina nacarada, los accesos directos y la música en su pastilla, y la marca abajo
-   a la izquierda. «Sobrio» (Dani, 15-10: «más como concentración»): cristal ahumado (o esmerilado en claro) con
-   filo neutro, el panel de sonido en lugar de accesos y música, los ajustes en la columna y tu perfil sobre el
-   buscador. Se elige en los ajustes de Zero («Estilo»). */
-:root[zero]:not([zero-variant="sobrio"]) :is(#zero-sound-pill, #zero-sound, #zero-empty-profile) { display: none !important; }
-:root[zero][zero-variant="sobrio"] :is(#zero-music-pill, #zero-shortcuts) { display: none !important; }
+/* Las dos llevan lo mismo (Risco, 15-10: «todos los cambios, que ambos los tengan»): cambia el aspecto. «Nácar»
+   (Risco, de serie): la lámina nacarada y sus piezas de cristal claro. «Sobrio» (Dani, 15-10: «más como
+   concentración»): cristal ahumado (o esmerilado en claro) con filo neutro, la lámina sin color y, sin cristal
+   detrás, Espacio o Niebla. Se elige en los ajustes de Zero («Estilo»). */
+
+/* La marca (los ajustes): la última pastilla de la columna (Dani, 15-10), con el cristal de las demás. */
+#zero-dock > #zero-mark {
+  position: relative; left: auto; bottom: auto; z-index: 2; flex: none;
+  box-sizing: border-box; width: 36px; height: 36px; padding: 6px; border-radius: 18px;
+}
+:root[zero]:not([zero-full]) #zero-dock > #zero-mark { color: var(--zero-piece-text); filter: none; opacity: .9; }
+:root[zero]:not([zero-full]) #zero-dock > #zero-mark:is(:hover, [open]) { opacity: 1; transform: none; }
+/* Los ajustes brotan de su pastilla (zero-mark pone dónde, en --zero-settings-x/-y) y nunca se salen por abajo. */
+:root[zero] #zero-settings {
+  left: var(--zero-settings-x, 58px); top: var(--zero-settings-y, 80px); bottom: auto;
+  transform-origin: -23px var(--zero-settings-origin-y, 50%);
+  max-height: calc(100vh - var(--zero-settings-y, 80px) - 12px) !important;
+}
+/* La línea de carga de la isla, neutra: no hereda el azul de una web. */
+#main-window[zero] #nav-bar > .zero-load { background: rgba(255, 255, 255, .72) !important; }
+#main-window[zero][zero-frame-ink] #nav-bar > .zero-load { background: rgba(29, 35, 33, .5) !important; }
 
 /* ---------------------------------------------------------------- la variante «Sobrio» (Dani, 15-10) */
 
@@ -1771,7 +1802,6 @@
 }
 /* La isla, la columna y sus pastillas: el mismo cristal (ahumado o esmerilado). */
 #main-window[zero][zero-variant="sobrio"] #nav-bar { background: var(--zero-glass-fill) !important; box-shadow: var(--zero-glass-edge) !important; backdrop-filter: blur(18px) saturate(1.2) !important; }
-#main-window[zero][zero-variant="sobrio"] #nav-bar > .zero-load { background: rgba(255, 255, 255, .72) !important; } /* neutra: no hereda el azul de una web */
 :root[zero][zero-variant="sobrio"] :is(#zero-rail, #zero-dock > .zero-pill) {
   background-image: var(--zero-glass-fill) !important;
   box-shadow: var(--zero-glass-edge) !important;
@@ -1796,19 +1826,6 @@
 :root[zero][zero-variant="sobrio"] #zero-rail .zero-tab .zero-fav:not([letter], [light-icon]) { background: rgba(255, 255, 255, .94); }
 :root[zero][zero-variant="sobrio"]:not([zero-frame-ink]) #zero-rail .zero-item[selected] .zero-fav { box-shadow: 0 0 0 1.5px rgba(255, 255, 255, .85), 0 1px 3px rgba(0, 0, 0, .3); }
 :root[zero][zero-variant="sobrio"] #zero-rail-tip { color: var(--zero-piece-text); background: var(--zero-sheet); box-shadow: var(--zero-glass-edge); }
-/* La marca (los ajustes), la última pastilla de la columna (zero-mark la pone ahí con esta variante). */
-:root[zero][zero-variant="sobrio"] #zero-mark {
-  position: relative; left: auto; bottom: auto; z-index: 2; flex: none;
-  box-sizing: border-box; width: 36px; height: 36px; padding: 6px; border-radius: 18px;
-}
-:root[zero][zero-variant="sobrio"]:not([zero-full]) #zero-mark { color: var(--zero-piece-text); filter: none; opacity: .82; background: var(--zero-glass-fill); box-shadow: var(--zero-glass-edge); }
-:root[zero][zero-variant="sobrio"]:not([zero-full]) #zero-mark:is(:hover, [open]) { opacity: 1; transform: none; }
-/* Los ajustes brotan de su pastilla (zero-mark pone dónde, en --zero-settings-x/-y) y nunca se salen por abajo. */
-:root[zero][zero-variant="sobrio"] #zero-settings {
-  left: var(--zero-settings-x, 58px); top: var(--zero-settings-y, 80px); bottom: auto;
-  transform-origin: -23px var(--zero-settings-origin-y, 50%);
-  max-height: calc(100vh - var(--zero-settings-y, 80px) - 12px) !important;
-}
 /* Los botones de ampliar y dividir, del mismo cristal. */
 :root[zero][zero-variant="sobrio"]:not([zero-full]) #zero-grow:not([zero-ink]) { color: var(--zero-piece-text); text-shadow: none; background: var(--zero-glass-fill); }
 /* Los ajustes: una hoja del mismo cristal, bien cubierta. */
@@ -1847,27 +1864,27 @@
   color: #1d2321 !important; text-shadow: none !important; fill: #1d2321 !important;
 }
 #main-window[zero][zero-variant="sobrio"]:not([zero-frame-ink]) #urlbar .urlbarView:popover-open { background: var(--zero-sheet) !important; text-shadow: none !important; }
-/* La paleta de Kitsune (Ctrl+K) y la vista rápida (Alt + clic), del mismo cristal. */
-:root[zero][zero-variant="sobrio"] #kitsune-palette .kitsune-palette-box {
+/* La paleta de Kitsune (Ctrl+K) y la vista rápida (Alt + clic), del cristal de Zero (en las dos variantes). */
+:root[zero] #kitsune-palette .kitsune-palette-box {
   border: none !important; border-radius: 18px !important;
   background: var(--zero-sheet) !important; color: var(--zero-piece-text) !important;
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, .08), 0 24px 60px rgba(0, 0, 0, .4), 0 0 0 .5px rgba(0, 0, 0, .45) !important;
   font-family: system-ui, sans-serif !important;
 }
-:root[zero][zero-variant="sobrio"][zero-frame-ink] #kitsune-palette .kitsune-palette-box { box-shadow: inset 0 1px 0 #fff, 0 24px 60px rgba(18, 22, 28, .16), 0 0 0 .5px rgba(18, 22, 28, .12) !important; }
-:root[zero][zero-variant="sobrio"] #kitsune-palette .kitsune-palette-input { color: var(--zero-piece-text) !important; border-bottom-color: rgba(127, 127, 127, .18) !important; font-family: system-ui, sans-serif !important; }
-:root[zero][zero-variant="sobrio"] #kitsune-palette .kitsune-palette-item { border-radius: 10px !important; }
-:root[zero][zero-variant="sobrio"] #kitsune-palette .kitsune-palette-item[aria-selected="true"] { background: var(--zero-piece-hover) !important; box-shadow: none !important; }
-:root[zero][zero-variant="sobrio"] #kitsune-palette :is(.kitsune-palette-kind, .kitsune-palette-detail) { color: var(--zero-piece-quiet) !important; }
-:root[zero][zero-variant="sobrio"] .kitsune-glance-head {
+:root[zero][zero-frame-ink] #kitsune-palette .kitsune-palette-box { box-shadow: inset 0 1px 0 #fff, 0 24px 60px rgba(18, 22, 28, .16), 0 0 0 .5px rgba(18, 22, 28, .12) !important; }
+:root[zero] #kitsune-palette .kitsune-palette-input { color: var(--zero-piece-text) !important; border-bottom-color: rgba(127, 127, 127, .18) !important; font-family: system-ui, sans-serif !important; }
+:root[zero] #kitsune-palette .kitsune-palette-item { border-radius: 10px !important; }
+:root[zero] #kitsune-palette .kitsune-palette-item[aria-selected="true"] { background: var(--zero-piece-hover) !important; box-shadow: none !important; }
+:root[zero] #kitsune-palette :is(.kitsune-palette-kind, .kitsune-palette-detail) { color: var(--zero-piece-quiet) !important; }
+:root[zero] .kitsune-glance-head {
   background: var(--zero-sheet) !important; color: var(--zero-piece-text) !important;
   border-bottom: .5px solid rgba(127, 127, 127, .2) !important; box-shadow: none !important;
   font-family: system-ui, sans-serif !important;
 }
-:root[zero][zero-variant="sobrio"] .kitsune-glance-host { color: var(--zero-piece-quiet) !important; }
-:root[zero][zero-variant="sobrio"] .kitsune-glance-head > button { border: none !important; border-radius: 999px !important; background: var(--zero-piece-hover) !important; color: inherit !important; }
-:root[zero][zero-variant="sobrio"] .kitsune-glance-head > button:hover { background: rgba(127, 127, 127, .24) !important; }
-:root[zero][zero-variant="sobrio"] #kitsune-glance .kitsune-glance-body { border: none !important; border-radius: 18px !important; box-shadow: 0 24px 60px rgba(0, 0, 0, .4), 0 0 0 .5px rgba(255, 255, 255, .12) !important; }
+:root[zero] .kitsune-glance-host { color: var(--zero-piece-quiet) !important; }
+:root[zero] .kitsune-glance-head > button { border: none !important; border-radius: 999px !important; background: var(--zero-piece-hover) !important; color: inherit !important; }
+:root[zero] .kitsune-glance-head > button:hover { background: rgba(127, 127, 127, .24) !important; }
+:root[zero] #kitsune-glance .kitsune-glance-body { border: none !important; border-radius: 18px !important; box-shadow: 0 24px 60px rgba(0, 0, 0, .4), 0 0 0 .5px rgba(255, 255, 255, .12) !important; }
 
 /* Tu perfil sobre el buscador de la pestaña nueva: se ve de inmediato con cuál vas a buscar (y la foto abre su
    ficha). */
@@ -1876,7 +1893,8 @@
   display: none; flex-direction: column; align-items: center; gap: 5px; min-width: 120px;
   color: var(--zero-piece-text, #fff); text-align: center; text-shadow: var(--zero-glass-halo); pointer-events: none;
 }
-:root[zero][zero-variant="sobrio"][zero-empty] #zero-empty-profile { display: flex; }
+:root[zero][zero-empty] #zero-empty-profile { display: flex; }
+:root[zero-frame-ink] #zero-empty-profile { color: #1d2321; text-shadow: none; }
 #zero-empty-profile :is(img, .zero-empty-profile-glyph) {
   width: 46px; height: 46px; border-radius: 50%; object-fit: cover; display: grid; place-items: center;
   color: #fff; background: var(--zero-profile-ink, #2fa59a); font: 700 16px system-ui, sans-serif;
@@ -1898,29 +1916,28 @@
 #zero-empty-profile .zero-empty-profile-face:hover { transform: scale(1.05); }
 #zero-empty-profile .zero-empty-profile-face:focus-visible { outline: 2px solid rgba(255, 255, 255, .7); outline-offset: 3px; }
 
-/* ---------------------------------------------------------------- el sonido (zero-audio, en «Sobrio») */
+/* ---------------------------------------------------------------- el sonido (zero-audio, Dani 15-10) */
 
-/* El altavoz, en su pastilla. Tachado con todo en silencio; con algo sonando, un punto que late despacio. */
+/* El altavoz, en la pastilla de la música (debajo de la nota). Tachado con todo en silencio; con algo sonando, un
+   punto que late despacio. En Nácar, del cristal de la nota; en Sobrio, sin disco. */
 #zero-dock > #zero-sound-pill { padding: 5px; }
-#zero-sound-pill .zero-sound-button {
-  appearance: none; position: relative; box-sizing: border-box; width: 26px; height: 26px; min-width: 0; margin: 0; padding: 0; border: none; border-radius: 50%;
-  display: grid; place-items: center; background: transparent; color: var(--zero-piece-text, #fff); cursor: pointer;
-}
-#zero-sound-pill .zero-sound-button .zero-fav {
-  width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; color: inherit;
-  background: transparent; box-shadow: none; transition: background-color 200ms var(--zero-soft);
-}
-#zero-sound-pill .zero-sound-button:is(:hover, [aria-expanded="true"], [on]) .zero-fav { background: var(--zero-piece-hover, rgba(255, 255, 255, .1)); }
-#zero-sound-pill .zero-sound-button .zero-fav::before {
-  content: ""; width: 15px; height: 15px; background-color: currentColor;
+#zero-dock .zero-sound-button { position: relative; color: var(--zero-piece-text, #fff); }
+#zero-dock .zero-sound-button .zero-fav { background: rgba(255, 255, 255, .14); box-shadow: var(--zero-glass-button); color: inherit; transition: transform 200ms var(--zero-calm), background-color var(--zero-t-fade) var(--zero-soft); }
+#zero-dock .zero-sound-button:is(:hover, [aria-expanded="true"]) .zero-fav { transform: scale(1.12); background-color: rgba(255, 255, 255, .24); }
+#zero-dock .zero-sound-button .zero-fav::before {
+  content: ""; width: 14px; height: 14px; background-color: currentColor;
   mask: url("chrome://global/skin/media/audio.svg") center / contain no-repeat;
 }
-#zero-sound-pill .zero-sound-button[muted] .zero-fav::before { mask-image: url("chrome://global/skin/media/audio-muted.svg"); opacity: .7; }
-#zero-sound-pill .zero-sound-button::after {
+#zero-dock .zero-sound-button[muted] .zero-fav::before { mask-image: url("chrome://global/skin/media/audio-muted.svg"); opacity: .7; }
+#zero-dock .zero-sound-button::after {
   content: ""; position: absolute; right: 1px; top: 1px; width: 6px; height: 6px; border-radius: 50%;
   background: #3a8f74; opacity: 0; transform: scale(.6); transition: opacity 240ms var(--zero-soft), transform 240ms var(--zero-calm);
 }
-#zero-sound-pill .zero-sound-button[playing]::after { opacity: 1; transform: none; animation: zero-sound-dot 2.4s var(--zero-soft) infinite; }
+#zero-dock .zero-sound-button[playing]::after { opacity: 1; transform: none; animation: zero-sound-dot 2.4s var(--zero-soft) infinite; }
+/* La música, con una nota (el altavoz es el del sonido, debajo), del color de las piezas. */
+#zero-music-pill .zero-music { color: var(--zero-piece-text, #fff); }
+#zero-music-pill .zero-fav { color: inherit; }
+#zero-music-pill .zero-music .zero-fav::before { background-color: currentColor !important; mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M13.5 1.6v8.9a2.2 2.2 0 1 1-1.5-2.08V4.6L6.6 5.75v6.25a2.2 2.2 0 1 1-1.5-2.08V3.1z'/%3E%3C/svg%3E") !important; }
 @keyframes zero-sound-dot { 50% { opacity: .45; } }
 /* El panel de sonido: una hoja del mismo cristal, junto a la columna. */
 #zero-sound {
@@ -1980,5 +1997,28 @@
 #zero-sound .zero-sound-note::before { content: ""; position: absolute; inset: 5px; background-color: currentColor; mask: url("chrome://global/skin/media/audio.svg") center / contain no-repeat; opacity: .8; }
 #zero-sound .zero-sound-music > div { flex: 1; min-width: 0; display: flex; flex-direction: column; }
 #zero-sound .zero-sound-music-name { font-size: 11px; color: var(--zero-piece-quiet); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-@media (prefers-reduced-motion: reduce) { #zero-sound, #zero-sound-pill .zero-sound-button::after { transition-duration: 1ms !important; animation: none !important; } }
+@media (prefers-reduced-motion: reduce) { #zero-sound, #zero-dock .zero-sound-button::after { transition-duration: 1ms !important; animation: none !important; } }
 #zero-sound .zero-sound-fav[letter] { background: #5f7d8c; color: #fff; font: 700 10.5px system-ui, sans-serif; }
+
+/* ---------------------------------------------------------------- la música en Sobrio (Risco, 15-10: «rediseñar lo de la música») */
+
+/* La nota y el altavoz, sin disco: el icono del color de las piezas y, al pasar o con algo abierto, su tono. */
+:root[zero][zero-variant="sobrio"] #zero-music-pill :is(.zero-music, .zero-sound-button) .zero-fav { background: transparent; box-shadow: none; }
+:root[zero][zero-variant="sobrio"] #zero-music-pill :is(.zero-music, .zero-sound-button):is(:hover, [on], [aria-expanded="true"]) .zero-fav { background: var(--zero-piece-hover); transform: none; }
+:root[zero][zero-variant="sobrio"] #zero-music-pill .zero-music[on] .zero-fav { box-shadow: inset 0 0 0 1px rgba(232, 116, 59, .9); }
+/* La lista de servicios, el reproductor y el minipanel: la hoja de Sobrio (ahumada; clara sobre la niebla). */
+:root[zero][zero-variant="sobrio"] :is(#zero-music-services, #zero-music, #zero-mini) {
+  color: var(--zero-piece-text); background: var(--zero-sheet);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .08), 0 24px 60px rgba(0, 0, 0, .38), 0 0 0 .5px rgba(0, 0, 0, .45);
+}
+:root[zero][zero-variant="sobrio"][zero-frame-ink] :is(#zero-music-services, #zero-music, #zero-mini) { box-shadow: inset 0 1px 0 #fff, 0 24px 60px rgba(18, 22, 28, .16), 0 0 0 .5px rgba(18, 22, 28, .12); }
+:root[zero][zero-variant="sobrio"] :is(#zero-music-services > button, #zero-music header > button, #zero-mini > button):hover { background-color: var(--zero-piece-hover); }
+:root[zero][zero-variant="sobrio"] #zero-music .zero-music-player { border-top-color: rgba(127, 127, 127, .18); }
+:root[zero][zero-variant="sobrio"] #zero-mini .zero-mini-art { box-shadow: 0 0 0 .5px rgba(127, 127, 127, .3); }
+
+/* En el panel de sonido, la música con lo que suena: su carátula, el título y el artista, pausa/seguir y abrirla. */
+#zero-sound .zero-sound-note { overflow: hidden; }
+#zero-sound .zero-sound-note img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+#zero-sound .zero-sound-note:has(img:not([hidden]))::before { display: none; }
+#zero-sound .zero-sound-music b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#zero-sound .zero-sound-music .zero-sound-play[hidden] { display: none; }
