@@ -5,7 +5,8 @@ centro de la pantalla como buscador; al buscar, la isla sube a su sitio con una 
 
 1. En una pestaña vacía (la nueva o la de inicio, o en blanco) no hay tarjeta ni página de inicio: la
    tarjeta se esconde y la isla está en el centro de la ventana, ancha (≥ 500 px) y algo más alta, con
-   el campo a la vista («Buscar con Google o introducir una dirección») y el icono del buscador delante;
+   el campo a la vista, sin ningún texto (solo la barra: «sin texto siquiera… salga la barra y tú escribas»,
+   Risco 15-10), y el icono del buscador delante;
    la isla es el campo (sin otra píldora dentro, también escribiendo) y de cristal (sin foto de la
    página de inicio escondida debajo).
    Los botones de ampliar no salen (no hay nada que ampliar).
@@ -52,7 +53,7 @@ return {
   island: { top: n.top, middle: (n.top + n.bottom) / 2, w: n.width, h: n.height },
   H: innerHeight,
   card: Number(getComputedStyle(panels).opacity),
-  field: Number(getComputedStyle(field).opacity), placeholder: input.placeholder,
+  field: Number(getComputedStyle(field).opacity), placeholder: getComputedStyle(input, '::placeholder').color,
   engine: engine && { shown: Number(getComputedStyle(engine).opacity) > 0.9 && engine.getBoundingClientRect().width >= 12, src: engine.getAttribute('src') || '' },
   grow: grow ? Number(getComputedStyle(grow).opacity) : 0,
   glass: (c => !!c && !c.hidden)(document.getElementById('zero-glass-nav-bar')),
@@ -93,7 +94,7 @@ def main():
 
     def centered(s):
         return s['empty'] and abs(s['island']['middle'] - s['H'] / 2) < 40 and s['island']['w'] >= 500 and s['island']['h'] >= 38 \
-            and s['card'] < 0.05 and s['field'] > 0.9 and s['placeholder'] and s['engine'] and s['engine']['shown'] and s['grow'] < 0.05 \
+            and s['card'] < 0.05 and s['field'] > 0.9 and s['placeholder'] in ('rgba(0, 0, 0, 0)', 'transparent') and s['engine'] and s['engine']['shown'] and s['grow'] < 0.05 \
             and not s['glass'] and s['fieldBox']['bg'] in ('rgba(0, 0, 0, 0)', 'transparent') and s['fieldBox']['margin'] < 1
 
     def at_top(s):

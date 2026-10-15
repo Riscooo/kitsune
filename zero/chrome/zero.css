@@ -594,6 +594,8 @@
   opacity: 1 !important; margin-inline: 0 !important; padding-inline-start: 32px !important; background-color: transparent !important;
 }
 #main-window[zero][zero-empty] #urlbar-input { font-size: 14px !important; }
+/* Sin texto: la barra y ya, y se escribe lo que se quiera (Risco, 15-10). */
+#main-window[zero][zero-empty]:is(*, [zero-backdrop="system"][zero-frame-ink]) #nav-bar:is(*, [zero-ink]) #urlbar-input::placeholder { color: transparent !important; }
 #main-window[zero][zero-empty] #zero-host { opacity: 0 !important; }
 /* Sin nada abierto no hay atrás, adelante ni recargar: fuera (sin hueco), y el texto empieza tras la G. */
 #main-window[zero][zero-empty] #nav-bar :is(#back-button, #forward-button, #stop-reload-button, #unified-extensions-button, #PanelUI-button) { display: none !important; }
