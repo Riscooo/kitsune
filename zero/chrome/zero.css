@@ -732,6 +732,7 @@
 #main-window[zero] #navigator-toolbox[zero-icons]:not([zero-island], [zero-island-alert]) { --zero-island-w: 56px !important; }
 #main-window[zero] #navigator-toolbox[zero-icons][zero-island="open"]:not([zero-island-alert]) { --zero-island-w: 214px !important; }
 #main-window[zero] #zero-host .zero-host-icon { display: none; flex: none; width: 16px; height: 16px; border-radius: 4px; }
+#main-window[zero] #zero-host .zero-host-icon[light-icon] { background: rgba(32, 34, 38, .85); }
 #main-window[zero] #navigator-toolbox[zero-icons] #zero-host :is(.zero-host-text, .zero-lock) { display: none !important; }
 #main-window[zero] #navigator-toolbox[zero-icons] #zero-host .zero-host-icon { display: block !important; }
 /* Abierta, el icono va en el hueco entre ↻ y los de la derecha (3 + 3 × 30 px a la izquierda; 3 + 2 × 30, las

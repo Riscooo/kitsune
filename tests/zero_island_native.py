@@ -30,6 +30,8 @@
     abierta, con un aviso o escribiendo, encoge para caber, centrada; las sugerencias, igual.
 18. Con «solo iconos», si además lleva el punto de un usuario y la onda de la música, la isla crece lo
     justo para que quepan (no se recortan).
+19. Con «solo iconos», un favicon claro sobre transparente (el gato de GitHub en oscuro) lleva un fondo
+    oscuro para verse sobre el cristal claro; uno oscuro, no.
 
 --zero-del-repo: Zero sale de zero/ del repositorio (ver zero_harness.py).
 """
@@ -48,8 +50,14 @@ import zero_harness
 class Handler(http.server.BaseHTTPRequestHandler):
     def do_GET(self):
         self.send_response(200)
-        self.send_header('Content-Type', 'text/html; charset=utf-8')
+        self.send_header('Content-Type', 'image/svg+xml' if self.path.endswith('.svg') else 'text/html; charset=utf-8')
         self.end_headers()
+        if self.path == '/blanco.svg':
+            self.wfile.write(b'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><circle cx="8" cy="8" r="5" fill="#fff"/></svg>')
+            return
+        if self.path == '/gato-blanco':
+            self.wfile.write('<!doctype html><meta charset=utf-8><title>Gato blanco</title><link rel=icon href="/blanco.svg"><h1>Gato</h1>'.encode())
+            return
         if self.path.startswith('/articulo'):
             para = ('<p>Los zorros de Kioto viven entre los santuarios de Fushimi Inari, donde miles de torii naranjas forman '
                     'túneles que suben por la montaña. Cuentan que son mensajeros de Inari y que guardan las cosechas de arroz, '
@@ -372,6 +380,20 @@ def main():
         chrome("ChromeUtils.importESModule('chrome://browser/content/zero/zero-island.sys.mjs').nowPlaying(window, null); gBrowser.removeTab(window.__dani); delete window.__dani; Services.prefs.setBoolPref('kitsune.zero.islandIcons', false);")
         until(lambda: sized(176), timeout=5)
         check('Con «solo iconos», el punto del usuario y la onda de la música caben (la isla crece lo justo)')
+
+        chrome("Services.prefs.setBoolPref('kitsune.zero.islandIcons', true)")
+        driver.navigate(origin + '/gato-blanco')
+        icon = """const i = document.querySelector('#zero-host .zero-host-icon'); const c = getComputedStyle(i).backgroundColor.match(/[\\d.]+/g).map(Number);
+            return { src: i.getAttribute('src')?.slice(0, 30), loaded: i.complete && i.naturalWidth > 0, light: i.hasAttribute('light-icon'), alpha: c[3] ?? 1, lum: (c[0] + c[1] + c[2]) / 3 };"""
+        try:
+            until(lambda: (i := chrome(icon))['loaded'] and i['light'] and i['alpha'] > 0.5 and i['lum'] < 100, timeout=10)
+        except AssertionError:
+            raise AssertionError(f'favicon claro en la isla: {chrome(icon)}') from None
+        driver.navigate(origin + '/kioto')
+        until(lambda: not chrome(icon)['light'], timeout=10)
+        chrome("Services.prefs.setBoolPref('kitsune.zero.islandIcons', false)")
+        until(lambda: sized(176), timeout=5)
+        check('Con «solo iconos», un favicon claro lleva un fondo oscuro para verse')
 
         chrome("ChromeUtils.importESModule('chrome://browser/content/zero/zero-island.sys.mjs').alert(window, 'Tres avisos esperando', 'te los enseño en el descanso', 1500, 'quiet')")
         until(lambda: sized(470) and clear_of_card(), timeout=5)

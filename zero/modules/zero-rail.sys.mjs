@@ -8,6 +8,7 @@
  */
 import { dockScales } from './zero-dock.mjs';
 import { userOf, paintUser } from './zero-who.sys.mjs';
+import { lightIcon } from './zero-icon.sys.mjs';
 
 const HTML = 'http://www.w3.org/1999/xhtml';
 const state = new WeakMap(); // ventana → { cleanups, items, … }
@@ -51,25 +52,6 @@ function tabItem(doc, host) {
 }
 
 /** El icono: el favicon en un círculo claro, o la inicial sobre su color. */
-/** ¿Es un icono claro sobre transparente (como el gato de GitHub con el sistema en oscuro)? Sobre el
- *  círculo claro no se vería: entonces va en uno oscuro. Se mira el icono tal como se pinta (16 × 16);
- *  si no se puede leer (una imagen de otro origen), se deja como está. */
-function lightIcon(doc, img) {
-  try {
-    const canvas = el(doc, 'canvas', { width: '16', height: '16' });
-    const ctx = canvas.getContext('2d');
-    ctx.drawImage(img, 0, 0, 16, 16);
-    const data = ctx.getImageData(0, 0, 16, 16).data;
-    let light = 0, opaque = 0;
-    for (let i = 0; i < data.length; i += 4) {
-      if (data[i + 3] < 100) continue;
-      opaque++;
-      light += (data[i] + data[i + 1] + data[i + 2]) / 3;
-    }
-    return opaque > 0 && opaque < 0.85 * 256 && light / opaque > 200;
-  } catch { return null; }
-}
-
 function setFav(doc, fav, icon, letter, hue) {
   if (icon) {
     let img = fav.querySelector('img');

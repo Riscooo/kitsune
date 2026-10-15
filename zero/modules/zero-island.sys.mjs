@@ -8,6 +8,7 @@
  */
 import { prefName, PREFS } from './zero-config.sys.mjs';
 import { userOf, paintUser } from './zero-who.sys.mjs';
+import { lightIcon } from './zero-icon.sys.mjs';
 
 const HTML = 'http://www.w3.org/1999/xhtml';
 const NO_ICON = 'chrome://global/skin/icons/defaultFavicon.svg';
@@ -52,6 +53,8 @@ export function attach(win, ctx = {}) {
   st.msg.addEventListener('click', () => { const action = st.action; if (action) { try { action(); } catch { /* ya no está */ } } });
   const icon = el(doc, 'img', { class: 'zero-host-icon', alt: '' });
   icon.addEventListener('error', () => { if (icon.getAttribute('src') !== NO_ICON) icon.setAttribute('src', NO_ICON); });
+  // Un favicon claro sobre transparente lleva un fondo oscuro (sobre el cristal claro no se vería).
+  icon.addEventListener('load', () => { const light = lightIcon(doc, icon); icon.toggleAttribute('light-icon', !!light); });
   // El candado (y el icono, con «solo iconos») se pulsan: botones también para el teclado de Gecko,
   // que recorre con las flechas lo que tiene role="button" y lo pulsa con Intro.
   const t = ctx.host?.t ?? (es => es);
