@@ -603,12 +603,14 @@
 #zero-rail:is(:hover, :has(:focus-visible)) .zero-space[selected] .zero-fav { background: rgba(29, 35, 33, .16); }
 
 /* Los títulos entran uno tras otro (28 ms entre cada uno) cuando el raíl ya ha empezado a abrirse. */
+/* Los títulos entran con opacidad y un poco de desplazamiento (el compositor): con desenfoque, Gecko
+   repintaba todos los títulos en cada fotograma de la apertura. */
 #zero-rail .zero-tt {
   flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; pointer-events: none;
-  opacity: 0; transform: translateX(-4px); filter: blur(2px);
-  transition: opacity var(--zero-t-fade) var(--zero-soft), transform var(--zero-t-morph) var(--zero-calm), filter var(--zero-t-fade) var(--zero-soft);
+  opacity: 0; transform: translateX(-6px);
+  transition: opacity var(--zero-t-fade) var(--zero-soft), transform var(--zero-t-morph) var(--zero-calm);
 }
-#zero-rail:is(:hover, :has(:focus-visible)) .zero-tt { opacity: .95; transform: none; filter: none; transition-delay: calc(var(--zero-enter) - 30ms + var(--i, 0) * 28ms); }
+#zero-rail:is(:hover, :has(:focus-visible)) .zero-tt { opacity: .95; transform: none; transition-delay: calc(var(--zero-enter) - 30ms + var(--i, 0) * 28ms); }
 #zero-rail:is(:hover, :has(:focus-visible)) .zero-item:is(:hover, :focus-visible) .zero-tt { font-weight: 600; }
 #zero-rail .zero-tab:focus-visible { outline: 2px solid rgba(58, 143, 116, .8); outline-offset: -2px; }
 
