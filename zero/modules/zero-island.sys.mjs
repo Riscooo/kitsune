@@ -98,6 +98,43 @@ export function attach(win, ctx = {}) {
   st.anchor = el(doc, 'span', { class: 'zero-anchor', 'aria-hidden': 'true' });
   navbar.append(st.anchor);
   st.cleanups.push(() => st.anchor.remove());
+
+  // Mientras carga la web que se ve: una línea fina en el borde de abajo de la isla, que avanza con lo
+  // que dice Gecko (y, si no dice nada, despacio hacia el final) y se va al terminar.
+  const load = el(doc, 'span', { class: 'zero-load', 'aria-hidden': 'true' });
+  navbar.append(load);
+  st.cleanups.push(() => { win.clearInterval(st.creep); win.clearTimeout(st.loadDone); load.remove(); });
+  const setLoad = (on, p = null) => {
+    win.clearTimeout(st.loadDone);
+    load.toggleAttribute('on', on);
+    if (p !== null) { st.loadP = Math.max(st.loadP ?? 0, Math.min(1, p)); load.style.setProperty('--zero-load', String(st.loadP)); }
+  };
+  const start = () => {
+    st.loadP = 0; setLoad(true, 0.08);
+    win.clearInterval(st.creep);
+    st.creep = win.setInterval(() => setLoad(true, (st.loadP ?? 0) + (0.9 - (st.loadP ?? 0)) * 0.08), 200);
+  };
+  const stop = () => {
+    win.clearInterval(st.creep); st.creep = 0;
+    if (!load.hasAttribute('on')) return;
+    setLoad(true, 1);
+    st.loadDone = win.setTimeout(() => { load.removeAttribute('on'); st.loadP = 0; load.style.setProperty('--zero-load', '0'); }, 320);
+  };
+  const WPL = Ci.nsIWebProgressListener;
+  const loader = {
+    onStateChange(webProgress, request, flags) {
+      if (!webProgress?.isTopLevel || !(flags & WPL.STATE_IS_NETWORK)) return;
+      if (flags & WPL.STATE_START) start();
+      else if (flags & WPL.STATE_STOP) stop();
+    },
+    onProgressChange(webProgress, request, curSelf, maxSelf, curTotal, maxTotal) {
+      if (webProgress?.isTopLevel && maxTotal > 0 && load.hasAttribute('on')) setLoad(true, 0.08 + 0.9 * (curTotal / maxTotal));
+    },
+  };
+  win.gBrowser.addProgressListener(loader);
+  st.cleanups.push(() => win.gBrowser.removeProgressListener(loader));
+  // Otra pestaña: la línea es la suya (cargando o no).
+  listen(win.gBrowser.tabContainer, 'TabSelect', () => { if (win.gBrowser.selectedTab.hasAttribute('busy')) start(); else { win.clearInterval(st.creep); load.removeAttribute('on'); st.loadP = 0; } });
   for (const part of [lock, icon]) part.addEventListener('click', siteInfo);
 
   // Lo que se puede hacer con esta web, solo cuando toca (como en la Dynamic Island): leerla en la

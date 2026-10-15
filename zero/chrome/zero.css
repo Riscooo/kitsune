@@ -270,7 +270,7 @@
 #main-window[zero] #nav-bar-customization-target { height: 32px !important; padding: 0 !important; gap: 0 !important; align-items: center !important; }
 
 /* Solo atrás, adelante, recargar, la dirección, las extensiones (si Gecko las enseña) y el menú; lo demás, fuera de Zero. */
-#main-window[zero] #nav-bar > :not(#nav-bar-customization-target, #PanelUI-button, #unified-extensions-button, #zero-host, #zero-island-msg, #zero-island-progress, .zero-anchor, toolbartabstop),
+#main-window[zero] #nav-bar > :not(#nav-bar-customization-target, #PanelUI-button, #unified-extensions-button, #zero-host, #zero-island-msg, #zero-island-progress, .zero-anchor, .zero-load, toolbartabstop),
 #main-window[zero] #nav-bar-customization-target > :not(#back-button, #forward-button, #stop-reload-button, #urlbar-container, #unified-extensions-button) { display: none !important; }
 
 /* Los botones: fuera en reposo; al abrirse la isla entran cuando ya ha empezado a crecer (forma
@@ -396,6 +396,17 @@
 #main-window[zero] #navigator-toolbox[zero-island="open"] #zero-host .zero-now-wave { display: none !important; }
 #main-window[zero] #navigator-toolbox[zero-island="open"] #zero-host .zero-now-toggle,
 #main-window[zero] #navigator-toolbox[zero-island="open"] #zero-host .zero-now-next:not([hidden]) { display: block !important; }
+
+/* Cargando la web que se ve: una línea fina en el borde de abajo de la isla, que avanza y se va. */
+#main-window[zero] #nav-bar > .zero-load {
+  position: absolute !important; left: 16px !important; right: 16px !important; bottom: 3px !important; height: 2px !important;
+  border-radius: 1px !important; pointer-events: none !important;
+  background: currentColor !important; opacity: 0 !important;
+  transform: scaleX(var(--zero-load, 0)) !important; transform-origin: left center !important;
+  transition: transform 260ms var(--zero-calm), opacity var(--zero-t-fade) var(--zero-soft) !important;
+}
+#main-window[zero] #nav-bar > .zero-load[on] { opacity: .55 !important; }
+#main-window[zero] #navigator-toolbox:is([zero-island="typing"], [zero-island-alert]) #nav-bar > .zero-load { opacity: 0 !important; }
 
 /* De donde cuelgan los paneles que se abren desde la isla (la información de la web). */
 #main-window[zero] #nav-bar > .zero-anchor { position: absolute !important; top: 0 !important; bottom: 0 !important; width: 1px !important; opacity: 0 !important; pointer-events: none !important; }

@@ -32,6 +32,8 @@
     justo para que quepan (no se recortan).
 19. Con «solo iconos», un favicon claro sobre transparente (el gato de GitHub en oscuro) lleva un fondo
     oscuro para verse sobre el cristal claro; uno oscuro, no.
+20. Mientras carga la web que se ve, la isla lleva una línea fina de progreso en su borde de abajo, que
+    avanza y se va al terminar.
 
 --zero-del-repo: Zero sale de zero/ del repositorio (ver zero_harness.py).
 """
@@ -52,6 +54,12 @@ class Handler(http.server.BaseHTTPRequestHandler):
         self.send_response(200)
         self.send_header('Content-Type', 'image/svg+xml' if self.path.endswith('.svg') else 'text/html; charset=utf-8')
         self.end_headers()
+        if self.path == '/despacio':
+            import time as _t
+            self.wfile.write(b'<!doctype html><meta charset=utf-8><title>Despacio</title>')
+            for i in range(30):
+                self.wfile.write(('<p>' + 'zorro ' * 400 + '</p>').encode()); self.wfile.flush(); _t.sleep(0.1)
+            return
         if self.path == '/blanco.svg':
             self.wfile.write(b'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><circle cx="8" cy="8" r="5" fill="#fff"/></svg>')
             return
@@ -394,6 +402,24 @@ def main():
         chrome("Services.prefs.setBoolPref('kitsune.zero.islandIcons', false)")
         until(lambda: sized(176), timeout=5)
         check('Con «solo iconos», un favicon claro lleva un fondo oscuro para verse')
+
+        line = """const l = document.querySelector('#nav-bar .zero-load'); if (!l) return null; const cs = getComputedStyle(l);
+            return { on: l.hasAttribute('on'), p: Number(cs.getPropertyValue('--zero-load') || 0), opacity: Number(cs.opacity), w: l.getBoundingClientRect().width };"""
+        driver.context('chrome')
+        driver.script("gBrowser.selectedBrowser.loadURI(Services.io.newURI(arguments[0]), { triggeringPrincipal: Services.scriptSecurityManager.getSystemPrincipal() })", [origin + '/despacio'])
+        seen = []
+        def loading():
+            l = chrome(line)
+            if l and l['on'] and l['opacity'] > 0.3 and 0 < l['p'] < 1:
+                seen.append(l['p'])
+            return len(seen) >= 2
+        try:
+            until(loading, timeout=8)
+            until(lambda: (l := chrome(line)) is not None and not l['on'], timeout=10)
+        except AssertionError:
+            raise AssertionError(f'progreso de carga: {chrome(line)} · visto {seen}') from None
+        assert seen == sorted(seen), seen
+        check('Mientras carga la web, la isla lleva una línea de progreso que avanza y se va al terminar')
 
         chrome("ChromeUtils.importESModule('chrome://browser/content/zero/zero-island.sys.mjs').alert(window, 'Tres avisos esperando', 'te los enseño en el descanso', 1500, 'quiet')")
         until(lambda: sized(470) and clear_of_card(), timeout=5)
