@@ -310,6 +310,8 @@
 /* Las acciones de página (la estrella de marcadores…) no se ven, pero siguen ahí, en un hueco de 1 px:
    Gecko ancla en la estrella el panel de «Guardar en marcadores» y, si no la encuentra, no lo abre. */
 #main-window[zero] #urlbar > .urlbar-input-container > #page-action-buttons { max-width: 1px !important; overflow: clip !important; opacity: 0 !important; pointer-events: none !important; margin: 0 !important; padding: 0 !important; }
+/* Y fuera del teclado: no se ven, así que tampoco son una parada al recorrer la isla con Tab. */
+#main-window[zero] #urlbar > .urlbar-input-container > #page-action-buttons * { -moz-user-focus: ignore !important; }
 #main-window[zero] #urlbar > .urlbar-input-container > #identity-box { max-width: 0 !important; overflow: clip !important; margin: 0 !important; padding: 0 !important; opacity: 0 !important; }
 #main-window[zero] #urlbar-input { color: #fff !important; font: 500 12.5px system-ui, sans-serif !important; }
 #main-window[zero] #urlbar-input::placeholder { color: rgba(255, 255, 255, .62) !important; opacity: 1 !important; }

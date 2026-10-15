@@ -52,7 +52,11 @@ export function attach(win, ctx = {}) {
   st.msg.addEventListener('click', () => { const action = st.action; if (action) { try { action(); } catch { /* ya no está */ } } });
   const icon = el(doc, 'img', { class: 'zero-host-icon', alt: '' });
   icon.addEventListener('error', () => { if (icon.getAttribute('src') !== NO_ICON) icon.setAttribute('src', NO_ICON); });
-  const lock = el(doc, 'span', { class: 'zero-lock' });
+  // El candado (y el icono, con «solo iconos») se pulsan: botones también para el teclado de Gecko,
+  // que recorre con las flechas lo que tiene role="button" y lo pulsa con Intro.
+  const t = ctx.host?.t ?? (es => es);
+  const siteTitle = t('Información de la web', 'Site information');
+  const lock = el(doc, 'span', { class: 'zero-lock', role: 'button', tabindex: '-1', title: siteTitle, 'aria-label': siteTitle });
   const text = el(doc, 'span', { class: 'zero-host-text' });
   // De qué usuario es la web: un punto de su color que, con la isla abierta, dice su nombre.
   const user = el(doc, 'span', { class: 'zero-user' });
@@ -95,10 +99,9 @@ export function attach(win, ctx = {}) {
 
   // Lo que se puede hacer con esta web, solo cuando toca (como en la Dynamic Island): leerla en la
   // vista de lectura y traducirla. Siguen a los botones de Gecko, que en Zero no se ven.
-  const t = ctx.host?.t ?? (es => es);
   const actions = el(doc, 'span', { class: 'zero-actions' });
   const action = (name, title, run) => {
-    const button = el(doc, 'span', { class: 'zero-action', 'data-action': name, role: 'button', title, 'aria-label': title, hidden: 'true' });
+    const button = el(doc, 'span', { class: 'zero-action', 'data-action': name, role: 'button', tabindex: '-1', title, 'aria-label': title, hidden: 'true' });
     button.addEventListener('click', event => {
       if (event.button !== 0 || toolbox.getAttribute('zero-island') !== 'open') return;
       try { run(event); } catch (error) { console.error('Kitsune Zero:', error); }
@@ -112,7 +115,7 @@ export function attach(win, ctx = {}) {
   // Lo que suena en otra pestaña (zero-media): en reposo, una onda; abierta, pausa y siguiente.
   const now = el(doc, 'span', { class: 'zero-now' }, [el(doc, 'span', { class: 'zero-now-wave', 'aria-hidden': 'true' }, [el(doc, 'i'), el(doc, 'i'), el(doc, 'i')])]);
   const nowButton = (name, title, run) => {
-    const button = el(doc, 'span', { class: `zero-now-${name}`, role: 'button', title, 'aria-label': title });
+    const button = el(doc, 'span', { class: `zero-now-${name}`, role: 'button', tabindex: '-1', title, 'aria-label': title });
     button.addEventListener('click', event => {
       if (event.button !== 0 || toolbox.getAttribute('zero-island') !== 'open') return;
       try { run(st.now.data); } catch (error) { console.error('Kitsune Zero:', error); }
@@ -160,7 +163,12 @@ export function attach(win, ctx = {}) {
     listen(input, 'blur', refresh);
   }
   // Con el teclado (F6, Mayús+Tab): el foco en un botón de la isla también la abre, para que se vea.
-  const focus = () => { const active = doc.activeElement; st.focused = !!active && active !== input && navbar.contains(active); refresh(); };
+  // Solo el foco de teclado (:focus-visible): un clic de ratón en un botón no la deja abierta.
+  const focus = () => {
+    const active = doc.activeElement;
+    st.focused = !!active && active !== input && navbar.contains(active) && active.matches(':focus-visible');
+    refresh();
+  };
   listen(navbar, 'focusin', focus);
   listen(navbar, 'focusout', () => win.setTimeout(focus, 0));
   listen(navbar, 'mouseenter', () => { st.hover = true; refresh(); });

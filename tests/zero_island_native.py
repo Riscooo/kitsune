@@ -24,6 +24,8 @@
     la isla: no se sale por los dos lados.
 15. Con el teclado: si el foco llega a un botón de la isla (F6, Mayús+Tab), la isla se abre y el botón
     se ve; al irse el foco, vuelve a reposo.
+16. Con las flechas se llega también a los botones propios de Zero (el candado, leer, traducir, la
+    música) y con Intro hacen lo suyo (el candado abre la información de la web).
 
 --zero-del-repo: Zero sale de zero/ del repositorio (ver zero_harness.py).
 """
@@ -310,6 +312,27 @@ def main():
         chrome("gBrowser.selectedBrowser.focus()")
         until(lambda: sized(176), timeout=5)
         check('Con el teclado, el foco en un botón abre la isla y el botón se ve; al irse, vuelve')
+
+        # Con las flechas hasta el candado, e Intro.
+        chrome("gURLBar.focus()")
+        def keys(*values):
+            steps = []
+            for v in values: steps += [{'type': 'keyDown', 'value': v}, {'type': 'keyUp', 'value': v}]
+            driver.command('POST', '/actions', {'actions': [{'type': 'key', 'id': 'teclado', 'actions': steps}]})
+        keys('')  # Tab: al grupo de botones de detrás de la dirección
+        on_lock = "return !!document.activeElement?.classList?.contains('zero-lock')"
+        for _ in range(12):
+            if chrome(on_lock): break
+            keys('')  # →
+        try:
+            until(lambda: chrome(on_lock), timeout=3)
+            keys('')  # Intro
+            until(lambda: chrome("return gIdentityHandler._identityPopup?.state") == 'open', timeout=5)
+        except AssertionError:
+            raise AssertionError(f'flechas hasta el candado: {chrome("const a = document.activeElement; return [a?.id || a?.className, gIdentityHandler._identityPopup?.state]")}') from None
+        chrome("PanelMultiView.hidePopup(gIdentityHandler._identityPopup); gBrowser.selectedBrowser.focus();")
+        until(lambda: sized(176), timeout=5)
+        check('Con las flechas se llega a los botones de Zero (el candado) y con Intro hacen lo suyo')
 
         chrome("ChromeUtils.importESModule('chrome://browser/content/zero/zero-island.sys.mjs').alert(window, 'Tres avisos esperando', 'te los enseño en el descanso', 1500, 'quiet')")
         until(lambda: sized(470) and clear_of_card(), timeout=5)
