@@ -98,6 +98,10 @@ ABOUT_CREDIT = '<label id="kitsune-engine-credit" class="text-blurb">Tinta · mo
 # defecto llamado Kitsune y ningún marcador, tema ni enlace de ayuda de Firefox.
 # Cada texto se comprueba: si Gecko lo cambia, la receta avisa en vez de seguir.
 TEXT_PATCHES = {
+    # Las ventanas en mosaico (niri con tiled-state) sin el marco de GTK: en Kitsune Zero, transparente,
+    # su sombra y su borde de 1 px enmarcaban el vacío (ver zero/linux/kitsune-zero.kdl).
+    "widget/gtk/nsLookAndFeel.cpp": [('  mRoundedCornerProviderRadius = radius;\n  if (!radius) {\n    return ClearRoundedCornerProvider();\n  }\n  mRoundedCornerProvider = dont_AddRef(gtk_css_provider_new());\n  nsPrintfCString string(\n      "window.csd decoration {"\n      "border-bottom-right-radius: %dpx;"\n      "border-bottom-left-radius: %dpx;"\n      "}\\n",\n      radius, radius);', '  mRoundedCornerProviderRadius = radius;\n  // Kitsune: el proveedor se crea siempre (también sin esquinas redondeadas) porque además quita el\n  // marco de GTK (sombra y borde de 1 px) a las ventanas en mosaico (niri con tiled-state): en\n  // Kitsune Zero, una ventana transparente, enmarcaba el vacío.\n  ClearRoundedCornerProvider();\n  mRoundedCornerProvider = dont_AddRef(gtk_css_provider_new());\n  nsPrintfCString string(\n      "window.csd decoration {"\n      "border-bottom-right-radius: %dpx;"\n      "border-bottom-left-radius: %dpx;"\n      "}\\n"\n      "window.csd.tiled decoration, window.csd.tiled-top decoration,"\n      " window.csd.tiled-bottom decoration, window.csd.tiled-left decoration,"\n      " window.csd.tiled-right decoration {"\n      "box-shadow: none; border: none; margin: 0;"\n      "}\\n",\n      radius, radius);')],
+    "widget/gtk/nsLookAndFeel.h": [('  int32_t mRoundedCornerProviderRadius = 0;', '  int32_t mRoundedCornerProviderRadius = -1;  // Kitsune: así el proveedor se crea siempre')],
     # Las barras de aviso llevaban el degradado de la marca Firefox: óxido y jade de Kitsune.
     "toolkit/content/widgets/infobar.css": [
         ("background-image: linear-gradient(0deg, #9059ff 0%, #ff4aa2 52.08%, #ffbd4f 100%);",

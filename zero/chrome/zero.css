@@ -2,6 +2,13 @@
    @-moz-document): todo cuelga de :root[zero], y al apagar se quita la hoja entera. */
 :root[zero] {
   --zero-on: 1;
+  /* El cristal de las piezas (tipo Liquid Glass): casi transparente y claro, con filos de luz y un
+     reflejo arriba; el texto blanco lleva un halo para leerse sobre cualquier fondo. */
+  --zero-glass-fill: linear-gradient(180deg, rgba(255, 255, 255, .2), rgba(255, 255, 255, .08));
+  --zero-glass-edge: inset 0 1px 0 rgba(255, 255, 255, .85), inset 0 -1px 0 rgba(255, 255, 255, .22),
+                     inset 1px 0 0 rgba(255, 255, 255, .4), inset -1px 0 0 rgba(255, 255, 255, .24),
+                     inset 0 10px 16px -12px rgba(255, 255, 255, .6), 0 10px 30px rgba(0, 0, 0, .12);
+  --zero-glass-halo: 0 1px 2px rgba(0, 0, 0, .38), 0 0 10px rgba(0, 0, 0, .3);
   /* Curvas y tiempos de Zero: todo frena despacio, nada rebota ni salta. */
   --zero-calm: cubic-bezier(.32, .72, 0, 1);
   --zero-soft: cubic-bezier(.4, 0, .2, 1);
@@ -44,8 +51,9 @@
   background-size: cover !important;
   background-position: center !important;
 }
-/* El velo del marco: el color de la web, muy leve, cambiando despacio. */
-:root[zero] #tabbrowser-tabbox {
+/* El velo del marco (con el fondo de la web): su color, muy leve, cambiando despacio. Con el del sistema,
+   nada: Zero es transparente. */
+:root[zero][zero-backdrop="web"] #tabbrowser-tabbox {
   background-color: color-mix(in srgb, var(--zero-tint, transparent) 20%, transparent) !important;
   transition: background-color var(--zero-t-color) var(--zero-soft);
 }
@@ -218,10 +226,10 @@
   left: var(--zero-grow-x, 60px); top: var(--zero-grow-y, 56px);
   height: 30px; padding: 0 3px; border-radius: 999px;
   display: flex; align-items: center; gap: 2px;
-  color: #fff;
-  background: rgba(30, 33, 36, .32);
+  color: #fff; text-shadow: var(--zero-glass-halo);
+  background: var(--zero-glass-fill);
   backdrop-filter: blur(12px) saturate(1.7);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .7), inset 0 0 0 1px rgba(255, 255, 255, .22), 0 8px 24px rgba(0, 0, 0, .18);
+  box-shadow: var(--zero-glass-edge);
   opacity: 0; transform: translateY(-3px) scale(.96); filter: blur(2px); pointer-events: none;
   transition: opacity var(--zero-t-fade) var(--zero-soft), transform var(--zero-t-morph) var(--zero-calm),
               filter var(--zero-t-fade) var(--zero-soft), left var(--zero-t-move) var(--zero-calm), top var(--zero-t-move) var(--zero-calm);
@@ -298,12 +306,10 @@
   padding: 0 3px !important; margin: 0 !important;
   border: none !important; border-radius: 999px !important;
   color: #fff !important;
-  background: rgba(255, 255, 255, .025) !important;
+  background: var(--zero-glass-fill) !important;
   backdrop-filter: blur(10px) saturate(1.7) brightness(1.06) !important;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .85), inset 0 -1px 0 rgba(255, 255, 255, .28),
-              inset 1px 0 0 rgba(255, 255, 255, .38), inset -1px 0 0 rgba(255, 255, 255, .26),
-              inset 0 0 14px rgba(255, 255, 255, .14), 0 10px 30px rgba(0, 0, 0, .14) !important;
-  text-shadow: 0 1px 8px rgba(0, 0, 0, .3) !important;
+  box-shadow: var(--zero-glass-edge) !important;
+  text-shadow: var(--zero-glass-halo) !important;
   --toolbarbutton-icon-fill: #fff !important;
   --toolbarbutton-icon-fill-attention: #fff !important;
   --toolbarbutton-hover-background: rgba(255, 255, 255, .16) !important;
@@ -803,7 +809,7 @@
   box-sizing: border-box; width: 320px; max-height: calc(100% - 80px); overflow-y: auto; scrollbar-width: none;
   padding: 14px 14px 6px; border-radius: 22px;
   color: #1d2321; font: 500 12.5px system-ui, sans-serif;
-  background: rgba(246, 245, 241, .72);
+  background: rgba(246, 245, 241, .38);
   backdrop-filter: blur(24px) saturate(1.8);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, .95), inset 0 0 0 1px rgba(255, 255, 255, .55), 0 24px 60px rgba(0, 0, 0, .22);
   transform-origin: -21px calc(100% - 12px);
@@ -933,13 +939,11 @@
   position: fixed; top: 7px; right: 10px; z-index: 6;
   box-sizing: border-box; height: 32px; width: 32px; padding: 0; border-radius: 999px;
   display: flex; align-items: center; justify-content: flex-end; gap: 0; overflow: hidden;
-  color: #fff; font: 600 12.5px system-ui, sans-serif; text-shadow: 0 1px 8px rgba(0, 0, 0, .3);
+  color: #fff; font: 600 12.5px system-ui, sans-serif; text-shadow: var(--zero-glass-halo);
   -moz-window-dragging: no-drag;
-  background: rgba(255, 255, 255, .025);
+  background: var(--zero-glass-fill);
   backdrop-filter: blur(10px) saturate(1.7) brightness(1.06);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .85), inset 0 -1px 0 rgba(255, 255, 255, .28),
-              inset 1px 0 0 rgba(255, 255, 255, .38), inset -1px 0 0 rgba(255, 255, 255, .26),
-              inset 0 0 14px rgba(255, 255, 255, .14), 0 10px 30px rgba(0, 0, 0, .14);
+  box-shadow: var(--zero-glass-edge);
   transition: width var(--zero-t-morph) var(--zero-calm) var(--zero-wait), opacity var(--zero-t-fade) var(--zero-soft), transform var(--zero-t-morph) var(--zero-calm), color var(--zero-t-ink) var(--zero-soft);
 }
 #zero-pomo:is(:hover, :focus-within) { width: 222px; transition-delay: 0ms; }
@@ -1064,12 +1068,10 @@
 /* Con el fondo de la web y una web clara, el marco queda claro: lo que va encima de él pasa a tinta
    (zero-frame-ink, lo pone zero-frame según la luz de la foto). Con la web ampliada no hay marco: ahí
    manda el cristal en vivo de cada pieza (zero-ink). */
-/* Con el cristal del sistema no se sabe qué hay detrás de la ventana (es del compositor): la isla (y el
-   pomodoro y los botones de ampliar), sobre el marco, llevan un tinte del modo del sistema para que su texto se lea hasta sobre blanco (como los
-   materiales de macOS). En un escritorio del mismo tono ni se nota; el marco sigue casi transparente. */
-#main-window[zero][zero-backdrop="system"]:not([zero-full]) #nav-bar:not([zero-ink]),
-#main-window[zero][zero-backdrop="system"]:not([zero-full], [zero-frame-ink]) :is(#zero-pomo, #zero-grow):not([zero-ink]) { background-color: rgba(18, 20, 24, .5) !important; }
-#main-window[zero][zero-backdrop="system"][zero-frame-ink]:not([zero-full]) :is(#nav-bar, #zero-pomo):not([zero-ink]) { background-color: rgba(246, 245, 241, .62) !important; }
+/* Con el fondo del sistema (Zero transparente) no se sabe qué hay detrás de la ventana: las piezas son de
+   cristal claro, el texto blanco lleva un halo y, con el sistema en claro, pasa a tinta sobre un cristal
+   algo más lechoso. */
+#main-window[zero][zero-backdrop="system"][zero-frame-ink]:not([zero-full]) :is(#nav-bar, #zero-pomo, #zero-grow):not([zero-ink]) { background: linear-gradient(180deg, rgba(255, 255, 255, .42), rgba(255, 255, 255, .24)) !important; }
 #main-window[zero][zero-frame-ink]:not([zero-full]) #nav-bar:not([zero-ink]) {
   color: #1d2321 !important; text-shadow: none !important;
   --toolbarbutton-icon-fill: #1d2321 !important;

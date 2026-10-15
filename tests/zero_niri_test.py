@@ -29,7 +29,15 @@ class NiriRuleTests(unittest.TestCase):
     def test_adds_the_rule_file_and_one_include_with_a_backup(self):
         niri, result = self.run_script()
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertIn("blur true", (niri / "kitsune-zero.kdl").read_text())
+        # Zero es transparente y nítido (decisión de Risco, 15-10): la regla no desenfoca lo de detrás.
+        rule = (niri / "kitsune-zero.kdl").read_text()
+        self.assertNotIn("blur true", rule)
+        self.assertIn("draw-border-with-background false", rule)
+        # Sin marco de GTK (sombra y borde) ni anillo de foco de niri: enmarcaban la ventana transparente.
+        self.assertIn("tiled-state true", rule)
+        compact = " ".join(rule.split())
+        self.assertIn("focus-ring { off }", compact)
+        self.assertIn("border { off }", compact)
         config = (niri / "config.kdl").read_text()
         self.assertTrue(config.startswith("// mi configuración\n"))
         self.assertEqual(config.count('include "kitsune-zero.kdl"'), 1)

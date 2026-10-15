@@ -1,11 +1,18 @@
-// Kitsune Zero: desenfoque detrás de su ventana de cristal (niri 26.04 o posterior).
+// Kitsune Zero: su ventana es transparente y nítida (niri 26.04 o posterior): detrás se ve el escritorio
+// tal cual, sin desenfoque (decisión de Risco, 15-10); el cristal lo ponen las piezas de Zero.
 // Fuera de Zero la ventana de Kitsune es opaca, así que esta regla no se nota.
 window-rule {
     // Todos los perfiles: «kitsune-browser» el de siempre, «kitsune-p-<id>» los demás y «kitsune» el motor.
     match app-id="^kitsune(-browser|-p-[0-9a-f]+)?$"
-    background-effect {
-        blur true
+    // Sin anillo de foco ni borde de niri (decisión de Risco, 15-10): enmarcaban la ventana transparente.
+    // Y por si se vuelven a poner: solo de borde, que lleno se vería a través de toda la ventana.
+    focus-ring {
+        off
     }
-    // El anillo de foco, solo de borde: lleno se vería a través de todo el cristal.
+    border {
+        off
+    }
     draw-border-with-background false
+    // Que GTK no pinte su marco (sombra y un borde opaco de 1 px): en una ventana transparente se veía.
+    tiled-state true
 }

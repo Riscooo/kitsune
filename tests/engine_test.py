@@ -285,6 +285,18 @@ class RecipeTests(unittest.TestCase):
         for relative in engine.KITSUNE_LOGOS:
             self.assertEqual((root / relative).read_bytes(), (ROOT / "install/branding/icon-small.svg").read_bytes())
 
+    def test_tiled_windows_have_no_gtk_frame(self):
+        # En niri (tiled-state) las ventanas de Kitsune no llevan el marco de GTK (sombra y un borde de
+        # 1 px): en Kitsune Zero, transparente, enmarcaba el vacío. Solo en el proceso de Kitsune: el
+        # estilo va en el proveedor de GTK que Gecko ya crea (el de las esquinas redondeadas), que pasa
+        # a crearse siempre.
+        css = "".join(new for _, new in engine.TEXT_PATCHES["widget/gtk/nsLookAndFeel.cpp"])
+        self.assertIn("window.csd.tiled decoration", css)
+        self.assertIn("box-shadow: none", css)
+        self.assertNotIn("return ClearRoundedCornerProvider();", css)
+        header = "".join(new for _, new in engine.TEXT_PATCHES["widget/gtk/nsLookAndFeel.h"])
+        self.assertIn("mRoundedCornerProviderRadius = -1", header)
+
     def test_a_missing_gecko_illustration_stops_the_recipe(self):
         root = self.rebrand_tree()
         (root / engine.MASCOT_POSES["guardia"][0]).unlink()
