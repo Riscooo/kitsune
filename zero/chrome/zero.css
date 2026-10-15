@@ -59,20 +59,23 @@
   background-image: none !important;
 }
 /* Con el fondo del sistema, Zero es una lámina de cristal tipo Apple (decisión de Risco, 15-10): la
-   ventana con las esquinas redondeadas y un filo de cristal alrededor (un anillo de luz, vivo arriba a la
-   izquierda y abajo a la derecha, y un resplandor que da grosor a los bordes); por dentro, transparente.
+   ventana con las esquinas redondeadas y el canto de un cristal puesto encima de algo (grosor y brillo
+   suaves en los bordes, sin ninguna línea dibujada); por dentro, transparente.
    Encima, las piezas: cristal sobre cristal. Con la web ampliada la web llena la ventana: sin lámina. */
 :root[zero][zero-backdrop="system"]:not([zero-full]) body {
   border-radius: 26px !important;
-  background-image: linear-gradient(135deg, rgba(255, 255, 255, .08), rgba(255, 255, 255, 0) 32%, rgba(255, 255, 255, 0) 68%, rgba(255, 255, 255, .06)) !important;
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .28), inset 0 1.5px 0 rgba(255, 255, 255, .6),
-              inset 0 0 6px rgba(255, 255, 255, .32), inset 0 0 34px rgba(255, 255, 255, .2),
-              inset 0 -14px 28px -18px rgba(0, 0, 0, .25) !important;
+  background-image: linear-gradient(135deg, rgba(255, 255, 255, .07), rgba(255, 255, 255, 0) 30%, rgba(255, 255, 255, 0) 70%, rgba(255, 255, 255, .05)) !important;
+  /* El canto: grosor y brillo suaves que nacen del borde, sin ninguna raya. */
+  box-shadow: inset 0 0 6px 1px rgba(255, 255, 255, .22), inset 0 0 22px 2px rgba(255, 255, 255, .14),
+              inset 0 0 48px rgba(255, 255, 255, .07), inset 0 -26px 46px -34px rgba(0, 0, 0, .28) !important;
 }
+/* Un reflejo difuso en las esquinas de arriba a la izquierda y de abajo a la derecha, como la luz en el
+   canto de un cristal (sin líneas). */
 :root[zero][zero-backdrop="system"]:not([zero-full]) body::after {
-  content: ""; position: fixed; inset: 0; z-index: 2147483000; border-radius: 26px; padding: 2.2px; pointer-events: none;
-  background: var(--zero-glass-rim);
-  mask-image: linear-gradient(#000 0 0), linear-gradient(#000 0 0); mask-clip: content-box, border-box; mask-composite: exclude;
+  content: ""; position: fixed; inset: 0; z-index: 2147483000; border-radius: 26px; pointer-events: none;
+  background: radial-gradient(60% 40% at 0% 0%, rgba(255, 255, 255, .16), rgba(255, 255, 255, 0) 70%),
+              radial-gradient(55% 35% at 100% 100%, rgba(255, 255, 255, .11), rgba(255, 255, 255, 0) 70%);
+  mix-blend-mode: screen;
 }
 
 /* Sin desenfoque del compositor: detrás, una foto diminuta de la web, estirada y desenfocada. */

@@ -22,8 +22,8 @@
 13. Los botones de ampliar se pueden arrastrar a donde se quiera y se quedan allí (también al salir y
     volver a entrar en Zero); sus iconos, centrados en botones redondos.
 14. Con el fondo del sistema, Zero es una lámina de cristal tipo Apple (decisiones de Risco del 15-10):
-    la ventana con las esquinas redondeadas y un filo de cristal alrededor (anillo de luz y grosor en los
-    bordes), transparente por dentro, sin velo de color. Sus piezas, de cristal transparente: sobre
+    la ventana con las esquinas redondeadas y el canto de una lámina de cristal: grosor y brillo suaves en
+    los bordes, sin ninguna línea dibujada (ni anillo ni borde); transparente por dentro, sin velo. Sus piezas, de cristal transparente: sobre
     blanco, la isla, el pomodoro abierto y los botones de ampliar se ven claros (sin tinte oscuro); el
     texto, blanco con un halo con el sistema en oscuro y en tinta (≥ 3:1) en claro. El panel de ajustes
     se lee (≥ 4,5:1) con blanco o negro detrás: cristal ahumado en oscuro, claro en claro; la marca de
@@ -315,10 +315,15 @@ def main():
             # Claro sobre blanco (nada de tinte oscuro); el texto, blanco con halo o en tinta legible.
             return g['light'] >= 0.7 and ((dark and min(g['text']) >= 240 and g['halo']) or (not dark and g['ratio'] >= 3.0))
         # La lámina: esquinas redondeadas y su filo de cristal (anillo de luz y resplandor en los bordes).
-        pane = """const b = getComputedStyle(document.body), ring = getComputedStyle(document.body, '::after');
-            return { radius: parseFloat(b.borderTopLeftRadius), glow: b.boxShadow.includes('inset'), ring: ring.content !== 'none' && ring.backgroundImage.includes('gradient') };"""
+        # Sin líneas: ninguna sombra interior sin desenfoque (eso dibuja una raya) ni anillo recortado con
+        # máscara; el brillo, en degradados suaves.
+        pane = """const b = getComputedStyle(document.body), sheen = getComputedStyle(document.body, '::after');
+            const shadows = b.boxShadow.split(/,(?![^(]*\\))/).map(x => x.trim()).filter(x => x.includes('inset'));
+            const lines = shadows.filter(x => { const n = x.replace(/rgba?\\([^)]*\\)/, '').match(/-?[\\d.]+px/g) || []; return parseFloat(n[2] ?? '0') < 4; });
+            return { radius: parseFloat(b.borderTopLeftRadius), glow: shadows.length > 0, lines: lines.length, ring: sheen.maskImage !== 'none',
+                     sheen: sheen.content !== 'none' && sheen.backgroundImage.includes('gradient') };"""
         lamina = chrome(pane)
-        assert lamina['radius'] >= 18 and lamina['glow'] and lamina['ring'], f'la ventana no es una lámina de cristal: {lamina}'
+        assert lamina['radius'] >= 18 and lamina['glow'] and lamina['sheen'] and not lamina['lines'] and not lamina['ring'], f'la ventana no es una lámina de cristal sin líneas: {lamina}'
         chrome("Services.prefs.setBoolPref('kitsune.zero.pomodoro', true)")
         eventually(lambda: chrome("return !!document.getElementById('zero-pomo')"), timeout=5)
         veil = "return getComputedStyle(document.getElementById('tabbrowser-tabbox')).backgroundColor"
