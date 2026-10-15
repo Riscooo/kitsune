@@ -22,11 +22,12 @@
 13. Los botones de ampliar se pueden arrastrar a donde se quiera y se quedan allí (también al salir y
     volver a entrar en Zero); sus iconos, centrados en botones redondos.
 14. Con el fondo del sistema, Zero es una lámina de cristal tipo Apple (decisiones de Risco del 15-10):
-    la ventana con las esquinas redondeadas y el canto de un cristal grueso puesto encima (captura 45): un
-    bisel (≥ 10 px) más claro que lo de detrás, con su línea por dentro, y reflejos en el filo, más vivos
-    en las esquinas que a media altura y los mismos a la izquierda que a la derecha; transparente por
-    dentro, sin velo. Ningún filo (de la lámina o de las piezas) es un anillo recortado con máscara (a
-    escala 1 se veían los píxeles). Los botones de ventana se ven sobre blanco y sobre oscuro; el raíl,
+    la ventana con las esquinas redondeadas y el canto de un cristal puesto encima (captura 45), sin
+    ninguna línea blanca ni franja con límites (captura 46: «segmentado, no se fusiona»): una luz que nace
+    del filo y se funde hacia dentro sin volver a subir, reflejos suaves en las esquinas (más vivos que a
+    media altura, donde casi no hay nada) y los mismos a la izquierda que a la derecha; transparente por
+    dentro, sin velo. Ningún filo de las piezas es un anillo recortado con máscara (a escala 1 se veían
+    los píxeles). Los botones de ventana se ven sobre blanco y sobre oscuro; el raíl,
     algo más presente sobre oscuro. Sus piezas, de cristal transparente: sobre
     blanco, la isla, el pomodoro abierto y los botones de ampliar se ven claros (sin tinte oscuro); el
     texto, blanco con un halo con el sistema en oscuro y en tinta (≥ 3:1) en claro. El panel de ajustes
@@ -342,24 +343,37 @@ def main():
                 """Los grises de x0 a x1 (px CSS) en la fila y (media de 5 filas)."""
                 return [sum(img.getpixel((int(x * k), int((y + d) * k))) for d in (-2, -1, 0, 1, 2)) / 5 for x in range(int(x0), int(x1))]
             return img, k, W, H, row
+        lines = chrome("""const out = [];
+            for (const p of [null, '::before', '::after']) {
+              const cs = getComputedStyle(document.body, p);
+              if (p && cs.content === 'none') continue;
+              for (const layer of cs.boxShadow.split(/,(?![^(]*\\))/)) {
+                const n = layer.replace(/rgba?\\([^)]*\\)/, '').match(/-?[\\d.]+px/g) || [];
+                if (layer.includes('inset') && parseFloat(n[2] ?? '0') < 1) out.push([p, layer.trim()]);
+              }
+              if (p && parseFloat(cs.borderTopWidth) > 0) out.push([p, 'border ' + cs.borderTopWidth]);
+            }
+            return out;""")
+        assert not lines, f'la lámina dibuja líneas (sombras sin desenfoque o bordes): {lines}'
         def lamina():
             img, k, W, H, row = photo('lamina.png')
             y = H * 0.25
             left, right = row(0, 40, y), row(W - 40, W, y)[::-1]  # la derecha, contada desde su filo
             return {
                 'rim': (max(left[0:3]), max(right[0:3])),
-                'band': (sum(left[4:9]) / 5, sum(right[4:9]) / 5), 'behind': left[30],
-                'crease': max(left[11:15]) - sum(left[16:24]) / 8,
+                'glow': (sum(left[1:6]) / 5, sum(right[1:6]) / 5), 'behind': left[30],
+                # Se funde: desde el filo hacia dentro, la luz no vuelve a subir (ni línea ni franja).
+                'rise': max(left[i + 1] - left[i] for i in range(3, 39)),
                 'corner': max(row(0, 3, 44)), 'middle': max(row(0, 3, H * 0.5)),
             }
         chrome("window.windowUtils.loadSheetUsingURIString(arguments[0], window.windowUtils.AGENT_SHEET)", [dark_sheet])
         try:
             time.sleep(0.4)
             lam = lamina()
-            thick = lam['band'][0] >= lam['behind'] + 6 and lam['crease'] >= 8
+            fused = lam['glow'][0] >= lam['behind'] + 3 and lam['rise'] <= 3 and lam['middle'] <= lam['behind'] + 20
             lit = lam['corner'] >= lam['middle'] + 20
-            even = abs(lam['rim'][0] - lam['rim'][1]) <= 12 and abs(lam['band'][0] - lam['band'][1]) <= 6
-            assert thick and lit and even, f'la ventana no es un cristal grueso con reflejos (bisel, esquinas, simetría): {lam}'
+            even = abs(lam['rim'][0] - lam['rim'][1]) <= 12 and abs(lam['glow'][0] - lam['glow'][1]) <= 6
+            assert fused and lit and even, f'el canto no es cristal fundido con reflejos (sin líneas, esquinas, simetría): {lam}'
             # Los botones de ventana, sobre oscuro: claros.
             img, k, W, H, row = photo('botones-oscuro.png')
             light = chrome("const r = document.querySelector('#zero-lights > button').getBoundingClientRect(); return [r.left + r.width / 2, r.top + r.height / 2]")
