@@ -440,6 +440,7 @@ def main():
             modified_click(nth(others[1]), CTRL)
             until(lambda: set(chrome(marked)['gecko']) == {first, others[1]} and set(chrome(marked)['rail']) >= {others[1]} and chrome(marked)['ring'], timeout=5)
             step = 'Ctrl + clic quita'
+            time.sleep(0.6)  # que no sea un doble clic (dos clics seguidos en la misma pestaña)
             modified_click(nth(others[1]), CTRL)
             until(lambda: chrome(marked)['gecko'] == [first], timeout=5)
             step = 'Mayús + clic, un tramo'
