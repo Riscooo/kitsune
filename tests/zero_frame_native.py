@@ -22,8 +22,12 @@
 13. Los botones de ampliar se pueden arrastrar a donde se quiera y se quedan allí (también al salir y
     volver a entrar en Zero); sus iconos, centrados en botones redondos.
 14. Con el fondo del sistema, Zero es una lámina de cristal tipo Apple (decisiones de Risco del 15-10):
-    la ventana con las esquinas redondeadas y el canto de una lámina de cristal: grosor y brillo suaves en
-    los bordes, sin ninguna línea dibujada (ni anillo ni borde); transparente por dentro, sin velo. Sus piezas, de cristal transparente: sobre
+    la ventana con las esquinas redondeadas y el canto de un cristal grueso puesto encima (captura 45): un
+    bisel (≥ 10 px) más claro que lo de detrás, con su línea por dentro, y reflejos en el filo, más vivos
+    en las esquinas que a media altura y los mismos a la izquierda que a la derecha; transparente por
+    dentro, sin velo. Ningún filo (de la lámina o de las piezas) es un anillo recortado con máscara (a
+    escala 1 se veían los píxeles). Los botones de ventana se ven sobre blanco y sobre oscuro; el raíl,
+    algo más presente sobre oscuro. Sus piezas, de cristal transparente: sobre
     blanco, la isla, el pomodoro abierto y los botones de ampliar se ven claros (sin tinte oscuro); el
     texto, blanco con un halo con el sistema en oscuro y en tinta (≥ 3:1) en claro. El panel de ajustes
     se lee (≥ 4,5:1) con blanco o negro detrás: cristal ahumado en oscuro, claro en claro; la marca de
@@ -38,6 +42,7 @@ from pathlib import Path
 import tempfile
 import threading
 import time
+import urllib.parse
 
 from browser_smoke import WebDriver, prepare_profile, eventually
 import zero_harness
@@ -314,16 +319,58 @@ def main():
         def clear_glass(g, dark):
             # Claro sobre blanco (nada de tinte oscuro); el texto, blanco con halo o en tinta legible.
             return g['light'] >= 0.7 and ((dark and min(g['text']) >= 240 and g['halo']) or (not dark and g['ratio'] >= 3.0))
-        # La lámina: esquinas redondeadas y su filo de cristal (anillo de luz y resplandor en los bordes).
-        # Sin líneas: ninguna sombra interior sin desenfoque (eso dibuja una raya) ni anillo recortado con
-        # máscara; el brillo, en degradados suaves.
-        pane = """const b = getComputedStyle(document.body), sheen = getComputedStyle(document.body, '::after');
-            const shadows = b.boxShadow.split(/,(?![^(]*\\))/).map(x => x.trim()).filter(x => x.includes('inset'));
-            const lines = shadows.filter(x => { const n = x.replace(/rgba?\\([^)]*\\)/, '').match(/-?[\\d.]+px/g) || []; return parseFloat(n[2] ?? '0') < 4; });
-            return { radius: parseFloat(b.borderTopLeftRadius), glow: shadows.length > 0, lines: lines.length, ring: sheen.maskImage !== 'none',
-                     sheen: sheen.content !== 'none' && sheen.backgroundImage.includes('gradient') };"""
-        lamina = chrome(pane)
-        assert lamina['radius'] >= 18 and lamina['glow'] and lamina['sheen'] and not lamina['lines'] and not lamina['ring'], f'la ventana no es una lámina de cristal sin líneas: {lamina}'
+        # La lámina (captura 45 de Risco): un cristal grueso encima. Se mide sobre un gris oscuro liso detrás
+        # (una hoja de agente, solo para la foto; sin pantalla, detrás hay blanco y la luz no se ve).
+        assert float(chrome("return parseFloat(getComputedStyle(document.body).borderTopLeftRadius)")) >= 18
+        GREY = 42
+        dark_sheet = 'data:text/css,' + urllib.parse.quote(f':root {{ background: rgb({GREY}, {GREY}, {GREY}) !important; }}')
+        def photo(name):
+            img = Image.open(driver.screenshot(name, chrome=True)).convert('L')
+            k = chrome("return devicePixelRatio")
+            W, H = chrome("return [innerWidth, innerHeight]")
+            def row(x0, x1, y):
+                """Los grises de x0 a x1 (px CSS) en la fila y (media de 5 filas)."""
+                return [sum(img.getpixel((int(x * k), int((y + d) * k))) for d in (-2, -1, 0, 1, 2)) / 5 for x in range(int(x0), int(x1))]
+            return img, k, W, H, row
+        def lamina():
+            img, k, W, H, row = photo('lamina.png')
+            y = H * 0.25
+            left, right = row(0, 40, y), row(W - 40, W, y)[::-1]  # la derecha, contada desde su filo
+            return {
+                'rim': (max(left[0:3]), max(right[0:3])),
+                'band': (sum(left[4:9]) / 5, sum(right[4:9]) / 5), 'behind': left[30],
+                'crease': max(left[11:15]) - sum(left[16:24]) / 8,
+                'corner': max(row(0, 3, 44)), 'middle': max(row(0, 3, H * 0.5)),
+            }
+        chrome("window.windowUtils.loadSheetUsingURIString(arguments[0], window.windowUtils.AGENT_SHEET)", [dark_sheet])
+        try:
+            time.sleep(0.4)
+            lam = lamina()
+            thick = lam['band'][0] >= lam['behind'] + 6 and lam['crease'] >= 8
+            lit = lam['corner'] >= lam['middle'] + 20
+            even = abs(lam['rim'][0] - lam['rim'][1]) <= 12 and abs(lam['band'][0] - lam['band'][1]) <= 6
+            assert thick and lit and even, f'la ventana no es un cristal grueso con reflejos (bisel, esquinas, simetría): {lam}'
+            # Los botones de ventana, sobre oscuro: claros.
+            img, k, W, H, row = photo('botones-oscuro.png')
+            light = chrome("const r = document.querySelector('#zero-lights > button').getBoundingClientRect(); return [r.left + r.width / 2, r.top + r.height / 2]")
+            on_dark = img.getpixel((int(light[0] * k), int(light[1] * k)))
+            assert on_dark >= 200, f'botones de ventana sobre oscuro: {on_dark}'
+            # El raíl, algo más presente sobre oscuro (su cristal, junto a su borde, sin iconos).
+            rail = chrome("const r = document.getElementById('zero-rail').getBoundingClientRect(); return [r.left, r.top + r.height / 2]")
+            glass_rail = sum(row(rail[0] + 2, rail[0] + 5, rail[1])) / 3
+            assert glass_rail >= GREY + 18, f'el raíl casi no se ve sobre oscuro: {glass_rail}'
+        finally:
+            chrome("window.windowUtils.removeSheetUsingURIString(arguments[0], window.windowUtils.AGENT_SHEET)", [dark_sheet])
+        # Y sobre blanco: su contorno se ve.
+        time.sleep(0.4)
+        img, k, W, H, row = photo('botones-blanco.png')
+        box = chrome("const r = document.querySelector('#zero-lights > button').getBoundingClientRect(); return [r.left, r.top, r.right, r.bottom]")
+        on_white = min(img.getpixel((int(x * k), int(y * k))) for x in range(int(box[0]) - 2, int(box[2]) + 2) for y in range(int(box[1]) - 2, int(box[3]) + 3))
+        assert on_white <= 205, f'botones de ventana sobre blanco: {on_white}'
+        masked = chrome("""const pieces = [document.body, ...['nav-bar', 'zero-rail', 'zero-grow'].map(id => document.getElementById(id))];
+            return pieces.flatMap(el => ['::before', '::after'].map(p => [el.id || el.localName, p, getComputedStyle(el, p).maskComposite]))
+                         .filter(([, , c]) => c.includes('exclude') || c.includes('subtract') || c.includes('intersect'));""")
+        assert not masked, f'filos recortados con máscara (se ven los píxeles): {masked}'
         chrome("Services.prefs.setBoolPref('kitsune.zero.pomodoro', true)")
         eventually(lambda: chrome("return !!document.getElementById('zero-pomo')"), timeout=5)
         veil = "return getComputedStyle(document.getElementById('tabbrowser-tabbox')).backgroundColor"

@@ -39,11 +39,13 @@
   }
 }
 
-/* El anillo de luz del cristal: un borde degradado (vivo arriba a la izquierda y abajo a la derecha). */
+/* El anillo de luz del cristal: un borde de 1 px que se apaga a media altura (vivo arriba a la izquierda y
+   abajo a la derecha). Es un borde de verdad, no un anillo recortado con máscara: a escala 1 aquello se
+   veía a píxeles (Risco, 15-10). */
 #main-window[zero] #nav-bar::after, #zero-rail::after, #zero-pomo::after, #zero-grow::after, #zero-settings::after {
-  content: ""; position: absolute; inset: 0; border-radius: inherit; padding: 1.4px; pointer-events: none;
-  background: var(--zero-glass-rim);
-  mask-image: linear-gradient(#000 0 0), linear-gradient(#000 0 0); mask-clip: content-box, border-box; mask-composite: exclude;
+  content: ""; position: absolute; inset: 0; box-sizing: border-box; border-radius: inherit; pointer-events: none;
+  border: 1px solid #fff;
+  mask-image: var(--zero-glass-rim);
 }
 
 /* ---------------------------------------------------------------- el marco (zero-frame) */
@@ -58,24 +60,35 @@
   background: transparent !important;
   background-image: none !important;
 }
-/* Con el fondo del sistema, Zero es una lámina de cristal tipo Apple (decisión de Risco, 15-10): la
-   ventana con las esquinas redondeadas y el canto de un cristal puesto encima de algo (grosor y brillo
-   suaves en los bordes, sin ninguna línea dibujada); por dentro, transparente.
-   Encima, las piezas: cristal sobre cristal. Con la web ampliada la web llena la ventana: sin lámina. */
+/* Con el fondo del sistema, Zero es una lámina de cristal tipo Apple (decisiones de Risco, 15-10): la
+   ventana con las esquinas redondeadas y el canto de un cristal grueso puesto encima (su captura 45): un
+   bisel de 12 px algo más claro, con su línea por dentro, y reflejos en el filo, vivos en las cuatro
+   esquinas por igual (la misma luz a la izquierda que a la derecha) y suaves a media altura. Por dentro,
+   transparente. Encima, las piezas: cristal sobre cristal. Con la web ampliada la web llena la ventana:
+   sin lámina. Todo por debajo de las piezas y de la web (z-index -1): no cruza nada. */
 :root[zero][zero-backdrop="system"]:not([zero-full]) body {
   border-radius: 26px !important;
-  background-image: linear-gradient(135deg, rgba(255, 255, 255, .07), rgba(255, 255, 255, 0) 30%, rgba(255, 255, 255, 0) 70%, rgba(255, 255, 255, .05)) !important;
-  /* El canto: grosor y brillo suaves que nacen del borde, sin ninguna raya. */
-  box-shadow: inset 0 0 6px 1px rgba(255, 255, 255, .22), inset 0 0 22px 2px rgba(255, 255, 255, .14),
-              inset 0 0 48px rgba(255, 255, 255, .07), inset 0 -26px 46px -34px rgba(0, 0, 0, .28) !important;
+  /* El filo y el brillo que nace de él, hacia dentro. */
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .22), inset 0 0 4px 1px rgba(255, 255, 255, .2),
+              inset 0 0 14px 3px rgba(255, 255, 255, .11) !important;
 }
-/* Un reflejo difuso en las esquinas de arriba a la izquierda y de abajo a la derecha, como la luz en el
-   canto de un cristal (sin líneas). */
+/* El bisel: una franja de 12 px y, donde acaba, su línea (luz y una sombra fina por dentro), más viva
+   cerca de las esquinas. */
+:root[zero][zero-backdrop="system"]:not([zero-full]) body::before {
+  content: ""; position: fixed; inset: 0; z-index: -1; box-sizing: border-box; border-radius: 26px; pointer-events: none;
+  border: 12px solid rgba(255, 255, 255, .055);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .3), inset 0 0 0 2px rgba(0, 0, 0, .1), inset 0 0 8px rgba(255, 255, 255, .06);
+  mask-image: radial-gradient(220px 220px at 0 0, #000, transparent), radial-gradient(220px 220px at 100% 0, #000, transparent),
+              radial-gradient(220px 220px at 0 100%, #000, transparent), radial-gradient(220px 220px at 100% 100%, #000, transparent),
+              linear-gradient(rgba(0, 0, 0, .42), rgba(0, 0, 0, .42));
+}
+/* Los reflejos del filo: un borde blanco de 1,5 px, vivo en las esquinas y tenue a media altura. */
 :root[zero][zero-backdrop="system"]:not([zero-full]) body::after {
-  content: ""; position: fixed; inset: 0; z-index: 2147483000; border-radius: 26px; pointer-events: none;
-  background: radial-gradient(60% 40% at 0% 0%, rgba(255, 255, 255, .16), rgba(255, 255, 255, 0) 70%),
-              radial-gradient(55% 35% at 100% 100%, rgba(255, 255, 255, .11), rgba(255, 255, 255, 0) 70%);
-  mix-blend-mode: screen;
+  content: ""; position: fixed; inset: 0; z-index: -1; box-sizing: border-box; border-radius: 26px; pointer-events: none;
+  border: 1.5px solid #fff;
+  mask-image: radial-gradient(200px 200px at 0 0, #000, transparent), radial-gradient(200px 200px at 100% 0, #000, transparent),
+              radial-gradient(200px 200px at 0 100%, #000, transparent), radial-gradient(200px 200px at 100% 100%, #000, transparent),
+              linear-gradient(rgba(0, 0, 0, .45), rgba(0, 0, 0, .45));
 }
 
 /* Sin desenfoque del compositor: detrás, una foto diminuta de la web, estirada y desenfocada. */
@@ -219,10 +232,11 @@
   position: fixed; top: 16px; left: 15px; z-index: 6;
   display: flex; gap: 8px;
 }
+/* Perlas blancas con su contorno y su sombra: se ven sobre claro y sobre oscuro (Risco, 15-10). */
 #zero-lights > button {
   appearance: none; width: 12px; height: 12px; min-width: 0; padding: 0; margin: 0; border: none; border-radius: 50%;
-  background-color: rgba(255, 255, 255, .55);
-  box-shadow: inset 0 0 0 .5px rgba(0, 0, 0, .15);
+  background-color: rgba(255, 255, 255, .86);
+  box-shadow: 0 0 0 .5px rgba(0, 0, 0, .34), 0 1px 3px rgba(0, 0, 0, .34), inset 0 -1px 1.5px rgba(0, 0, 0, .1);
   transition: background-color 320ms var(--zero-soft), transform 320ms var(--zero-calm);
 }
 /* Con la web ampliada se quedan en su sitio, escondidos, y salen al llevar el puntero al filo de arriba
@@ -649,9 +663,12 @@
   overflow-x: hidden; overflow-y: auto; scrollbar-width: none;
   color: #fff;
   background-color: transparent;
-  background-image: var(--zero-glass-fill);
+  /* El cristal de las piezas, algo más presente en el raíl (Risco, 15-10): más luz y más sombra. */
+  background-image: radial-gradient(130% 120% at 28% 0%, rgba(255, 255, 255, .34), rgba(255, 255, 255, .12) 55%, rgba(255, 255, 255, .08)),
+                    linear-gradient(180deg, rgba(18, 18, 24, .12), rgba(18, 18, 24, .18));
   backdrop-filter: blur(10px) saturate(1.7) brightness(1.06);
-  box-shadow: var(--zero-glass-edge);
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, .5), inset 0 0 12px rgba(255, 255, 255, .16), inset 0 -9px 16px -10px rgba(0, 0, 0, .24),
+              0 10px 28px rgba(0, 0, 0, .3), 0 2px 6px rgba(0, 0, 0, .2), 0 0 0 .5px rgba(0, 0, 0, .22);
   transition: width var(--zero-t-morph) var(--zero-calm) var(--zero-wait), transform var(--zero-t-move) var(--zero-calm), opacity var(--zero-t-ink) var(--zero-soft),
               background-color 520ms var(--zero-soft), box-shadow 520ms var(--zero-soft), color var(--zero-t-ink) var(--zero-soft);
 }
@@ -1169,7 +1186,9 @@
 :root[zero-frame-ink]:not([zero-full]) #zero-rail:not(:hover, :has(:focus-visible), [zero-ink]) :is(.zero-space, .zero-new) .zero-fav { background: rgba(29, 35, 33, .08); color: #1d2321; }
 :root[zero-frame-ink]:not([zero-full]) #zero-rail:not(:hover, :has(:focus-visible), [zero-ink]) .zero-sep { background: rgba(29, 35, 33, .18); }
 :root[zero-frame-ink]:not([zero-full]) #zero-rail:not(:hover, :has(:focus-visible), [zero-ink]) .zero-item[selected] .zero-fav { box-shadow: 0 0 0 1.5px rgba(29, 35, 33, .55), inset 0 1px 0 rgba(255, 255, 255, .35), 0 1px 3px rgba(0, 0, 0, .18); }
-:root[zero-frame-ink]:not([zero-full]) #zero-lights > button { background-color: rgba(29, 35, 33, .28); box-shadow: none; }
+/* (Los botones de ventana, en tinta solo con el fondo de la web, que se sabe claro; con el del sistema no se
+   sabe qué hay detrás: perlas blancas con contorno, que se ven sobre todo.) */
+:root[zero-frame-ink][zero-backdrop="web"]:not([zero-full]) #zero-lights > button { background-color: rgba(29, 35, 33, .28); box-shadow: none; }
 :root[zero-frame-ink]:not([zero-full]) #zero-grow:not([zero-ink]) { color: #1d2321; background: rgba(255, 255, 255, .45); }
 :root[zero-frame-ink]:not([zero-full]) #zero-grow > button:hover { background-color: rgba(29, 35, 33, .1); }
 :root[zero-frame-ink]:not([zero-full]) #zero-mark { color: #1d2321; opacity: .5; filter: none; }
