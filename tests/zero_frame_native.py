@@ -19,6 +19,8 @@
     tinta; si queda oscuro, vuelve a blanco.
 12. Con el fondo «auto», al entrar en Zero el fondo es desde el principio el que toca (con niri y su
     regla, el cristal del sistema): no pasa un momento por la foto de la web (un parpadeo oscuro).
+13. En una ventana estrecha, con la web ampliada y la esquina abierta (botones de ventana, ampliar y el
+    pomodoro), la isla no se monta sobre la esquina.
 
 --zero-del-repo: Zero sale de zero/ del repositorio (ver zero_harness.py).
 """
@@ -244,6 +246,26 @@ def main():
         seen = chrome("window.__vigia.disconnect(); return window.__fondos")
         assert seen and all(v == expected for v in seen), (expected, seen)
         check('Con el fondo «auto», al entrar en Zero el fondo es desde el principio el que toca')
+
+        chrome("Services.prefs.setBoolPref('kitsune.zero.pomodoro', true)")
+        eventually(lambda: chrome("return !!document.getElementById('zero-pomo')"), timeout=5)
+        driver.command('POST', '/window/rect', {'width': 500, 'height': 800})
+        eventually(lambda: chrome("return innerWidth") <= 500, timeout=5)
+        chrome("document.querySelector('#zero-grow button[data-action=full]').click()")
+        eventually(lambda: chrome("return document.documentElement.hasAttribute('zero-full')"), timeout=5)
+        W = chrome("return innerWidth")
+        pointer(W - 20, 4)
+        clash = """const box = id => document.getElementById(id).getBoundingClientRect(); const n = box('nav-bar');
+            const left = Math.min(...['zero-pomo', 'zero-lights', 'zero-grow'].map(id => box(id).left));
+            return { open: document.documentElement.hasAttribute('zero-corner-open'), island: [n.left, n.right], corner: left, ok: n.right <= left - 8 };"""
+        try:
+            eventually(lambda: (c := chrome(clash))['open'] and c['ok'], timeout=5)
+        except AssertionError:
+            raise AssertionError(f'esquina en ventana estrecha: {chrome(clash)}') from None
+        pointer(200, 400)
+        chrome("document.querySelector('#zero-grow button[data-action=full]').click(); Services.prefs.clearUserPref('kitsune.zero.pomodoro');")
+        driver.command('POST', '/window/rect', {'width': 1540, 'height': 1000})
+        check('En una ventana estrecha, con la esquina abierta, la isla no se monta sobre ella')
         report['status'] = 'passed'
     finally:
         if driver: driver.close()
