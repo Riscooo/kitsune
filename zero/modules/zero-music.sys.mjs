@@ -151,8 +151,8 @@ const closeServices = st => st.services.removeAttribute('open');
 
 export function attach(win, ctx) {
   const doc = win.document, { host } = ctx;
-  const pill = doc.getElementById('zero-shortcuts');
-  if (!pill) return;
+  const dock = doc.getElementById('zero-dock');
+  if (!dock) return;
   const t = host.t ?? (es => es);
   const st = { host, t, cleanups: [], view: 'closed' };
   state.set(win, st);
@@ -160,7 +160,10 @@ export function attach(win, ctx) {
 
   st.button = el(doc, 'button', { type: 'button', class: 'zero-music', title: t('Música', 'Music'), 'aria-label': t('Música', 'Music') },
     [el(doc, 'span', { class: 'zero-fav', 'aria-hidden': 'true' })]);
-  pill.prepend(st.button);
+  // En su pastilla, aparte de los accesos directos (Risco, 15-10) y justo encima de ellos.
+  st.pill = el(doc, 'div', { id: 'zero-music-pill', class: 'zero-pill', role: 'group', 'aria-label': t('Música', 'Music') }, [st.button]);
+  const shortcutsPill = doc.getElementById('zero-shortcuts');
+  if (shortcutsPill?.parentNode === dock) shortcutsPill.before(st.pill); else dock.append(st.pill);
   st.services = el(doc, 'div', { id: 'zero-music-services', role: 'menu', 'aria-label': t('Servicio de música', 'Music service') },
     SERVICES.map(service => el(doc, 'button', { type: 'button', role: 'menuitem', 'data-service': service.id }, [service.name])));
   st.miniArt = el(doc, 'img', { class: 'zero-mini-art', alt: '', hidden: 'true' });
@@ -176,7 +179,7 @@ export function attach(win, ctx) {
   st.cleanups.push(() => {
     win.clearInterval(st.hooking);
     if (st.controller) for (const name of EVENTS) { try { st.controller.removeEventListener(name, paintMini); } catch { /* ya no está */ } }
-    st.button.remove(); st.services.remove(); st.mini.remove(); st.panel?.remove();
+    st.pill.remove(); st.services.remove(); st.mini.remove(); st.panel?.remove();
   });
 
   st.button.addEventListener('click', () => {

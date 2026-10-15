@@ -772,16 +772,28 @@
 :is(.zero-profile-bubble, .zero-profile-colors > button)[data-color="teal"] { --zero-profile-ink: #2fa59a; }
 :is(.zero-profile-bubble, .zero-profile-colors > button)[data-color="amber"] { --zero-profile-ink: #e3a03b; }
 :is(.zero-profile-bubble, .zero-profile-colors > button)[data-color="red"] { --zero-profile-ink: #d6574b; }
-/* El modo: un interruptor vertical que se desliza entre currar (arriba, ámbar) y chill (abajo, verde
-   agua); sin elegir, el botón queda en medio, apagado. */
-#zero-mode { height: 54px; padding: 0; cursor: pointer; }
-#zero-mode .zero-mode-knob {
-  width: 22px; height: 22px; border-radius: 50%; pointer-events: none;
-  background: rgba(255, 255, 255, .55); box-shadow: 0 1px 3px rgba(0, 0, 0, .3), inset 0 -1px 2px rgba(0, 0, 0, .12);
-  translate: 0 0; transition: translate var(--zero-t-morph) var(--zero-calm), background-color var(--zero-t-fade) var(--zero-soft);
+/* El modo: dos botones, uno encima de otro (Risco, 15-10: «en vez de un slider, dos botones, uno con una luna y
+   otro para trabajar»): currar, con un maletín (ámbar al estar puesto), y chill, con una luna (verde agua). Sin
+   elegir, los dos apagados. */
+#zero-dock > #zero-mode { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 5px; }
+#zero-mode > button {
+  appearance: none; box-sizing: border-box; width: 26px; height: 26px; min-width: 0; margin: 0; padding: 0; border: none; border-radius: 50%;
+  display: grid; place-items: center; cursor: pointer; color: #fff; background-color: transparent;
+  transition: background-color var(--zero-t-fade) var(--zero-soft), color var(--zero-t-fade) var(--zero-soft), scale 200ms var(--zero-calm);
 }
-#zero-mode[data-mode="work"] .zero-mode-knob { translate: 0 -12px; background: #ffb454; }
-#zero-mode[data-mode="chill"] .zero-mode-knob { translate: 0 12px; background: #8fe3c6; }
+#zero-mode > button::before {
+  content: ""; width: 15px; height: 15px; background-color: currentColor; opacity: .8;
+  mask: var(--zero-mode-icon) center / contain no-repeat;
+}
+#zero-mode > button:hover { background-color: rgba(255, 255, 255, .16); }
+#zero-mode > button:is(:hover, [aria-pressed="true"])::before { opacity: 1; }
+#zero-mode > button:active { scale: .92; }
+#zero-mode > button:focus-visible { outline: 2px solid rgba(255, 255, 255, .9); outline-offset: 1px; }
+#zero-mode > button[aria-pressed="true"] { color: #1d2321; box-shadow: 0 1px 3px rgba(0, 0, 0, .3), inset 0 -1px 2px rgba(0, 0, 0, .12); }
+#zero-mode > button[data-mode="work"] { --zero-mode-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='black' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='2' y='5' width='12' height='8.5' rx='2'/%3E%3Cpath d='M5.8 5V3.6c0-.6.4-1 1-1h2.4c.6 0 1 .4 1 1V5M2 9.2h12'/%3E%3C/svg%3E"); }
+#zero-mode > button[data-mode="work"][aria-pressed="true"] { background-color: #ffb454; }
+#zero-mode > button[data-mode="chill"] { --zero-mode-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='black' stroke-width='1.6' stroke-linejoin='round'%3E%3Cpath d='M13.4 10.1A5.8 5.8 0 0 1 5.9 2.6a5.8 5.8 0 1 0 7.5 7.5z'/%3E%3C/svg%3E"); }
+#zero-mode > button[data-mode="chill"][aria-pressed="true"] { background-color: #8fe3c6; }
 /* Los perfiles, uno encima de otro (Risco, 15-10: «para cambiar de forma rápida»): el de ahora, entero y con
    su aro; los demás, algo más pequeños y velados, y se encienden al pasar por encima. Debajo, el «+». */
 #zero-dock > #zero-profile { display: flex; flex-direction: column; align-items: center; gap: 5px; padding: 5px; }
@@ -873,15 +885,15 @@
 #zero-profiles[confirming] .zero-profile-confirm { display: flex; }
 #zero-profiles[confirming] .zero-profile-foot { display: none; }
 #zero-profiles .zero-profile-question { font: 500 12.5px/1.4 system-ui, sans-serif; color: rgba(255, 255, 255, .92); }
-@media (prefers-reduced-motion: reduce) { #zero-profiles, #zero-mode .zero-mode-knob { transition-duration: 1ms; } }
+@media (prefers-reduced-motion: reduce) { #zero-profiles, #zero-mode > button { transition-duration: 1ms; } }
 /* Los accesos directos: una pastilla con sus iconos (como los del raíl) y un «+» abajo. */
 #zero-dock > #zero-shortcuts { display: flex; flex-direction: column; gap: 4px; padding: 6px 5px; }
 #zero-shortcuts .zero-shortcut-list { display: flex; flex-direction: column; gap: 4px; }
-#zero-shortcuts :is(.zero-shortcut, .zero-shortcut-add) {
+#zero-shortcuts :is(.zero-shortcut, .zero-shortcut-add), #zero-music-pill .zero-music {
   appearance: none; box-sizing: border-box; width: 26px; height: 26px; min-width: 0; margin: 0; padding: 0; border: none; border-radius: 50%;
   display: grid; place-items: center; background: transparent; cursor: pointer;
 }
-#zero-shortcuts .zero-fav {
+:is(#zero-shortcuts, #zero-music-pill) .zero-fav {
   width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; overflow: hidden;
   font: 700 10.5px system-ui, sans-serif; color: #1d2321;
   background: rgba(255, 255, 255, .92);
@@ -893,18 +905,16 @@
 #zero-shortcuts .zero-shortcut-add .zero-fav { background: rgba(255, 255, 255, .14); color: #fff; font-size: 14px; font-weight: 500; box-shadow: none; }
 #zero-shortcuts .zero-shortcut-add:hover .zero-fav { background: rgba(255, 255, 255, .24); }
 #zero-shortcuts[dropping] { box-shadow: inset 0 0 0 1.5px rgba(255, 255, 255, .8), 0 10px 30px rgba(0, 0, 0, .18); }
-/* La música: su botón (arriba de los accesos directos), la lista de servicios, el panel con el reproductor y
-   el minipanel flotante, todo de cristal ahumado (se lee sobre cualquier fondo). */
-#zero-shortcuts .zero-music {
-  appearance: none; box-sizing: border-box; width: 26px; height: 26px; min-width: 0; margin: 0; padding: 0; border: none; border-radius: 50%;
-  display: grid; place-items: center; background: transparent; cursor: pointer;
-}
-#zero-shortcuts .zero-music .zero-fav { background: rgba(255, 255, 255, .14); box-shadow: none; }
-#zero-shortcuts .zero-music .zero-fav::before {
+/* La música: su botón (en su pastilla, encima de la de los accesos directos), la lista de servicios, el panel
+   con el reproductor y el minipanel flotante, todo de cristal ahumado (se lee sobre cualquier fondo). */
+#zero-dock > #zero-music-pill { padding: 5px; }
+#zero-music-pill .zero-music .zero-fav { background: rgba(255, 255, 255, .14); box-shadow: none; transition: transform 200ms var(--zero-calm), background-color var(--zero-t-fade) var(--zero-soft); }
+#zero-music-pill .zero-music:hover .zero-fav { transform: scale(1.12); background-color: rgba(255, 255, 255, .24); }
+#zero-music-pill .zero-music .zero-fav::before {
   content: ""; width: 14px; height: 14px; background-color: #fff;
   mask: url("chrome://global/skin/media/audio.svg") center / contain no-repeat;
 }
-#zero-shortcuts .zero-music[on] .zero-fav { background: #e8743b; }
+#zero-music-pill .zero-music[on] .zero-fav { background: #e8743b; }
 :is(#zero-music-services, #zero-music, #zero-mini) {
   position: fixed; z-index: 9; color: #fff; font: 500 13px system-ui, sans-serif;
   background: rgba(24, 24, 28, .74);

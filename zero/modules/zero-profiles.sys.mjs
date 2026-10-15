@@ -134,11 +134,8 @@ function render(win, st) {
   if (now.length !== want.length || now.some((node, i) => node !== want[i])) st.pill.replaceChildren(...want);
 
   const mode = modeOf(st, current);
-  const words = { work: st.t('Currar', 'Work'), chill: st.t('Chill', 'Chill') };
   if (mode) st.mode.dataset.mode = mode; else delete st.mode.dataset.mode;
-  st.mode.setAttribute('aria-pressed', String(mode === 'work'));
-  st.mode.setAttribute('aria-label', mode ? `${st.t('Modo', 'Mode')}: ${words[mode]}` : st.t('Modo: elige Currar o Chill', 'Mode: choose Work or Chill'));
-  st.mode.title = mode ? words[mode] : `${words.work} / ${words.chill}`;
+  for (const button of st.mode.querySelectorAll('button[data-mode]')) button.setAttribute('aria-pressed', String(button.dataset.mode === mode));
   if (st.menu.hasAttribute('open')) fillEditor(win, st);
 }
 
@@ -268,7 +265,10 @@ export function attach(win, ctx) {
   st.bubbles = new Map();
   st.add = el(doc, 'button', { type: 'button', class: 'zero-profile-add', title: t('Nuevo perfil', 'New profile'), 'aria-label': t('Nuevo perfil', 'New profile') }, ['+']);
   st.pill = el(doc, 'div', { id: 'zero-profile', class: 'zero-pill', role: 'group', 'aria-label': t('Perfiles', 'Profiles') }, [st.add]);
-  st.mode = el(doc, 'button', { type: 'button', id: 'zero-mode', class: 'zero-pill' }, [el(doc, 'span', { class: 'zero-mode-knob', 'aria-hidden': 'true' })]);
+  // El modo: dos botones (Risco, 15-10: «en vez de un slider, dos botones, uno con una luna y otro para trabajar»).
+  const modeButton = (mode, label) => el(doc, 'button', { type: 'button', 'data-mode': mode, 'aria-pressed': 'false', 'aria-label': label, title: label });
+  st.mode = el(doc, 'div', { id: 'zero-mode', class: 'zero-pill', role: 'group', 'aria-label': t('Modo', 'Mode') },
+    [modeButton('work', t('Currar', 'Work')), modeButton('chill', t('Chill', 'Chill'))]);
   buildEditor(win, st);
   dock.prepend(st.pill, st.mode);
   doc.body.append(st.menu);
@@ -296,7 +296,10 @@ export function attach(win, ctx) {
     event.preventDefault();
     openEditor(win, st, bubble.dataset.space, bubble);
   });
-  st.mode.addEventListener('click', () => setMode(win, st, modeOf(st, profilesOf(win, st).current) === 'work' ? 'chill' : 'work'));
+  st.mode.addEventListener('click', event => {
+    const mode = event.target.closest('button[data-mode]')?.dataset.mode;
+    if (mode && mode !== modeOf(st, profilesOf(win, st).current)) setMode(win, st, mode);
+  });
 
   // La ficha: lo que se cambia, al momento; uno nuevo, al pulsar «Crear» (o Intro).
   const editing = () => st.menu.dataset.space || null;

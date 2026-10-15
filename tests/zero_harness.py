@@ -66,6 +66,11 @@ def prepare(chrome, from_repo: bool):
     # (zero_native lo prueba aparte).
     chrome("Services.prefs.setBoolPref('kitsune.zero.welcomed', true)")
     if from_repo:
+        # Un motor que ya trae Zero (desde la 0.8 beta 2) lo carga al abrir la ventana: los módulos ya cargados
+        # no se pueden sustituir, y se probaría el Zero de dentro sin saberlo.
+        if chrome("return Cu.isESModuleLoaded('chrome://browser/content/zero/zero.sys.mjs')"):
+            raise AssertionError('Este motor ya ha cargado su Zero: --zero-del-repo no puede sustituirlo. '
+                                 'Usa un motor que no arranque Zero, o el de prueba sin --zero-del-repo.')
         profile = Path(chrome("return Services.dirsvc.get('ProfD', Ci.nsIFile).path"))
         manifest = manifest_from_repo(Path(tempfile.mkdtemp(prefix="kitsune-zero-manifest-")), profile)
         chrome(REGISTER, [str(manifest)])

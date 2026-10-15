@@ -5,8 +5,9 @@ que si lo minimizas puedas tener un mini panel de control flotante que puedas po
 siempre se superponga a no ser que lo cierres, pero que no se corte el audio». Va en Windows, macOS y Linux:
 el reproductor es la web del servicio (con tu cuenta), en un navegador propio dentro de Kitsune.
 
-1. En la pastilla de accesos directos, arriba, un botón de música; la primera vez, al pulsarlo, sale la
-   lista de servicios (Spotify, YouTube Music, Apple Music, SoundCloud, Deezer, Tidal).
+1. Un botón de música en su propia pastilla, aparte de la de los accesos directos (Risco, 15-10: «separa el
+   botón de la música del de acceso directo»), justo encima y alineada con ella; la primera vez, al pulsarlo,
+   sale la lista de servicios (Spotify, YouTube Music, Apple Music, SoundCloud, Deezer, Tidal).
 2. Con un servicio elegido, el botón abre el panel de la música con su web, y suena.
 3. Al minimizarlo, el panel se va, sale el minipanel flotante (con el título de lo que suena) y la música
    sigue; pausa y vuelve a sonar desde él.
@@ -70,7 +71,10 @@ const player = panel?.querySelector('browser');
 let controller = null; try { controller = player?.browsingContext?.mediaController ?? null; } catch {}
 const r = mini?.getBoundingClientRect();
 return {
-  button: !!document.querySelector('#zero-shortcuts .zero-music'),
+  button: (() => { const b = document.querySelector('#zero-dock > #zero-music-pill.zero-pill > .zero-music'), s = document.getElementById('zero-shortcuts');
+    if (!b || !s || s.contains(b)) return false;
+    const p = b.parentElement.getBoundingClientRect(), q = s.getBoundingClientRect();
+    return Math.abs(p.left - q.left) < 1 && Math.abs(p.width - q.width) < 1 && p.bottom + 4 <= q.top; })(),
   services: [...document.querySelectorAll('#zero-music-services [data-service]')].filter(seen).map(b => b.dataset.service),
   panel: seen(panel), url: player?.currentURI?.spec ?? null,
   playing: !!controller?.isPlaying,
@@ -125,15 +129,15 @@ def main():
         eventually(lambda: chrome("return !!document.getElementById('kitsune-zero-key')"), timeout=10)
         chrome("document.getElementById('kitsune-zero-key').doCommand()")
         until(lambda: state()['button'])
-        click('#zero-shortcuts .zero-music')
+        click('#zero-music-pill .zero-music')
         until(lambda: {'spotify', 'youtube-music', 'apple-music', 'soundcloud', 'deezer', 'tidal'} <= set(state()['services']))
-        click('#zero-shortcuts .zero-music')  # otra vez: se cierra sin elegir
+        click('#zero-music-pill .zero-music')  # otra vez: se cierra sin elegir
         until(lambda: not state()['services'])
-        check('Un botón de música; la primera vez, la lista de servicios')
+        check('Un botón de música, en su pastilla (aparte de los accesos directos); la primera vez, la lista de servicios')
 
         # El «servicio» de la prueba: una web propia (también se puede poner una dirección).
         chrome("Services.prefs.setStringPref('kitsune.zero.music.service', arguments[0])", [origin + '/radio'])
-        click('#zero-shortcuts .zero-music')
+        click('#zero-music-pill .zero-music')
         until(lambda: (s := state())['panel'] and s['url'] == origin + '/radio' and s['playing'], timeout=15)
         check('Con un servicio elegido, el botón abre el panel de la música con su web, y suena')
 
@@ -161,7 +165,7 @@ def main():
         until(lambda: (s := state())['mini'] is False and s['playing'])
         time.sleep(1)
         assert state()['playing'], state()
-        click('#zero-shortcuts .zero-music')
+        click('#zero-music-pill .zero-music')
         until(lambda: (s := state())['panel'] and s['playing'] and s['url'] == origin + '/radio')
         click('#zero-music .zero-music-minimize')
         until(lambda: (s := state())['mini'] and s['at'] and abs(s['at'][0] - moved[0]) <= 2 and abs(s['at'][1] - moved[1]) <= 2)

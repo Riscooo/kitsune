@@ -16,8 +16,10 @@ macOS y Linux.
 4. El «+» abre una ficha en blanco: con un nombre, «Crear» hace el perfil y pasa a él.
 5. «Borrar» pregunta antes (y «Cancelar» no borra); al confirmar se va el perfil y lo que Zero guardaba de él
    (su modo, su imagen, sus accesos directos). El último perfil no se puede borrar.
-6. El interruptor pasa entre «Currar» (pomodoro y silencio) y «Chill» (sin ellos); cada perfil guarda su modo
-   y lo que se cambia en él: al volver a un perfil, vuelve el suyo.
+6. El modo son dos botones, no un interruptor (Risco, 15-10: «en vez de ser un slider, sean dos botones, uno
+   con una luna y otro para trabajar»): «Currar» (un maletín: pomodoro y silencio) y «Chill» (una luna: sin
+   ellos); el del modo de ahora, marcado (y pulsarlo otra vez no lo cambia). Cada perfil guarda su modo y lo
+   que se cambia en él: al volver a un perfil, vuelve el suyo.
 7. Con una imagen puesta, la bolita la enseña.
 8. En la ficha, sus sesiones (Risco, 15-10: «¿se guardan las sesiones iniciadas en Google?»): compartidas o
    propias (su contenedor: su Google, sus cookies); al cambiarlas, sus pestañas pasan a ellas. Uno nuevo
@@ -66,6 +68,8 @@ return {
   spaces: KitsuneSpaces.list().spaces.map(({ id, name, color, icon }) => ({ id, name, color, icon: icon ?? '' })),
   zeroIds: { modes: Object.keys(json('modes').profiles ?? {}), images: Object.keys(json('profiles.images')), shortcuts: Object.keys(json('shortcuts')) },
   switchMode: document.getElementById('zero-mode')?.dataset.mode ?? null,
+  modeButtons: [...document.querySelectorAll('#zero-mode > button[data-mode]')].map(b => ({ mode: b.dataset.mode, pressed: b.getAttribute('aria-pressed') === 'true',
+            label: b.getAttribute('aria-label'), icon: getComputedStyle(b, '::before').maskImage.startsWith('url('), box: box(b) })),
   space: KitsuneSpaces.active(window),
   railTabs: [...document.querySelectorAll('#zero-rail .zero-tab')].map(r => r.getAttribute('aria-label')),
   pomodoro: pref('pomodoro'), silence: pref('silence'), sounds: pref('sounds'),
@@ -207,20 +211,28 @@ def main():
 
         casa = driver.script(f"const done = arguments[arguments.length - 1]; {spaces}.create({{ name: 'Casa', color: 'pink', user: null }}).then(done, e => done(String(e)));", [], asynchronous=True)
         until(lambda: len(state()['stack']) == 2)
-        click('#zero-mode')
-        until(lambda: (s := state())['switchMode'] == 'work' and s['pomodoro'] is True and s['silence'] is True)
-        click('#zero-mode')
-        until(lambda: (s := state())['switchMode'] == 'chill' and s['pomodoro'] is False and s['silence'] is False)
+        def pressed(mode):
+            buttons = state()['modeButtons']
+            return [b['mode'] for b in buttons] == ['work', 'chill'] and [b['mode'] for b in buttons if b['pressed']] == ([mode] if mode else []) \
+                and [b['label'] for b in buttons] == ['Currar', 'Chill'] and all(b['icon'] and b['box'] and b['box']['w'] >= 24 for b in buttons)
+        until(lambda: pressed(None))
+        click('#zero-mode [data-mode="work"]')
+        until(lambda: (s := state())['switchMode'] == 'work' and s['pomodoro'] is True and s['silence'] is True and pressed('work'))
+        click('#zero-mode [data-mode="work"]')  # otra vez: se queda en currar
+        time.sleep(0.3)
+        until(lambda: (s := state())['switchMode'] == 'work' and s['pomodoro'] is True and pressed('work'))
+        click('#zero-mode [data-mode="chill"]')
+        until(lambda: (s := state())['switchMode'] == 'chill' and s['pomodoro'] is False and s['silence'] is False and pressed('chill'))
         chrome("Services.prefs.setBoolPref('kitsune.zero.sounds', true)")
         time.sleep(0.3)
         # Casa: su propio modo (currar), y al volver al primero, el suyo (chill con sonidos).
         click(f'#zero-profile .zero-profile-bubble[data-space="{casa}"]')
         until(lambda: state()['space'] == casa)
-        click('#zero-mode')
+        click('#zero-mode [data-mode="work"]')
         until(lambda: (s := state())['switchMode'] == 'work' and s['pomodoro'] is True and s['sounds'] is False)
         click(f'#zero-profile .zero-profile-bubble[data-space="{first}"]')
         until(lambda: (s := state())['space'] == first and s['switchMode'] == 'chill' and s['pomodoro'] is False and s['sounds'] is True)
-        check('El interruptor pasa entre Currar y Chill, y cada perfil guarda su modo')
+        check('Dos botones, Currar (maletín) y Chill (luna), con el de ahora marcado; cada perfil guarda su modo')
 
         image = 'data:image/svg+xml,' + '%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 4 4%22%3E%3Crect width=%224%22 height=%224%22 fill=%22%23e8743b%22/%3E%3C/svg%3E'
         chrome("Services.prefs.setStringPref('kitsune.zero.profiles.images', JSON.stringify({ [arguments[0]]: arguments[1] }))", [first, image])
