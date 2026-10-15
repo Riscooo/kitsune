@@ -13,9 +13,9 @@ centro de la pantalla como buscador; al buscar, la isla sube a su sitio con una 
    escrito se va al momento (no se cruza con el dominio, que entra al llegar arriba).
 3. Una pestaña nueva (Ctrl+T) vuelve a ser vacía: la isla baja al centro y la tarjeta se va.
 4. Elegir una pestaña con web o una vacía cambia lo uno y lo otro.
-5. Con la ventana sin ver (otra app delante), una pestaña nueva esconde la tarjeta enseguida: Gecko no
-   anima una ventana que no se ve, y el fundido se quedaba parado con la tarjeta a la vista (en negro)
-   hasta volver a Kitsune (Risco, 15-10).
+5. Una pestaña nueva esconde la tarjeta al momento, sin fundido: lo que se fundiría ya es la página nueva
+   aún sin pintar (en negro), y si el dibujo se para a medias (la ventana sin ver: Gecko no la anima) se
+   quedaba así hasta volver a Kitsune (Risco, 15-10). Al volver a una web, la tarjeta sí entra fundida.
 
 --zero-del-repo: Zero sale de zero/ del repositorio (ver zero_harness.py).
 """
@@ -135,6 +135,13 @@ def main():
 
         chrome("gBrowser.selectedTab = gBrowser.tabs[0]")
         until(lambda: at_top(state()))
+        driver.context('chrome')
+        right_away = driver.script("""const done = arguments[arguments.length - 1];
+            (window.BrowserCommands?.openTab ?? window.BrowserOpenTab).call(window.BrowserCommands ?? window);
+            requestAnimationFrame(() => done(Number(getComputedStyle(document.getElementById('tabbrowser-tabpanels')).opacity)));""", [], asynchronous=True)
+        assert right_away < 0.05, f'la pestaña nueva funde la tarjeta (se ve la página sin pintar): {right_away}'
+        chrome("gBrowser.removeTab(gBrowser.selectedTab); gBrowser.selectedTab = gBrowser.tabs[0]")
+        until(lambda: at_top(state()))
         chrome("window.browsingContext.isActive = false")
         try:
             chrome("(window.BrowserCommands?.openTab ?? window.BrowserOpenTab).call(window.BrowserCommands ?? window)")
@@ -146,7 +153,7 @@ def main():
         finally:
             chrome("window.browsingContext.isActive = true")
         until(lambda: centered(state()))
-        check('Con la ventana sin ver, una pestaña nueva esconde la tarjeta enseguida')
+        check('Una pestaña nueva esconde la tarjeta al momento (también con la ventana sin ver)')
         report['status'] = 'passed'
     finally:
         if driver: driver.close()

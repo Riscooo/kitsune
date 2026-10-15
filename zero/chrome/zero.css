@@ -597,7 +597,10 @@
 }
 #main-window[zero][zero-empty] #nav-bar > .zero-engine[src] { opacity: 1 !important; transition-delay: var(--zero-enter) !important; }
 #main-window[zero] #tabbrowser-tabpanels { transition: opacity var(--zero-t-fade) var(--zero-soft), scale var(--zero-t-move) var(--zero-calm); }
-#main-window[zero][zero-empty] #tabbrowser-tabpanels { opacity: 0 !important; scale: .985; pointer-events: none !important; }
+/* Al ir a una pestaña vacía la tarjeta se va al momento: lo que se fundiría ya es la página nueva aún sin
+   pintar (negra), y si el dibujo se paraba a medias se quedaba así (Risco, 15-10). Al volver a una web, sí
+   entra fundida. */
+#main-window[zero][zero-empty] #tabbrowser-tabpanels { opacity: 0 !important; scale: .985; pointer-events: none !important; transition-duration: 0s !important; }
 #main-window[zero][zero-empty] #zero-grow { opacity: 0 !important; pointer-events: none !important; }
 /* Al dejar de estar vacía (se ha buscado), mientras sube: lo escrito se va al momento y el dominio
    entra al final, sin cruzarse. */
