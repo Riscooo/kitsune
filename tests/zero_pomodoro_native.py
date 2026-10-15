@@ -176,8 +176,11 @@ def main():
         forward(25 * MIN + 2000)
         until(lambda: state()['brk'] and state()['brk']['seen'])
         s = state()
-        b, card = s['brk']['box'], s['card']
-        assert abs(b['x'] - card['x']) <= 2 and abs(b['w'] - card['w']) <= 2 and 'Mantén para saltar' in s['brk']['text'], s
+        # El cristal entra con su animación (escala 0,985 → 1): se mide cuando ya ha llegado.
+        until(lambda: (s := state())['brk'] and abs(s['brk']['box']['x'] - s['card']['x']) <= 2 and abs(s['brk']['box']['w'] - s['card']['w']) <= 2)
+        s = state()
+        b = s['brk']['box']
+        assert 'Mantén para saltar' in s['brk']['text'], s
         assert s['island']['y'] + s['island']['h'] <= b['y'] and s['rail']['x'] + s['rail']['w'] <= b['x'] + 2, s
         hold = list(element('#zero-break .zero-hold').values())[0]
         driver.context('chrome')
