@@ -94,7 +94,16 @@ export function attach(win, ctx = {}) {
   };
   const update = () => {
     const { text: value, site } = label(win);
-    text.textContent = value;
+    // Otra web: el dominio (y su icono) entran con un fundido corto, como cambia el texto en la Dynamic
+    // Island; la misma web no mueve nada.
+    if (text.textContent !== value) {
+      const first = !st.painted;
+      text.textContent = value;
+      if (!first && !win.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        for (const part of [text, icon]) part.animate([{ opacity: 0, filter: 'blur(2px)' }, { opacity: 1, filter: 'none' }], { duration: 260, easing: 'cubic-bezier(.4, 0, .2, 1)' });
+      }
+    }
+    st.painted = true;
     st.host.toggleAttribute('secure', site === 'secure');
     if (site) st.host.setAttribute('site', site); else st.host.removeAttribute('site');
     const who = userOf(win, win.gBrowser.selectedTab);

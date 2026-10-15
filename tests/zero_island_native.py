@@ -38,6 +38,8 @@
     tras el dominio, como el de iOS: verde la cámara, naranja el micrófono, rojo la pantalla. Aunque sea
     otra pestaña (lo que importa es saber que está encendida); al apagarse, se va. Con la isla abierta, el
     punto se pulsa y lleva a esa pestaña.
+22. Al pasar a una pestaña de otra web, el dominio de la isla entra con un fundido corto, no de golpe;
+    entre dos pestañas de la misma web no se mueve nada, y con «reducir movimiento», tampoco.
 
 --zero-del-repo: Zero sale de zero/ del repositorio (ver zero_harness.py).
 """
@@ -456,6 +458,29 @@ def main():
         except AssertionError:
             raise AssertionError(f'cámara/micrófono: {chrome(rec)}') from None
         check('Con la cámara, el micrófono o la pantalla en uso (en cualquier pestaña), un punto tras el dominio, que lleva a esa pestaña')
+
+        # Tres pestañas: dos de esta web y una de otra (localhost en vez de 127.0.0.1).
+        other = origin.replace('127.0.0.1', 'localhost')
+        chrome("""const P = Services.scriptSecurityManager.getSystemPrincipal();
+            window.__webs = [gBrowser.addTab(arguments[0] + '/a', { triggeringPrincipal: P }), gBrowser.addTab(arguments[0] + '/b', { triggeringPrincipal: P }), gBrowser.addTab(arguments[1] + '/c', { triggeringPrincipal: P })];""", [origin, other])
+        until(lambda: chrome("return window.__webs.every(t => !t.hasAttribute('busy') && t.linkedBrowser.currentURI.spec.startsWith('http'))"), timeout=10)
+        driver.context('chrome')
+        moved = """const done = arguments[arguments.length - 1];
+            gBrowser.selectedTab = window.__webs[arguments[0]];
+            setTimeout(() => { const t = document.querySelector('#zero-host .zero-host-text');
+              done({ text: t.textContent, moving: t.getAnimations().filter(a => a.playState === 'running').length }); }, 60);"""
+        chrome("gBrowser.selectedTab = window.__webs[0]")
+        time.sleep(0.6)
+        same = driver.script(moved, [1], asynchronous=True)
+        time.sleep(0.6)
+        other_web = driver.script(moved, [2], asynchronous=True)
+        time.sleep(0.6)
+        chrome("Services.prefs.setIntPref('ui.prefersReducedMotion', 1)")
+        until(lambda: chrome("return matchMedia('(prefers-reduced-motion: reduce)').matches"), timeout=5)
+        quiet = driver.script(moved, [0], asynchronous=True)
+        chrome("Services.prefs.clearUserPref('ui.prefersReducedMotion'); gBrowser.removeTabs(window.__webs); delete window.__webs;")
+        assert same['moving'] == 0 and other_web['moving'] >= 1 and 'localhost' in other_web['text'] and quiet['moving'] == 0, (same, other_web, quiet)
+        check('Al pasar a otra web, el dominio de la isla entra con un fundido (no entre pestañas de la misma web)')
 
         chrome("ChromeUtils.importESModule('chrome://browser/content/zero/zero-island.sys.mjs').alert(window, 'Tres avisos esperando', 'te los enseño en el descanso', 1500, 'quiet')")
         until(lambda: sized(470) and clear_of_card(), timeout=5)
