@@ -359,7 +359,7 @@
 #main-window[zero] #zero-host .zero-action[data-action="translate"] { --zero-action-icon: url("chrome://browser/skin/translations.svg"); }
 
 /* Lo que suena en otra pestaña: en reposo, una onda de tres rayas que se mueve si suena (quieta en
-   pausa); con la isla abierta, en su lugar, pausa (o seguir) y siguiente. */
+   pausa y en el modo ahorro); con la isla abierta, en su lugar, pausa (o seguir) y siguiente. */
 #main-window[zero] #zero-host .zero-now { display: none !important; flex: none !important; align-items: center !important; gap: 2px !important; }
 #main-window[zero] #zero-host[now] .zero-now { display: flex !important; }
 #main-window[zero] #zero-host .zero-now-wave { display: flex !important; align-items: center !important; gap: 2px !important; height: 12px !important; }
@@ -367,9 +367,9 @@
   display: block !important; width: 2px !important; height: 10px !important; border-radius: 1px !important;
   background: currentColor !important; opacity: .75 !important; transform: scaleY(.4) !important;
 }
-#main-window[zero] #zero-host .zero-now[playing] .zero-now-wave > i { animation: zero-now-wave 1.1s var(--zero-soft) infinite alternate !important; }
-#main-window[zero] #zero-host .zero-now[playing] .zero-now-wave > i:nth-child(2) { animation-delay: -.4s !important; animation-duration: .9s !important; }
-#main-window[zero] #zero-host .zero-now[playing] .zero-now-wave > i:nth-child(3) { animation-delay: -.7s !important; animation-duration: 1.3s !important; }
+#main-window[zero] #zero-host .zero-now[playing]:not([still]) .zero-now-wave > i { animation: zero-now-wave 1.1s var(--zero-soft) infinite alternate !important; }
+#main-window[zero] #zero-host .zero-now[playing]:not([still]) .zero-now-wave > i:nth-child(2) { animation-delay: -.4s !important; animation-duration: .9s !important; }
+#main-window[zero] #zero-host .zero-now[playing]:not([still]) .zero-now-wave > i:nth-child(3) { animation-delay: -.7s !important; animation-duration: 1.3s !important; }
 @keyframes zero-now-wave { from { transform: scaleY(.3); } to { transform: scaleY(1); } }
 #main-window[zero] #zero-host :is(.zero-now-toggle, .zero-now-next) {
   display: none !important; flex: none !important; width: 14px !important; height: 14px !important; padding: 4px !important; border-radius: 999px !important;

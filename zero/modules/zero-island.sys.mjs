@@ -266,7 +266,7 @@ export function activity(win, key, data) {
   if (!st.alerting) show(win, st, data);
 }
 
-/** Lo que suena en otra pestaña (o null): { playing, title, canNext, toggle(), next(), go() }. En
+/** Lo que suena en otra pestaña (o null): { playing, title, still, canNext, toggle(), next(), go() }. En
  *  reposo, una onda junto al dominio; con la isla abierta, pausa (o seguir) y siguiente. */
 export function nowPlaying(win, data) {
   const st = state.get(win);
@@ -275,6 +275,7 @@ export function nowPlaying(win, data) {
   st.now.data = data;
   st.host.toggleAttribute('now', !!data);
   node.toggleAttribute('playing', !!data?.playing);
+  node.toggleAttribute('still', !!data?.still); // modo ahorro: la onda, quieta
   node.title = data?.title ?? '';
   next.hidden = !data?.canNext;
   const label = data?.playing ? t('Pausa', 'Pause') : t('Seguir', 'Play');

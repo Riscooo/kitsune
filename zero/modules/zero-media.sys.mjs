@@ -49,8 +49,10 @@ export function attach(win, ctx) {
     const title = String(meta?.title || tab.label || '').trim();
     const artist = String(meta?.artist || '').trim();
     const go = () => { if (live(tab)) win.gBrowser.selectedTab = tab; };
+    let saver = false;
+    try { saver = !!ctx.host?.saver?.active; } catch { /* sin anfitrión */ }
     island.nowPlaying({
-      playing: controller.isPlaying, title,
+      playing: controller.isPlaying, title, still: saver,
       canNext: [...(controller.supportedKeys ?? [])].includes('nexttrack'),
       // Gecko 158 pide de dónde viene la pausa.
       toggle: () => { try { controller.isPlaying ? controller.pause('user') : controller.play(); } catch { /* ya no está */ } },

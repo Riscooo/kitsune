@@ -5,7 +5,8 @@ En Zero no está la tarjeta de Kitsune «lo que suena» (vive en la barra de her
 la isla): la isla hace de actividad en directo, como la música en la Dynamic Island.
 
 1. Cuando suena algo en una pestaña que no estás viendo, la isla lo dice un momento («título · artista»).
-2. Mientras suena, junto al dominio hay una onda pequeña; en la propia pestaña que suena, no.
+2. Mientras suena, junto al dominio hay una onda pequeña (quieta en el modo ahorro de Kitsune); en la
+   propia pestaña que suena, no.
 3. Con la isla abierta, un botón pausa y sigue; el de siguiente sale solo si la web lo permite, y va.
 4. Un clic en el aviso lleva a la pestaña que suena.
 5. Si se cierra la pestaña que sonaba, la onda se va.
@@ -139,7 +140,14 @@ def main():
         check('Cuando suena algo en otra pestaña, la isla lo dice un momento (título · artista)')
 
         until(lambda: (i := island())['now'] and i['playing'] and not i['alert'], timeout=10)
-        check('Mientras suena, junto al dominio hay una onda pequeña')
+        moving = "return document.querySelector('#zero-host .zero-now-wave > i').getAnimations().length > 0"
+        assert chrome(moving), 'la onda debería moverse mientras suena'
+        # En el modo ahorro de Kitsune, quieta (sin animación que gaste).
+        chrome("Services.prefs.setStringPref('kitsune.performance.applied', 'ahorro'); gBrowser.selectedTab.dispatchEvent(new CustomEvent('TabAttrModified', { bubbles: true, detail: { changed: ['soundplaying'] } }));")
+        until(lambda: not chrome(moving) and island()['now'])
+        chrome("Services.prefs.clearUserPref('kitsune.performance.applied'); gBrowser.selectedTab.dispatchEvent(new CustomEvent('TabAttrModified', { bubbles: true, detail: { changed: ['soundplaying'] } }));")
+        until(lambda: chrome(moving))
+        check('Mientras suena, junto al dominio hay una onda pequeña (quieta en el modo ahorro)')
 
         pointer([{'type': 'pointerMove', 'origin': element('#nav-bar'), 'x': 0, 'y': 0}])
         until(lambda: island()['toggle'] and island()['next'])
