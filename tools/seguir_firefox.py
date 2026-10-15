@@ -52,7 +52,9 @@ REPO = 'Riscooo/kitsune'
 TESTS = ('contrast_native', 'theme_native', 'appearance_native', 'newtab_native', 'vertical_tabs_native', 'spaces_native',
          'layout_native', 'glance_native', 'palette_native', 'saver_native', 'window_saver_native', 'privacy_line_native',
          'tintas_native', 'home_integrated_native', 'users_native', 'import_native', 'english_native', 'locale_native',
-         'updates_native', 'updater_native', 'copia_native', 'bienvenida_native', 'media_native', 'keys_native', 'retoques_native', 'privacy_modes_native')
+         'updates_native', 'updater_native', 'copia_native', 'bienvenida_native', 'media_native', 'keys_native', 'retoques_native', 'privacy_modes_native',
+         # Kitsune Zero (con el Zero que lleva el motor) y las sesiones propias de los perfiles.
+         *sorted(path.stem for path in (ROOT / 'tests').glob('zero*_native.py')), 'spaces_sessions_native')
 # Si aun así falta memoria, el núcleo mata antes la compilación que las aplicaciones de quien usa el PC.
 LIMITS = ['-p', 'MemoryMax=65%', '-p', 'MemorySwapMax=0', '-p', 'Nice=19', '-p', 'IOSchedulingClass=idle', '-p', 'CPUWeight=idle',
           '-p', 'OOMScoreAdjust=900']
