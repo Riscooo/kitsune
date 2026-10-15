@@ -35,6 +35,8 @@
     barra de pestañas de Kitsune; al volver a ella, se enciende.
 20. La pestaña que usa la cámara, el micrófono o comparte la pantalla lleva un punto de su color (verde,
     naranja, rojo, como en la isla) en la esquina de arriba a la izquierda de su icono; al apagarse, se va.
+22. Lo que una fila enseña con puntos e iconos (suena, silenciada, usa la cámara, algo nuevo, descargada)
+    también lo dice a los lectores de pantalla (aria-description); sin nada, no dice nada.
 21. Elegir una pestaña repinta solo las filas que cambian (la que se deja y la elegida), no todas: con
     muchas pestañas, repintarlas todas costaba más que un fotograma a 240 Hz. Y la isla, una vez (no una
     por cada aviso de Gecko: como mucho dos).
@@ -483,6 +485,27 @@ def main():
         assert max(c['rail'] for c in counts) <= 2 and max(c['island'] for c in counts) <= 2, f'al elegir una pestaña se repintan (de {rows} filas): {counts}'
         chrome("delete gBrowser.getIcon")
         check('Elegir una pestaña repinta solo las filas que cambian')
+
+        said = """const t = gBrowser.visibleTabs.at(-1); const row = [...document.querySelectorAll('#zero-rail .zero-tab')].find(r => r.getAttribute('aria-label') === t.label);
+            return row ? (row.getAttribute('aria-description') || '') : null;"""
+        mark = """const t = gBrowser.visibleTabs.at(-1); for (const [name, on] of Object.entries(arguments[0])) t.toggleAttribute(name, on);
+            t.dispatchEvent(new CustomEvent('TabAttrModified', { bubbles: true, detail: { changed: Object.keys(arguments[0]) } }));"""
+        try:
+            eventually(lambda: chrome(said) == '', timeout=5)
+            chrome(mark, [{'soundplaying': True}])
+            eventually(lambda: 'suena' in chrome(said).lower(), timeout=5)
+            chrome(mark, [{'soundplaying': False, 'muted': True}])
+            eventually(lambda: 'silenciada' in chrome(said).lower() and 'suena' not in chrome(said).lower(), timeout=5)
+            chrome("gBrowser.updateBrowserSharing(gBrowser.visibleTabs.at(-1).linkedBrowser, { webRTC: { sharing: 'camera', camera: true } })")
+            eventually(lambda: 'cámara' in chrome(said).lower(), timeout=5)
+            chrome("gBrowser.updateBrowserSharing(gBrowser.visibleTabs.at(-1).linkedBrowser, { webRTC: {} })")
+            chrome(mark, [{'muted': False, 'attention': True}])
+            eventually(lambda: 'nuevo' in chrome(said).lower(), timeout=5)
+            chrome(mark, [{'attention': False}])
+            eventually(lambda: chrome(said) == '', timeout=5)
+        except AssertionError:
+            raise AssertionError(f'lo que dice la fila: «{chrome(said)}»') from None
+        check('Lo que una fila enseña con puntos e iconos también lo dice a los lectores de pantalla')
         report['status'] = 'passed'
     finally:
         if driver: driver.close()

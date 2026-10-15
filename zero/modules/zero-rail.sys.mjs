@@ -110,8 +110,18 @@ function fill(win, st, tab, node) {
   node.toggleAttribute('multiselected', !!tab.multiselected);
   // Usa la cámara, el micrófono o la pantalla: un punto de su color, como en la isla.
   const sharing = tab.getAttribute('sharing');
-  if (sharing) node.setAttribute('sharing', sharing === 'camera' || sharing === 'microphone' ? sharing : 'screen');
+  const kind = sharing && (sharing === 'camera' || sharing === 'microphone' ? sharing : 'screen');
+  if (kind) node.setAttribute('sharing', kind);
   else node.removeAttribute('sharing');
+  // Lo que se ve en puntos e iconos, también para los lectores de pantalla.
+  const t = st.host.t, says = [];
+  if (tab.hasAttribute('soundplaying') && !tab.hasAttribute('muted')) says.push(t('suena', 'playing'));
+  if (tab.hasAttribute('muted')) says.push(t('silenciada', 'muted'));
+  if (kind) says.push({ camera: t('usa la cámara', 'using the camera'), microphone: t('usa el micrófono', 'using the microphone'), screen: t('comparte la pantalla', 'sharing the screen') }[kind]);
+  if (node.hasAttribute('attention')) says.push(t('algo nuevo', 'something new'));
+  if (tab.hasAttribute('pending')) says.push(t('descargada', 'unloaded'));
+  if (says.length) node.setAttribute('aria-description', says.join(', '));
+  else node.removeAttribute('aria-description');
   // Descargada de memoria: el icono apagado, como en la barra de pestañas (lo decide el CSS con las
   // mismas preferencias de Gecko).
   node.toggleAttribute('pending', tab.hasAttribute('pending'));
