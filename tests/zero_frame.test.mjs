@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { dominantColor, backdropMode, desktopOf, GLASS_RULES } from '../zero/modules/zero-frame.sys.mjs'
+import { dominantColor, backdropMode, desktopOf, GLASS_RULES, macGlass } from '../zero/modules/zero-frame.sys.mjs'
 
 const block = (...parts) => {
   const bytes = []
@@ -50,4 +50,12 @@ test('the desktop glass is used with the Kitsune rule of any desktop that has on
   assert.equal(backdropMode('auto', { desktop: null, rule: false }), 'web')
   assert.deepEqual(Object.keys(GLASS_RULES).sort(), ['gnome', 'hyprland', 'kde', 'niri'])
   assert.deepEqual(GLASS_RULES.niri, ['.config/niri/kitsune-zero.kdl'])
+})
+
+test('on macOS, Apple Liquid Glass from macOS 26 (Darwin 25) on', () => {
+  assert.equal(macGlass('Darwin', '25.0.0'), true)
+  assert.equal(macGlass('Darwin', '26.1.0'), true)
+  assert.equal(macGlass('Darwin', '24.6.0'), false)
+  assert.equal(macGlass('Linux', '25.0.0'), false)
+  assert.equal(macGlass('WINNT', '10.0'), false)
 })

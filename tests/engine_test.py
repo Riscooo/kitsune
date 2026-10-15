@@ -310,6 +310,20 @@ class RecipeTests(unittest.TestCase):
         engine.rebrand_source(root)
         self.assertEqual((root / "widget/gtk/nsWindow.cpp").read_text().count("gdk_window_invalidate_rect"), 1)
 
+    def test_kitsune_zero_on_macos_26_has_apple_liquid_glass_behind(self):
+        # En macOS 26 o posterior, con la ventana de Zero transparente, el cristal de Apple (NSGlassEffectView)
+        # detrás de la vista de Gecko: dobla lo de detrás de la ventana. Solo si Zero lo pide (su ajuste) y solo
+        # en ventanas principales; al volver a opaca, se quita.
+        patches = engine.TEXT_PATCHES["widget/cocoa/nsCocoaWindow.mm"]
+        code = "".join(new for _, new in patches)
+        for piece in ("@available(macOS 26.0, *)", "NSGlassEffectView", "positioned:NSWindowBelow", "removeFromSuperview",
+                      '"kitsune.zero.macos-glass"', "mWindowType == WindowType::TopLevel"):
+            self.assertIn(piece, code)
+        root = self.rebrand_tree()
+        engine.rebrand_source(root)
+        engine.rebrand_source(root)
+        self.assertEqual((root / "widget/cocoa/nsCocoaWindow.mm").read_text().count("SetKitsuneGlass("), 2)
+
     def test_a_missing_gecko_illustration_stops_the_recipe(self):
         root = self.rebrand_tree()
         (root / engine.MASCOT_POSES["guardia"][0]).unlink()

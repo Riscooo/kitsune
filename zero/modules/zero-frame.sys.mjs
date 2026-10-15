@@ -4,8 +4,9 @@
  * - Ventana de cristal: con Zero, la raíz y el resto del marco son transparentes y Gecko pasa la
  *   ventana a transparente él solo (nsLayoutUtils::GetFrameTransparency). Lo de detrás lo dobla el
  *   compositor, con la regla de Kitsune de su escritorio (GLASS_RULES: niri, Hyprland, KDE, GNOME; ver
- *   zero/linux). Sin ella, «fondo de la web»: una foto de la web, desenfocada, detrás de todo, que el canto
- *   de la lámina dobla como una lente (zero-pane).
+ *   zero/linux), o en macOS 26+ el cristal de Apple que pone el motor. Sin eso (Windows, macOS anteriores,
+ *   otros Linux), «fondo de la web»: una foto de la web, desenfocada, detrás de todo, que el canto de la
+ *   lámina dobla como una lente (zero-pane).
  * - Velo: el color dominante de la web, muy leve, que cambia despacio con cada página.
  */
 import { lightOf, inkFor } from './zero-light.mjs';
@@ -56,6 +57,12 @@ export function desktopOf(get) {
   return null;
 }
 
+/** En macOS, el cristal de Apple (Liquid Glass, NSGlassEffectView) desde macOS 26, que es Darwin 25: el motor
+ *  lo pone detrás de la ventana transparente de Zero (widget/cocoa, kitsune.zero.macos-glass). */
+export function macGlass(os, kernel) {
+  return os === 'Darwin' && Number.parseInt(String(kernel), 10) >= 25;
+}
+
 /** Lo que deja la regla de Kitsune en cada escritorio (en la carpeta de usuario): con ella, Zero usa lo de
  *  detrás de la ventana, que el compositor dobla. niri: su regla (y niri-vidrio, la refracción); Hyprland:
  *  la regla de hyprglass; KDE (kwin-effects-glass) y GNOME (Liquid Glass): la marca de zero/linux/cristal.py. */
@@ -81,6 +88,12 @@ const el = (doc, tag, attributes = {}, children = []) => {
 /** ¿Hay quien ponga el cristal detrás de la ventana? Un escritorio con la regla de Kitsune instalada. */
 async function compositorEnv() {
   let desktop = null, rule = false;
+  if (Services.appinfo.OS === 'Darwin') {
+    // macOS: lo de detrás lo pone el cristal de Apple, si lo hay (lo pone el motor al ponerse transparente
+    // la ventana, salvo con kitsune.zero.macos-glass = false).
+    try { rule = macGlass('Darwin', Services.sysinfo.getProperty('version')) && Services.prefs.getBoolPref('kitsune.zero.macos-glass', true); } catch { /* sin versión */ }
+    return (knownEnv = { niri: false, desktop: 'macos', rule });
+  }
   try { desktop = desktopOf(name => Services.env.get(name)); } catch { /* sin entorno */ }
   try {
     const home = Services.dirsvc.get('Home', Ci.nsIFile).path;

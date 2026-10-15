@@ -110,6 +110,49 @@ TEXT_PATCHES = {
                                  '      // Kitsune: GDK solo pasa la región opaca a su wl_surface al repintar la GdkWindow (como la\n'
                                  '      // de entrada, ver SetInputRegion); sin esto se quedaba vieja hasta el siguiente cambio de foco.\n'
                                  '      gdk_window_invalidate_rect(window, nullptr, false);\n    }\n')],
+    # Kitsune Zero en macOS 26 o posterior: con su ventana transparente, el cristal de Apple (Liquid Glass,
+    # NSGlassEffectView) detrás de la vista de Gecko, que dobla lo de detrás de la ventana (Risco, 15-10). En
+    # ventanas principales (en Kitsune solo las de Zero son transparentes), salvo que se apague con
+    # kitsune.zero.macos-glass = false; al volver a opaca se quita.
+    "widget/cocoa/nsCocoaWindow.mm": [
+        ('// This is called from nsMenuPopupFrame when making a popup transparent.\nvoid nsCocoaWindow::SetTransparencyMode(',
+         '// Kitsune Zero (macOS 26+): el cristal de Apple detrás de la vista de Gecko, del tamaño de la ventana y\n'
+         '// con las esquinas de Zero (48 px, como zero.css); se busca por su identificador para quitarlo.\n'
+         'static void SetKitsuneGlass(BaseWindow* aWindow, bool aOn) {\n'
+         '  if (@available(macOS 26.0, *)) {\n'
+         '    NSView* child = aWindow.mainChildView;\n'
+         '    NSView* parent = child.superview;\n'
+         '    if (!parent) {\n'
+         '      return;\n'
+         '    }\n'
+         '    NSView* glass = nil;\n'
+         '    for (NSView* view in parent.subviews) {\n'
+         '      if ([view.identifier isEqualToString:@"kitsune-zero-glass"]) {\n'
+         '        glass = view;\n'
+         '        break;\n'
+         '      }\n'
+         '    }\n'
+         '    if (aOn && !glass) {\n'
+         '      auto* view = [[NSGlassEffectView alloc] initWithFrame:child.frame];\n'
+         '      view.identifier = @"kitsune-zero-glass";\n'
+         '      view.cornerRadius = 48.0;\n'
+         '      view.autoresizingMask = NSViewWidthSizable | NSViewHeightSizable;\n'
+         '      [parent addSubview:view positioned:NSWindowBelow relativeTo:child];\n'
+         '      [view release];\n'
+         '    } else if (!aOn && glass) {\n'
+         '      [glass removeFromSuperview];\n'
+         '    }\n'
+         '  }\n'
+         '}\n\n'
+         '// This is called from nsMenuPopupFrame when making a popup transparent, and\n'
+         '// (Kitsune) from PresShell when a Kitsune Zero window turns transparent.\n'
+         'void nsCocoaWindow::SetTransparencyMode('),
+        ('      isTransparent ? NSColor.clearColor : NSColor.whiteColor;\n\n  NS_OBJC_END_TRY_IGNORE_BLOCK;\n}\n\nvoid nsCocoaWindow::Enable(bool aState) {}',
+         '      isTransparent ? NSColor.clearColor : NSColor.whiteColor;\n'
+         '  if (mWindowType == WindowType::TopLevel) {\n'
+         '    SetKitsuneGlass(mWindow, isTransparent && Preferences::GetBool("kitsune.zero.macos-glass", true));\n'
+         '  }\n\n  NS_OBJC_END_TRY_IGNORE_BLOCK;\n}\n\nvoid nsCocoaWindow::Enable(bool aState) {}'),
+    ],
     "widget/gtk/nsLookAndFeel.h": [('  int32_t mRoundedCornerProviderRadius = 0;', '  int32_t mRoundedCornerProviderRadius = -1;  // Kitsune: así el proveedor se crea siempre')],
     # Las barras de aviso llevaban el degradado de la marca Firefox: óxido y jade de Kitsune.
     "toolkit/content/widgets/infobar.css": [
