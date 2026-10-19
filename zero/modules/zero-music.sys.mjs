@@ -12,21 +12,27 @@
  *   se quiera (kitsune.zero.music.mini, en px desde arriba a la izquierda) y queda encima de todo; cerrarlo
  *   no corta la música, y el botón vuelve a abrir el panel con la misma.
  * - Lo que suena lo dice la propia web (MediaSession) al controlador de medios de Gecko.
+ * - El panel tiene el ancho que pide la web del servicio (Spotify no baja de 800 px: con 380 se cortaba, Risco
+ *   19-10); se estrecha o ensancha desde su borde derecho (kitsune.zero.music.width; doble clic, el de serie),
+ *   y si queda más estrecho que la web, esta se ve entera pero más pequeña (zero-music-fit).
  * Va en Windows, macOS y Linux.
  */
 import { prefName } from './zero-config.sys.mjs';
+import { fitMusic, MUSIC_MIN_WIDTH } from './zero-music-fit.mjs';
 
 const HTML = 'http://www.w3.org/1999/xhtml';
 const SERVICE_PREF = 'music.service';
 const MINI_PREF = 'music.mini';
+const WIDTH_PREF = 'music.width';
+// El ancho por debajo del cual la web de cada servicio se corta (medido el 19-10; 0, se adapta a cualquiera).
 export const SERVICES = Object.freeze([
-  ['spotify', 'Spotify', 'https://open.spotify.com/'],
-  ['youtube-music', 'YouTube Music', 'https://music.youtube.com/'],
-  ['apple-music', 'Apple Music', 'https://music.apple.com/'],
-  ['soundcloud', 'SoundCloud', 'https://soundcloud.com/'],
-  ['deezer', 'Deezer', 'https://www.deezer.com/'],
-  ['tidal', 'Tidal', 'https://listen.tidal.com/'],
-].map(([id, name, url]) => Object.freeze({ id, name, url })));
+  ['spotify', 'Spotify', 'https://open.spotify.com/', 800],
+  ['youtube-music', 'YouTube Music', 'https://music.youtube.com/', 0],
+  ['apple-music', 'Apple Music', 'https://music.apple.com/', 0],
+  ['soundcloud', 'SoundCloud', 'https://soundcloud.com/', 960],
+  ['deezer', 'Deezer', 'https://www.deezer.com/', 0],
+  ['tidal', 'Tidal', 'https://listen.tidal.com/', 0],
+].map(([id, name, url, width]) => Object.freeze({ id, name, url, width })));
 const EVENTS = ['activated', 'deactivated', 'metadatachange', 'playbackstatechange', 'supportedkeyschange', 'positionstatechange'];
 const state = new WeakMap();
 
@@ -41,11 +47,17 @@ const el = (doc, tag, attrs = {}, kids = []) => {
 export function serviceOf(value) {
   const known = SERVICES.find(service => service.id === value);
   if (known) return known;
-  try { const url = new URL(value); if (/^https?:$/.test(url.protocol)) return { id: 'custom', name: url.hostname.replace(/^www\./, ''), url: url.href }; } catch { /* nada */ }
+  try {
+    const url = new URL(value);
+    // Una dirección de uno de la lista (una lista de Spotify, por ejemplo) pide el mismo ancho que él.
+    const width = SERVICES.find(service => new URL(service.url).hostname === url.hostname)?.width ?? 0;
+    if (/^https?:$/.test(url.protocol)) return { id: 'custom', name: url.hostname.replace(/^www\./, ''), url: url.href, width };
+  } catch { /* nada */ }
   return null;
 }
 
 const readService = host => { try { return host.prefs.getStringPref(prefName(host.prefix, SERVICE_PREF), ''); } catch { return ''; } };
+const readWidth = host => { try { return host.prefs.getIntPref(prefName(host.prefix, WIDTH_PREF), 0); } catch { return 0; } };
 
 /** Abre la música desde `anchor` (su botón, o el altavoz del panel de sonido en la variante «Sobrio»): la
  *  primera vez, la lista de servicios; luego, el reproductor (o lo minimiza si ya está a la vista). */
@@ -106,6 +118,7 @@ function ensurePanel(win, st, service) {
     ]);
     st.panel.querySelector('.zero-music-minimize').addEventListener('click', () => show(win, st, 'mini'));
     st.panel.querySelector('.zero-music-change').addEventListener('click', () => { show(win, st, 'closed'); openServices(win, st); });
+    st.panel.append(resizeEdge(win, st));
     doc.body.append(st.panel);
   }
   st.browser?.remove();
@@ -115,6 +128,7 @@ function ensurePanel(win, st, service) {
   st.panel.append(browser);
   st.browser = browser;
   st.serviceUrl = service.url;
+  st.need = service.width ?? 0;
   st.title.textContent = service.name;
   // Activo, como la pestaña elegida: se pinta y puede empezar a sonar sola (Firefox no deja a las de fondo).
   try { browser.docShellIsActive = true; } catch { /* sin esa propiedad */ }
@@ -126,6 +140,8 @@ function ensurePanel(win, st, service) {
 function watchController(win, st) {
   const update = () => paintMini(win, st);
   const hook = () => {
+    // El zoom va con la web: si cambia de proceso al cargar, se vuelve a poner.
+    applyZoom(st);
     const controller = controllerOf(st);
     if (controller === st.controller) return;
     if (st.controller) for (const name of EVENTS) st.controller.removeEventListener(name, update);
@@ -173,12 +189,61 @@ function show(win, st, view) {
   // Con el panel a la vista se pinta; si no, como una pestaña de fondo: no se pinta, pero sigue sonando.
   try { if (st.browser) st.browser.docShellIsActive = view === 'open'; } catch { /* sin esa propiedad */ }
   if (view === 'mini') { placeMini(win, st); paintMini(win, st); }
-  if (view === 'open') positionPanel(win, st);
+  if (view === 'open') layoutPanel(win, st);
 }
 
-function positionPanel(win, st) {
+/** Junto a la columna, con el ancho que pide su web (o el que se le dejó) dentro de la ventana. */
+function layoutPanel(win, st, chosen = readWidth(st.host)) {
   const dock = win.document.getElementById('zero-dock')?.getBoundingClientRect();
-  st.panel.style.left = `${Math.round((dock?.right ?? 50) + 12)}px`;
+  const left = Math.round((dock?.right ?? 50) + 12);
+  // Con el mismo margen a la derecha que abajo.
+  const { width, zoom } = fitMusic({ need: st.need, chosen, room: win.innerWidth - left - 26 });
+  st.panel.style.left = `${left}px`;
+  st.panel.style.width = `${width}px`;
+  st.zoom = zoom;
+  applyZoom(st);
+}
+
+function applyZoom(st) {
+  try { if (st.browser && st.zoom && Math.abs(st.browser.fullZoom - st.zoom) > 0.001) st.browser.fullZoom = st.zoom; } catch { /* aún sin web */ }
+}
+
+/** El borde derecho del panel: se arrastra para estrecharlo o ensancharlo (y se queda así); doble clic, el
+ *  ancho de serie. */
+function resizeEdge(win, st) {
+  const edge = el(win.document, 'div', { class: 'zero-music-edge', title: st.t('Arrastrar para cambiar el ancho', 'Drag to resize') });
+  let drag = null, frame = 0;
+  const move = event => {
+    if (!drag) return;
+    drag.width = Math.max(MUSIC_MIN_WIDTH, Math.round(drag.from + event.clientX - drag.x));
+    // Un cambio de ancho por fotograma: la web se recoloca con cada uno.
+    frame ||= win.requestAnimationFrame(() => { frame = 0; if (drag) layoutPanel(win, st, drag.width); });
+  };
+  const drop = event => {
+    if (!drag) return;
+    const { width } = drag;
+    drag = null;
+    try { edge.releasePointerCapture(event.pointerId); } catch { /* ya suelto */ }
+    st.panel.removeAttribute('resizing');
+    if (!width) return; // un clic, sin arrastrar
+    // Se guarda el que se ve (dentro de la ventana).
+    layoutPanel(win, st, width);
+    try { st.host.prefs.setIntPref(prefName(st.host.prefix, WIDTH_PREF), parseInt(st.panel.style.width, 10)); } catch { /* sin ajustes */ }
+  };
+  edge.addEventListener('pointerdown', event => {
+    if (event.button !== 0) return;
+    drag = { x: event.clientX, from: st.panel.getBoundingClientRect().width, width: 0 };
+    st.panel.setAttribute('resizing', '');
+    try { edge.setPointerCapture(event.pointerId); } catch { /* sin captura */ }
+  });
+  edge.addEventListener('pointermove', move);
+  edge.addEventListener('pointerup', drop);
+  edge.addEventListener('lostpointercapture', drop);
+  edge.addEventListener('dblclick', () => {
+    try { st.host.prefs.clearUserPref(prefName(st.host.prefix, WIDTH_PREF)); } catch { /* sin ajustes */ }
+    layoutPanel(win, st);
+  });
+  return edge;
 }
 
 function openServices(win, st) {
@@ -229,7 +294,11 @@ export function attach(win, ctx) {
     const button = event.target.closest('[data-service]');
     if (!button) return;
     closeServices(st);
-    try { host.prefs.setStringPref(prefName(host.prefix, SERVICE_PREF), button.dataset.service); } catch { /* sin ajustes */ }
+    try {
+      host.prefs.setStringPref(prefName(host.prefix, SERVICE_PREF), button.dataset.service);
+      // Otro servicio, con el ancho que pida su web.
+      host.prefs.clearUserPref(prefName(host.prefix, WIDTH_PREF));
+    } catch { /* sin ajustes */ }
     ensurePanel(win, st, serviceOf(button.dataset.service));
     show(win, st, 'open');
   });
@@ -266,7 +335,7 @@ export function attach(win, ctx) {
     win.addEventListener('pointermove', move, true); win.addEventListener('pointerup', drop, true);
   });
   st.cleanups.push(() => { win.removeEventListener('pointermove', move, true); win.removeEventListener('pointerup', drop, true); });
-  listen(win, 'resize', () => { if (st.view === 'mini') placeMini(win, st); if (st.view === 'open') positionPanel(win, st); });
+  listen(win, 'resize', () => { if (st.view === 'mini') placeMini(win, st); if (st.view === 'open') layoutPanel(win, st); });
 }
 
 export function detach(win) {

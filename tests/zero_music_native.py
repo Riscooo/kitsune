@@ -13,8 +13,12 @@ el reproductor es la web del servicio (con tu cuenta), en un navegador propio de
    sigue; pausa y vuelve a sonar desde él.
 4. El minipanel se arrastra a donde se quiera y se queda allí (también al volver a abrirlo).
 5. Al cerrarlo se va, y la música sigue; «Abrir» vuelve a abrir el panel, con la misma música.
+6. La web de Spotify no baja de 800 px (Risco, 19-10: con el panel de 380 px se cortaba y «así no se puede
+   manejar»): el panel le da ese ancho; si no cabe en la ventana, la web se ve entera pero más pequeña.
+7. El panel se estrecha o ensancha desde su borde y se queda así (doble clic: el de serie); la web sigue entera.
 
-(En la prueba, el «servicio» es una página local con audio y su MediaSession.)
+(En la prueba, el «servicio» es una página local con audio y su MediaSession; el de Spotify no llega a
+cargar: todas las direcciones van a 127.0.0.1.)
 
 --zero-del-repo: Zero sale de zero/ del repositorio (ver zero_harness.py).
 """
@@ -51,9 +55,16 @@ PLAYER = ('<!doctype html><meta charset=utf-8><title>Radio Kitsune</title><body 
           'navigator.mediaSession.setActionHandler("nexttrack", () => { document.title = "siguiente"; });</script>')
 
 
+# Como la de Spotify, una web que no baja de 800 px; dice en su título el ancho que ve.
+WIDE = ('<!doctype html><meta charset=utf-8><title>0</title><body style="min-width:800px">'
+        '<script>const say = () => document.title = Math.floor(innerWidth); say(); onresize = say;</script>')
+
+
 class Handler(http.server.BaseHTTPRequestHandler):
     def do_GET(self):
-        body, kind = (TONE, 'audio/wav') if self.path == '/tono.wav' else (PLAYER.encode(), 'text/html; charset=utf-8')
+        body, kind = ((TONE, 'audio/wav') if self.path == '/tono.wav' else
+                      (WIDE.encode(), 'text/html; charset=utf-8') if self.path == '/ancho' else
+                      (PLAYER.encode(), 'text/html; charset=utf-8'))
         self.send_response(200)
         self.send_header('Content-Type', kind)
         self.send_header('Content-Length', str(len(body)))
@@ -83,6 +94,17 @@ return {
 };
 """
 
+# El ancho del panel, el zoom de su web y el ancho que ve la web (lo dice en su título la de /ancho).
+FIT = """
+const panel = document.getElementById('zero-music'), player = panel?.querySelector('browser');
+if (!panel || !player) return null;
+const r = panel.getBoundingClientRect(), seen = Number(player.contentTitle);
+let width = null; try { width = Services.prefs.getIntPref('kitsune.zero.music.width'); } catch {}
+return { open: panel.hasAttribute('open'), url: player.currentURI?.spec ?? '', width: Math.round(r.width),
+         zoom: Math.round(player.fullZoom * 1000) / 1000, web: Number.isFinite(seen) ? seen : 0,
+         inside: r.left >= 0 && r.right <= innerWidth + 0.5, saved: width };
+"""
+
 
 def main():
     parser = argparse.ArgumentParser()
@@ -95,7 +117,10 @@ def main():
     with (profile / 'user.js').open('a') as prefs:
         # Nada por los altavoces: la salida de Gecko a volumen 0 desde antes de arrancar.
         prefs.write('user_pref("media.volume_scale", "0.0");\nuser_pref("media.autoplay.default", 0);\n'
-                    'user_pref("media.autoplay.blocking_policy", 0);\nuser_pref("media.block-autoplay-until-in-foreground", false);\n')
+                    'user_pref("media.autoplay.blocking_policy", 0);\nuser_pref("media.block-autoplay-until-in-foreground", false);\n'
+                    # Nada sale a internet: Spotify es la página de la prueba (por http, sin HTTPS obligatorio).
+                    'user_pref("network.dns.forceResolve", "127.0.0.1");\nuser_pref("dom.security.https_only_mode", false);\n'
+                    'user_pref("dom.security.https_first", false);\nuser_pref("dom.security.https_first_schemeless", false);\n')
     server = http.server.ThreadingHTTPServer(('127.0.0.1', 0), Handler)
     threading.Thread(target=server.serve_forever, daemon=True).start()
     origin = f'http://127.0.0.1:{server.server_port}'
@@ -191,6 +216,61 @@ def main():
         until(lambda: (s := state())['panel'] and s['playing'] and s['url'] == origin + '/radio')
         chrome("Services.prefs.clearUserPref('kitsune.zero.variant')")
         check('El panel de sonido enseña lo que suena en la música y la abre (también en «Sobrio», con la nota y los accesos)')
+
+        def fit():
+            return chrome(FIT)
+
+        def fit_until(condition, timeout=10):
+            try:
+                return eventually(condition, timeout=timeout)
+            except AssertionError as error:
+                raise AssertionError(f'{error} · {fit()}') from None
+
+        click('#zero-music .zero-music-minimize')
+        chrome("Services.prefs.setStringPref('kitsune.zero.music.service', 'spotify')")
+        click('#zero-music-pill .zero-music')
+        fit_until(lambda: (s := fit()) and s['open'] and 'open.spotify.com' in s['url'] and s['width'] >= 800
+                  and s['zoom'] == 1 and s['inside'])
+        # La de la prueba, en una dirección de Spotify (pide lo mismo que él): se mide lo que ve desde dentro.
+        click('#zero-music .zero-music-minimize')
+        chrome("Services.prefs.setStringPref('kitsune.zero.music.service', arguments[0])",
+               [f'http://open.spotify.com:{server.server_port}/ancho'])
+        click('#zero-music-pill .zero-music')
+        fit_until(lambda: (s := fit()) and s['open'] and s['url'].endswith('/ancho') and s['width'] >= 800
+                  and s['zoom'] == 1 and s['web'] >= 800 and s['inside'], timeout=15)
+        check('Spotify (su web no baja de 800 px) tiene el ancho que necesita en el panel')
+
+        driver.command('POST', '/window/rect', {'width': 760, 'height': 1000})
+        fit_until(lambda: (s := fit()) and s['inside'] and s['width'] < 800 and s['zoom'] < 1 and s['web'] >= 799)
+        driver.command('POST', '/window/rect', {'width': 1540, 'height': 1000})
+        fit_until(lambda: (s := fit()) and s['width'] >= 800 and s['zoom'] == 1)
+        check('Si no cabe en la ventana, la web de Spotify se ve entera pero más pequeña')
+
+        def drag_edge(dx):
+            driver.context('chrome')
+            edge = driver.command('POST', '/element', {'using': 'css selector', 'value': '#zero-music .zero-music-edge'})
+            driver.command('POST', '/actions', {'actions': [{'type': 'pointer', 'id': 'raton', 'parameters': {'pointerType': 'mouse'}, 'actions': [
+                {'type': 'pointerMove', 'origin': edge, 'x': 0, 'y': 0}, {'type': 'pointerDown', 'button': 0}]
+                + [{'type': 'pointerMove', 'origin': 'pointer', 'x': dx // 10, 'y': 0, 'duration': 16} for _ in range(10)]
+                + [{'type': 'pointerUp', 'button': 0}]}]})
+            driver.command('DELETE', '/actions')
+
+        wide = fit()['width']
+        drag_edge(-300)
+        fit_until(lambda: (s := fit()) and abs(s['width'] - (wide - 300)) <= 4 and s['saved'] == s['width']
+                  and s['zoom'] < 1 and s['web'] >= 799)
+        narrow = fit()
+        click('#zero-music .zero-music-minimize')
+        click('#zero-mini .zero-mini-open')
+        fit_until(lambda: (s := fit()) and s['open'] and s['width'] == narrow['width'] and s['web'] >= 799)
+        driver.context('chrome')
+        edge = driver.command('POST', '/element', {'using': 'css selector', 'value': '#zero-music .zero-music-edge'})
+        driver.command('POST', '/actions', {'actions': [{'type': 'pointer', 'id': 'raton', 'parameters': {'pointerType': 'mouse'}, 'actions': [
+            {'type': 'pointerMove', 'origin': edge, 'x': 0, 'y': 0}]
+            + [{'type': 'pointerDown', 'button': 0}, {'type': 'pointerUp', 'button': 0}] * 2}]})
+        driver.command('DELETE', '/actions')
+        fit_until(lambda: (s := fit()) and s['width'] == wide and s['saved'] is None and s['zoom'] == 1)
+        check('El panel se estrecha desde su borde y se queda así, con la web entera (doble clic: el de serie)')
         report['status'] = 'passed'
     finally:
         if driver: driver.close()

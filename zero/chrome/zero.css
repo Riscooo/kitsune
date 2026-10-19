@@ -958,6 +958,14 @@
 #zero-music .zero-music-minimize { --zero-icon: url("chrome://global/skin/icons/arrow-down.svg"); }
 #zero-music .zero-music-change { --zero-icon: url("chrome://global/skin/icons/settings.svg"); }
 #zero-music .zero-music-player { flex: 1; min-height: 0; border-top: 1px solid rgba(255, 255, 255, .08); }
+/* El borde derecho: se arrastra para cambiar el ancho; una rayita lo dice al pasar por encima. */
+#zero-music .zero-music-edge { position: absolute; z-index: 1; top: 0; bottom: 0; right: 0; width: 8px; cursor: ew-resize; }
+#zero-music .zero-music-edge::after {
+  content: ""; position: absolute; top: 50%; right: 2px; width: 4px; height: 44px; margin-top: -22px; border-radius: 2px;
+  background: currentColor; opacity: 0; transition: opacity var(--zero-t-fade) var(--zero-soft);
+}
+#zero-music :is(.zero-music-edge:hover, .zero-music-edge:active)::after, #zero-music[resizing] .zero-music-edge::after { opacity: .45; }
+#zero-music[resizing] { cursor: ew-resize; user-select: none; }
 /* El minipanel: se arrastra desde su portada y su título; encima de todo. */
 #zero-mini { z-index: 10; display: flex; align-items: center; gap: 2px; height: 56px; padding: 0 8px; border-radius: 28px; }
 #zero-mini .zero-mini-grip { display: flex; align-items: center; gap: 10px; min-width: 0; width: 150px; height: 100%; padding-inline-start: 2px; cursor: grab; }

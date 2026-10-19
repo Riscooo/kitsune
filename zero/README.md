@@ -23,7 +23,8 @@ la ventana a Zero y la devuelve, con las mismas pestañas. Diseño completo en
     cuentas, icono, color, sesiones e imagen), el modo Currar/Chill y tu perfil sobre el buscador de la
     pestaña nueva;
   - `zero-shortcuts`: la pastilla de abajo, la del sonido (sin abrir pestañas);
-  - `zero-music`: el reproductor de música (Spotify, SoundCloud…) y su minipanel flotante;
+  - `zero-music`: el reproductor de música (Spotify, SoundCloud…), con el ancho que pide cada web y
+    estirable desde su borde (el cálculo, puro, en `zero-music-fit.mjs`), y su minipanel flotante;
   - `zero-audio`: el panel de sonido (lo que suena en cada pestaña, silenciar y el volumen de Kitsune,
     que multiplica el de cada audio y vídeo; lo aplica su actor, `zero-audio-child.sys.mjs`);
   - `zero-mark`: los ajustes (la última pastilla de la columna);
@@ -38,8 +39,8 @@ la ventana a Zero y la devuelve, con las mismas pestañas. Diseño completo en
     actor (`zero-glass-child.sys.mjs`) solo cuenta el scroll de la página.
   Y dos pequeños que usan el raíl y la isla: `zero-who`, de qué usuario (contenedor) es una pestaña, y
   `zero-icon`, si un favicon es claro sobre transparente (para darle un fondo oscuro).
-  `zero-dock.mjs`, `zero-light.mjs`, `zero-pomodoro.mjs`, `zero-silence.mjs`, `zero-sounds.mjs` y
-  `zero-config.sys.mjs` son puros y se prueban con Node. El pomodoro, el silencio y los sonidos son
+  `zero-dock.mjs`, `zero-light.mjs`, `zero-music-fit.mjs`, `zero-pomodoro.mjs`, `zero-silence.mjs`,
+  `zero-sounds.mjs` y `zero-config.sys.mjs` son puros y se prueban con Node. El pomodoro, el silencio y los sonidos son
   opcionales y vienen apagados.
 - `chrome/zero.css`: todo el aspecto, bajo `:root[zero]`. Lo carga `zero.sys.mjs` solo en las
   ventanas con Zero, como hoja de usuario (así sus `!important` pueden con los de Kitsune y Gecko).
