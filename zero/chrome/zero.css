@@ -70,6 +70,10 @@
   background: transparent !important;
   background-image: none !important;
 }
+/* Sin la línea que Kitsune pone bajo la barra de arriba (la tinta del espacio, con varios espacios; el verde de
+   las ventanas privadas): en Zero esa barra es la caja de la isla y la línea salía recta bajo la pastilla, en
+   pequeña y en grande (Risco, 21-10). El espacio ya se ve en el raíl. */
+:root[zero]:is(*, [kitsune-spaces-many], [privatebrowsingmode])#main-window #navigator-toolbox { border-bottom: 0 !important; }
 /* Con el fondo del sistema, Zero es una lámina de cristal tipo Apple (decisiones de Risco, 15-10): la
    ventana con las esquinas redondeadas y el canto de un cristal puesto encima. Nada de líneas ni de franjas
    con límites (captura 46: «segmentado, no se fusiona»): una luz que nace del filo y se funde hacia

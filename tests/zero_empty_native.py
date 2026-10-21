@@ -24,6 +24,10 @@ centro de la pantalla como buscador; al buscar, la isla sube a su sitio con una 
 6. Se puede elegir el buscador (Risco, 15-10: «que puedas elegir el buscador que quieras»): en la pestaña
    vacía, el icono del buscador es un botón; al pulsarlo sale la lista de los buscadores, con el de ahora
    marcado, y el que se elige pasa a ser el de siempre (su icono, en la barra); la lista se va.
+7. Sin raya bajo la isla (Risco, 21-10). Con varios espacios Kitsune pone la tinta del espacio en una línea
+   bajo la barra de arriba (y en las ventanas privadas, la suya). En Zero esa barra es la caja de la isla, y la
+   línea salía recta bajo la pastilla, en pequeño y en grande. Ahora no hay borde debajo, ni en la pestaña
+   vacía ni con una web.
 
 --zero-del-repo: Zero sale de zero/ del repositorio (ver zero_harness.py).
 """
@@ -217,6 +221,20 @@ def main():
                 const { SearchService } = ChromeUtils.importESModule('moz-src:///toolkit/components/search/SearchService.sys.mjs');
                 Promise.resolve(SearchService.getEngineByName(arguments[0])).then(e => SearchService.setDefault(e, SearchService.CHANGE_REASON.USER)).then(() => done(), () => done());""", [before], asynchronous=True)
         check('Se puede elegir el buscador desde su icono, en la pestaña vacía')
+
+        driver.context('chrome')
+        made = driver.script("""const done = arguments[arguments.length - 1];
+            ChromeUtils.importESModule('chrome://browser/content/kitsune-spaces.sys.mjs').KitsuneSpaces.create({ name: 'Talven', color: 'blue' })
+              .then(id => done(id), error => done('ERROR ' + error));""", [], asynchronous=True)
+        assert made and not str(made).startswith('ERROR'), f'no se pudo crear el segundo espacio: {made}'
+        until(lambda: chrome("return document.documentElement.hasAttribute('kitsune-spaces-many')"))
+        line = "const t = getComputedStyle(document.getElementById('navigator-toolbox')); return t.borderBottomWidth + ' ' + t.borderBottomStyle;"
+        until(lambda: centered(state()))
+        assert chrome(line).startswith('0px'), f'con dos espacios, raya bajo la isla vacía: {chrome(line)}'
+        chrome("gBrowser.selectedTab = gBrowser.tabs[0]")
+        until(lambda: at_top(state()))
+        assert chrome(line).startswith('0px'), f'con dos espacios, raya bajo la isla con una web: {chrome(line)}'
+        check('Con varios espacios no hay raya bajo la isla, ni vacía ni con una web')
         report['status'] = 'passed'
     finally:
         if driver: driver.close()
