@@ -39,7 +39,9 @@ def factory_prefs(browser: Path, env):
     during the measurement (e.g. network.http.dictionaries.enable, compiled as
     false in release builds) and the result depends on the day it was taken.
     """
-    work = Path(tempfile.mkdtemp(prefix="kitsune-factory-", dir=Path.home() / ".cache"))
+    # Junto a los motores, en su mismo disco: la copia es de enlaces duros (cp -al), que no cruzan de un disco a
+    # otro (publicar con XDG_DATA_HOME en otro disco, 21-10).
+    work = Path(tempfile.mkdtemp(prefix="kitsune-factory-", dir=browser.resolve().parent.parent))
     try:
         copy = work / "engine"
         subprocess.run(["cp", "-al", str(browser.parent), str(copy)], check=True)
