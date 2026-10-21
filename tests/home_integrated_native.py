@@ -96,7 +96,8 @@ def main():
         eventually(lambda: json.loads((profile / 'kitsune-home.json').read_text())['data']['theme'] == 'oscuro', timeout=10)
         eventually(lambda: json.loads((profile / 'chrome/kitsune-appearance.json').read_text())['theme'] == 'oscuro', timeout=10)
         control = json.loads((profile / 'chrome/kitsune-appearance.json').read_text())
-        assert control['version'] == 9 and control['esquinas'] == 'suaves' and control['theme'] == 'oscuro' and control['palette']['bg'] == '#161a19', control
+        # v10: con «Oscurecer las webs claras» (apagado de serie).
+        assert control['version'] == 10 and control['oscurecer'] is False and control['esquinas'] == 'suaves' and control['theme'] == 'oscuro' and control['palette']['bg'] == '#161a19', control
         eventually(lambda: api('GET', '/api/appearance')['body']['native']['status'] == 'applied', timeout=15)
         assert chrome("return Services.prefs.getIntPref('ui.systemUsesDarkTheme', -1)") == 1
         check('Oscuro se guarda en el perfil y el módulo nativo aplica el control del inicio integrado')
