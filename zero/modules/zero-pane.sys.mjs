@@ -24,12 +24,11 @@ import { prefName, PREFS } from './zero-config.sys.mjs';
 
 const HTML = 'http://www.w3.org/1999/xhtml';
 const RADIUS = 48;   // esquinas de la ventana si zero.css no dice otra cosa (--zero-win-radius: cada sistema las suyas)
-const BAND = 22;     // el canto se recoge hacia el filo; el resto de la lámina queda plano
+// La de «Sobrio» en los dos modos (Dani, 15-10: «que no sea tan colorido, más como concentración»; Risco, 21-10:
+// «lo de alrededor, como en Sobrio»): la luz de la pompa en gris (uMono), en una franja ancha y tenue.
+const BAND = 30;     // el canto se recoge hacia el filo; el resto de la lámina queda plano
 const CARD_RADIUS = 18; // las esquinas de la tarjeta (= zero.css)
-const FILM = 0.32;   // halo nacarado junto al filo blanco del boceto, sin teñir el centro
-// La variante «Sobrio» (Dani, 15-10: «que no sea tan colorido, más como concentración»): la luz de la pompa
-// en gris, en una franja algo más ancha y más tenue, y un filo fino en lugar del blanco del boceto.
-const SOBRIO = Object.freeze({ band: 30, film: 0.24 });
+const FILM = 0.24;   // halo junto al filo, sin teñir el centro
 const LENS_BAND = 30; // la lente conserva su caída suave; el reflejo del filo es más estrecho
 const DEPTH = 70;    // la refracción ya probada: solo en el canto, con el centro plano
 
@@ -185,10 +184,9 @@ function draw(win, st) {
   st.frame = 0;
   const { canvas } = st;
   const root = win.document.documentElement;
-  // Con la web ampliada no hay lámina. Con un fondo que pinta Zero (espacio, niebla, foto), en «Sobrio» tampoco
-  // (su fondo lleva su propio filo); en «Nácar» la lámina pone su canto encima.
-  const sobrio = root.getAttribute('zero-variant') === 'sobrio';
-  const hidden = root.hasAttribute('zero-full') || (sobrio && ['space', 'mist', 'photo'].includes(root.getAttribute('zero-backdrop')));
+  // Con la web ampliada no hay lámina, ni con un fondo que pinta Zero (espacio, niebla, foto): su fondo lleva su
+  // propio filo. Es la de «Sobrio» en los dos modos (Risco, 21-10: «lo de alrededor, como en Sobrio»).
+  const hidden = root.hasAttribute('zero-full') || ['space', 'mist', 'photo'].includes(root.getAttribute('zero-backdrop'));
   if (canvas.hidden !== hidden) canvas.hidden = hidden;
   if (hidden || !st.gl) return;
   const W = win.innerWidth, H = win.innerHeight, k = win.devicePixelRatio || 1;
@@ -203,9 +201,9 @@ function draw(win, st) {
   const css = parseFloat(win.getComputedStyle(root).getPropertyValue('--zero-win-radius'));
   const radius = Number.isFinite(css) ? css : RADIUS;
   gl.uniform1f(u.uRadius, radius);
-  gl.uniform1f(u.uBand, sobrio ? SOBRIO.band : BAND);
-  gl.uniform1f(u.uFilm, sobrio ? SOBRIO.film : FILM);
-  gl.uniform1f(u.uMono, sobrio ? 1 : 0);
+  gl.uniform1f(u.uBand, BAND);
+  gl.uniform1f(u.uFilm, FILM);
+  gl.uniform1f(u.uMono, 1);
   const fullscreen = root.matches('[inFullscreen], [sizemode="fullscreen"]');
   const edge = fullscreen ? 0 : 1, topShade = fullscreen && root.getAttribute('zero-os') === 'mac' ? 96 : 0;
   gl.uniform1f(u.uEdge, edge);

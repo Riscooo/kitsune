@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { PREFS, DEFAULTS, prefName, readPrefs, shortcutText } from '../zero/modules/zero-config.sys.mjs'
+import { PREFS, DEFAULTS, prefName, readPrefs, shortcutText, websiteScheme } from '../zero/modules/zero-config.sys.mjs'
 
 test('Zero keeps every setting name in one place, under the prefix its host gives', () => {
   assert.equal(prefName('kitsune.zero.', PREFS.backdrop), 'kitsune.zero.backdrop')
@@ -34,4 +34,11 @@ test('the shortcut is written as each system writes it (Cmd and Option on a Mac)
   assert.equal(shortcutText('Darwin'), '⌘⌥0')
   assert.equal(shortcutText('Linux'), 'Ctrl+Alt+0')
   assert.equal(shortcutText('WINNT'), 'Ctrl+Alt+0')
+})
+
+test('las webs siguen el modo (Risco, 21-10): en Claro, su versión clara; en Oscuro, la oscura', () => {
+  // layout.css.prefers-color-scheme.content-override: 0 oscuro, 1 claro.
+  assert.equal(websiteScheme('nacar'), 1)
+  assert.equal(websiteScheme('sobrio'), 0)
+  for (const value of ['', 'raro', undefined, null]) assert.equal(websiteScheme(value), 1)
 })

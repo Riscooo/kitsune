@@ -150,7 +150,7 @@ async function decorate(win) {
     const root = win.document.documentElement;
     root.setAttribute('zero', '');
     root.setAttribute('zero-variant', frame.variantOf(first.variant));
-    const backdrop = frame.knownBackdrop(first.backdrop, win.matchMedia('(prefers-color-scheme: dark)').matches, first.variant);
+    const backdrop = frame.knownBackdrop(first.backdrop, first.variant);
     if (backdrop) root.setAttribute('zero-backdrop', backdrop);
     sheet(win, true);
     early.add(win);

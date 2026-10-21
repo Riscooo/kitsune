@@ -10,7 +10,7 @@
  * - Velo: el color dominante de la web, muy leve, que cambia despacio con cada página.
  */
 import { lightOf, inkFor } from './zero-light.mjs';
-import { PREFS, prefName, variantOf } from './zero-config.sys.mjs';
+import { PREFS, prefName, variantOf, websiteScheme } from './zero-config.sys.mjs';
 
 export { variantOf };
 
@@ -48,17 +48,13 @@ export function dominantColor(bytes) {
 export const BACKDROPS = Object.freeze(['system', 'web', 'space', 'mist', 'photo']);
 
 
-/** El fondo que toca. De serie («auto»), donde haya cristal detrás de la ventana (un escritorio con la regla de
- *  Kitsune, o macOS con el suyo encendido), ese cristal. Si no: con «Nácar», la foto de la web; con «Sobrio», el
- *  espacio con el tema oscuro y la niebla con el claro, tranquilo (Dani, 15-10: «más como concentración»), y el
- *  cristal solo en Linux. */
+/** El fondo que toca. De serie («auto»), el de «Sobrio» en los dos modos (Risco, 21-10: «las esquinas y todo lo
+ *  de alrededor, como en Sobrio»): el cristal del sistema solo en Linux, con la regla de Kitsune; si no, la niebla
+ *  en Claro y el espacio en Oscuro (lo dice el modo, no el tema del sistema). */
 export function backdropMode(pref, env = {}) {
   if (BACKDROPS.includes(pref)) return pref;
-  if (variantOf(env.variant) === 'sobrio') {
-    if (env.rule && env.desktop !== 'macos') return 'system';
-    return env.dark === false ? 'mist' : 'space';
-  }
-  return env.rule ? 'system' : 'web';
+  if (env.rule && env.desktop !== 'macos') return 'system';
+  return variantOf(env.variant) === 'sobrio' ? 'space' : 'mist';
 }
 
 /** Las esquinas de la ventana en cada sistema, para que la lámina y su canto casen con las del sistema (o con la
@@ -108,6 +104,7 @@ export const GLASS_RULES = Object.freeze({
 // ---------------------------------------------------------------- la pieza (Gecko)
 
 const HTML = 'http://www.w3.org/1999/xhtml';
+const WEBSITE_SCHEME = 'layout.css.prefers-color-scheme.content-override';
 const state = new WeakMap(); // ventana → { cleanups, … }
 
 const el = (doc, tag, attributes = {}, children = []) => {
@@ -143,8 +140,8 @@ export function warm() { if (!knownEnv) compositorEnv().catch(() => {}); }
 
 /** El fondo que toca con lo que ya se sabe (el compositor, si el tema es oscuro y la variante), o null si aún no
  *  se sabe. */
-export function knownBackdrop(pref, dark, variant) {
-  const mode = backdropMode(pref, { ...knownEnv, dark, variant });
+export function knownBackdrop(pref, variant) {
+  const mode = backdropMode(pref, { ...knownEnv, variant });
   return painted(mode) || knownEnv ? mode : null;
 }
 
@@ -388,12 +385,15 @@ export function attach(win, ctx) {
   try { kernel = Services.sysinfo.getProperty('version'); } catch { /* sin versión */ }
   try { windows11 = os === 'WINNT' && Services.sysinfo.isWindows10BuildOrLater(22000); } catch { /* sin versión */ }
   root.style.setProperty('--zero-os-radius', `${windowRadius({ os, kernel, windows11 })}px`);
-  // La variante (Nácar o Sobrio), al momento al cambiarla en los ajustes.
+  // El modo (Claro u Oscuro), al momento al cambiarlo en los ajustes. Las webs lo siguen (Risco, 21-10: «las
+  // páginas serán blancas; en Oscuro, el modo oscuro»): en Claro, su versión clara; en Oscuro, la oscura.
   const variantPref = prefName(host.prefix, PREFS.variant);
   const setVariant = () => {
     let value = 'nacar';
     try { value = host.prefs.getStringPref(variantPref, 'nacar'); } catch { /* de serie */ }
     root.setAttribute('zero-variant', variantOf(value));
+    const scheme = websiteScheme(value);
+    if (Services.prefs.getIntPref(WEBSITE_SCHEME, -1) !== scheme) Services.prefs.setIntPref(WEBSITE_SCHEME, scheme);
   };
   setVariant();
   const listen = (target, type, fn, options) => { target.addEventListener(type, fn, options); st.cleanups.push(() => target.removeEventListener(type, fn, options)); };

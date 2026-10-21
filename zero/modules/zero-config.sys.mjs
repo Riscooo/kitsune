@@ -5,7 +5,7 @@
 export const PREFS = Object.freeze({
   always: 'always',       // las ventanas nuevas nacen en Zero
   inherit: 'inherit',     // las ventanas nuevas nacen como la ventana desde la que se abren
-  variant: 'variant',     // 'nacar' (Risco: la lámina nacarada, accesos y música) | 'sobrio' (Dani: cristal ahumado, sonido)
+  variant: 'variant',     // el modo (Risco, 21-10): 'nacar' = Claro | 'sobrio' = Oscuro (variantOf)
   backdrop: 'backdrop',   // 'auto' | 'system' (desenfoque del compositor) | 'web' (fondo del color de la web)
   backgroundImage: 'background.image',     // ruta de la foto propia del fondo
   backgroundOpacity: 'background.opacity', // opacidad del fondo pintado (espacio, niebla, foto), de 0.2 a 1 (string)
@@ -40,10 +40,13 @@ export const DEFAULTS = Object.freeze({ always: false, inherit: true, variant: '
 
 export const prefName = (prefix, key) => `${prefix}${key}`;
 
-/** Las dos formas de llevar Zero (Risco, 15-10: «crea dos variantes»): «nacar» (Risco: la lámina nacarada, los
- *  accesos directos y la música en su pastilla) y «sobrio» (Dani: cristal ahumado, el panel de sonido, los
- *  ajustes en la columna). Cualquier otra cosa, la de serie. */
+/** Los dos modos de Zero (Risco, 21-10; antes, las variantes Nácar y Sobrio): «nacar» es Claro (las piezas de
+ *  cristal claro y transparente) y «sobrio» es Oscuro (el cristal ahumado). Lo de alrededor (esquinas, filo,
+ *  lámina, fondo de serie) es el de Sobrio en los dos. Cualquier otra cosa, la de serie (Claro). */
 export const variantOf = value => value === 'sobrio' ? 'sobrio' : 'nacar';
+
+/** Las webs siguen el modo: el valor de layout.css.prefers-color-scheme.content-override (0 oscuro, 1 claro). */
+export const websiteScheme = value => variantOf(value) === 'sobrio' ? 0 : 1;
 
 /** El atajo de Zero, escrito como lo escribe cada sistema (en Mac, Cmd y Opción). */
 export const shortcutText = os => os === 'Darwin' ? '⌘⌥0' : 'Ctrl+Alt+0';

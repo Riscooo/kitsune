@@ -61,13 +61,13 @@ function zeroSection(win, host) {
         watch: fn => { const undo = [watchPref(PREFS.always)(fn), watchPref(PREFS.inherit)(fn)]; return () => undo.forEach(u => u()); },
       },
       {
-        // Dos formas de llevar Zero (Risco, 15-10: «si hace falta, dos variantes»): «Nácar», la de Risco, y
-        // «Sobrio», la de Dani.
+        // Claro u Oscuro (Risco, 21-10; antes, las variantes «Nácar» de Risco y «Sobrio» de Dani, con los mismos
+        // valores): cambian las piezas y las webs; lo de alrededor es el mismo.
         kind: 'segment', id: PREFS.variant,
         label: host.t('Estilo', 'Style'),
-        detail: host.t('Nácar: la lámina nacarada, con accesos directos y música. Sobrio: cristal ahumado, con el panel de sonido y los ajustes en la columna.',
-                       'Nacre: the pearly sheet, with shortcuts and music. Sober: smoked glass, with the sound panel and the settings in the column.'),
-        options: [{ value: 'nacar', label: host.t('Nácar', 'Nacre') }, { value: 'sobrio', label: host.t('Sobrio', 'Sober') }],
+        detail: host.t('Claro: piezas de cristal claro y transparente, y las webs en claro. Oscuro: cristal ahumado, y las webs en oscuro.',
+                       'Light: clear, see-through glass pieces, and pages in light. Dark: smoked glass, and pages in dark.'),
+        options: [{ value: 'nacar', label: host.t('Claro', 'Light') }, { value: 'sobrio', label: host.t('Oscuro', 'Dark') }],
         get: () => variantOf(prefs.getStringPref(prefName(prefix, PREFS.variant), 'nacar')),
         set: value => prefs.setStringPref(prefName(prefix, PREFS.variant), value),
         watch: watchPref(PREFS.variant),

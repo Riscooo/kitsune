@@ -24,23 +24,19 @@ test('a page that is only white (or only black) still gives its own colour', () 
   assert.equal(dominantColor(new Uint8ClampedArray(0)), null)
 })
 
-test('«Nácar» (de serie): the system glass where the compositor (or macOS) blurs behind Kitsune; if not, the photo of the page', () => {
-  assert.equal(backdropMode('auto', { desktop: 'niri', rule: true }), 'system')
-  assert.equal(backdropMode('auto', { desktop: 'niri', rule: true, variant: 'nacar' }), 'system')
-  assert.equal(backdropMode('auto', { desktop: 'macos', rule: true }), 'system')   // con el cristal de macOS encendido
-  assert.equal(backdropMode('auto', { desktop: 'macos', rule: false }), 'web')
-  assert.equal(backdropMode('auto', { desktop: null, rule: false, dark: false }), 'web')
-  assert.equal(backdropMode('raro', { desktop: 'niri', rule: true }), 'system')
-})
-
-test('«Sobrio» (Dani, 15-10): the system glass only on Linux; if not, space with the dark theme and mist with the light one', () => {
-  const sobrio = env => ({ ...env, variant: 'sobrio' })
-  assert.equal(backdropMode('auto', sobrio({ niri: true, desktop: 'niri', rule: true })), 'system')
-  assert.equal(backdropMode('auto', sobrio({ niri: true, rule: false })), 'space')
-  assert.equal(backdropMode('auto', sobrio({ niri: false, rule: false, dark: false })), 'mist')
-  assert.equal(backdropMode('auto', sobrio({ desktop: 'macos', rule: true, dark: true })), 'space')
-  assert.equal(backdropMode('auto', sobrio({ desktop: 'macos', rule: true, dark: false })), 'mist')
-  assert.equal(backdropMode('raro', sobrio({ desktop: 'niri', rule: true })), 'system')
+test('Claro y Oscuro (Risco, 21-10) llevan el fondo de serie de Sobrio: el cristal del sistema solo en Linux; si no, niebla en Claro y espacio en Oscuro', () => {
+  for (const variant of [undefined, 'nacar', 'sobrio']) {
+    assert.equal(backdropMode('auto', { desktop: 'niri', rule: true, variant }), 'system')
+    assert.equal(backdropMode('raro', { desktop: 'niri', rule: true, variant }), 'system')
+  }
+  // El tema del sistema ya no cuenta: lo dice el modo.
+  for (const dark of [true, false, undefined]) {
+    assert.equal(backdropMode('auto', { desktop: 'niri', rule: false, dark }), 'mist')
+    assert.equal(backdropMode('auto', { desktop: 'niri', rule: false, dark, variant: 'sobrio' }), 'space')
+    assert.equal(backdropMode('auto', { desktop: 'macos', rule: true, dark }), 'mist')
+    assert.equal(backdropMode('auto', { desktop: 'macos', rule: true, dark, variant: 'sobrio' }), 'space')
+    assert.equal(backdropMode('auto', { desktop: null, rule: false, dark }), 'mist')
+  }
 })
 
 test('a background chosen by hand is the same in both variants', () => {
@@ -94,10 +90,10 @@ test('the desktop comes from the session: niri, Hyprland, KDE or GNOME', () => {
 test('the desktop glass is used with the Kitsune rule of any desktop that has one', () => {
   for (const desktop of ['niri', 'hyprland', 'kde', 'gnome']) {
     assert.equal(backdropMode('auto', { desktop, rule: true }), 'system')
-    assert.equal(backdropMode('auto', { desktop, rule: false }), 'web')
+    assert.equal(backdropMode('auto', { desktop, rule: false }), 'mist')
     assert.equal(backdropMode('auto', { desktop, rule: false, variant: 'sobrio' }), 'space')
   }
-  assert.equal(backdropMode('auto', { desktop: null, rule: false }), 'web')
+  assert.equal(backdropMode('auto', { desktop: null, rule: false }), 'mist')
   assert.deepEqual(Object.keys(GLASS_RULES).sort(), ['gnome', 'hyprland', 'kde', 'niri'])
   assert.deepEqual(GLASS_RULES.niri, ['.config/niri/kitsune-zero.kdl'])
 })

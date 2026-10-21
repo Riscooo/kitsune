@@ -4,7 +4,8 @@
    de las piezas de cada una, y brotan de ella.
 2. Un clic abre los ajustes (#zero-settings), que brotan de la marca; se cierran con un clic fuera o con Esc.
 3. «Ventanas nuevas» (como esta / en Zero / normales) cambia kitsune.zero.inherit y kitsune.zero.always,
-   «Estilo» (Nácar / Sobrio) cambia kitsune.zero.variant, y «Fondo» (cristal / espacio / niebla / foto / de la
+   «Estilo» (Claro / Oscuro; Risco, 21-10) cambia kitsune.zero.variant y las webs se ven en claro o en oscuro,
+   y «Fondo» (cristal / espacio / niebla / foto / de la
    web) cambia kitsune.zero.backdrop y el aspecto al momento. «Pestañas» (con texto / solo
    iconos, el raíl) cambia kitsune.zero.railIcons; la isla de arriba no tiene esa opción.
 4. No salen filas de fases sin hacer (pomodoro, silencio, sonidos…).
@@ -164,16 +165,22 @@ def main():
         until(lambda: mark()['always'] is False and mark()['inherit'] is False)
         click('#zero-settings [data-pref="windows"] [data-value="inherit"]')
         until(lambda: mark()['always'] is False and mark()['inherit'] is True)
+        labels = chrome("return [...document.querySelectorAll('#zero-settings [data-pref=\"variant\"] [data-value]')].map(b => b.textContent.trim())")
+        assert labels == ['Claro', 'Oscuro'], f'«Estilo» no dice Claro / Oscuro: {labels}'
+        def web_dark():
+            driver.context('content'); return driver.script("return matchMedia('(prefers-color-scheme: dark)').matches")
         click('#zero-settings [data-pref="variant"] [data-value="sobrio"]')
         until(lambda: mark()['variant'] == 'sobrio' and chrome("return Services.prefs.getStringPref('kitsune.zero.variant', '')") == 'sobrio')
+        until(lambda: web_dark() is True)  # en Oscuro, las webs en oscuro
         click('#zero-settings [data-pref="variant"] [data-value="nacar"]')
         until(lambda: mark()['variant'] == 'nacar' and mark()['open'])
+        until(lambda: web_dark() is False)  # en Claro, en claro
         click('#zero-settings [data-pref="backdrop"] [data-value="mist"]')
         until(lambda: mark()['backdropPref'] == 'mist' and mark()['backdrop'] == 'mist')
         click('#zero-settings [data-pref="backdrop"] [data-value="web"]')
         until(lambda: mark()['backdropPref'] == 'web' and mark()['backdrop'] == 'web')
         assert mark()['open'], mark()  # tocar dentro no lo cierra
-        check('«Ventanas nuevas», «Estilo» y «Fondo» cambian sus ajustes y el aspecto al momento')
+        check('«Ventanas nuevas», «Estilo» (Claro / Oscuro, también las webs) y «Fondo» cambian sus ajustes y el aspecto al momento')
 
         # (Las filas que dependen del fondo se van al repintar la hoja, un momento después.)
         until(lambda: len(mark()['rows']) == 10)
