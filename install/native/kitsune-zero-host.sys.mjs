@@ -86,7 +86,40 @@ const users = {
 // atajo ni fila del menú para entrar o salir. Sin eso (las pruebas, que lo encienden a mano), Zero se entra y se sale.
 const isApp = () => { try { return Services.prefs.getStringPref('kitsune.product', 'kitsune') === 'zero'; } catch { return false; } };
 
-const host = () => ({ t, prefs: Services.prefs, prefix: 'kitsune.zero.', app: isApp(), keys: { add: addKey }, spaces, saver, tabs, users });
+// El modo de privacidad del perfil, Estricto o Cómodo, como en «Tu inicio» de Kitsune (Risco, 21-10: «que haya dos
+// modos, como en Kitsune normal»). Se guarda en el user.js del perfil con el mismo código que usa el inicio
+// (withProfileBlock) y lo aplica kitsune.cfg al arrancar: hace falta reiniciar.
+const HOME_CORE = 'resource://builtin-addons/kitsune-home/api/core.sys.mjs';
+const PRIVACY_MODES = ['estricto', 'comodo'];
+const homeCore = () => {
+  try { return ChromeUtils.importESModule(HOME_CORE); } catch { return null; }
+};
+export const privacy = {
+  available: () => !!homeCore()?.withProfileBlock,
+  /** El que lleva el perfil ahora (lo pone kitsune.cfg). */
+  active: () => {
+    const value = Services.prefs.getStringPref('kitsune.privacy.active', 'estricto');
+    return PRIVACY_MODES.includes(value) ? value : 'estricto';
+  },
+  /** El que tendrá al volver a abrirse: el pedido, si hay uno; si no, el de ahora. */
+  requested() {
+    const value = Services.prefs.getStringPref('kitsune.privacy.requested', '');
+    return PRIVACY_MODES.includes(value) ? value : this.active();
+  },
+  async request(mode) {
+    const core = homeCore();
+    if (!core?.withProfileBlock || !PRIVACY_MODES.includes(mode)) return false;
+    const file = PathUtils.join(PathUtils.profileDir, 'user.js');
+    let text = '';
+    try { text = await IOUtils.readUTF8(file); } catch { /* aún no hay user.js */ }
+    await IOUtils.writeUTF8(file, core.withProfileBlock(text, mode));
+    Services.prefs.setStringPref('kitsune.privacy.requested', mode);
+    return true;
+  },
+  restart: () => Services.startup.quit(Ci.nsIAppStartup.eAttemptQuit | Ci.nsIAppStartup.eRestart),
+};
+
+const host = () => ({ t, prefs: Services.prefs, prefix: 'kitsune.zero.', app: isApp(), keys: { add: addKey }, spaces, saver, tabs, users, privacy });
 
 // ---------------------------------------------------------------- traer el perfil de Kitsune (la primera vez)
 

@@ -34,13 +34,22 @@ function zeroSection(win, host) {
     prefs.addObserver(prefName(prefix, key), observer);
     return () => prefs.removeObserver(prefName(prefix, key), observer);
   };
+  // El modo de privacidad que pide el perfil (kitsune.privacy.requested, fuera del prefijo de Zero).
+  const watchPrivacy = fn => {
+    const observer = { observe: () => fn() };
+    prefs.addObserver('kitsune.privacy.requested', observer);
+    return () => prefs.removeObserver('kitsune.privacy.requested', observer);
+  };
+  const privacy = host.privacy?.available?.() ? host.privacy : null;
   return {
     id: 'zero',
-    // Las filas que dependen del fondo (la foto, la opacidad) siguen al que está puesto de verdad.
+    // Las filas que dependen del fondo (la foto, la opacidad) siguen al que está puesto de verdad, y la de reiniciar
+    // sale o se va con el modo de privacidad pedido.
     watch: fn => {
       const observer = new win.MutationObserver(() => fn());
       observer.observe(win.document.documentElement, { attributes: true, attributeFilter: ['zero-backdrop'] });
-      return () => observer.disconnect();
+      const unwatch = watchPrivacy(fn);
+      return () => { observer.disconnect(); unwatch(); };
     },
     rows: [
       {
@@ -131,6 +140,24 @@ function zeroSection(win, host) {
         get: () => { try { return prefs.getBoolPref(prefName(prefix, PREFS.railIcons), false) ? 'icons' : 'text'; } catch { return 'text'; } },
         set: value => prefs.setBoolPref(prefName(prefix, PREFS.railIcons), value === 'icons'),
         watch: watchPref(PREFS.railIcons),
+      },
+      {
+        // Estricto o Cómodo, como en «Tu inicio» de Kitsune (Risco, 21-10). Lo aplica Kitsune al arrancar.
+        kind: 'segment', id: 'privacy', when: () => !!privacy,
+        label: host.t('Privacidad', 'Privacy'),
+        detail: host.t('Estricto: bloquea más rastreadores y la huella del navegador; alguna web puede fallar. Cómodo: como Firefox. Se aplica al reiniciar.',
+                       'Strict: blocks more trackers and fingerprinting; a few sites may break. Comfortable: like Firefox. Applies after a restart.'),
+        options: [{ value: 'estricto', label: host.t('Estricto', 'Strict') }, { value: 'comodo', label: host.t('Cómodo', 'Comfortable') }],
+        get: () => privacy.requested(),
+        set: value => { void privacy.request(value); },
+        watch: watchPrivacy,
+      },
+      {
+        // Con un modo pedido que aún no se aplica: reiniciar ahora.
+        kind: 'action', id: 'privacy-restart',
+        when: () => !!privacy && privacy.requested() !== privacy.active(),
+        label: host.t('Para aplicarlo', 'To apply it'),
+        actions: () => [{ id: 'restart', label: host.t('Reiniciar', 'Restart'), run: () => privacy.restart() }],
       },
       {
         // Quien ya sabe qué hace cada cosa no necesita la «i».

@@ -7,7 +7,8 @@
    «Estilo» (Claro / Oscuro; Risco, 21-10) cambia kitsune.zero.variant y las webs se ven en claro o en oscuro,
    y «Fondo» (cristal / espacio / niebla / foto / de la
    web) cambia kitsune.zero.backdrop y el aspecto al momento. «Pestañas» (con texto / solo
-   iconos, el raíl) cambia kitsune.zero.railIcons; la isla de arriba no tiene esa opción.
+   iconos, el raíl) cambia kitsune.zero.railIcons; la isla de arriba no tiene esa opción. «Privacidad» (Estricto /
+   Cómodo, como en Kitsune normal) se guarda en el user.js del perfil y, si cambia, ofrece «Reiniciar».
 4. No salen filas de fases sin hacer (pomodoro, silencio, sonidos…).
 5. Con la web ampliada no hay ajustes, como el pomodoro (Risco, 15-10): al acercarse al borde izquierdo
    sale el raíl, pero la marca no (ni se puede pulsar); si estaban abiertos, se cierran.
@@ -183,11 +184,12 @@ def main():
         check('«Ventanas nuevas», «Estilo» (Claro / Oscuro, también las webs) y «Fondo» cambian sus ajustes y el aspecto al momento')
 
         # (Las filas que dependen del fondo se van al repintar la hoja, un momento después.)
-        until(lambda: len(mark()['rows']) == 10)
+        until(lambda: len(mark()['rows']) == 11)
         rows = mark()['rows']
-        # Las de Zero (ventanas nuevas, estilo, fondo, foto de fondo, modo concentración, pestañas, info; con el fondo
-        # de la web, sin la opacidad) y los interruptores del pomodoro, el silencio y los sonidos, apagados: sin sus opciones.
-        assert len(rows) == 10 and [r.split(' ')[0][:8] for r in rows[7:]] == ['Pomodoro', 'Silencio', 'Sonidos'], rows
+        # Las de Zero (ventanas nuevas, estilo, fondo, foto de fondo, modo concentración, pestañas, privacidad, info; con el
+        # fondo de la web, sin la opacidad; sin «Reiniciar» mientras no se pida otro modo) y los interruptores del
+        # pomodoro, el silencio y los sonidos, apagados: sin sus opciones.
+        assert len(rows) == 11 and [r.split(' ')[0][:8] for r in rows[8:]] == ['Pomodoro', 'Silencio', 'Sonidos'], rows
         assert not any(word in ' '.join(rows) for word in ('Tiempos', 'Webs vetadas', 'Aviso de scroll', 'Lluvia')), rows
         assert chrome("return !document.querySelector('#zero-settings [data-pref=islandIcons]')"), 'la isla de arriba no lleva «solo iconos»'
         click('#zero-settings [data-pref="railIcons"] [data-value="icons"]')
@@ -195,6 +197,23 @@ def main():
         click('#zero-settings [data-pref="railIcons"] [data-value="text"]')
         until(lambda: chrome("return Services.prefs.getBoolPref('kitsune.zero.railIcons', false)") is False)
         check('No salen filas de fases sin hacer')
+
+        # Estricto o Cómodo, como en Kitsune normal (Risco, 21-10): se guarda en el user.js del perfil y pide reiniciar.
+        PRIVACY = """const row = document.querySelector('#zero-settings [data-pref="privacy"]');
+          return row && { labels: [...row.querySelectorAll('[data-value]')].map(b => b.textContent.trim()),
+            on: row.querySelector('button[on]')?.dataset.value ?? null,
+            restart: !!document.querySelector('#zero-settings [data-pref="privacy-restart"] [data-action="restart"]'),
+            requested: Services.prefs.getStringPref('kitsune.privacy.requested', '') };"""
+        privacy = chrome(PRIVACY)
+        assert privacy and privacy['labels'] == ['Estricto', 'Cómodo'] and privacy['on'] == 'estricto' and not privacy['restart'], privacy
+        click('#zero-settings [data-pref="privacy"] [data-value="comodo"]')
+        until(lambda: (p := chrome(PRIVACY))['requested'] == 'comodo' and p['on'] == 'comodo' and p['restart'])
+        user_js = (profile / 'user.js').read_text()
+        assert 'user_pref("kitsune.privacy.requested", "comodo");' in user_js and '@@KITSUNE_PROFILE_BEGIN@@' in user_js, user_js[-400:]
+        click('#zero-settings [data-pref="privacy"] [data-value="estricto"]')
+        until(lambda: (p := chrome(PRIVACY))['requested'] == 'estricto' and p['on'] == 'estricto' and not p['restart'])
+        assert (profile / 'user.js').read_text().count('@@KITSUNE_PROFILE_BEGIN@@') == 1
+        check('«Privacidad» (Estricto / Cómodo) se guarda en el perfil y, si cambia, ofrece reiniciar')
 
         head = chrome("return document.querySelector('#zero-settings h4').textContent")
         assert 'Ctrl' not in head and '⌘' not in head, head
@@ -234,7 +253,7 @@ def main():
               const animated = leaving.filter(r => r.getAnimations().some(a => a.playState === 'running')).length;
               setTimeout(() => done({ before, leaving: leaving.length, animated, after: document.querySelectorAll('#zero-settings .zero-row').length, live: count() }), 800);
             }, 60);""", [], asynchronous=True)
-        assert gone['leaving'] >= 2 and gone['animated'] == gone['leaving'] and gone['after'] == gone['live'] == 10, gone
+        assert gone['leaving'] >= 2 and gone['animated'] == gone['leaving'] and gone['after'] == gone['live'] == 11, gone
         chrome("Services.prefs.clearUserPref('kitsune.zero.pomodoro.preset')")
         check('Sin el atajo en la cabecera; las filas entran y se van con animación, el interruptor y el segmento se deslizan')
 
