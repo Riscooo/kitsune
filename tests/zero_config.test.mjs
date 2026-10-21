@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { PREFS, DEFAULTS, prefName, readPrefs, shortcutText, websiteScheme } from '../zero/modules/zero-config.sys.mjs'
+import { PREFS, DEFAULTS, prefName, readPrefs, shortcutText, websiteScheme, darkensWebs } from '../zero/modules/zero-config.sys.mjs'
 
 test('Zero keeps every setting name in one place, under the prefix its host gives', () => {
   assert.equal(prefName('kitsune.zero.', PREFS.backdrop), 'kitsune.zero.backdrop')
@@ -41,4 +41,9 @@ test('las webs siguen el modo (Risco, 21-10): en Claro, su versión clara; en Os
   assert.equal(websiteScheme('nacar'), 1)
   assert.equal(websiteScheme('sobrio'), 0)
   for (const value of ['', 'raro', undefined, null]) assert.equal(websiteScheme(value), 1)
+})
+
+test('en Oscuro, también las webs claras sin versión oscura se oscurecen (Risco, 21-10); en Claro, no', () => {
+  assert.equal(darkensWebs('sobrio'), true)
+  for (const value of ['nacar', '', 'raro', undefined, null]) assert.equal(darkensWebs(value), false)
 })

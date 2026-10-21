@@ -9,9 +9,13 @@ const source = await readFile(new URL('../install/native/kitsune-oscurecer-child
 
 function load(preferences = new Map()) {
   const observers = [];
+  // Lo que comparte el proceso principal con los de las webs (Services.cpmm.sharedData).
+  const shared = { data: new Map(), listeners: [], get(key) { return this.data.get(key); },
+    addEventListener(type, listener) { assert.equal(type, 'change'); this.listeners.push(listener); },
+    removeEventListener(type, listener) { this.listeners.splice(this.listeners.indexOf(listener), 1); } };
   const context = vm.createContext({
     JSWindowActorChild: class {},
-    Services: { prefs: {
+    Services: { cpmm: { sharedData: shared }, prefs: {
       getBoolPref: (name, fallback) => preferences.has(name) ? preferences.get(name) : fallback,
       getStringPref: (name, fallback) => preferences.has(name) ? preferences.get(name) : fallback,
       addObserver: (name, observer) => observers.push([name, observer]),
@@ -20,18 +24,19 @@ function load(preferences = new Map()) {
   });
   vm.runInContext(source.replaceAll('export function', 'function').replace('export class', 'class') +
     '\nglobalThis.api = { parseColor, isLightPage, KitsuneOscurecerChild, PAGE_SHEET, PDF_SHEET };', context);
-  return { api: context.api, observers, preferences };
+  return { api: context.api, observers, preferences, shared };
 }
 
 // Una ventana de 1000×800: cada punto da el elemento que se pinte ahí (o el <body>).
 function page({ background = 'rgb(255, 255, 255)', html = 'rgba(0, 0, 0, 0)', body = background, colorScheme = 'normal', dark = true,
-                at = () => null, contentType = 'text/html', host = 'example.com', synthetic = false } = {}) {
+                at = () => null, contentType = 'text/html', host = 'example.com', synthetic = false, meta = null } = {}) {
   const sheets = [];
   const element = (localName, color, parentElement = null) => ({ localName, color, parentElement });
   const root = element('html', html);
   const bodyElement = element('body', body, root);
   const document = {
-    documentElement: root, contentType, mozSyntheticDocument: synthetic,
+    documentElement: root, body: bodyElement, contentType, mozSyntheticDocument: synthetic,
+    querySelector: selector => selector === 'meta[name="color-scheme"]' && meta !== null ? { content: meta } : null,
     documentURIObject: { get host() { if (!host) throw Error('sin nombre'); return host; } },
     elementFromPoint: (x, y) => at(x, y, { element, body: bodyElement }) ?? bodyElement,
   };
@@ -70,6 +75,19 @@ test('the colours Gecko computes are read in any notation: rgb, color(), oklab/o
   assert.equal(api.parseColor('transparent-ish'), null);
 });
 
+test('below a short body the canvas is the body’s background, as CSS paints it, and a dark <meta name="color-scheme"> counts (Risco, 21-10)', () => {
+  const { api } = load();
+  // El cuerpo solo mide un párrafo: debajo, los puntos dan <html>, transparente; lo que se ve es el fondo del body.
+  const short = extra => page({ html: 'rgba(0, 0, 0, 0)', body: 'rgb(32, 32, 32)', at: (x, y, { body }) => body.parentElement, ...extra }).window;
+  assert.equal(api.isLightPage(short()), false);
+  assert.equal(api.isLightPage(short({ body: 'rgb(250, 250, 250)' })), true);
+  // Sin fondos: el lienzo es oscuro si la web pide el esquema oscuro en su <meta> y el modo es oscuro.
+  const bare = extra => page({ background: 'rgba(0, 0, 0, 0)', ...extra }).window;
+  assert.equal(api.isLightPage(bare({ meta: 'light dark' })), false);
+  assert.equal(api.isLightPage(bare({ meta: 'light dark', dark: false })), true);
+  assert.equal(api.isLightPage(bare({ meta: 'light' })), true);
+});
+
 test('a page is light when most of what you see is light, and its canvas counts when nothing is painted', () => {
   const { api } = load();
   assert.equal(api.isLightPage(page().window), true);
@@ -91,10 +109,14 @@ test('a page is light when most of what you see is light, and its canvas counts 
 });
 
 test('the fixed sheet goes on a light page only with Oscuro and the option on, and comes off when either changes', () => {
-  const { api, preferences, observers } = load(new Map([['kitsune.oscurecer.enabled', true]]));
+  const { api, preferences, observers, shared } = load(new Map([['kitsune.oscurecer.enabled', true]]));
   const light = page();
   const actor = child(api, light);
-  assert.equal(observers.length, 2);
+  // Los avisos de preferencias y de sharedData no le llegan al actor de la web (Risco, 21-10): los cambios llegan en
+  // un mensaje del proceso principal, que trae la lista de webs que no se oscurecen.
+  assert.equal(observers.length, 0);
+  assert.equal(shared.listeners.length, 0);
+  const recheck = exceptions => actor.receiveMessage({ name: 'KitsuneOscurecer:Recheck', data: { exceptions } });
   actor.handleEvent({ type: 'DOMContentLoaded', target: light.document });
   assert.deepEqual(light.sheets, [api.PAGE_SHEET]);
   assert.match(decodeURIComponent(api.PAGE_SHEET), /:root\{filter:invert\(1\) hue-rotate\(180deg\) contrast\(\.86\)!important\}/);
@@ -103,17 +125,25 @@ test('the fixed sheet goes on a light page only with Oscuro and the option on, a
   actor.check();
   assert.equal(light.sheets.length, 1);
   preferences.set('kitsune.oscurecer.enabled', false);
-  actor.observe();
+  recheck([]);
   assert.deepEqual(light.sheets, []);
   preferences.set('kitsune.oscurecer.enabled', true);
-  actor.observe();
+  recheck([]);
   assert.equal(light.sheets.length, 1);
-  // Esta web, en la lista de «No oscurecer esta web».
+  // Esta web, en la lista de «No oscurecer esta web» (la preferencia de texto no cuenta: a las webs les llega vacía).
   preferences.set('kitsune.oscurecer.excepciones', 'otra.org, EXAMPLE.com');
-  actor.observe();
+  actor.check();
+  assert.equal(light.sheets.length, 1);
+  recheck(['otra.org', 'example.com']);
   assert.deepEqual(light.sheets, []);
+  recheck(['otra.org']);
+  assert.equal(light.sheets.length, 1);
+  // Al cargar una página, la lista sale de sharedData.
+  shared.data.set('kitsune-oscurecer-excepciones', ['example.com']);
+  const other = page();
+  child(api, other).handleEvent({ type: 'DOMContentLoaded', target: other.document });
+  assert.deepEqual(other.sheets, []);
   actor.didDestroy();
-  assert.equal(observers.length, 0);
 });
 
 test('dark pages, dark-scheme browsing off, images and other documents are left alone; PDFs only get their pages darkened', () => {

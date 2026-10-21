@@ -10,7 +10,9 @@
  * fondos con imagen vuelven a su color (un poco más suaves, como piden las guías de modo oscuro).
  */
 const ENABLED = 'kitsune.oscurecer.enabled';
-const EXCEPTIONS = 'kitsune.oscurecer.excepciones';
+// Las webs que no se oscurecen: las publica el proceso principal (kitsune-appearance) en sharedData, porque Gecko
+// no deja ver a los procesos de las webs las preferencias de texto del usuario (les llegan vacías).
+const EXCEPTIONS = 'kitsune-oscurecer-excepciones';
 const DARK = '(prefers-color-scheme: dark)';
 // Blanco → #121212 y negro → #ededed: ni negro puro detrás del texto ni blanco que deslumbre.
 const NEGATIVE = 'invert(1) hue-rotate(180deg) contrast(.86)';
@@ -51,8 +53,15 @@ export function isLightPage(win) {
   const doc = win.document, root = doc.documentElement;
   if (!root) return false;
   const style = element => win.getComputedStyle(element);
-  // El lienzo, si nada pinta encima: blanco salvo que la web pida el esquema oscuro.
-  const canvas = /\bdark\b/.test(style(root).colorScheme) && win.matchMedia(DARK).matches ? 0.02 : 1;
+  const paint = element => {
+    const color = element && parseColor(style(element).backgroundColor);
+    return color && color.a >= 0.5 ? color.l : null;
+  };
+  // El lienzo: el fondo de <html> o, si no tiene, el de <body> (CSS lo lleva a toda la ventana, también debajo de
+  // un body corto); si ninguno pinta, blanco salvo que la web pida el esquema oscuro, en su CSS o en su
+  // <meta name="color-scheme"> (Risco, 21-10: una web con modo oscuro propio salía invertida a clara).
+  const scheme = `${style(root).colorScheme} ${doc.querySelector?.('meta[name="color-scheme"]')?.content ?? ''}`;
+  const canvas = paint(root) ?? paint(doc.body) ?? (/\bdark\b/.test(scheme) && win.matchMedia(DARK).matches ? 0.02 : 1);
   const width = win.innerWidth, height = win.innerHeight;
   if (!width || !height) return false;
   const points = [[width / 2, height / 2], [width / 2, Math.min(120, height / 4)], [width / 4, height * 0.6], [width * 0.75, height * 0.75]];
@@ -71,32 +80,35 @@ export function isLightPage(win) {
   return light >= 3;
 }
 
-const hosts = () => new Set(Services.prefs.getStringPref(EXCEPTIONS, '').split(',').map(host => host.trim().toLowerCase()).filter(Boolean));
+const hosts = list => new Set(Array.isArray(list) ? list.map(host => String(host).trim().toLowerCase()).filter(Boolean) : []);
 
 export class KitsuneOscurecerChild extends JSWindowActorChild {
   actorCreated() {
     this.applied = null;
-    Services.prefs.addObserver(ENABLED, this);
-    Services.prefs.addObserver(EXCEPTIONS, this);
+    this.exceptions = null;
+    this.recheck = () => this.check();
   }
 
   didDestroy() {
-    Services.prefs.removeObserver(ENABLED, this);
-    Services.prefs.removeObserver(EXCEPTIONS, this);
-    this.media?.removeEventListener('change', this);
+    this.media?.removeEventListener('change', this.recheck);
     this.media = null;
   }
 
-  // Al cambiar la opción, la lista de webs o el tema, las páginas abiertas se ponen al día.
-  observe() { this.check(); }
+  // Al cambiar la opción, la lista o el tema, el proceso principal avisa (los avisos de preferencias y de sharedData
+  // no le llegan a este actor; Risco, 21-10). Se mira otra vez al poco: el tema nuevo puede tardar en llegar a la web.
+  receiveMessage(message) {
+    if (message.name !== 'KitsuneOscurecer:Recheck') return;
+    if (Array.isArray(message.data?.exceptions)) this.exceptions = message.data.exceptions;
+    this.check();
+    this.contentWindow?.setTimeout(() => this.check(), 300);
+  }
 
   handleEvent(event) {
-    if (event.type === 'change') { this.check(); return; }
     if (event.target !== this.document) return;
     if (!this.media) {
       try {
         this.media = this.contentWindow.matchMedia(DARK);
-        this.media.addEventListener('change', this);
+        this.media.addEventListener('change', this.recheck);
       } catch { /* sin ventana: nada que oscurecer */ }
     }
     this.check();
@@ -110,7 +122,7 @@ export class KitsuneOscurecerChild extends JSWindowActorChild {
     if (!Services.prefs.getBoolPref(ENABLED, false) || !win.matchMedia(DARK).matches) return null;
     let host = '';
     try { host = doc.documentURIObject.host.toLowerCase(); } catch { /* file:// y demás: sin nombre */ }
-    if (host && hosts().has(host)) return null;
+    if (host && hosts(this.exceptions ?? Services.cpmm.sharedData.get(EXCEPTIONS)).has(host)) return null;
     if (doc.contentType === 'application/pdf') return PDF_SHEET;
     if (!['text/html', 'application/xhtml+xml', 'text/plain'].includes(doc.contentType)) return null;
     return isLightPage(win) ? PAGE_SHEET : null;

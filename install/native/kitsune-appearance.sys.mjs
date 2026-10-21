@@ -298,10 +298,32 @@ function applyScheme(theme) {
 const DARKEN_PREF = 'kitsune.oscurecer.enabled';
 const DARKEN_EXCEPTIONS_PREF = 'kitsune.oscurecer.excepciones';
 function applyDarken(value) {
+  // En Kitsune Zero lo decide su modo (Claro u Oscuro, zero-frame), no «Tu inicio», que allí no se ve.
+  if (Services.prefs.getStringPref('kitsune.product', 'kitsune') === 'zero') return;
   const wanted = value.oscurecer === true && value.theme === 'oscuro';
   if (Services.prefs.getBoolPref(DARKEN_PREF, false) !== wanted) Services.prefs.setBoolPref(DARKEN_PREF, wanted);
 }
 const darkenExceptions = () => Services.prefs.getStringPref(DARKEN_EXCEPTIONS_PREF, '').split(',').map(host => host.trim().toLowerCase()).filter(Boolean);
+// Gecko no deja ver a los procesos de las webs las preferencias de texto del usuario (les llegan vacías): la lista
+// les llega por sharedData (kitsune-oscurecer-child.sys.mjs la lee de ahí).
+const DARKEN_SHARED = 'kitsune-oscurecer-excepciones';
+function shareDarkenExceptions() {
+  Services.ppmm.sharedData.set(DARKEN_SHARED, darkenExceptions());
+  Services.ppmm.sharedData.flush();
+}
+// Las páginas abiertas se ponen al día al cambiar la opción, la lista o el tema: a su actor no le llegan los avisos
+// de preferencias ni de sharedData (Risco, 21-10), así que se lo dice el proceso principal, con la lista.
+const DARKEN_WATCH = [DARKEN_PREF, DARKEN_EXCEPTIONS_PREF, WEBSITE_SCHEME_PREF, 'ui.systemUsesDarkTheme'];
+function recheckDarken() {
+  const exceptions = darkenExceptions();
+  for (const win of Services.wm.getEnumerator('navigator:browser')) {
+    for (const browser of win.gBrowser?.browsers ?? []) {
+      try {
+        browser.browsingContext?.currentWindowGlobal?.getActor('KitsuneOscurecer').sendAsyncMessage('KitsuneOscurecer:Recheck', { exceptions });
+      } catch { /* una página sin el actor (about:, el inicio…) */ }
+    }
+  }
+}
 /** Añade o quita una web de las que no se oscurecen (como mucho 500, las más recientes). */
 function toggleDarkenException(host) {
   const name = String(host ?? '').toLowerCase();
@@ -310,6 +332,7 @@ function toggleDarkenException(host) {
   const excluded = list.length === darkenExceptions().length;
   if (excluded) list.push(name);
   Services.prefs.setStringPref(DARKEN_EXCEPTIONS_PREF, list.slice(-500).join(','));
+  shareDarkenExceptions();
   return excluded;
 }
 const DARKEN_ITEM = 'kitsune-oscurecer-web';
@@ -317,34 +340,42 @@ const i18n = (spanish, english) => {
   try { return ChromeUtils.importESModule('chrome://browser/content/kitsune-i18n.sys.mjs').t(spanish, english); } catch { return spanish; }
 };
 function decorateDarken(window) {
-  const doc = window.document, menu = doc.getElementById('contentAreaContextMenu');
-  if (!menu || doc.getElementById(DARKEN_ITEM)) return;
-  const item = doc.createXULElement('menuitem');
-  item.id = DARKEN_ITEM;
-  item.hidden = true;
+  const doc = window.document;
   const pageHost = () => {
     const uri = window.gBrowser?.selectedBrowser?.currentURI;
     try { return ['http', 'https'].includes(uri?.scheme) ? uri.host.toLowerCase() : ''; } catch { return ''; }
   };
-  menu.addEventListener('popupshowing', event => {
-    if (event.target !== menu) return;
+  // Al arrancar la ventana el menú de la página aún no está (Gecko lo pone más tarde): la opción se crea la
+  // primera vez que se abre, y cada vez dice lo que toca para la web de ahora.
+  window.addEventListener('popupshowing', event => {
+    const menu = event.target;
+    if (menu?.id !== 'contentAreaContextMenu') return;
+    let item = doc.getElementById(DARKEN_ITEM);
+    if (!item) {
+      item = doc.createXULElement('menuitem');
+      item.id = DARKEN_ITEM;
+      item.addEventListener('command', () => toggleDarkenException(pageHost()));
+      const anchor = doc.getElementById('inspect-separator');
+      if (anchor?.parentNode === menu) menu.insertBefore(item, anchor); else menu.append(item);
+    }
     const host = pageHost();
     item.hidden = !host || !Services.prefs.getBoolPref(DARKEN_PREF, false);
     if (item.hidden) return;
     item.setAttribute('label', darkenExceptions().includes(host)
       ? i18n('Oscurecer esta web', 'Darken this site') : i18n('No oscurecer esta web', 'Don’t darken this site'));
-  });
-  item.addEventListener('command', () => toggleDarkenException(pageHost()));
-  const anchor = doc.getElementById('inspect-separator');
-  if (anchor) menu.insertBefore(item, anchor); else menu.append(item);
+  }, true);
 }
 let darkenRegistered = false;
 function registerDarken() {
   if (darkenRegistered) return;
   darkenRegistered = true;
+  shareDarkenExceptions();
+  const watch = { observe() { shareDarkenExceptions(); recheckDarken(); } };
+  for (const name of DARKEN_WATCH) Services.prefs.addObserver(name, watch);
   ChromeUtils.registerWindowActor('KitsuneOscurecer', {
     child: { esModuleURI: 'chrome://browser/content/kitsune-oscurecer-child.sys.mjs', events: { DOMContentLoaded: {}, pageshow: {} } },
-    // No hay padre: el hijo no manda nada, solo lee dos ajustes.
+    // El padre solo envía «mírate otra vez» (recheckDarken); el hijo no manda nada.
+    parent: { esModuleURI: 'chrome://browser/content/kitsune-oscurecer-parent.sys.mjs' },
     safeForUntrustedWebProcess: true,
     matches: ['http://*/*', 'https://*/*', 'file:///*'],
     messageManagerGroups: ['browsers'],

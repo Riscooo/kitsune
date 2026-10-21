@@ -10,7 +10,7 @@
  * - Velo: el color dominante de la web, muy leve, que cambia despacio con cada página.
  */
 import { lightOf, inkFor } from './zero-light.mjs';
-import { PREFS, prefName, variantOf, websiteScheme } from './zero-config.sys.mjs';
+import { PREFS, prefName, variantOf, websiteScheme, darkensWebs } from './zero-config.sys.mjs';
 
 export { variantOf };
 
@@ -105,6 +105,7 @@ export const GLASS_RULES = Object.freeze({
 
 const HTML = 'http://www.w3.org/1999/xhtml';
 const WEBSITE_SCHEME = 'layout.css.prefers-color-scheme.content-override';
+const DARKEN = 'kitsune.oscurecer.enabled';
 const state = new WeakMap(); // ventana → { cleanups, … }
 
 const el = (doc, tag, attributes = {}, children = []) => {
@@ -386,7 +387,8 @@ export function attach(win, ctx) {
   try { windows11 = os === 'WINNT' && Services.sysinfo.isWindows10BuildOrLater(22000); } catch { /* sin versión */ }
   root.style.setProperty('--zero-os-radius', `${windowRadius({ os, kernel, windows11 })}px`);
   // El modo (Claro u Oscuro), al momento al cambiarlo en los ajustes. Las webs lo siguen (Risco, 21-10: «las
-  // páginas serán blancas; en Oscuro, el modo oscuro»): en Claro, su versión clara; en Oscuro, la oscura.
+  // páginas serán blancas; en Oscuro, el modo oscuro»): en Claro, su versión clara; en Oscuro, la oscura, y
+  // las que solo son claras, oscurecidas.
   const variantPref = prefName(host.prefix, PREFS.variant);
   const setVariant = () => {
     let value = 'nacar';
@@ -394,6 +396,9 @@ export function attach(win, ctx) {
     root.setAttribute('zero-variant', variantOf(value));
     const scheme = websiteScheme(value);
     if (Services.prefs.getIntPref(WEBSITE_SCHEME, -1) !== scheme) Services.prefs.setIntPref(WEBSITE_SCHEME, scheme);
+    // Y en Oscuro, las webs claras que no tienen versión oscura, también (con «No oscurecer esta web» en su menú).
+    const darken = darkensWebs(value);
+    if (Services.prefs.getBoolPref(DARKEN, false) !== darken) Services.prefs.setBoolPref(DARKEN, darken);
   };
   setVariant();
   const listen = (target, type, fn, options) => { target.addEventListener(type, fn, options); st.cleanups.push(() => target.removeEventListener(type, fn, options)); };

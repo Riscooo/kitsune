@@ -47,6 +47,9 @@ export const variantOf = value => value === 'sobrio' ? 'sobrio' : 'nacar';
 
 /** Las webs siguen el modo: el valor de layout.css.prefers-color-scheme.content-override (0 oscuro, 1 claro). */
 export const websiteScheme = value => variantOf(value) === 'sobrio' ? 0 : 1;
+/** En Oscuro, también las webs claras sin versión oscura (kitsune.oscurecer.enabled; las oscurece el actor de
+ *  Kitsune, kitsune-oscurecer-child): «el modo oscuro, vaya» (Risco, 21-10). */
+export const darkensWebs = value => variantOf(value) === 'sobrio';
 
 /** El atajo de Zero, escrito como lo escribe cada sistema (en Mac, Cmd y Opción). */
 export const shortcutText = os => os === 'Darwin' ? '⌘⌥0' : 'Ctrl+Alt+0';

@@ -17,7 +17,7 @@ const DENSITY_PREFS = ['browser.uidensity', 'kitsune.appearance.densityApplied']
 // Oscurecer las webs claras: si está encendido y las webs que se dejan como son.
 const DARKEN = 'kitsune.oscurecer.enabled', DARKEN_EXCEPTIONS = 'kitsune.oscurecer.excepciones';
 
-function fixture({ permissions = new Map(), preferences = new Map(), inherited = false, newTab = null, defaults = new Map() } = {}) {
+function fixture({ permissions = new Map(), preferences = new Map(), inherited = false, newTab = null, defaults = new Map(), windows = [] } = {}) {
   const calls = [];
   const prefs = {
     getStringPref: (name, fallback) => preferences.has(name) ? preferences.get(name) : fallback,
@@ -56,6 +56,8 @@ function fixture({ permissions = new Map(), preferences = new Map(), inherited =
     },
   };
   const sheets = { USER_SHEET: 1 };
+  // Lo que se comparte con los procesos de las webs (Services.ppmm.sharedData).
+  const shared = { data: new Map(), flushes: 0, set(key, value) { this.data.set(key, value); }, flush() { this.flushes++; } };
   const context = vm.createContext({
     ChromeUtils: { importESModule(specifier) {
       if (specifier === 'resource:///modules/AboutNewTab.sys.mjs' && newTab) return { AboutNewTab: newTab };
@@ -64,7 +66,7 @@ function fixture({ permissions = new Map(), preferences = new Map(), inherited =
     Cc: { '@mozilla.org/content/style-sheet-service;1': { getService: () => sheets } },
     Ci: { nsIStyleSheetService: {}, nsIFile: {} },
     Services: {
-      prefs, perms,
+      prefs, perms, ppmm: { sharedData: shared }, wm: { getEnumerator: () => windows },
       io: { newURI: spec => ({ spec }), newFileURI: file => ({ spec: pathToFileURL(file.path).href }) },
       scriptSecurityManager: { createContentPrincipal: uri => ({ origin: uri.spec }) },
       dirsvc: { get() { return { path: '/temporary-kitsune-profile/profile', append(part) { this.path += '/' + part; } }; } },
@@ -73,8 +75,8 @@ function fixture({ permissions = new Map(), preferences = new Map(), inherited =
   // Execute only this local trusted source against fake Services. No network,
   // real profile, timers or native browser APIs are available in the context.
   vm.runInContext(source.replace('export const KitsuneAppearance', 'const KitsuneAppearance') +
-    '\nglobalThis.api = { validate, nativeCss, applyGoogle, applyScheme, applyNewTab, applySupportUrl, managedOrigins, IDENTITY_CSS, resolveButtons, applyButtons, applyTabs, applyDensity, shapeCss, summarizeProtections, applyDarken, toggleDarkenException };', context);
-  return { api: context.api, permissions, preferences, calls };
+    '\nglobalThis.api = { validate, nativeCss, applyGoogle, applyScheme, applyNewTab, applySupportUrl, managedOrigins, IDENTITY_CSS, resolveButtons, applyButtons, applyTabs, applyDensity, shapeCss, summarizeProtections, applyDarken, toggleDarkenException, recheckDarken };', context);
+  return { api: context.api, permissions, preferences, calls, shared };
 }
 
 function control() {
@@ -297,6 +299,20 @@ test('v10 darkens light sites only in Oscuro, and the menu keeps a short list of
   assert.equal(f.preferences.get(DARKEN_EXCEPTIONS), 'news.example.org');
   for (const host of ['', 'a,b', 'evil host', 'x'.repeat(254), null]) assert.equal(f.api.toggleDarkenException(host), false);
   assert.equal(f.preferences.get(DARKEN_EXCEPTIONS), 'news.example.org');
+  // Las webs no ven las preferencias de texto del usuario (Gecko se las da vacías): la lista les llega por sharedData.
+  assert.deepEqual([...f.shared.data.get('kitsune-oscurecer-excepciones')], ['news.example.org']);
+  assert.ok(f.shared.flushes >= 3);
+});
+
+test('in Kitsune Zero the darkening follows Zero’s mode, not the Kitsune start page (Risco, 21-10)', () => {
+  const v10 = (extra = {}) => ({ ...controlV3(), version: 10, windowControls: 'izquierda', brand: true, performance: 'normal', ramLimit: 2048,
+    minimize: true, windowButtons: 'auto', tabs: 'arriba', esquinas: 'suaves', letra: 'sans', densidad: 'normal', oscurecer: false, ...extra });
+  for (const already of [true, false]) {
+    const f = fixture({ preferences: new Map([['kitsune.product', 'zero'], [DARKEN, already]]) });
+    f.api.applyDarken(f.api.validate(v10({ theme: 'claro' })));
+    f.api.applyDarken(f.api.validate(v10({ theme: 'oscuro', oscurecer: true })));
+    assert.equal(f.preferences.get(DARKEN), already);
+  }
 });
 
 test('new tabs open the profile\'s own Kitsune home, unless an extension already changed them', () => {
@@ -466,3 +482,18 @@ test('privacy summary counts what Gecko blocked today and in the last 7 days, by
   assert.deepEqual(summary.today, { trackers: 10, cookies: 0, cryptominers: 0, fingerprinters: 1, social: 0, bounce: 0, total: 11 });
   assert.deepEqual(summary.week, { trackers: 10, cookies: 4, cryptominers: 0, fingerprinters: 3, social: 0, bounce: 0, total: 17 });
 });
+
+test('open pages are told to look again, with the list of sites left as they are (their own listeners never fire, Risco 21-10)', () => {
+  const sent = [];
+  const tab = (url, matches = true) => ({ browsingContext: { currentWindowGlobal: { getActor(name) {
+    assert.equal(name, 'KitsuneOscurecer');
+    if (!matches) throw new Error('NotSupportedError: no actor for ' + url);
+    return { sendAsyncMessage: (message, data) => sent.push([url, message, JSON.parse(JSON.stringify(data))]) };
+  } } } });
+  const windows = [{ gBrowser: { browsers: [tab('https://a.example'), tab('about:preferences', false)] } }, { gBrowser: { browsers: [tab('https://b.example')] } }];
+  const f = fixture({ windows, preferences: new Map([[DARKEN_EXCEPTIONS, 'b.example']]) });
+  f.api.recheckDarken();
+  assert.deepEqual(sent, [['https://a.example', 'KitsuneOscurecer:Recheck', { exceptions: ['b.example'] }],
+                          ['https://b.example', 'KitsuneOscurecer:Recheck', { exceptions: ['b.example'] }]]);
+});
+
