@@ -22,6 +22,9 @@ un reinicio), al volver a lanzarlo sigue donde iba: el estado vive en
 ~/.local/state/kitsune-browser/seguir-firefox.json. La versión que se publica es la de
 install/version.json («release»); el borrador se niega si esa versión ya existe en GitHub.
 
+Para publicar sin tocar el Kitsune de este PC, con XDG_DATA_HOME y XDG_STATE_HOME en otras carpetas: el
+motor nuevo, su estado y sus pruebas van allí (la caché de compilación es la de siempre).
+
     python3 tools/seguir_firefox.py --plan                # qué haría, sin hacer nada
     python3 tools/seguir_firefox.py                       # el Gecko estable más nuevo
     python3 tools/seguir_firefox.py --version 158.0 --solo linux
@@ -45,7 +48,23 @@ import tempfile
 ROOT = Path(__file__).resolve().parents[1]
 ENGINE = ROOT / 'install/kitsune-engine.py'
 STATE = Path(os.environ.get('XDG_STATE_HOME', Path.home() / '.local/state')) / 'kitsune-browser/seguir-firefox.json'
-CURRENT = Path.home() / '.local/share/kitsune-browser/engine/current/kitsune'
+def current_engine(env=os.environ):
+    """El motor activo: el de este PC o, con XDG_DATA_HOME, el de esa carpeta (para publicar sin tocar el Kitsune de
+    quien compila; Risco, 21-10)."""
+    return Path(env.get('XDG_DATA_HOME') or Path.home() / '.local/share') / 'kitsune-browser/engine/current/kitsune'
+
+
+def passed_env(env=os.environ):
+    """Las carpetas propias pasan a cada paso: systemd-run no hereda el entorno de quien lo lanza."""
+    return [f'--setenv={name}={env[name]}' for name in ('XDG_DATA_HOME', 'XDG_STATE_HOME') if env.get(name)]
+
+
+def test_command(test, engine):
+    """Una prueba con el motor real que toca (el recién compilado, esté donde esté)."""
+    return [sys.executable, f'tests/{test}.py', '--browser', str(engine)]
+
+
+CURRENT = current_engine()
 CACHE = Path.home() / '.cache/kitsune-build'
 REPO = 'Riscooo/kitsune'
 # Las pruebas con el motor real que deciden si un Gecko nuevo vale (casi todas sin ventana; unos 25 min).
@@ -86,7 +105,7 @@ def unit(name, command, logfile, release=None):
     with logfile.open('a') as out:
         out.write(f'\n=== {datetime.datetime.now().isoformat(timespec="seconds")} {" ".join(command)}\n')
         out.flush()
-        setenv = [f'--setenv=KITSUNE_RELEASE={release}'] if release else []
+        setenv = passed_env() + ([f'--setenv=KITSUNE_RELEASE={release}'] if release else [])
         result = subprocess.run(['systemd-run', '--user', '--wait', '--pipe', '--collect', '--quiet', f'--unit=kitsune-seguir-{name}',
                                  f'--working-directory={ROOT}', *LIMITS, *setenv, *command], stdout=out, stderr=subprocess.STDOUT)
     return result.returncode == 0
@@ -236,7 +255,7 @@ def pipeline(args, version):
         failed = []
         for test in TESTS:
             log(f'Prueba {test}…')
-            if not unit(f'prueba-{test.replace("_", "-")}', [sys.executable, f'tests/{test}.py'], logfile):
+            if not unit(f'prueba-{test.replace("_", "-")}', test_command(test, CURRENT), logfile):
                 failed.append(test)
         if failed:
             return stop(f'fallan con Gecko {version}: {", ".join(failed)}')

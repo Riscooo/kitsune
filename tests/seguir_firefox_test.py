@@ -54,3 +54,21 @@ class AutomaticTest(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
+
+class ApartTest(unittest.TestCase):
+    """Publicar sin tocar el Kitsune de este PC (Risco, 21-10: «no me actualices directamente mi Kitsune»)."""
+
+    def test_by_default_the_engine_is_the_one_of_this_pc(self):
+        self.assertEqual(seguir.current_engine({}), Path.home() / '.local/share/kitsune-browser/engine/current/kitsune')
+        self.assertEqual(seguir.passed_env({}), [])
+
+    def test_with_its_own_folders_every_step_and_every_test_use_the_engine_there(self):
+        env = {'XDG_DATA_HOME': '/mnt/datos/publicar/data', 'XDG_STATE_HOME': '/mnt/datos/publicar/state', 'HOME': '/x'}
+        self.assertEqual(seguir.current_engine(env), Path('/mnt/datos/publicar/data/kitsune-browser/engine/current/kitsune'))
+        # systemd-run no hereda el entorno: cada paso las recibe a mano (y nada más).
+        self.assertEqual(seguir.passed_env(env), ['--setenv=XDG_DATA_HOME=/mnt/datos/publicar/data',
+                                                  '--setenv=XDG_STATE_HOME=/mnt/datos/publicar/state'])
+        self.assertEqual(seguir.test_command('zero_island_native', Path('/m/kitsune')),
+                         [seguir.sys.executable, 'tests/zero_island_native.py', '--browser', '/m/kitsune'])
+
