@@ -24,6 +24,8 @@ class PrivacyModesTests(unittest.TestCase):
 
     def test_strict_reproduces_kitsune_05_values(self):
         for name, (strict, _) in self.sets["mode"].items():
+            if name in modes.STRICT:  # las excepciones a la medida, con su motivo en privacy_modes.py
+                continue
             self.assertEqual(strict, modes.effective(self.reference["prefs"][name]), name)
         for name, value in self.sets["common"].items():
             self.assertEqual(value, modes.effective(self.reference["prefs"][name]), name)
@@ -45,6 +47,15 @@ class PrivacyModesTests(unittest.TestCase):
         for name in ("datareporting.healthreport.uploadEnabled", "datareporting.usage.uploadEnabled", "toolkit.telemetry.archive.enabled"):
             self.assertIs(self.sets["common"][name], False, name)
             self.assertIn(f'"{name}"', self.cfg)
+
+    def test_drm_is_off_until_a_site_asks_for_it(self):
+        # Risco, 21-10: en Estricto Spotify no sonaba nunca. La DRM, apagada hasta que una web la pide (barra «Activar
+        # DRM», en todos los sistemas); en Cómodo, la de Gecko. Sin apagar el proveedor de complementos ni pedir la
+        # aprobación de GeckoView (que en escritorio rompe la DRM).
+        self.assertEqual(self.sets["mode"]["media.eme.enabled"], [False, None])
+        for name in ("media.gmp-provider.enabled", "media.eme.require-app-approval"):
+            self.assertNotIn(name, self.sets["mode"])
+            self.assertNotIn(name, self.sets["common"])
 
 
 if __name__ == "__main__":

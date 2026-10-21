@@ -130,6 +130,13 @@ MODE = [
 # Cómodo values that are not simply Gecko's factory value.
 COMFORT = {}
 
+# Estricto que no sale de la medida de 0.5 (Risco, 21-10: en Estricto Spotify no sonaba nunca). LibreWolf quitaba la
+# DRM del todo: apagaba el proveedor de complementos (Widevine no se carga) y pedía la aprobación de GeckoView, que en
+# escritorio la rompe. Ahora está apagada hasta que una web la pide: sale la barra «Activar DRM» (como Firefox en
+# Linux, también en Windows y macOS), y con un clic Spotify, Apple Music o Netflix suenan. None: no lo gestiona ningún
+# modo (el valor de Gecko).
+STRICT = {"media.eme.enabled": False, "media.gmp-provider.enabled": None, "media.eme.require-app-approval": None}
+
 
 def compile_rules(rules):
     return [re.compile(rule) for rule in rules]
@@ -184,6 +191,12 @@ def generate(reference, factory):
                 skipped.append(name)
                 continue
             sets["mode"][name] = [value, comfort]
+    for name, value in STRICT.items():
+        sets["common"].pop(name, None)
+        if value is None:
+            sets["mode"].pop(name, None)
+        else:
+            sets["mode"][name] = [value, COMFORT.get(name)]
     return sets, unclassified, skipped
 
 
