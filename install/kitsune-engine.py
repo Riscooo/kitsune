@@ -39,11 +39,15 @@ ARCHIVE = "https://archive.mozilla.org/pub/firefox/releases"
 VERSIONS_URL = "https://product-details.mozilla.org/1.0/firefox_versions.json"
 VERSION = re.compile(r"\d{1,4}\.\d{1,4}(?:\.\d{1,4})?")
 MIN_FREE_BYTES = 50 * 2**30
-# Each parallel Gecko compile job can take ~2 GiB at its peak (Rust crates,
-# large C++ units), and the final gkrust link-time optimization needs its own
-# headroom on top; more than memory allows froze this PC once.
-GIB_PER_JOB = 2
-GKRUST_RESERVE_GIB = 6
+# With cross-language LTO each parallel job only compiles to LLVM bitcode (the
+# code is generated at link time): ~1 GiB at its peak. The old 6 GiB headroom was
+# for rustc's own gkrust LTO, which the linker now does at the end, on its own
+# (22-10: with 7 GiB free the old rule gave -j2, hours per system). More than
+# memory allows froze this PC once, so some headroom stays.
+GIB_PER_JOB = 1
+LINK_RESERVE_GIB = 2
+# The final link generates libxul's code with this many threads, each with its own memory.
+LTO_LINK_JOBS = 4
 # Release builds link gkrust (all of Gecko's Rust) with fat LTO: one rustc of
 # more than 13 GiB. Thin LTO, what Mozilla's own cross-language LTO builds use
 # for Rust, optimizes the same crates in parallel with a fraction of the memory.
@@ -1069,11 +1073,13 @@ PGO_ARTIFACT = "public/build/profdata.tar.xz"
 PGO_FILES = ("merged.profdata", "en-US.log")
 
 
-def optimization_options(pgo: Path | None) -> str:
+def optimization_options(pgo: Path | None, windows: bool = False) -> str:
     # LTO fina y no completa (la de Mozilla en Linux y Windows): casi la misma ganancia con una fracción
     # de la memoria, que en este PC no sobra.
     text = "\n# Como Firefox oficial: LTO entre C++ y Rust, y SIMD en Rust.\n" \
            "ac_add_options --enable-lto=cross,thin\nac_add_options --enable-rust-simd\n"
+    if not windows:  # lld de Linux y de macOS; el de Windows (lld-link) usa sus hilos de siempre
+        text += f'export LDFLAGS="-Wl,--thinlto-jobs={LTO_LINK_JOBS}"\n'
     if pgo:
         text += "# PGO con el perfil del Firefox oficial de esta versión y sistema.\n" \
                 "ac_add_options --enable-profile-use=cross\n" \
@@ -1175,7 +1181,7 @@ def build_jobs(meminfo=Path("/proc/meminfo"), cpus=None, limit=None):
         available = int(match.group(1)) * 1024 if match else 0
     if limit:
         available = min(available, limit)
-    usable = available - GKRUST_RESERVE_GIB * 2**30
+    usable = available - LINK_RESERVE_GIB * 2**30
     return max(2, min(cpus, usable // (GIB_PER_JOB * 2**30)))
 
 
@@ -1669,7 +1675,7 @@ def write_target_mozconfig(layout: Layout, version: str, target: str, pgo: Path 
         # Risco decidió (2026-10-10) que las versiones públicas también lleven su clave.
         text += f"# Avisos de webs peligrosas (clave de Google Safe Browsing de Risco).\n" \
                 f"ac_add_options --with-google-safebrowsing-api-keyfile={SAFEBROWSING_KEY}\n"
-    text += optimization_options(pgo)
+    text += optimization_options(pgo, windows=target == "windows")
     path = layout.cache / f"mozconfig-{version}-{target}"
     path.write_text(text)
     return path

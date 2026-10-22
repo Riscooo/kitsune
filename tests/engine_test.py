@@ -622,14 +622,14 @@ class ResourceTests(unittest.TestCase):
         path.write_text(f"MemTotal:       32000000 kB\nMemAvailable:   {kib} kB\n")
         return path
 
-    def test_jobs_follow_available_memory_with_gkrust_headroom(self):
+    def test_jobs_follow_available_memory_with_link_headroom(self):
         gib = 1024 * 1024
-        self.assertEqual(engine.build_jobs(self.meminfo(18 * gib), cpus=16), 6)
+        self.assertEqual(engine.build_jobs(self.meminfo(7 * gib), cpus=16), 5)
         self.assertEqual(engine.build_jobs(self.meminfo(64 * gib), cpus=16), 16)
         self.assertEqual(engine.build_jobs(self.meminfo(1 * gib), cpus=16), 2)
         self.assertEqual(engine.build_jobs(Path("/nonexistent/meminfo"), cpus=16), 2)
         # Inside the update service its cgroup memory.max is the real limit.
-        self.assertEqual(engine.build_jobs(self.meminfo(30 * gib), cpus=16, limit=20 * 2**30), 7)
+        self.assertEqual(engine.build_jobs(self.meminfo(30 * gib), cpus=16, limit=10 * 2**30), 8)
 
     def test_cgroup_memory_limit_is_read_from_own_cgroup(self):
         root = Path(tempfile.mkdtemp())
@@ -790,6 +790,10 @@ class PgoTests(unittest.TestCase):
             self.assertIn("ac_add_options --enable-profile-use=cross", text)
             self.assertIn(f"--with-pgo-profile-path={pgo / 'merged.profdata'}", text)
             self.assertIn(f"--with-pgo-jarlog={pgo / 'en-US.log'}", text)
+        # Hilos de la LTO final acotados con el lld de Linux y macOS; lld-link (Windows) no entiende -Wl.
+        self.assertIn("--thinlto-jobs=", engine.write_mozconfig(self.layout, "158.0.1", pgo).read_text())
+        self.assertIn("--thinlto-jobs=", engine.write_target_mozconfig(self.layout, "158.0.1", "macos", pgo).read_text())
+        self.assertNotIn("thinlto-jobs", engine.write_target_mozconfig(self.layout, "158.0.1", "windows", pgo).read_text())
         text = engine.write_mozconfig(self.layout, "158.0.1").read_text()
         self.assertIn("--enable-lto=cross,thin", text)
         self.assertNotIn("profile-use", text)
