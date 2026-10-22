@@ -1,7 +1,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { compareReleases, newerRelease, platformFor, releaseLabel, productDownloads, shouldAsk, FIRST_CHECK_MS, CHECK_EVERY_MS } from '../install/native/kitsune-updates.sys.mjs'
-import { expectedSha256, hex, linuxPackage, platformOf, releasePackage } from '../install/native/kitsune-updater.sys.mjs'
+import { expectedSha256, hex, linuxPackage, platformOf, releasePackage, windowsScript } from '../install/native/kitsune-updater.sys.mjs'
 
 test('releases order betas before the final version and compare numbers, not text', () => {
   assert.equal(compareReleases('0.7.0-beta.3', '0.7.0-beta.2'), 1)
@@ -107,3 +107,20 @@ test('a new version shows up right away: soon after opening and every quarter of
   assert.equal(shouldAsk(now, now + 60 * minute), true)  // el reloj se ha ido hacia atrás
 })
 
+
+test('Windows installs the new version in the same folder once Kitsune has really closed (Risco, 22-10)', () => {
+  const script = windowsScript('Kitsune-0.8.0-beta.5-Windows-x64.exe')
+  const lines = script.split('\r\n')
+  assert.ok(!/[^\x00-\x7f]/.test(script), 'un .cmd se lee en la página de códigos de la consola: solo ASCII')
+  assert.ok(!/\n/.test(script.replaceAll('\r\n', '')), 'líneas de Windows')
+  const wait = lines.findIndex(line => line.startsWith('tasklist /FI "PID eq %KITSUNE_ACTUALIZAR_PID%" /FI "IMAGENAME eq %KITSUNE_ACTUALIZAR_IMAGEN%"'))
+  const install = lines.findIndex(line => line.startsWith('"%~dp0Kitsune-0.8.0-beta.5-Windows-x64.exe" /S '))
+  const reopen = lines.findIndex(line => line.startsWith('if "%KITSUNE_ACTUALIZAR_REABRIR%"=="1" start "" "%KITSUNE_ACTUALIZAR_EXE%"'))
+  assert.ok(wait > 0 && install > wait && reopen > install, script)
+  // Si Kitsune no se cierra en 2 minutos, no se instala nada (el instalador lo dejaría a medias hasta reiniciar).
+  assert.ok(lines.slice(0, install).includes('if %vueltas% geq 120 exit /b 1'), script)
+  // En su carpeta (y así solo pide permiso de administrador si hace falta), sin volver a poner accesos quitados.
+  assert.match(lines[install], / \/InstallDirectoryPath="%KITSUNE_ACTUALIZAR_CARPETA%" /)
+  assert.match(lines[install], / \/DesktopShortcut=false \/TaskbarShortcut=false$/)
+  for (const bad of ['x.exe" & calc & "', '..\\otro.exe', 'Kitsune.msi', '', null]) assert.equal(windowsScript(bad), null, bad)
+})

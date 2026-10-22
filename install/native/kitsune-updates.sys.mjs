@@ -4,7 +4,7 @@
  * tiempo») se mira la lista de descargas de la web de Kitsune (sin cookies ni identificadores) y, si hay una versión
  * más nueva para este sistema, se dice en una barra.
  * kitsune-updater.sys.mjs la descarga, la comprueba y la deja lista para instalarse al cerrar
- * («Reiniciar ahora»): en Linux de serie y en Windows y macOS con kitsune.update.auto (hasta
+ * («Reiniciar ahora»): en Linux y Windows de serie y en macOS con kitsune.update.auto (hasta
  * probarlo allí). Si no, o si falla, la barra lleva a la descarga. Se apaga con kitsune.update.check = false. Solo actúa si el motor trae
  * kitsune.release (lo ponen los paquetes que se descargan); en el Linux de Risco el motor se
  * compila y actualiza solo, sin kitsune.release, y aquí no hace nada.

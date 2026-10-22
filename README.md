@@ -116,9 +116,11 @@ navegar. 0.8 trae lo que hace que la gente use Zen y lo que Zen no tiene.
   ayuda (`start/idioma.mjs` y `start/en.mjs`; el idioma lo da Kitsune por `/api/idioma`,
   porque con la protección anti-huella la página siempre creería que es en-US). Un perfil
   nuevo sale en el idioma del sistema; los de antes de 0.8 se quedan en castellano.
-- **Kitsune para Linux se actualiza solo** (`kitsune-updater.sys.mjs`): descarga el paquete
-  de la versión nueva, comprueba su SHA-256 con el `SHA256SUMS.txt` de la versión y lo
-  instala al cerrar Kitsune con su `instalar.sh`. Se apaga con `kitsune.update.auto`.
+- **Kitsune para Linux y Windows se actualiza solo** (`kitsune-updater.sys.mjs`): descarga el
+  paquete de la versión nueva, comprueba su SHA-256 con el `SHA256SUMS.txt` de la versión y lo
+  instala al cerrar Kitsune (en Linux con su `instalar.sh`; en Windows con su instalador en
+  silencio, en la misma carpeta, cuando Kitsune se ha cerrado del todo). Se apaga con
+  `kitsune.update.auto`.
 - **Copia de Kitsune** (`kitsune-copia.sys.mjs`): marcadores, espacios con sus pestañas y, si
   quieres, historial (90 días) y contraseñas en un archivo `.kitsune` cifrado con tu contraseña
   (PBKDF2-SHA-256 de 600 000 vueltas y AES-GCM), para llevarlo a otro ordenador sin servidor.

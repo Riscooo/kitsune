@@ -11,14 +11,21 @@
  *       cambia la carpeta de golpe y guarda la anterior en kitsune.anterior;
  *     - macOS: se monta el .dmg, se copia la app al lado de la tuya, se le quita la cuarentena
  *       (la nueva viene del mismo sitio que la que ya abriste) y se cambia de golpe;
- *     - Windows: unos segundos después de cerrar, su instalador en silencio (/S).
+ *     - Windows: en cuanto Kitsune se ha cerrado del todo, su instalador en silencio (/S) en la
+ *       misma carpeta (actualizar.cmd, ver windowsScript).
  * «Reiniciar ahora» cierra Kitsune (con lo que se instala) y lo vuelve a abrir ya nuevo.
- * kitsune.update.auto lo enciende o lo apaga (queda solo el aviso). En Linux viene encendido;
- * en Windows y macOS, apagado hasta probarlo en equipos de verdad.
+ * kitsune.update.auto lo enciende o lo apaga (queda solo el aviso). En Linux y en Windows viene
+ * encendido (Risco, 22-10: en el portátil del insti tuvo que bajarse la beta 4 a mano); en macOS,
+ * apagado hasta probarlo en un Mac de verdad.
  */
 const GITHUB = 'https://github.com/Riscooo/kitsune/releases/download';
 const RELEASE = /^\d{1,4}\.\d{1,4}\.\d{1,4}(?:-beta\.\d{1,4})?$/;
 const READY = 'listo.json';
+// Windows: el instalador corre cuando Kitsune ya se ha cerrado, así que si ha ido bien solo se sabe en la próxima
+// apertura. Esta marca dice que se intentó; si entonces sigue la versión vieja, esa versión ya no se intenta sola
+// (kitsune.update.failed) y queda el aviso con «Descargar».
+const TRIED = 'intentado.json';
+const FAILED = 'kitsune.update.failed';
 const MINUTE = 60 * 1000;
 
 // El paquete de cada sistema, como lo publica tools/seguir_firefox.py. Kitsune Zero (kitsune.product = "zero", el
@@ -89,6 +96,8 @@ const realPath = path => {
   return file.path;
 };
 let installing = null;
+// Windows: «Reiniciar ahora» pidió volver a abrir Kitsune después de instalar.
+let reopen = false;
 // Solo las pruebas cambian la lista de descargas (y solo a 127.0.0.1); entonces vale su carpeta de instalación.
 const testing = () => /^http:\/\/127\.0\.0\.1:\d{2,5}\//.test(Services.prefs.getStringPref('kitsune.update.testUrl', ''));
 
@@ -163,22 +172,62 @@ async function installMac(folder) {
 }
 
 /**
- * Windows: el instalador no puede cambiar los archivos de un Kitsune abierto, así que se lanza
- * aparte (nsIProcess, que no muere con Kitsune) y espera unos segundos a que acabe de cerrarse.
- * Si Windows pide permiso de administrador, lo pide entonces.
+ * Windows: la orden (actualizar.cmd) que instala la versión nueva cuando Kitsune se ha cerrado del todo.
+ * - El instalador no puede cambiar los archivos de un Kitsune abierto ni de sus procesos: si lo intenta, deja la
+ *   instalación a medias hasta reiniciar el equipo. Así que espera a que acabe el proceso de Kitsune y unos segundos
+ *   más; si en 2 minutos no se ha cerrado, no instala nada. Lo busca por número y por nombre: el número de un proceso
+ *   que acaba se reutiliza (en Wine, enseguida, hasta para el propio tasklist).
+ * - Instala en la misma carpeta (/InstallDirectoryPath): así solo pide permiso de administrador si esa carpeta lo
+ *   necesita (sin ella, el instalador de Mozilla lo pide siempre). No vuelve a poner los accesos del escritorio ni de
+ *   la barra de tareas que hayas quitado.
+ * - Con «Reiniciar ahora», después vuelve a abrir Kitsune.
+ * Las rutas llegan por el entorno (KITSUNE_ACTUALIZAR_*), no escritas aquí: un .cmd se lee en la página de códigos
+ * de la consola, y una carpeta con tildes saldría estropeada.
  */
+export function windowsScript(file) {
+  if (!/^[\w.-]+\.exe$/.test(file ?? '')) return null;
+  return [
+    '@echo off',
+    'set vueltas=0',
+    ':espera',
+    'ping -n 2 127.0.0.1 >nul',
+    'set /a vueltas+=1',
+    'if %vueltas% geq 120 exit /b 1',
+    'tasklist /FI "PID eq %KITSUNE_ACTUALIZAR_PID%" /FI "IMAGENAME eq %KITSUNE_ACTUALIZAR_IMAGEN%" /NH 2>nul | find " %KITSUNE_ACTUALIZAR_PID% " >nul && goto espera',
+    'ping -n 4 127.0.0.1 >nul',
+    `"%~dp0${file}" /S /InstallDirectoryPath="%KITSUNE_ACTUALIZAR_CARPETA%" /DesktopShortcut=false /TaskbarShortcut=false`,
+    'if "%KITSUNE_ACTUALIZAR_REABRIR%"=="1" start "" "%KITSUNE_ACTUALIZAR_EXE%"',
+    '',
+  ].join('\r\n');
+}
+
+/** Windows: lanza actualizar.cmd aparte (nsIProcess, que no muere con Kitsune). Si Windows pide permiso de
+ *  administrador, lo pide entonces. */
 async function launchWindowsInstaller(folder) {
-  const { file } = await IOUtils.readJSON(PathUtils.join(folder, READY));
-  if (typeof file !== 'string') return false;
+  const ready = await IOUtils.readJSON(PathUtils.join(folder, READY));
+  const text = windowsScript(ready?.file);
+  if (!text) return false;
   const script = PathUtils.join(folder, 'actualizar.cmd');
-  await IOUtils.writeUTF8(script, `@echo off\r\nping -n 6 127.0.0.1 >nul\r\n"%~dp0${file}" /S\r\n`);
+  await IOUtils.writeUTF8(script, text);
+  const dir = name => Services.dirsvc.get(name, Ci.nsIFile).path;
+  const env = {
+    KITSUNE_ACTUALIZAR_PID: String(Services.appinfo.processID),
+    KITSUNE_ACTUALIZAR_CARPETA: dir('GreBinD'),
+    KITSUNE_ACTUALIZAR_EXE: dir('XREExeF'),
+    KITSUNE_ACTUALIZAR_IMAGEN: PathUtils.filename(dir('XREExeF')),
+    KITSUNE_ACTUALIZAR_REABRIR: reopen ? '1' : '',
+  };
+  // Al volver a abrirse, con este mismo perfil, como cuando Gecko se reinicia (AppShutdown::MaybeDoRestart).
+  if (reopen) Object.assign(env, { XRE_PROFILE_PATH: dir('ProfD'), XRE_PROFILE_LOCAL_PATH: dir('ProfLD') });
+  for (const [name, value] of Object.entries(env)) Services.env.set(name, value);
   const cmd = Cc['@mozilla.org/file/local;1'].createInstance(Ci.nsIFile);
   cmd.initWithPath(Services.env.get('ComSpec') || 'C:\\Windows\\System32\\cmd.exe');
   const process = Cc['@mozilla.org/process/util;1'].createInstance(Ci.nsIProcess);
   process.init(cmd);
   process.startHidden = true;
   process.runw(false, ['/c', script]);
-  // La marca se quita: si la instalación falla, la próxima apertura vuelve a preparar la versión.
+  // De «listo» a «intentado»: la próxima apertura mira si se instaló (resume).
+  await IOUtils.writeJSON(PathUtils.join(folder, TRIED), { ...ready, at: new Date().toISOString() });
   await IOUtils.remove(PathUtils.join(folder, READY), { ignoreAbsent: true });
   return true;
 }
@@ -186,14 +235,17 @@ async function launchWindowsInstaller(folder) {
 export const KitsuneUpdater = {
   /** ¿Puede este Kitsune actualizarse solo? */
   async available() {
-    return !!platform() && Services.prefs.getBoolPref('kitsune.update.auto', platform() === 'linux') && await installed();
+    return !!platform() && Services.prefs.getBoolPref('kitsune.update.auto', ['linux', 'windows'].includes(platform())) && await installed();
   },
 
   /** Descarga, comprueba y deja lista la versión; la instala al cerrar. Devuelve su carpeta o lanza. */
   async stage({ release, entry, origin = GITHUB }) {
     const found = releasePackage(platform(), entry, release, origin, productNow());
     if (!found) throw new Error('La dirección del paquete no es la de esa versión de Kitsune.');
+    if (Services.prefs.getStringPref(FAILED, '') === release) throw new Error('Esta versión no se pudo instalar sola; queda «Descargar».');
     const folder = PathUtils.join(cacheRoot(), release);
+    // Windows: el instalador de esta versión puede estar aún trabajando (se volvió a abrir Kitsune enseguida).
+    if (await IOUtils.exists(PathUtils.join(folder, TRIED))) throw new Error('Esta versión ya se está instalando.');
     const ready = PathUtils.join(folder, READY);
     if (await IOUtils.exists(ready) && (await IOUtils.readJSON(ready))?.release === release) {
       this.installAtQuit(folder);
@@ -232,12 +284,17 @@ export const KitsuneUpdater = {
     let found = null;
     for (const folder of await IOUtils.getChildren(root)) {
       const release = PathUtils.filename(folder);
-      let ready = null;
+      let ready = null, tried = null;
       try { ready = await IOUtils.readJSON(PathUtils.join(folder, READY)); } catch { /* a medias */ }
+      try { tried = await IOUtils.readJSON(PathUtils.join(folder, TRIED)); } catch { /* no se intentó */ }
       if (ready?.release === release && newer(release, installed) === 1 && !found) {
         found = release;
         this.installAtQuit(folder);
+      } else if (tried?.release === release && newer(release, installed) === 1 && Date.now() - Date.parse(tried.at) < 10 * MINUTE) {
+        // Windows: se intentó hace nada; puede que el instalador siga trabajando. Se mira en la próxima apertura.
       } else {
+        // Windows: se intentó y sigue la versión vieja (no se dio permiso, o Kitsune no llegó a cerrarse).
+        if (tried?.release === release && newer(release, installed) === 1) Services.prefs.setStringPref(FAILED, release);
         // Ya instalada, más vieja o a medias: sobra.
         await IOUtils.remove(folder, { recursive: true, ignoreAbsent: true });
       }
@@ -269,6 +326,20 @@ export const KitsuneUpdater = {
   restart() {
     const cancel = Cc['@mozilla.org/supports-PRBool;1'].createInstance(Ci.nsISupportsPRBool);
     Services.obs.notifyObservers(cancel, 'quit-application-requested', 'restart');
-    if (!cancel.data) Services.startup.quit(Ci.nsIAppStartup.eAttemptQuit | Ci.nsIAppStartup.eRestart);
+    if (cancel.data) return;
+    if (platform() !== 'windows' || !installing) {
+      Services.startup.quit(Ci.nsIAppStartup.eAttemptQuit | Ci.nsIAppStartup.eRestart);
+      return;
+    }
+    // Windows: Gecko volvería a abrir el Kitsune viejo antes de que el instalador pudiera cambiarlo. Se cierra sin
+    // más y lo vuelve a abrir actualizar.cmd, ya nuevo y con las pestañas de ahora, como tras un reinicio.
+    const SESSION = 'browser.sessionstore.resume_session_once';
+    const resumed = Services.prefs.getBoolPref(SESSION, false);
+    reopen = true;
+    Services.prefs.setBoolPref(SESSION, true);
+    Services.startup.quit(Ci.nsIAppStartup.eAttemptQuit);
+    if (Services.startup.shuttingDown) return;
+    reopen = false;
+    if (!resumed) Services.prefs.clearUserPref(SESSION);
   },
 };
