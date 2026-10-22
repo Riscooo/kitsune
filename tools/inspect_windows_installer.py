@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import importlib.util
 import json
 from pathlib import Path
 import subprocess
@@ -22,6 +23,11 @@ import tempfile
 import zipfile
 
 ROOT = Path(__file__).resolve().parents[1]
+# omni.ja puede venir «optimizado» (con --with-pgo-jarlog, como Firefox oficial): se abre con el lector del motor.
+_spec = importlib.util.spec_from_file_location("kitsune_engine", ROOT / "install/kitsune-engine.py")
+_engine = importlib.util.module_from_spec(_spec)
+_spec.loader.exec_module(_engine)
+open_jar = _engine.open_jar
 SEVENZIP = Path.home() / ".mozbuild/7zz/7zz"
 KEY = Path.home() / ".config/kitsune-browser/safebrowsing-api-key"
 
@@ -56,7 +62,7 @@ def main(installer: Path, product: str = "kitsune") -> int:
                     problems.append("uBlock Origin no está firmado")
         omni = core / "browser/omni.ja"
         if omni.is_file():
-            with zipfile.ZipFile(omni) as archive:
+            with open_jar(omni) as archive:
                 names = set(archive.namelist())
                 builtins = json.loads(archive.read("chrome/browser/content/browser/built_in_addons.json"))
                 if not any(item.get("addon_id") == "inicio@kitsune" for item in builtins.get("builtins", [])):
@@ -89,7 +95,7 @@ def main(installer: Path, product: str = "kitsune") -> int:
             key = KEY.read_text().strip().encode()
             leaked = [path.relative_to(out) for path in out.rglob("*") if path.is_file() and key in path.read_bytes()]
             for path in out.rglob("*.ja"):
-                with zipfile.ZipFile(path) as archive:
+                with open_jar(path) as archive:
                     leaked += [f"{path.name}!{name}" for name in archive.namelist() if key in archive.read(name)]
             # Desde el 2026-10-10 las versiones públicas llevan la clave de Risco (lo decidió él).
             notes.append("lleva la clave de Safe Browsing" if leaked else "sin clave de Safe Browsing: no habrá avisos de webs peligrosas")

@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import importlib.util
 import json
 from pathlib import Path
 import plistlib
@@ -25,6 +26,11 @@ import tempfile
 import zipfile
 
 ROOT = Path(__file__).resolve().parents[1]
+# omni.ja puede venir «optimizado» (con --with-pgo-jarlog, como Firefox oficial): se abre con el lector del motor.
+_spec = importlib.util.spec_from_file_location("kitsune_engine", ROOT / "install/kitsune-engine.py")
+_engine = importlib.util.module_from_spec(_spec)
+_spec.loader.exec_module(_engine)
+open_jar = _engine.open_jar
 TOOLS = Path.home() / ".mozbuild"
 KEY = Path.home() / ".config/kitsune-browser/safebrowsing-api-key"
 BRANDING = ROOT / "install/branding/macos"
@@ -91,7 +97,7 @@ def main(dmg: Path, arch: str | None = None, product: str = "kitsune") -> int:
             problems.append(f"el ejecutable es {found_arch}, no {arch}")
         omni = resources / "browser/omni.ja"
         if omni.is_file():
-            with zipfile.ZipFile(omni) as archive:
+            with open_jar(omni) as archive:
                 names = set(archive.namelist())
                 builtins = json.loads(archive.read("chrome/browser/content/browser/built_in_addons.json"))
                 if not any(item.get("addon_id") == "inicio@kitsune" for item in builtins.get("builtins", [])):

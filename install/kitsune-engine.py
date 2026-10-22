@@ -24,11 +24,13 @@ import re
 import shlex
 import shutil
 import subprocess
+import struct
 import sys
 import tarfile
 import tempfile
 import urllib.request
 import zipfile
+import zlib
 
 # Bump BUILD_REVISION when the compile recipe changes in code (not only in its
 # input files, which are hashed); bump INSTALL_REVISION for install-only changes.
@@ -484,13 +486,47 @@ def zero_prefs(folder: Path) -> Path:
     return path
 
 
+def open_jar(jar: Path) -> zipfile.ZipFile:
+    """Un omni.ja como zipfile.ZipFile, también el «optimizado» de Mozilla.
+
+    Con --with-pgo-jarlog (como Firefox oficial) el empaquetador deja los archivos en el orden en que se leen al
+    arrancar y pone delante 4 bytes (lo que se precarga) y el directorio central, que el zipfile de Python no
+    encuentra («Bad magic number for central directory»). Ese se pasa a un .zip normal en memoria, en el mismo orden."""
+    data = jar.read_bytes()
+    if data[:4] == b"PK\x03\x04" or data[4:8] != b"PK\x01\x02":
+        return zipfile.ZipFile(io.BytesIO(data))
+    entries, position = [], 4
+    while data[position:position + 4] == b"PK\x01\x02":
+        (method, time_, date_, size, name_length, extra_length, comment_length, offset) = (
+            struct.unpack_from("<10xHHH4xI4xHHH8xI", data, position))
+        name = data[position + 46:position + 46 + name_length].decode()
+        entries.append((offset, name, method, time_, date_, size))
+        position += 46 + name_length + extra_length + comment_length
+    if data[position:position + 4] != b"PK\x05\x06" or not entries:
+        raise EngineError(f"{jar.name} no es un .zip ni un omni.ja de Mozilla")
+    plain = io.BytesIO()
+    with zipfile.ZipFile(plain, "w") as archive:
+        for offset, name, method, time_, date_, size in sorted(entries):
+            if data[offset:offset + 4] != b"PK\x03\x04":
+                raise EngineError(f"{jar.name}: {name} no está donde dice su índice")
+            name_length, extra_length = struct.unpack_from("<HH", data, offset + 26)
+            start = offset + 30 + name_length + extra_length
+            raw = data[start:start + size]
+            content = zlib.decompress(raw, -15) if method == zipfile.ZIP_DEFLATED else raw
+            info = zipfile.ZipInfo(name, ((date_ >> 9) + 1980, (date_ >> 5) & 15 or 1, date_ & 31 or 1,
+                                          time_ >> 11, (time_ >> 5) & 63, (time_ & 31) * 2))
+            archive.writestr(info, content, compress_type=method)
+    return zipfile.ZipFile(io.BytesIO(plain.getvalue()))
+
+
 def zero_omni(omni: Path):
     """Los nombres de la marca dentro de omni.ja (brand.ftl y brand.properties, en cada idioma) como Kitsune Zero."""
-    branded = [name for name in zipfile.ZipFile(omni).namelist() if name.endswith(("branding/brand.ftl", "branding/brand.properties"))]
+    with open_jar(omni) as original:
+        branded = [name for name in original.namelist() if name.endswith(("branding/brand.ftl", "branding/brand.properties"))]
     if not branded:
         raise EngineError(f"{omni.name} no tiene los nombres de la marca")
     rewritten = omni.with_suffix(".zero.ja")
-    with zipfile.ZipFile(omni) as original, zipfile.ZipFile(rewritten, "w", zipfile.ZIP_DEFLATED) as archive:
+    with open_jar(omni) as original, zipfile.ZipFile(rewritten, "w", zipfile.ZIP_DEFLATED) as archive:
         for info in original.infolist():
             data = original.read(info.filename)
             if info.filename in branded:

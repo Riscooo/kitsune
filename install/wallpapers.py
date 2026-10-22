@@ -45,8 +45,18 @@ def default_roots():
     return browser / "wallpapers", browser / "engine/current"
 
 
+def open_omni(path: Path):
+    """omni.ja, también el «optimizado» de los motores con PGO (con el lector de kitsune-engine.py, que va al lado)."""
+    spec = importlib.util.spec_from_file_location("kitsune_engine_jar", HERE / "kitsune-engine.py")
+    if spec is None or not (HERE / "kitsune-engine.py").is_file():
+        return zipfile.ZipFile(path)
+    engine = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(engine)
+    return engine.open_jar(path)
+
+
 def read_catalog(engine: Path):
-    with zipfile.ZipFile(engine / "browser/omni.ja") as omni:
+    with open_omni(engine / "browser/omni.ja") as omni:
         data = json.loads(omni.read(CATALOG))
     entries = data.get("data") if isinstance(data, dict) else None
     if not isinstance(entries, list):

@@ -8,6 +8,7 @@ import re
 import os
 import plistlib
 from pathlib import Path
+import struct
 import subprocess
 import sys
 import tarfile
@@ -797,6 +798,55 @@ class PgoTests(unittest.TestCase):
         text = engine.write_mozconfig(self.layout, "158.0.1").read_text()
         self.assertIn("--enable-lto=cross,thin", text)
         self.assertNotIn("profile-use", text)
+
+
+class JarTests(unittest.TestCase):
+    @staticmethod
+    def optimized(files: dict) -> bytes:
+        """Un omni.ja como lo deja el empaquetador de Mozilla con --with-pgo-jarlog: 4 bytes, el directorio
+        central y su final delante, y después los archivos (en el orden de arranque)."""
+        plain = io.BytesIO()
+        with zipfile.ZipFile(plain, "w", zipfile.ZIP_DEFLATED) as archive:
+            for name, content in files.items():
+                archive.writestr(name, content)
+        data = plain.getvalue()
+        end = data.rindex(b"PK\x05\x06")
+        size, offset = struct.unpack_from("<II", data, end + 12)
+        local, central, tail = data[:offset], bytearray(data[offset:offset + size]), bytearray(data[end:end + 22])
+        shift = 4 + len(central) + len(tail)
+        position = 0
+        while position < len(central):
+            lengths = struct.unpack_from("<HHH", central, position + 28)
+            struct.pack_into("<I", central, position + 42, struct.unpack_from("<I", central, position + 42)[0] + shift)
+            position += 46 + sum(lengths)
+        struct.pack_into("<I", tail, 16, 4)
+        return struct.pack("<I", shift) + bytes(central) + bytes(tail) + local
+
+    def test_open_jar_reads_mozilla_s_optimized_omni_ja_in_its_order(self):
+        # Con más de 64 KB detrás del índice, como en un omni.ja de verdad, el zipfile de Python ya no lo encuentra.
+        files = {"defaults/preferences/firefox.js": b"pref(1);", "chrome.manifest": b"manifest", "a/b.bin": os.urandom(200_000)}
+        jar = Path(tempfile.mkdtemp()) / "omni.ja"
+        jar.write_bytes(self.optimized(files))
+        with self.assertRaises(zipfile.BadZipFile):
+            zipfile.ZipFile(jar)
+        with engine.open_jar(jar) as archive:
+            self.assertEqual(archive.namelist(), list(files))
+            self.assertEqual({name: archive.read(name) for name in files}, files)
+            self.assertIsNone(archive.testzip())
+        plain = Path(tempfile.mkdtemp()) / "omni.ja"
+        with zipfile.ZipFile(plain, "w") as archive:
+            archive.writestr("chrome.manifest", b"normal")
+        with engine.open_jar(plain) as archive:
+            self.assertEqual(archive.read("chrome.manifest"), b"normal")
+
+    def test_zero_brand_goes_into_an_optimized_omni_ja(self):
+        jar = Path(tempfile.mkdtemp()) / "omni.ja"
+        jar.write_bytes(self.optimized({"localization/es-ES/branding/brand.ftl": b"-brand-short-name = Kitsune\n",
+                                        "chrome.manifest": b"manifest"}))
+        engine.zero_omni(jar)
+        with zipfile.ZipFile(jar) as archive:  # ya es un .zip normal
+            self.assertIn("Kitsune Zero", archive.read("localization/es-ES/branding/brand.ftl").decode())
+            self.assertEqual(archive.read("chrome.manifest"), b"manifest")
 
 
 class TargetTests(unittest.TestCase):

@@ -33,7 +33,7 @@ def patched_engine(dest):
     for path in staged.rglob('*'):
         if path.is_file():
             replace['chrome/browser/builtin-addons/kitsune-home/' + path.relative_to(staged).as_posix()] = path.read_bytes()
-    with zipfile.ZipFile(omni) as source:
+    with engine.open_jar(Path(omni)) as source:
         identity = source.read(base + 'browser-siteIdentity.js').decode()
         (old, new), = engine.TEXT_PATCHES['browser/base/content/browser-siteIdentity.js']
         # Un motor compilado con la receta actual ya trae el parche y la extensión.
