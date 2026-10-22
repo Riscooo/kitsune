@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { compareReleases, newerRelease, platformFor, releaseLabel, productDownloads } from '../install/native/kitsune-updates.sys.mjs'
+import { compareReleases, newerRelease, platformFor, releaseLabel, productDownloads, shouldAsk, FIRST_CHECK_MS, CHECK_EVERY_MS } from '../install/native/kitsune-updates.sys.mjs'
 import { expectedSha256, hex, linuxPackage, platformOf, releasePackage } from '../install/native/kitsune-updater.sys.mjs'
 
 test('releases order betas before the final version and compare numbers, not text', () => {
@@ -96,3 +96,14 @@ test('Kitsune Zero updates from its own part of the downloads list and its own p
   assert.equal(zero('linux', 'Kitsune-0.8.0-beta.3-Linux-x86_64.tar.xz'), null)
   assert.equal(releasePackage('linux', { url: `${base}/Kitsune-Zero-0.8.0-beta.3-Linux-x86_64.tar.xz`, release: '0.8.0-beta.3' }, '0.8.0-beta.3'), null)
 })
+
+test('a new version shows up right away: soon after opening and every quarter of an hour, not once a day (Risco, 22-10)', () => {
+  assert.ok(FIRST_CHECK_MS <= 15 * 1000, FIRST_CHECK_MS)
+  assert.ok(CHECK_EVERY_MS <= 15 * 60 * 1000, CHECK_EVERY_MS)
+  const minute = 60 * 1000, now = Date.UTC(2026, 9, 22, 18, 0)
+  assert.equal(shouldAsk(now, 0), true)
+  assert.equal(shouldAsk(now, now - 2 * minute), false)  // varias ventanas o un reinicio seguido: una sola pregunta
+  assert.equal(shouldAsk(now, now - 6 * minute), true)
+  assert.equal(shouldAsk(now, now + 60 * minute), true)  // el reloj se ha ido hacia atrás
+})
+

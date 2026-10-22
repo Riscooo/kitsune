@@ -1,7 +1,8 @@
 /* Aviso de versión nueva de Kitsune (Windows, macOS y el paquete de Linux).
  *
- * Una vez al día se mira la lista de descargas de la web de Kitsune (sin cookies ni
- * identificadores) y, si hay una versión más nueva para este sistema, se dice en una barra.
+ * Al poco de abrirse y cada cuarto de hora mientras está abierto (Risco, 22-10: «tiene que aparecer al toque, no en x
+ * tiempo») se mira la lista de descargas de la web de Kitsune (sin cookies ni identificadores) y, si hay una versión
+ * más nueva para este sistema, se dice en una barra.
  * kitsune-updater.sys.mjs la descarga, la comprueba y la deja lista para instalarse al cerrar
  * («Reiniciar ahora»): en Linux de serie y en Windows y macOS con kitsune.update.auto (hasta
  * probarlo allí). Si no, o si falla, la barra lleva a la descarga. Se apaga con kitsune.update.check = false. Solo actúa si el motor trae
@@ -14,7 +15,14 @@ const t = (spanish, english) => {
 };
 const DOWNLOADS = 'https://kitsune-navegador.vercel.app/downloads.json';
 const PAGE = 'https://kitsune-navegador.vercel.app/#descargar';
-const DAY_MS = 24 * 60 * 60 * 1000;
+/** La primera mirada, al poco de abrirse; luego, cada cuarto de hora. */
+export const FIRST_CHECK_MS = 10 * 1000;
+export const CHECK_EVERY_MS = 15 * 60 * 1000;
+/** Entre dos miradas, al menos este rato: con varias ventanas o un reinicio seguido se pregunta una vez. */
+const MIN_GAP_MS = 5 * 60 * 1000;
+
+/** ¿Toca preguntar a la web? Sí si pasó el rato mínimo desde la última vez, o si el reloj fue hacia atrás. */
+export const shouldAsk = (now, last) => now < last || now - last >= MIN_GAP_MS;
 const RELEASE = /^(\d{1,4})\.(\d{1,4})\.(\d{1,4})(?:-beta\.(\d{1,4}))?$/;
 
 /** Orden de versiones: 0.7.0-beta.2 < 0.7.0-beta.3 < 0.7.0 < 0.8.0-beta.1. null si no se entiende. */
@@ -99,8 +107,9 @@ export const KitsuneUpdates = {
     started = true;
     const installed = Services.prefs.getStringPref('kitsune.release', '');
     if (!installed || !Services.prefs.getBoolPref('kitsune.update.check', true) || !platformKey()) return;
-    const { setTimeout } = ChromeUtils.importESModule('resource://gre/modules/Timer.sys.mjs');
-    setTimeout(() => void this.check().catch(() => {}), 60 * 1000);
+    const { setTimeout, setInterval } = ChromeUtils.importESModule('resource://gre/modules/Timer.sys.mjs');
+    setTimeout(() => void this.check().catch(() => {}), FIRST_CHECK_MS);
+    setInterval(() => void this.check().catch(() => {}), CHECK_EVERY_MS);
     // Una versión que se preparó en otra sesión y no llegó a instalarse (Kitsune no se cerró bien).
     void this.resume().catch(() => {});
   },
@@ -114,7 +123,7 @@ export const KitsuneUpdates = {
     }
     return release;
   },
-  /** Mira la web (como mucho una vez al día) y avisa en las ventanas abiertas. */
+  /** Mira la web (como mucho cada pocos minutos) y avisa en las ventanas abiertas. */
   async check(now = Date.now()) {
     const installed = Services.prefs.getStringPref('kitsune.release', '');
     // Solo los tests cambian la dirección (y solo a 127.0.0.1) y, con ella, el sistema.
@@ -123,7 +132,7 @@ export const KitsuneUpdates = {
     const platform = platformKey() ?? (testing ? Services.prefs.getStringPref('kitsune.update.testPlatform', '') || null : null);
     if (!installed || !platform || !Services.prefs.getBoolPref('kitsune.update.check', true)) return null;
     const last = Number(Services.prefs.getStringPref('kitsune.update.lastCheck', '0'));
-    if (now - last < DAY_MS && now >= last) return pending;
+    if (!shouldAsk(now, last)) return pending;
     Services.prefs.setStringPref('kitsune.update.lastCheck', String(now));
     const url = testing ? override : DOWNLOADS;
     // AbortSignal.timeout necesita una ventana; aquí, un temporizador normal.
@@ -137,7 +146,10 @@ export const KitsuneUpdates = {
       downloads = await response.json();
     } finally { clearTimeout(timer); }
     const list = productDownloads(downloads, product());
-    pending = newerRelease(list, platform, installed);
+    const found = newerRelease(list, platform, installed);
+    // La misma versión que ya se avisó (y se preparó, si se pudo): ni se vuelve a bajar ni se avisa otra vez.
+    if (found && pending?.release === found.release) return pending;
+    pending = found;
     if (pending && await updater()?.available()) {
       try {
         await updater().stage({ release: pending.release, entry: list[platform], ...(testing ? { origin: new URL(override).origin } : {}) });

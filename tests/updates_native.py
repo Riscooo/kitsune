@@ -2,7 +2,8 @@
 
 1. Con una versión publicada más nueva, sale la barra «Hay una versión nueva de Kitsune»
    y «Descargar» abre la web de descarga.
-2. En el mismo día no vuelve a preguntar a la web.
+2. Pocos minutos después no vuelve a preguntar a la web (varias ventanas, un reinicio seguido); pasado ese rato sí, y
+   si sigue la misma versión no la vuelve a preparar ni a avisar dos veces.
 3. Con kitsune.update.check apagado, no pregunta.
 """
 import argparse
@@ -82,10 +83,14 @@ def main():
         check('Con una versión más nueva sale la barra de aviso y «Descargar» lleva a la web')
         again = chrome("const done = arguments[0]; window.KitsuneUpdatesTest.check().then(done, e => done(String(e)));", asynchronous=True)
         assert again == {'release': '0.7.0-beta.9'} and len(requests) == 1, (again, requests)
-        check('En el mismo día no vuelve a preguntar a la web')
+        later = chrome("""const done = arguments[0]; window.KitsuneUpdatesTest.check(Date.now() + 6 * 60 * 1000)
+          .then(found => done({ found, bars: gNotificationBox.allNotifications.filter(n => n.getAttribute('value') === 'kitsune-update').length }), e => done(String(e)));""", asynchronous=True)
+        # «Descargar» cerró la barra: con la misma versión no vuelve a salir cada cuarto de hora (ni dos a la vez).
+        assert later == {'found': {'release': '0.7.0-beta.9'}, 'bars': 0} and len(requests) == 2, (later, requests)
+        check('Pocos minutos después no vuelve a preguntar; pasado ese rato sí, sin avisar dos veces de la misma versión')
         chrome("Services.prefs.setStringPref('kitsune.update.lastCheck', '0'); Services.prefs.setBoolPref('kitsune.update.check', false)")
         off = chrome("const done = arguments[0]; window.KitsuneUpdatesTest.check().then(done, e => done(String(e)));", asynchronous=True)
-        assert off is None and len(requests) == 1, (off, requests)
+        assert off is None and len(requests) == 2, (off, requests)
         check('Con kitsune.update.check apagado no pregunta')
         report['status'] = 'passed'
     finally:
