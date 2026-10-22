@@ -207,6 +207,9 @@ def main():
         assert 'Mantén para saltar' in s['brk']['text'], s
         assert s['island']['y'] + s['island']['h'] <= b['y'] and s['rail']['x'] + s['rail']['w'] <= b['x'] + 2, s
         hold = list(element('#zero-break .zero-hold').values())[0]
+        # Al quitarse el cristal, la ventana se entera (zero-break-change: zero-silence lo vigila); con Gecko 157 no
+        # llegaba (ownerGlobal ya no existe).
+        chrome("window.__breakChanges = 0; window.addEventListener('zero-break-change', () => window.__breakChanges++)")
         driver.context('chrome')
         driver.command('POST', '/actions', {'actions': [{'type': 'pointer', 'id': 'raton', 'parameters': {'pointerType': 'mouse'}, 'actions': [
             {'type': 'pointerMove', 'origin': {'element-6066-11e4-a52e-4f735466cecf': hold}, 'x': 0, 'y': 0}, {'type': 'pointerDown', 'button': 0},
@@ -217,6 +220,7 @@ def main():
             {'type': 'pointerMove', 'origin': {'element-6066-11e4-a52e-4f735466cecf': hold}, 'x': 0, 'y': 0}, {'type': 'pointerDown', 'button': 0},
             {'type': 'pause', 'duration': 1800}, {'type': 'pointerUp', 'button': 0}]}]})
         until(lambda: not (state()['brk'] and state()['brk']['seen']) and state()['pomo']['phase'] == 'waiting')
+        assert chrome("return window.__breakChanges") > 0, 'la ventana no se ha enterado de que se quita el cristal'
         away()
         check('Descanso estricto: un cristal tapa la web con la guía; soltar antes no salta y mantener 1,5 s sí')
 

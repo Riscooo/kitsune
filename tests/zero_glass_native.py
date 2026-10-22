@@ -12,7 +12,8 @@ tinta sobre lo claro y a blanco sobre lo oscuro.
 6. Con el raíl abriéndose encima de la web, su cristal va pegado a él en cada fotograma.
 7. Mover el ratón sin cristal encima de la web no hace ninguna foto.
 8. Cada foto es solo del trozo que hay debajo de las piezas (menos de un cuarto de la vista).
-9. Un salto de scroll más allá del margen de la foto no deja el cristal vacío ni un fotograma.
+9. Un salto de scroll más allá del margen de la foto no deja el cristal vacío ni un fotograma; y la ventana se
+   entera del scroll (zero-scroll; con Gecko 157 no llegaba: ownerGlobal ya no existe).
 10. Las sugerencias al escribir llevan su cristal debajo (sin él se leía la web a través), pegado a ellas
     también cuando crecen.
 11. En el filo de la pieza, la web se ve doblada como por el canto de un cristal (Risco, 15-10: «una
@@ -205,7 +206,9 @@ def main():
         driver.script("scrollTo(0, 0)")
         time.sleep(1.5)
         driver.context('chrome')
-        driver.script("""window.__empty = 0; window.__frames = 0; const t0 = performance.now();
+        # La ventana se entera del scroll de la web (zero-scroll: el aviso de scroll infinito de zero-silence).
+        driver.script("""window.__scrolls = 0; window.addEventListener('zero-scroll', () => window.__scrolls++);
+            window.__empty = 0; window.__frames = 0; const t0 = performance.now();
             const step = () => { const c = document.getElementById('zero-glass-nav-bar');
               const px = c && !c.hidden ? c.getContext('2d').getImageData(0, 0, c.width, c.height).data : null;
               let alpha = 0; if (px) for (let i = 3; i < px.length; i += 16) alpha += px[i];
@@ -215,9 +218,10 @@ def main():
         driver.context('content')
         driver.script("scrollTo(0, 2400)")
         time.sleep(1)
-        frames, empty = chrome("return [window.__frames, window.__empty]")
+        frames, empty, scrolls = chrome("return [window.__frames, window.__empty, window.__scrolls]")
         assert frames > 20 and empty == 0, (frames, empty)
-        check('Un salto de scroll no deja el cristal vacío ni un fotograma')
+        assert scrolls > 0, 'la ventana no se ha enterado del scroll de la web (zero-scroll)'
+        check('Un salto de scroll no deja el cristal vacío ni un fotograma, y la ventana se entera (zero-scroll)')
 
         chrome("gURLBar.focus(); gURLBar.select(); gURLBar.inputField.value = 'zorro'; gURLBar.startQuery({ searchString: 'zorro' });")
         under = """const v = gURLBar.view.panel; const c = document.getElementById('zero-glass-urlbar-view'); const r = v.getBoundingClientRect();

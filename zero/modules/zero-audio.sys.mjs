@@ -165,7 +165,7 @@ function open(win, st) {
 function close(st) {
   st.panel.removeAttribute('open');
   st.button.setAttribute('aria-expanded', 'false');
-  st.panel.ownerGlobal?.clearInterval(st.timer);
+  (st.panel.documentGlobal ?? st.panel.ownerGlobal)?.clearInterval(st.timer); // Gecko 157: documentGlobal
 }
 
 export function attach(win, ctx) {

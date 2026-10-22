@@ -43,6 +43,9 @@ const engines = new WeakMap();    // ventana → { until, frame, timer, version,
 const scrolls = new WeakMap();    // <browser> → { x, y } (lo que cuenta la web)
 const asking = new WeakSet();     // <browser> a los que ya se ha preguntado dónde están
 
+// La ventana de un <browser>: Gecko 157 llama documentGlobal a lo que antes era ownerGlobal.
+const windowOf = browser => browser?.documentGlobal ?? browser?.ownerGlobal ?? null;
+
 // ---------------------------------------------------------------- el actor (lo que dice la web)
 
 export class KitsuneZeroGlassParent extends JSWindowActorParent {
@@ -51,7 +54,7 @@ export class KitsuneZeroGlassParent extends JSWindowActorParent {
     const browser = this.browsingContext.top?.embedderElement;
     if (!browser || !data) return;
     scrolls.set(browser, data);
-    const win = browser.ownerGlobal;
+    const win = windowOf(browser);
     if (engines.has(win)) kick(win);
     // Para las piezas que quieran saber que se está bajando (el aviso de scroll infinito).
     try { win.dispatchEvent(new win.CustomEvent('zero-scroll', { detail: { browser } })); } catch { /* ventana cerrándose */ }
@@ -99,7 +102,7 @@ function scrollOf(browser) {
     asking.add(browser);
     try {
       browser.browsingContext.currentWindowGlobal.getActor(ACTOR).sendQuery('ZeroGlass:where')
-        .then(at => { if (at && !scrolls.has(browser)) scrolls.set(browser, at); kick(browser.ownerGlobal); })
+        .then(at => { if (at && !scrolls.has(browser)) scrolls.set(browser, at); kick(windowOf(browser)); })
         .catch(() => {}).finally(() => asking.delete(browser));
     } catch { asking.delete(browser); }
   }

@@ -289,7 +289,7 @@ function dropBreak(st) {
   if (!st.brk) return;
   st.dropBreakTimer?.();
   GlassPane.detach(st.brk);
-  const win = st.brk.ownerGlobal;
+  const win = st.brk.documentGlobal ?? st.brk.ownerGlobal; // Gecko 157 llama documentGlobal a ownerGlobal
   st.brk.remove();
   st.brk = null;
   try { win?.dispatchEvent(new win.CustomEvent('zero-break-change')); } catch { /* ventana cerrándose */ }

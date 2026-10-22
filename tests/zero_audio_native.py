@@ -196,9 +196,13 @@ def main():
         chrome("gBrowser.selectedTab = gBrowser.tabs.find(t => t.label === 'Kioto')")
         click('#zero-dock .zero-sound-button')
         until(lambda: state()['panel'])
+        # Cerrado, deja de repintarse cada segundo (con Gecko 157 el reloj seguía: ownerGlobal ya no existe).
+        chrome("""window.__cleared = 0; const clear = window.clearInterval;
+            window.clearInterval = id => { window.__cleared++; return clear.call(window, id); };""")
         driver.context('chrome'); driver.shortcut('')
         until(lambda: not state()['panel'])
-        check('Un clic en lo que suena lleva a su pestaña y cierra el panel; Esc también lo cierra')
+        assert chrome("return window.__cleared") > 0, 'el panel de sonido cerrado sigue repintándose cada segundo'
+        check('Un clic en lo que suena lleva a su pestaña y cierra el panel; Esc también lo cierra (y deja de repintarse)')
         report['status'] = 'passed'
     finally:
         if driver: driver.close()
