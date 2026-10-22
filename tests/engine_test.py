@@ -710,6 +710,91 @@ class DistributionAddonTests(unittest.TestCase):
         self.assertFalse((base / "out/uBlock0@raymondhill.net.xpi").exists())
 
 
+class PgoTests(unittest.TestCase):
+    REVISION = "48a735cc74a7e6d730f9bf59c3de58f750287a23"
+
+    def setUp(self):
+        self.base = Path(tempfile.mkdtemp())
+        self.layout = engine.Layout(self.base / "data", self.base / "state", self.base / "cache")
+        self.layout.cache.mkdir(parents=True)
+        self.source = self.base / "src"
+        self.source.mkdir()
+        (self.source / "sourcestamp.txt").write_text(
+            f"20261019185856\nhttps://hg.mozilla.org/releases/mozilla-release/rev/{self.REVISION}\n")
+
+    def taskcluster(self, archive: bytes, sha256=None, fail=False):
+        """Un Taskcluster falso con la tarea de compilación, la del perfil y su cadena de confianza."""
+        tc = engine.TASKCLUSTER
+        index = f"gecko.v2.mozilla-release.shippable.revision.{self.REVISION}.firefox.linux64-opt"
+        fetches = json.dumps([{"artifact": "public/build/clang.tar.zst", "task": "Clang"},
+                              {"artifact": engine.PGO_ARTIFACT, "task": "Perfil", "extract": True}])
+        pages = {
+            f"{tc}/index/v1/task/{index}": json.dumps({"taskId": "Build"}).encode(),
+            f"{tc}/queue/v1/task/Build": json.dumps({"payload": {"env": {"MOZ_FETCHES": fetches}}}).encode(),
+            f"{tc}/queue/v1/task/Perfil/artifacts/public/chain-of-trust.json": json.dumps(
+                {"artifacts": {engine.PGO_ARTIFACT: {"sha256": sha256 or hashlib.sha256(archive).hexdigest()}}}).encode(),
+            f"{tc}/queue/v1/task/Perfil/artifacts/{engine.PGO_ARTIFACT}": archive,
+        }
+        asked = []
+
+        def opener(url, timeout=None):
+            asked.append(url)
+            if fail:
+                raise OSError("sin red")
+            return contextlib.closing(io.BytesIO(pages[url])) if url in pages else (_ for _ in ()).throw(OSError(url))
+        return opener, asked
+
+    @staticmethod
+    def profile_archive(**files):
+        buffer = io.BytesIO()
+        with tarfile.open(fileobj=buffer, mode="w:xz") as archive:
+            for name, content in files.items():
+                info = tarfile.TarInfo(name)
+                info.size = len(content)
+                archive.addfile(info, io.BytesIO(content))
+        return buffer.getvalue()
+
+    def test_mozilla_profile_is_checked_unpacked_and_kept(self):
+        archive = self.profile_archive(**{"merged.profdata": b"perfil", "en-US.log": b"omni.ja greprefs.js\n"})
+        opener, asked = self.taskcluster(archive)
+        folder = engine.pgo_profile(self.layout, "158.0.1", self.source, "linux", log=lambda *_: None, opener=opener)
+        self.assertEqual((folder / "merged.profdata").read_bytes(), b"perfil")
+        self.assertEqual((folder / "en-US.log").read_text(), "omni.ja greprefs.js\n")
+        self.assertTrue(any(self.REVISION in url for url in asked))
+        asked.clear()
+        self.assertEqual(engine.pgo_profile(self.layout, "158.0.1", self.source, "linux", log=lambda *_: None, opener=opener), folder)
+        self.assertEqual(asked, [])  # ya en la caché: no se vuelve a bajar
+
+    def test_a_profile_that_does_not_match_mozilla_s_hash_stops_the_build(self):
+        archive = self.profile_archive(**{"merged.profdata": b"perfil", "en-US.log": b""})
+        opener, _ = self.taskcluster(archive, sha256="0" * 64)
+        with self.assertRaises(engine.EngineError):
+            engine.pgo_profile(self.layout, "158.0.1", self.source, "linux", log=lambda *_: None, opener=opener)
+        self.assertFalse((self.layout.cache / "pgo/158.0.1-linux").exists())
+
+    def test_without_network_or_profile_it_builds_with_lto_only(self):
+        opener, _ = self.taskcluster(b"", fail=True)
+        said = []
+        self.assertIsNone(engine.pgo_profile(self.layout, "158.0.1", self.source, "linux", log=said.append, opener=opener))
+        self.assertIn("solo con LTO", said[-1])
+        (self.source / "sourcestamp.txt").write_text("20261019185856\n")
+        with self.assertRaises(engine.EngineError):
+            engine.source_revision(self.source)
+
+    def test_both_mozconfigs_build_like_official_firefox(self):
+        pgo = self.layout.cache / "pgo/158.0.1-linux"
+        for text in (engine.write_mozconfig(self.layout, "158.0.1", pgo).read_text(),
+                     engine.write_target_mozconfig(self.layout, "158.0.1", "windows", pgo).read_text()):
+            self.assertIn("ac_add_options --enable-lto=cross,thin", text)
+            self.assertIn("ac_add_options --enable-rust-simd", text)
+            self.assertIn("ac_add_options --enable-profile-use=cross", text)
+            self.assertIn(f"--with-pgo-profile-path={pgo / 'merged.profdata'}", text)
+            self.assertIn(f"--with-pgo-jarlog={pgo / 'en-US.log'}", text)
+        text = engine.write_mozconfig(self.layout, "158.0.1").read_text()
+        self.assertIn("--enable-lto=cross,thin", text)
+        self.assertNotIn("profile-use", text)
+
+
 class TargetTests(unittest.TestCase):
     def test_cross_mozconfig_targets_the_other_system_in_its_own_objdir_with_risco_s_key(self):
         base = Path(tempfile.mkdtemp())

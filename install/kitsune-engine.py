@@ -15,6 +15,7 @@ import datetime
 import fcntl
 import hashlib
 import inspect
+import io
 import json
 import os
 from pathlib import Path
@@ -24,13 +25,14 @@ import shlex
 import shutil
 import subprocess
 import sys
+import tarfile
 import tempfile
 import urllib.request
 import zipfile
 
 # Bump BUILD_REVISION when the compile recipe changes in code (not only in its
 # input files, which are hashed); bump INSTALL_REVISION for install-only changes.
-BUILD_REVISION = 2
+BUILD_REVISION = 3
 INSTALL_REVISION = 2
 MOZILLA_RELEASE_KEY = "14F26682D0916CDD81E37B6D61B7B526D98F0353"  # Mozilla Software Releases
 ARCHIVE = "https://archive.mozilla.org/pub/firefox/releases"
@@ -648,7 +650,8 @@ def fingerprint(version: str, files: dict, revision: int, parent: str = "") -> s
 def recipe_code() -> str:
     """Hash of the code that shapes the compiled engine, so changing it always rebuilds."""
     parts = [inspect.getsource(function) for function in (write_branding, integrate_native, rebrand_source, prepare_l10n,
-                                                          tune_build, write_mozconfig, integrate_home, stage_home_extension)]
+                                                          tune_build, write_mozconfig, integrate_home, stage_home_extension,
+                                                          optimization_options)]
     parts += [BRAND_FTL, BRAND_PROPERTIES, BRAND_CONFIGURE, KITSUNE_BOOTSTRAP, ABOUT_CREDIT, RUST_THIN_LTO,
               json.dumps(TEXT_PATCHES, sort_keys=True), json.dumps(TEXT_PATCHES_ONLY_IF, sort_keys=True), repr(sorted(MASCOT_GONE_OK)),
               KITSUNE_BOOKMARKS, SUPPORT_LINK_HIDDEN, SUPPORT_LINK_HIDDEN_158, RUST_PLAIN_LTO,
@@ -1039,16 +1042,98 @@ def prepare_source(layout: Layout, version: str, tarball: Path, build_fp: str, l
     return source
 
 
-def write_mozconfig(layout: Layout, version: str) -> Path:
+def write_mozconfig(layout: Layout, version: str, pgo: Path | None = None) -> Path:
     objdir = layout.cache / f"obj-{version}"
     text = ((RECIPE / "mozconfig.in").read_text().replace("@OBJDIR@", str(objdir))
             .replace("@L10NBASE@", str(layout.cache / f"l10n-{version}")))
     if SAFEBROWSING_KEY.is_file():
         text += f"\n# Protección contra webs de estafa y malware (clave propia de Google Safe Browsing).\n" \
                 f"ac_add_options --with-google-safebrowsing-api-keyfile={SAFEBROWSING_KEY}\n"
+    text += optimization_options(pgo)
     path = layout.cache / f"mozconfig-{version}"
     path.write_text(text)
     return path
+
+
+# ---------------------------------------------------------------- PGO + LTO
+
+# Firefox oficial se compila con PGO (optimizado según el uso real), LTO entre C++ y Rust, el orden de
+# arranque del paquete y SIMD en Rust; sin eso, Kitsune sacaba un 33 % menos en Speedometer 3.1 con el
+# mismo Gecko (22-10-2026; Nightly 161 sin y con PGO+LTO: 13,6 → 17,2). Mozilla publica, por versión y
+# sistema, el perfil con el que compila (merged.profdata) y el orden de arranque (en-US.log): son del
+# mismo código y del mismo clang que usa Kitsune. Se bajan de su Taskcluster y se comprueban con el
+# SHA-256 de su cadena de confianza. Un perfil solo orienta al optimizador: no añade código.
+TASKCLUSTER = "https://firefox-ci-tc.services.mozilla.com/api"
+PGO_PLATFORMS = {"linux": "linux64", "windows": "win64", "macos": "macosx64-aarch64", "macos-intel": "macosx64-x64"}
+PGO_ARTIFACT = "public/build/profdata.tar.xz"
+PGO_FILES = ("merged.profdata", "en-US.log")
+
+
+def optimization_options(pgo: Path | None) -> str:
+    # LTO fina y no completa (la de Mozilla en Linux y Windows): casi la misma ganancia con una fracción
+    # de la memoria, que en este PC no sobra.
+    text = "\n# Como Firefox oficial: LTO entre C++ y Rust, y SIMD en Rust.\n" \
+           "ac_add_options --enable-lto=cross,thin\nac_add_options --enable-rust-simd\n"
+    if pgo:
+        text += "# PGO con el perfil del Firefox oficial de esta versión y sistema.\n" \
+                "ac_add_options --enable-profile-use=cross\n" \
+                f"ac_add_options --with-pgo-profile-path={pgo / 'merged.profdata'}\n" \
+                f"ac_add_options --with-pgo-jarlog={pgo / 'en-US.log'}\n"
+    return text
+
+
+def source_revision(source: Path) -> str:
+    """La revisión de Mozilla del código oficial (sourcestamp.txt del tarball firmado)."""
+    with contextlib.suppress(OSError):
+        found = re.search(r"/rev/([0-9a-f]{40})\b", (source / "sourcestamp.txt").read_text())
+        if found:
+            return found.group(1)
+    raise EngineError("El código fuente no dice de qué revisión de Mozilla es (sourcestamp.txt)")
+
+
+def pgo_profile(layout: Layout, version: str, source: Path, target: str = "linux", log=print,
+                opener=urllib.request.urlopen) -> Path | None:
+    """La carpeta con el perfil del Firefox oficial de esta versión y sistema, o None si Mozilla no lo tiene."""
+    folder = layout.private(layout.cache / "pgo")
+    root = folder / f"{version}-{target}"
+    if all((root / name).is_file() for name in PGO_FILES):
+        return root
+
+    def get(url):
+        with opener(url, timeout=120) as response:
+            return response.read()
+
+    try:
+        revision = source_revision(source)
+        index = f"gecko.v2.mozilla-release.shippable.revision.{revision}.firefox.{PGO_PLATFORMS[target]}-opt"
+        task = json.loads(get(f"{TASKCLUSTER}/queue/v1/task/{json.loads(get(f'{TASKCLUSTER}/index/v1/task/{index}'))['taskId']}"))
+        fetches = json.loads(task["payload"]["env"].get("MOZ_FETCHES") or "[]")
+        profile_task = next(item["task"] for item in fetches if item.get("artifact") == PGO_ARTIFACT)
+        trust = json.loads(get(f"{TASKCLUSTER}/queue/v1/task/{profile_task}/artifacts/public/chain-of-trust.json"))
+        expected = trust["artifacts"][PGO_ARTIFACT]["sha256"]
+        data = get(f"{TASKCLUSTER}/queue/v1/task/{profile_task}/artifacts/{PGO_ARTIFACT}")
+    except (OSError, ValueError, KeyError, StopIteration, EngineError) as error:
+        log(f"Sin perfil PGO de Mozilla para {target} ({error}): se compila solo con LTO")
+        return None
+    if hashlib.sha256(data).hexdigest() != expected:
+        raise EngineError(f"El perfil PGO de {target} no coincide con el que firmó Mozilla")
+    stage = Path(tempfile.mkdtemp(prefix=".pgo-", dir=folder))
+    try:
+        with tarfile.open(fileobj=io.BytesIO(data), mode="r:xz") as archive:
+            for name in PGO_FILES:
+                member = archive.getmember(name)
+                if not member.isfile():
+                    raise EngineError(f"El perfil PGO de {target} trae algo raro en {name}")
+                with archive.extractfile(member) as packed, (stage / name).open("wb") as unpacked:
+                    shutil.copyfileobj(packed, unpacked)
+        shutil.rmtree(root, ignore_errors=True)
+        stage.rename(root)
+    except (KeyError, tarfile.TarError) as error:
+        raise EngineError(f"El perfil PGO de {target} no se pudo abrir: {error}") from None
+    finally:
+        shutil.rmtree(stage, ignore_errors=True)
+    log(f"Perfil PGO del Firefox oficial {version} para {target} listo")
+    return root
 
 
 # -------------------------------------------------------------------- build
@@ -1115,7 +1200,8 @@ def compile_package(layout: Layout, version: str, source: Path, build_fp: str, l
     incremental = (layout.cache / f"obj-{version}").is_dir()
     if shutil.disk_usage(layout.cache).free < (CROSS_REBUILD_MIN_FREE_BYTES if incremental else MIN_FREE_BYTES):
         raise EngineError(f"Hacen falta al menos {8 if incremental else 50} GB libres para compilar Kitsune")
-    env = mach_environment(write_mozconfig(layout, version), build_tools(layout))
+    pgo = pgo_profile(layout, version, source, "linux", log)
+    env = mach_environment(write_mozconfig(layout, version, pgo), build_tools(layout))
     log(f"Compilando Kitsune sobre Gecko {version} (registro: {logfile})")
     # A compile server left from an earlier build would run compilers outside
     # this build's priority and memory limits; the next one starts inside them.
@@ -1568,7 +1654,7 @@ def cross_rust(layout: Layout, target: str, log=print, run=subprocess.run) -> di
     return {"RUSTC": str(root / "bin/rustc"), "CARGO": str(root / "bin/cargo")}
 
 
-def write_target_mozconfig(layout: Layout, version: str, target: str) -> Path:
+def write_target_mozconfig(layout: Layout, version: str, target: str, pgo: Path | None = None) -> Path:
     objdir = layout.cache / f"obj-{version}-{target}"
     text = ((RECIPE / "mozconfig.in").read_text().replace("@OBJDIR@", str(objdir))
             .replace("@L10NBASE@", str(layout.cache / f"l10n-{version}")))
@@ -1583,6 +1669,7 @@ def write_target_mozconfig(layout: Layout, version: str, target: str) -> Path:
         # Risco decidió (2026-10-10) que las versiones públicas también lleven su clave.
         text += f"# Avisos de webs peligrosas (clave de Google Safe Browsing de Risco).\n" \
                 f"ac_add_options --with-google-safebrowsing-api-keyfile={SAFEBROWSING_KEY}\n"
+    text += optimization_options(pgo)
     path = layout.cache / f"mozconfig-{version}-{target}"
     path.write_text(text)
     return path
@@ -1824,7 +1911,8 @@ def build_target(layout: Layout, version: str, target: str, log=print, run=subpr
             prepare_l10n(layout, source, log, run)
             tools = build_tools(layout)
             cross_tools(layout, tools, target, log, run)
-            env = mach_environment(write_target_mozconfig(layout, version, target), tools)
+            pgo = pgo_profile(layout, version, source, target, log)
+            env = mach_environment(write_target_mozconfig(layout, version, target, pgo), tools)
             env.update(cross_rust(layout, target, log, run))
             sccache = Path(env["MOZBUILD_STATE_PATH"]) / "sccache/sccache"
             if sccache.is_file():
