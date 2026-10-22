@@ -15,6 +15,9 @@
  * - El panel tiene el ancho que pide la web del servicio (Spotify no baja de 800 px: con 380 se cortaba, Risco
  *   19-10); se estrecha o ensancha desde su borde derecho (kitsune.zero.music.width; doble clic, el de serie),
  *   y si queda más estrecho que la web, esta se ve entera pero más pequeña (zero-music-fit).
+ * - La DRM (Risco, 22-10: con Spotify no sonaba nada): está apagada hasta que una web la pide, y la barra
+ *   «Activar DRM» de Gecko solo sale en las pestañas. Si la pide la web del panel, el panel saca la suya (lo
+ *   dice zero-drm-child); su botón la activa como el de Gecko, y cuando Widevine está instalado la web se recarga.
  * Va en Windows, macOS y Linux.
  */
 import { prefName } from './zero-config.sys.mjs';
@@ -24,6 +27,9 @@ const HTML = 'http://www.w3.org/1999/xhtml';
 const SERVICE_PREF = 'music.service';
 const MINI_PREF = 'music.mini';
 const WIDTH_PREF = 'music.width';
+const DRM_ACTOR = 'KitsuneZeroDrm';
+// Widevine es la única DRM que Gecko descarga (las demás vienen con el sistema): su versión, al quedar instalada.
+const WIDEVINE_PREF = 'media.gmp-widevinecdm.version';
 // El ancho por debajo del cual la web de cada servicio se corta (medido el 19-10; 0, se adapta a cualquiera).
 export const SERVICES = Object.freeze([
   ['spotify', 'Spotify', 'https://open.spotify.com/', 800],
@@ -35,6 +41,38 @@ export const SERVICES = Object.freeze([
 ].map(([id, name, url, width]) => Object.freeze({ id, name, url, width })));
 const EVENTS = ['activated', 'deactivated', 'metadatachange', 'playbackstatechange', 'supportedkeyschange', 'positionstatechange'];
 const state = new WeakMap();
+
+// En qué ha quedado la DRM que pide una web (lo dice zero-drm-child): solo cuenta la del panel de la música.
+export class KitsuneZeroDrmParent extends JSWindowActorParent {
+  receiveMessage({ name, data }) {
+    if (name !== 'ZeroDrm:status') return;
+    const browser = this.browsingContext.top?.embedderElement;
+    // Gecko 157 llama documentGlobal a lo que antes era ownerGlobal.
+    const st = browser && state.get(browser.documentGlobal ?? browser.ownerGlobal);
+    if (st?.browser === browser) drmStatus(st, data?.status);
+  }
+}
+
+let drmUsers = 0;
+
+function useDrmActor() {
+  if (drmUsers++ > 0) return;
+  try {
+    ChromeUtils.registerWindowActor(DRM_ACTOR, {
+      parent: { esModuleURI: import.meta.url },
+      child: { esModuleURI: new URL('./zero-drm-child.sys.mjs', import.meta.url).href, observers: ['mediakeys-request'] },
+      allFrames: true,
+      messageManagerGroups: ['browsers'],
+      safeForUntrustedWebProcess: true, // solo dice en qué ha quedado la DRM: nada que la web pueda aprovechar
+    });
+  } catch { /* ya estaba */ }
+}
+
+function dropDrmActor() {
+  if (--drmUsers > 0) return;
+  drmUsers = 0;
+  try { ChromeUtils.unregisterWindowActor(DRM_ACTOR); } catch { /* ya no estaba */ }
+}
 
 const el = (doc, tag, attrs = {}, kids = []) => {
   const node = doc.createElementNS(HTML, tag);
@@ -109,18 +147,26 @@ function ensurePanel(win, st, service) {
   if (st.panel && st.serviceUrl === service.url) return;
   if (!st.panel) {
     st.title = el(doc, 'span', { class: 'zero-music-name' });
+    st.drmText = el(doc, 'span');
+    st.drmButton = el(doc, 'button', { type: 'button' }, [st.t('Activar DRM', 'Enable DRM')]);
+    st.drm = el(doc, 'div', { class: 'zero-music-drm', role: 'status', hidden: 'true' }, [st.drmText, st.drmButton]);
     st.panel = el(doc, 'section', { id: 'zero-music', 'aria-label': st.t('Música', 'Music') }, [
       el(doc, 'header', {}, [
         st.title,
         el(doc, 'button', { type: 'button', class: 'zero-music-change', title: st.t('Otro servicio', 'Another service'), 'aria-label': st.t('Otro servicio', 'Another service') }),
         el(doc, 'button', { type: 'button', class: 'zero-music-minimize', title: st.t('Minimizar', 'Minimize'), 'aria-label': st.t('Minimizar', 'Minimize') }),
       ]),
+      st.drm,
     ]);
     st.panel.querySelector('.zero-music-minimize').addEventListener('click', () => show(win, st, 'mini'));
     st.panel.querySelector('.zero-music-change').addEventListener('click', () => { show(win, st, 'closed'); openServices(win, st); });
+    st.drmButton.addEventListener('click', () => enableDrm(st));
     st.panel.append(resizeEdge(win, st));
     doc.body.append(st.panel);
+    useDrmActor();
+    st.cleanups.push(() => { stopDrmWait(st); dropDrmActor(); });
   }
+  showDrm(st, null);
   st.browser?.remove();
   const browser = doc.createXULElement('browser');
   for (const [k, v] of Object.entries({ type: 'content', remote: 'true', maychangeremoteness: 'true', disableglobalhistory: 'true', messagemanagergroup: 'browsers', flex: '1' })) browser.setAttribute(k, v);
@@ -134,6 +180,56 @@ function ensurePanel(win, st, service) {
   try { browser.docShellIsActive = true; } catch { /* sin esa propiedad */ }
   browser.loadURI(Services.io.newURI(service.url), { triggeringPrincipal: Services.scriptSecurityManager.getSystemPrincipal() });
   watchController(win, st);
+}
+
+/** La DRM que pide la web del panel: apagada, la barra para activarla; sin Widevine (Gecko ya lo está
+ *  descargando), la barra lo dice y la web se recarga al quedar instalado; lista (cuando la web crea sus claves),
+ *  sin barra. */
+function drmStatus(st, status) {
+  if (status === 'api-disabled' || status === 'cdm-disabled') showDrm(st, 'off');
+  else if (status === 'cdm-not-installed') { showDrm(st, 'installing'); reloadWhenInstalled(st); }
+  else if (status === 'available' || status === 'cdm-created') showDrm(st, null);
+}
+
+/** 'off' (apagada: el aviso y su botón), 'installing' (solo el aviso) o null (sin barra). */
+function showDrm(st, view) {
+  st.drm.hidden = !view;
+  if (!view) return;
+  const name = st.title.textContent;
+  st.drmText.textContent = view === 'off'
+    ? st.t(`${name} necesita la DRM (contenido protegido) para sonar.`, `${name} needs DRM (protected content) to play.`)
+    : st.t('Instalando la DRM (Widevine)…', 'Installing DRM (Widevine)…');
+  st.drmButton.hidden = view !== 'off';
+}
+
+/** Lo mismo que el botón de la barra de Gecko: la enciende (también Widevine, si se apagó) y recarga la web; al
+ *  encenderla, Gecko instala Widevine si falta, y la web se recarga cuando lo tiene. */
+function enableDrm(st) {
+  Services.prefs.setBoolPref('media.eme.enabled', true);
+  if (Services.prefs.getPrefType('media.gmp-widevinecdm.enabled') && !Services.prefs.getBoolPref('media.gmp-widevinecdm.enabled')) {
+    Services.prefs.setBoolPref('media.gmp-widevinecdm.enabled', true);
+  }
+  showDrm(st, 'installing');
+  reloadWhenInstalled(st);
+}
+
+// Con Widevine, la barra se va y la web se recarga (si vuelve a fallar, la vuelve a sacar).
+function reloadWhenInstalled(st) {
+  if (st.drmWait) return;
+  st.drmWait = () => {
+    if (!Services.prefs.getStringPref(WIDEVINE_PREF, '')) return;
+    stopDrmWait(st);
+    showDrm(st, null);
+    st.browser?.reload();
+  };
+  Services.prefs.addObserver(WIDEVINE_PREF, st.drmWait);
+  st.drmWait();
+}
+
+function stopDrmWait(st) {
+  if (!st.drmWait) return;
+  Services.prefs.removeObserver(WIDEVINE_PREF, st.drmWait);
+  st.drmWait = null;
 }
 
 /** Lo que dice el controlador de medios de Gecko (lo que suena), en el minipanel. */

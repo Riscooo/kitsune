@@ -962,6 +962,19 @@
 #zero-music .zero-music-minimize { --zero-icon: url("chrome://global/skin/icons/arrow-down.svg"); }
 #zero-music .zero-music-change { --zero-icon: url("chrome://global/skin/icons/settings.svg"); }
 #zero-music .zero-music-player { flex: 1; min-height: 0; border-top: 1px solid rgba(255, 255, 255, .08); }
+/* La DRM que pide la web del panel (la barra de Gecko solo sale en las pestañas): el aviso y su botón. */
+#zero-music .zero-music-drm {
+  flex: none; display: flex; align-items: center; gap: 10px; padding: 8px 8px 8px 16px;
+  border-top: 1px solid rgba(255, 255, 255, .08); background: rgba(232, 116, 59, .14);
+}
+#zero-music .zero-music-drm > span { flex: 1; min-width: 0; }
+#zero-music .zero-music-drm > button {
+  appearance: none; flex: none; height: 28px; margin: 0; padding: 0 12px; border: none; border-radius: 14px;
+  background: #e8743b; color: #fff; font: inherit; font-weight: 600; cursor: pointer;
+  transition: background-color 200ms var(--zero-soft);
+}
+#zero-music .zero-music-drm > button:hover { background-color: #f08a54; }
+#zero-music :is(.zero-music-drm, .zero-music-drm > button)[hidden] { display: none; }
 /* El borde derecho: se arrastra para cambiar el ancho; una rayita lo dice al pasar por encima. */
 #zero-music .zero-music-edge { position: absolute; z-index: 1; top: 0; bottom: 0; right: 0; width: 8px; cursor: ew-resize; }
 #zero-music .zero-music-edge::after {
@@ -2028,7 +2041,7 @@
 }
 :root[zero][zero-variant="sobrio"][zero-frame-ink] :is(#zero-music-services, #zero-music, #zero-mini) { box-shadow: inset 0 1px 0 #fff, 0 24px 60px rgba(18, 22, 28, .16), 0 0 0 .5px rgba(18, 22, 28, .12); }
 :root[zero][zero-variant="sobrio"] :is(#zero-music-services > button, #zero-music header > button, #zero-mini > button):hover { background-color: var(--zero-piece-hover); }
-:root[zero][zero-variant="sobrio"] #zero-music .zero-music-player { border-top-color: rgba(127, 127, 127, .18); }
+:root[zero][zero-variant="sobrio"] #zero-music :is(.zero-music-player, .zero-music-drm) { border-top-color: rgba(127, 127, 127, .18); }
 :root[zero][zero-variant="sobrio"] #zero-mini .zero-mini-art { box-shadow: 0 0 0 .5px rgba(127, 127, 127, .3); }
 
 /* En el panel de sonido, la música con lo que suena: su carátula, el título y el artista, pausa/seguir y abrirla. */
