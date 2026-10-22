@@ -119,8 +119,13 @@ def main():
         until(lambda: [i['url'] for i in state()['items']] == [origin + '/kioto'])
         check('Cada perfil tiene los suyos')
 
-        click('#zero-shortcuts .zero-shortcut[data-url]', button=2)
-        until(lambda: state()['items'] == [])
+        def remove():
+            # Al volver al otro espacio la lista se rehace un momento después: un clic que cae en la vieja se pierde.
+            if state()['items']:
+                click('#zero-shortcuts .zero-shortcut[data-url]', button=2)
+                time.sleep(0.5)
+            return state()['items'] == []
+        until(remove)
         check('El clic derecho lo quita')
         report['status'] = 'passed'
     finally:

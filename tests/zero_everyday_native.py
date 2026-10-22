@@ -137,7 +137,14 @@ def main():
             const side = document.getElementById('sidebar-box');
             return { W: innerWidth, H: innerHeight, side: R(side), radius: getComputedStyle(side).borderTopLeftRadius,
                      card: R(document.getElementById('tabbrowser-tabpanels')) };"""
-        card = chrome(boxes)['card']
+        def settled():
+            # Al cerrar 40 pestañas la tarjeta aún se mueve un instante: se mide ya quieta (con el motor de
+            # PGO, más rápido, la medida caía en mitad del movimiento y salía medio píxel corrida).
+            first = chrome(boxes)['card']
+            time.sleep(0.3)
+            then = chrome(boxes)['card']
+            return then if all(abs(first[k] - then[k]) < 0.05 for k in 'lrtbw') else None
+        card = eventually(settled, timeout=8)
         chrome("SidebarController.show('viewHistorySidebar')")
         def beside(at_end):
             def ok():
