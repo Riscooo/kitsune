@@ -111,6 +111,20 @@ def unit(name, command, logfile, release=None):
     return result.returncode == 0
 
 
+def without_leftovers(run, folder=None):
+    """Lanza una prueba y, si pasa, borra lo que dejó en /tmp (kitsune-*: su perfil y sus capturas, de 40 a 160 MB).
+    /tmp tiene cuota por usuario y una tanda entera la llenaba (23-10); lo de las que fallan se queda para mirarlo."""
+    folder = Path(folder or tempfile.gettempdir())
+    def present():
+        return {path for path in folder.glob('kitsune-*') if path.is_dir() and not path.is_symlink()}
+    before = present()
+    ok = run()
+    if ok:
+        for path in present() - before:
+            shutil.rmtree(path, ignore_errors=True)
+    return ok
+
+
 def latest():
     return subprocess.run([sys.executable, str(ENGINE), 'check'], capture_output=True, text=True, check=True).stdout.strip()
 
@@ -255,7 +269,7 @@ def pipeline(args, version):
         failed = []
         for test in TESTS:
             log(f'Prueba {test}…')
-            if not unit(f'prueba-{test.replace("_", "-")}', test_command(test, CURRENT), logfile):
+            if not without_leftovers(lambda: unit(f'prueba-{test.replace("_", "-")}', test_command(test, CURRENT), logfile)):
                 failed.append(test)
         if failed:
             return stop(f'fallan con Gecko {version}: {", ".join(failed)}')

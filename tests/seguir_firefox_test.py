@@ -28,6 +28,23 @@ class ReleaseNotesTest(unittest.TestCase):
         self.assertIn(f"- `K.dmg`: `{'c' * 64}`", notes)
 
 
+class LeftoversTest(unittest.TestCase):
+    def test_a_passing_test_leaves_nothing_in_tmp_and_a_failing_one_keeps_its_evidence(self):
+        import tempfile
+        folder = Path(tempfile.mkdtemp())
+        (folder / 'kitsune-de-antes').mkdir()
+
+        def test(name, result):
+            def run():
+                (folder / f'kitsune-{name}-x1').mkdir()
+                (folder / f'kitsune-{name}-x1/perfil').write_text('perfil')
+                return result
+            return run
+        self.assertTrue(seguir.without_leftovers(test('pasa', True), folder))
+        self.assertFalse(seguir.without_leftovers(test('falla', False), folder))
+        self.assertEqual(sorted(path.name for path in folder.iterdir()), ['kitsune-de-antes', 'kitsune-falla-x1'])
+
+
 class AutomaticTest(unittest.TestCase):
     def test_a_new_gecko_alone_gets_the_next_beta_or_the_next_patch_release(self):
         self.assertEqual(seguir.next_release('0.8.0-beta.1'), '0.8.0-beta.2')
