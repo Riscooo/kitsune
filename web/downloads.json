@@ -1,53 +1,53 @@
 {
-  "version": "0.8 beta 4",
+  "version": "0.8 beta 5",
   "windows": {
-    "url": "https://github.com/Riscooo/kitsune/releases/download/v0.8.0-beta.4/Kitsune-0.8.0-beta.4-Windows-x64.exe",
-    "size": "94 MB",
+    "url": "https://github.com/Riscooo/kitsune/releases/download/v0.8.0-beta.5/Kitsune-0.8.0-beta.5-Windows-x64.exe",
+    "size": "96 MB",
     "note": "Beta · aún sin firmar",
-    "release": "0.8.0-beta.4"
+    "release": "0.8.0-beta.5"
   },
   "macos": {
-    "url": "https://github.com/Riscooo/kitsune/releases/download/v0.8.0-beta.4/Kitsune-0.8.0-beta.4-macOS-AppleSilicon.dmg",
-    "size": "109 MB",
+    "url": "https://github.com/Riscooo/kitsune/releases/download/v0.8.0-beta.5/Kitsune-0.8.0-beta.5-macOS-AppleSilicon.dmg",
+    "size": "111 MB",
     "note": "Beta · Apple Silicon · aún sin firmar",
-    "release": "0.8.0-beta.4"
+    "release": "0.8.0-beta.5"
   },
   "linux": {
-    "url": "https://github.com/Riscooo/kitsune/releases/download/v0.8.0-beta.4/Kitsune-0.8.0-beta.4-Linux-x86_64.tar.xz",
-    "size": "90 MB",
+    "url": "https://github.com/Riscooo/kitsune/releases/download/v0.8.0-beta.5/Kitsune-0.8.0-beta.5-Linux-x86_64.tar.xz",
+    "size": "94 MB",
     "note": "Beta · se instala sin sudo",
-    "release": "0.8.0-beta.4"
+    "release": "0.8.0-beta.5"
   },
   "macos-intel": {
-    "url": "https://github.com/Riscooo/kitsune/releases/download/v0.8.0-beta.4/Kitsune-0.8.0-beta.4-macOS-Intel.dmg",
-    "size": "118 MB",
+    "url": "https://github.com/Riscooo/kitsune/releases/download/v0.8.0-beta.5/Kitsune-0.8.0-beta.5-macOS-Intel.dmg",
+    "size": "119 MB",
     "note": "Beta · Intel · aún sin firmar",
-    "release": "0.8.0-beta.4"
+    "release": "0.8.0-beta.5"
   },
   "zero": {
     "windows": {
-      "url": "https://github.com/Riscooo/kitsune/releases/download/v0.8.0-beta.4/Kitsune-Zero-0.8.0-beta.4-Windows-x64.exe",
-      "size": "94 MB",
+      "url": "https://github.com/Riscooo/kitsune/releases/download/v0.8.0-beta.5/Kitsune-Zero-0.8.0-beta.5-Windows-x64.exe",
+      "size": "96 MB",
       "note": "Beta · aún sin firmar",
-      "release": "0.8.0-beta.4"
+      "release": "0.8.0-beta.5"
     },
     "macos": {
-      "url": "https://github.com/Riscooo/kitsune/releases/download/v0.8.0-beta.4/Kitsune-Zero-0.8.0-beta.4-macOS-AppleSilicon.dmg",
-      "size": "110 MB",
+      "url": "https://github.com/Riscooo/kitsune/releases/download/v0.8.0-beta.5/Kitsune-Zero-0.8.0-beta.5-macOS-AppleSilicon.dmg",
+      "size": "111 MB",
       "note": "Beta · Apple Silicon · aún sin firmar",
-      "release": "0.8.0-beta.4"
+      "release": "0.8.0-beta.5"
     },
     "linux": {
-      "url": "https://github.com/Riscooo/kitsune/releases/download/v0.8.0-beta.4/Kitsune-Zero-0.8.0-beta.4-Linux-x86_64.tar.xz",
-      "size": "90 MB",
+      "url": "https://github.com/Riscooo/kitsune/releases/download/v0.8.0-beta.5/Kitsune-Zero-0.8.0-beta.5-Linux-x86_64.tar.xz",
+      "size": "94 MB",
       "note": "Beta · se instala sin sudo",
-      "release": "0.8.0-beta.4"
+      "release": "0.8.0-beta.5"
     },
     "macos-intel": {
-      "url": "https://github.com/Riscooo/kitsune/releases/download/v0.8.0-beta.4/Kitsune-Zero-0.8.0-beta.4-macOS-Intel.dmg",
-      "size": "118 MB",
+      "url": "https://github.com/Riscooo/kitsune/releases/download/v0.8.0-beta.5/Kitsune-Zero-0.8.0-beta.5-macOS-Intel.dmg",
+      "size": "119 MB",
       "note": "Beta · Intel · aún sin firmar",
-      "release": "0.8.0-beta.4"
+      "release": "0.8.0-beta.5"
     }
   }
 }
