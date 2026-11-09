@@ -40,7 +40,8 @@ la ventana a Zero y la devuelve, con las mismas pestañas. Diseño completo en
   Y dos pequeños que usan el raíl y la isla: `zero-who`, de qué usuario (contenedor) es una pestaña, y
   `zero-icon`, si un favicon es claro sobre transparente (para darle un fondo oscuro).
   `zero-dock.mjs`, `zero-light.mjs`, `zero-music-fit.mjs`, `zero-pomodoro.mjs`, `zero-silence.mjs`,
-  `zero-sounds.mjs` y `zero-config.sys.mjs` son puros y se prueban con Node. El pomodoro, el silencio y los sonidos son
+  `zero-sounds.mjs`, `zero-ia-flujo.mjs`, `zero-ia-protocolo.mjs` y `zero-config.sys.mjs` son puros y se prueban con
+  Node. Los `zero-ia-*` son el asistente (ver «El asistente», abajo). El pomodoro, el silencio y los sonidos son
   opcionales y vienen apagados.
 - `chrome/zero.css`: todo el aspecto, bajo `:root[zero]`. Lo carga `zero.sys.mjs` solo en las
   ventanas con Zero, como hoja de usuario (así sus `!important` pueden con los de Kitsune y Gecko).
@@ -83,6 +84,48 @@ set(valor), watch?(fn), when?() }` (con `when`, la fila sale solo si toca; con e
 sección, las filas se vuelven a pintar). Los avisos de la isla, con `ctx.island.alert(texto, detalle,
 ms)`.
 
+## El asistente (Claude Code dentro de Zero)
+
+El Claude de la persona (el CLI `claude`, con su sesión iniciada) como asistente del navegador, con un servidor MCP
+que le da las herramientas de Kitsune. Aquí está la tubería; el panel y el lobo los pone otra pieza, con estas APIs:
+
+- `zero-ia-mcp.sys.mjs`: `iniciarServidor({ herramientas, nombre, puerto?, token?, instrucciones?, tiempoMaximo? })` →
+  `{ puerto, token, url, cerrar() }`. MCP por «Streamable HTTP» (respuestas application/json, sin SSE) en un
+  nsIServerSocket solo de loopback. Una herramienta es `{ nombre, descripcion, esquema, ejecutar: async args =>
+  resultado }` (un texto, un objeto o `{ texto, imagen: { datos, tipo } }`; si lanza, Claude recibe el error con
+  `isError`). `datosParaClaudeCode(servidor)` → `{ orden, url, cabecera, configuracion }`: la orden `claude mcp add
+  --transport http kitsune <url> --header "Authorization: Bearer <token>"` para usarlo desde otro Claude (el token y
+  el puerto cambian en cada arranque, salvo que se le pasen `puerto` y `token`).
+  Lo de dentro (cabecera HTTP, permisos, JSON-RPC: `initialize`, `ping`, `tools/list`, `tools/call`; lo demás,
+  -32601) está en `zero-ia-protocolo.mjs`, puro. Seguridad: token de 256 bits obligatorio (comparado en tiempo
+  constante), fuera todo lo que traiga `Origin` o `Sec-Fetch-*` (una web) y un `Host` que no sea 127.0.0.1/localhost
+  con su puerto (DNS rebinding), cabecera ≤ 16 KiB, cuerpo ≤ 1 MiB, 10 s para llegar y 60 s por herramienta.
+- `zero-ia-herramientas.sys.mjs`: `herramientasDe(win, { lobo })` → las del navegador: `pestanas_listar`,
+  `pestana_abrir` (solo http y https, o about:blank), `pestana_ir`, `pestana_cerrar`, `pagina_leer` (título, dirección,
+  texto visible hasta 40 000 caracteres y selección; lo saca el actor `zero-ia-child.sys.mjs`, que solo contesta
+  cuando se le pregunta), `pagina_seleccion`, `buscar` (con el buscador de serie, en pestaña nueva) y
+  `historial_buscar`. `win` puede ser una función (o null: la última ventana con foco). Con `lobo = { animar(nombre),
+  listar(), crear(animacion) → errores[], esquema?, ayuda? }`, también `lobo_animar`, `lobo_animaciones` y
+  `lobo_crear_animacion` (solo reenvían; `animar` puede devolver false si no existe; los errores vuelven a Claude).
+- `zero-ia-claude.sys.mjs`: `buscarClaude()` → la ruta de `claude` o null; `new SesionClaude({ ruta, mcp: { url, token
+  }, instrucciones, carpeta?, modelo?, sesion?, onEvento, onLinea? })` con `enviar(texto)`, `parar()`, `cerrar()`,
+  `sesion`, `ocupada` y `viva`. Un proceso por conversación, vivo entre mensajes; si muere, el siguiente mensaje lo
+  relanza con `--resume`. Los eventos (de `zero-ia-flujo.mjs`, puro): `listo`, `texto` (`delta`, `nuevo`),
+  `herramienta`, `resultado-herramienta`, `reintento`, `error`, `fin` (`sesion`, `coste`, `duracion`, `parado`) y
+  `cerrado` (`codigo`, `inesperado`).
+
+Cómo se lanza `claude`, y por qué: `-p --input-format stream-json --output-format stream-json --verbose
+--include-partial-messages` (un proceso que sigue vivo y contesta a trozos); `--setting-sources ''` y `--settings`
+con `{ autoMemoryEnabled: false, disableAllHooks: true }` (ni los hooks, plugins, permisos, CLAUDE.md ni la memoria de
+la persona); `--strict-mcp-config --mcp-config <archivo>` (solo el servidor de Kitsune, con su token en un archivo
+0600 de una carpeta 0700: en la línea de órdenes lo vería cualquiera con `ps`); `--tools WebSearch,WebFetch
+--allowedTools mcp__kitsune,WebSearch,WebFetch --disallowedTools Bash,Edit,Write,Read,… --permission-mode dontAsk`
+(nada de shell ni archivos: las webs pueden llevar instrucciones escondidas, y lo no permitido se deniega sin
+preguntar); `--disable-slash-commands --no-chrome`; `--append-system-prompt-file` (las `instrucciones`, en archivo:
+con `claude.cmd`, Windows pasa los argumentos por cmd.exe); `--model` si se pide, y `--session-id` o `--resume`. Sin
+las variables de una sesión de Claude Code (CLAUDECODE…), por si Kitsune se abrió desde una. Su carpeta de trabajo,
+`kitsune-ia` en el perfil.
+
 ## Cómo lo lleva Kitsune (el anfitrión)
 
 - `install/native/kitsune-zero-host.sys.mjs` le da a Zero lo que necesita: los textos en el idioma de
@@ -115,5 +158,10 @@ El código de `modules/` y `chrome/` no se toca.
 pruebas nativas usan este directorio sin compilar el motor: un `chrome.manifest` temporal sustituye
 las URL de `chrome://browser/content/zero/` (ver `tests/zero_harness.py`). Solo sirve con un motor que no
 arranque su propio Zero (desde la 0.8 beta 2 el de serie lo trae: el arnés lo detecta y falla); en Linux,
-una copia del motor con el bloque de Zero quitado de `kitsune-bootstrap.js`. `zero_platform_native` simula
+una copia del motor con el bloque de Zero quitado de `kitsune-bootstrap.js`.
+
+El asistente: `tests/zero_ia_flujo.test.mjs` y `tests/zero_ia_protocolo.test.mjs` (Node, con líneas reales del CLI en
+`tests/fixtures/zero-ia/`) y `tests/zero_ia_native.py` (servidor, herramientas y puente con un `claude` falso,
+`tests/fixtures/claude_falso.py`, que no gasta). `--claude-de-verdad` lo prueba una vez con el `claude` de la persona
+y haiku (gasta de su cuenta). `zero_platform_native` simula
 las reglas de macOS y Windows en Linux; que casen con sus ventanas de verdad se mira en esos sistemas.
