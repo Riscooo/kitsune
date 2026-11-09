@@ -207,8 +207,9 @@ def main():
         c = (lights[0]['x'] + lights[0]['w'] / 2, lights[0]['y'] + lights[0]['h'] / 2)
         gap = 48 - ((48 - c[0]) ** 2 + (48 - c[1]) ** 2) ** 0.5 - lights[0]['w'] / 2
         assert gap >= 12, f'botones de ventana pegados al borde: {gap:.1f} px de la curva · {lights[0]}'
-        # Los ajustes (la marca de Kitsune) van en la columna de la izquierda, como su última pastilla (Dani, 15-10).
-        m = chrome("const r = document.getElementById('zero-mark'); return r.parentNode.id + ':' + (r === r.parentNode.lastElementChild)")
+        # Los ajustes (un engranaje, Risco 9-11) van en la columna de la izquierda, como su última pastilla antes del lobo
+        # (Dani, 15-10).
+        m = chrome("const r = document.getElementById('zero-mark'); return r.parentNode.id + ':' + (r === r.parentNode.lastElementChild || r.nextElementSibling?.id === 'zero-wolf')")
         assert m == 'zero-dock:true', f'los ajustes, fuera de la columna: {m}'
         assert f['drag'] == 'drag' and f['webDrag'] == 'no-drag', f
         grow = chrome("const r = document.getElementById('zero-grow').getBoundingClientRect(); return { x: r.left, y: r.top, right: r.right, bottom: r.bottom }")

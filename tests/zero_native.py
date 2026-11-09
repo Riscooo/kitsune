@@ -209,10 +209,12 @@ def main():
                   document.getElementById('zero-mark').click();
                   ChromeUtils.importESModule('chrome://browser/content/zero/zero-island.sys.mjs').alert(window, 'Aviso', 'de prueba', 5000);
                   gURLBar.focus(); gURLBar.search('kioto');""")
-        # (Con la web ampliada no hay ajustes: los que se abren con ella, se cierran; Risco, 15-10.)
+        # (Con la web ampliada no hay ajustes: los que se abren con ella, se cierran; Risco, 15-10. Y escribiendo manda la
+        # barra: el aviso espera en la isla sin taparla; Risco, 9-11.)
         eventually(lambda: chrome("""const t = document.getElementById('navigator-toolbox');
             return document.documentElement.hasAttribute('zero-full') && t.getAttribute('zero-island') === 'typing'
-              && t.hasAttribute('zero-island-alert') && !document.getElementById('zero-settings').hasAttribute('open')"""), timeout=5)
+              && !t.hasAttribute('zero-island-alert') && document.getElementById('zero-island-msg')?.textContent.includes('Aviso')
+              && !document.getElementById('zero-settings').hasAttribute('open')"""), timeout=5)
         press_zero()
         eventually(lambda: not state()['zero'] and state()['sheet'] == '', timeout=5)
         s = state()
