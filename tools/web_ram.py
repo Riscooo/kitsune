@@ -32,7 +32,7 @@ def megabytes(value, language):
 
 
 def short_version(result):
-    """«Mozilla Firefox 158.0» → «Firefox 158», «Google Chrome for Testing 155.0.8059.79» → «Chrome 155»,
+    """«Mozilla Firefox 159.0.1» → «Firefox 159», «Google Chrome for Testing 155.0.8059.79» → «Chrome 155»,
     «Kitsune 0.8.0 · Gecko 157.0.1» → «Kitsune 0.8 · Gecko 157»."""
     text = result.get('version') or result['browser']
     if text.startswith('Kitsune '):
@@ -43,7 +43,10 @@ def short_version(result):
     name, number = ' '.join(words[:-1]) or words[0], words[-1]
     if not any(character.isdigit() for character in number):
         return text
-    return f'{name} {number.split(".")[0] if number.count(".") >= 3 else number.removesuffix(".0")}'
+    # Firefox y Chrome se conocen por su versión mayor (159.0.1 → 159); Zen, por la entera (1.24.1b).
+    if name in ('Firefox', 'Chrome') or number.count('.') >= 3:
+        return f'{name} {number.split(".")[0]}'
+    return f'{name} {number.removesuffix(".0") if number.count(".") == 1 else number}'
 
 
 def render(report, language):

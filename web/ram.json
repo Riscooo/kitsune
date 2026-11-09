@@ -1,5 +1,5 @@
 {
-  "date": "2026-10-14",
+  "date": "2026-11-09",
   "machine": {
     "cpu": "x86_64",
     "kernel": "7.2.2-arch1-1",
@@ -36,451 +36,451 @@
   "results": [
     {
       "browser": "Kitsune",
-      "version": "Kitsune 0.8.0 · Gecko 157.0.1",
+      "version": "Kitsune 0.8.0 · Gecko 159.0.1",
       "saver": false,
       "tabs": 20,
-      "pssMB": 2575,
-      "processes": 31,
+      "pssMB": 2375,
+      "processes": 32,
       "samples": [
         {
           "t": 15,
-          "pssMB": 1765,
+          "pssMB": 3156,
           "processes": 31
         },
         {
           "t": 30,
-          "pssMB": 1755,
-          "processes": 31
+          "pssMB": 3098,
+          "processes": 34
         },
         {
           "t": 45,
-          "pssMB": 3054,
-          "processes": 31
+          "pssMB": 2809,
+          "processes": 32
         },
         {
           "t": 60,
-          "pssMB": 2777,
-          "processes": 31
+          "pssMB": 2615,
+          "processes": 30
         },
         {
-          "t": 75,
-          "pssMB": 2634,
+          "t": 76,
+          "pssMB": 2458,
           "processes": 32
         },
         {
           "t": 91,
-          "pssMB": 2551,
+          "pssMB": 2395,
           "processes": 32
         },
         {
           "t": 106,
-          "pssMB": 2818,
-          "processes": 31
+          "pssMB": 2699,
+          "processes": 32
         },
         {
           "t": 121,
-          "pssMB": 2750,
-          "processes": 31
+          "pssMB": 2698,
+          "processes": 32
         },
         {
           "t": 136,
-          "pssMB": 2718,
-          "processes": 31
+          "pssMB": 2694,
+          "processes": 32
         },
         {
           "t": 151,
-          "pssMB": 2555,
-          "processes": 31
+          "pssMB": 2668,
+          "processes": 32
         },
         {
           "t": 166,
-          "pssMB": 2563,
-          "processes": 31
+          "pssMB": 2377,
+          "processes": 32
         },
         {
           "t": 181,
-          "pssMB": 2562,
-          "processes": 31
+          "pssMB": 2378,
+          "processes": 32
         },
         {
           "t": 196,
-          "pssMB": 2567,
-          "processes": 31
+          "pssMB": 2380,
+          "processes": 32
         },
         {
           "t": 211,
-          "pssMB": 2575,
-          "processes": 31
+          "pssMB": 2377,
+          "processes": 32
         },
         {
           "t": 227,
-          "pssMB": 2577,
-          "processes": 31
+          "pssMB": 2376,
+          "processes": 32
         },
         {
           "t": 242,
-          "pssMB": 2575,
-          "processes": 31
+          "pssMB": 2375,
+          "processes": 32
         }
       ]
     },
     {
       "browser": "Kitsune",
-      "version": "Kitsune 0.8.0 · Gecko 157.0.1",
+      "version": "Kitsune 0.8.0 · Gecko 159.0.1",
       "saver": true,
       "tabs": 20,
-      "pssMB": 1271,
-      "processes": 16,
+      "pssMB": 1239,
+      "processes": 14,
       "samples": [
         {
           "t": 15,
-          "pssMB": 3078,
-          "processes": 31
+          "pssMB": 3765,
+          "processes": 34
         },
         {
           "t": 30,
-          "pssMB": 2609,
-          "processes": 31
+          "pssMB": 2944,
+          "processes": 34
         },
         {
           "t": 45,
-          "pssMB": 2639,
+          "pssMB": 2740,
           "processes": 31
         },
         {
-          "t": 61,
-          "pssMB": 2637,
-          "processes": 31
+          "t": 60,
+          "pssMB": 2693,
+          "processes": 30
         },
         {
           "t": 76,
-          "pssMB": 2414,
+          "pssMB": 2224,
           "processes": 27
         },
         {
           "t": 91,
-          "pssMB": 2157,
+          "pssMB": 2297,
           "processes": 27
         },
         {
           "t": 106,
-          "pssMB": 2000,
+          "pssMB": 2173,
           "processes": 25
         },
         {
           "t": 121,
-          "pssMB": 1995,
+          "pssMB": 2174,
           "processes": 25
         },
         {
           "t": 136,
-          "pssMB": 1807,
+          "pssMB": 1983,
           "processes": 22
         },
         {
           "t": 151,
-          "pssMB": 1804,
+          "pssMB": 1792,
           "processes": 22
         },
         {
           "t": 166,
-          "pssMB": 1637,
+          "pssMB": 1692,
           "processes": 20
         },
         {
           "t": 181,
-          "pssMB": 1646,
-          "processes": 20
+          "pssMB": 1602,
+          "processes": 18
         },
         {
           "t": 196,
-          "pssMB": 1555,
+          "pssMB": 1608,
           "processes": 18
         },
         {
           "t": 211,
-          "pssMB": 1551,
-          "processes": 18
+          "pssMB": 1399,
+          "processes": 16
         },
         {
           "t": 226,
-          "pssMB": 1269,
+          "pssMB": 1396,
           "processes": 16
         },
         {
           "t": 242,
-          "pssMB": 1271,
-          "processes": 16
+          "pssMB": 1239,
+          "processes": 14
         }
       ]
     },
     {
       "browser": "Zen",
-      "version": "Mozilla Zen 1.23.2b",
+      "version": "Mozilla Zen 1.24.1b",
       "saver": false,
       "tabs": 20,
-      "pssMB": 2638,
-      "processes": 38,
+      "pssMB": 2684,
+      "processes": 37,
       "samples": [
         {
           "t": 15,
-          "pssMB": 2915,
-          "processes": 39
+          "pssMB": 2868,
+          "processes": 38
         },
         {
           "t": 30,
-          "pssMB": 2747,
-          "processes": 39
+          "pssMB": 2825,
+          "processes": 38
         },
         {
           "t": 45,
-          "pssMB": 2683,
-          "processes": 36
-        },
-        {
-          "t": 60,
-          "pssMB": 2631,
+          "pssMB": 2656,
           "processes": 35
         },
         {
-          "t": 75,
-          "pssMB": 2639,
-          "processes": 38
+          "t": 60,
+          "pssMB": 2636,
+          "processes": 34
+        },
+        {
+          "t": 76,
+          "pssMB": 2682,
+          "processes": 37
         },
         {
           "t": 91,
-          "pssMB": 2611,
-          "processes": 38
+          "pssMB": 2701,
+          "processes": 37
         },
         {
           "t": 106,
-          "pssMB": 2625,
-          "processes": 38
+          "pssMB": 2655,
+          "processes": 37
         },
         {
           "t": 121,
-          "pssMB": 2633,
-          "processes": 38
+          "pssMB": 2707,
+          "processes": 37
         },
         {
           "t": 136,
-          "pssMB": 2659,
-          "processes": 38
+          "pssMB": 2674,
+          "processes": 37
         },
         {
           "t": 151,
-          "pssMB": 2617,
-          "processes": 38
+          "pssMB": 2688,
+          "processes": 37
         },
         {
           "t": 166,
-          "pssMB": 2636,
-          "processes": 38
+          "pssMB": 2656,
+          "processes": 37
         },
         {
-          "t": 181,
-          "pssMB": 2669,
-          "processes": 38
+          "t": 182,
+          "pssMB": 2681,
+          "processes": 37
         },
         {
-          "t": 196,
+          "t": 197,
           "pssMB": 2682,
-          "processes": 38
+          "processes": 37
         },
         {
           "t": 212,
-          "pssMB": 2627,
-          "processes": 38
+          "pssMB": 2731,
+          "processes": 37
         },
         {
           "t": 227,
-          "pssMB": 2660,
-          "processes": 38
+          "pssMB": 2668,
+          "processes": 37
         },
         {
           "t": 242,
-          "pssMB": 2638,
-          "processes": 38
+          "pssMB": 2684,
+          "processes": 37
         }
       ]
     },
     {
       "browser": "Firefox",
-      "version": "Mozilla Firefox 158.0",
+      "version": "Mozilla Firefox 159.0.1",
       "saver": false,
       "tabs": 20,
-      "pssMB": 2567,
-      "processes": 37,
+      "pssMB": 2649,
+      "processes": 36,
       "samples": [
         {
           "t": 15,
-          "pssMB": 2881,
-          "processes": 38
+          "pssMB": 2913,
+          "processes": 37
         },
         {
           "t": 30,
-          "pssMB": 2787,
-          "processes": 38
+          "pssMB": 2795,
+          "processes": 37
         },
         {
           "t": 45,
-          "pssMB": 2631,
-          "processes": 35
-        },
-        {
-          "t": 60,
-          "pssMB": 2624,
+          "pssMB": 2672,
           "processes": 34
         },
         {
-          "t": 75,
-          "pssMB": 2637,
-          "processes": 37
+          "t": 60,
+          "pssMB": 2653,
+          "processes": 33
+        },
+        {
+          "t": 76,
+          "pssMB": 2658,
+          "processes": 36
         },
         {
           "t": 91,
-          "pssMB": 2588,
-          "processes": 37
+          "pssMB": 2608,
+          "processes": 36
         },
         {
           "t": 106,
-          "pssMB": 2563,
-          "processes": 37
+          "pssMB": 2642,
+          "processes": 36
         },
         {
           "t": 121,
-          "pssMB": 2602,
-          "processes": 37
+          "pssMB": 2649,
+          "processes": 36
         },
         {
           "t": 136,
-          "pssMB": 2595,
-          "processes": 37
+          "pssMB": 2629,
+          "processes": 36
         },
         {
           "t": 151,
-          "pssMB": 2587,
+          "pssMB": 2632,
           "processes": 36
         },
         {
           "t": 166,
-          "pssMB": 2581,
-          "processes": 37
+          "pssMB": 2634,
+          "processes": 36
         },
         {
-          "t": 181,
-          "pssMB": 2614,
-          "processes": 37
+          "t": 182,
+          "pssMB": 2643,
+          "processes": 36
         },
         {
-          "t": 196,
-          "pssMB": 2627,
-          "processes": 37
+          "t": 197,
+          "pssMB": 2645,
+          "processes": 36
         },
         {
           "t": 212,
-          "pssMB": 2564,
-          "processes": 37
+          "pssMB": 2646,
+          "processes": 36
         },
         {
           "t": 227,
-          "pssMB": 2567,
-          "processes": 37
+          "pssMB": 2647,
+          "processes": 36
         },
         {
           "t": 242,
-          "pssMB": 2567,
-          "processes": 37
+          "pssMB": 2649,
+          "processes": 36
         }
       ]
     },
     {
       "browser": "Chrome",
-      "version": "Google Chrome for Testing 155.0.8059.79",
+      "version": "Google Chrome for Testing 157.0.8103.50",
       "saver": false,
       "tabs": 20,
-      "pssMB": 1475,
-      "processes": 38,
+      "pssMB": 1460,
+      "processes": 37,
       "samples": [
         {
           "t": 15,
-          "pssMB": 2074,
-          "processes": 44
+          "pssMB": 2080,
+          "processes": 42
         },
         {
           "t": 30,
-          "pssMB": 1907,
-          "processes": 38
+          "pssMB": 1946,
+          "processes": 36
         },
         {
           "t": 45,
-          "pssMB": 1671,
-          "processes": 38
+          "pssMB": 1634,
+          "processes": 37
         },
         {
           "t": 60,
-          "pssMB": 1623,
-          "processes": 38
+          "pssMB": 1612,
+          "processes": 37
         },
         {
-          "t": 75,
-          "pssMB": 1585,
-          "processes": 38
+          "t": 76,
+          "pssMB": 1584,
+          "processes": 37
         },
         {
           "t": 91,
-          "pssMB": 1566,
-          "processes": 38
+          "pssMB": 1554,
+          "processes": 37
         },
         {
           "t": 106,
-          "pssMB": 1533,
-          "processes": 38
+          "pssMB": 1531,
+          "processes": 37
         },
         {
           "t": 121,
-          "pssMB": 1542,
-          "processes": 38
+          "pssMB": 1533,
+          "processes": 37
         },
         {
           "t": 136,
-          "pssMB": 1506,
-          "processes": 38
+          "pssMB": 1513,
+          "processes": 37
         },
         {
           "t": 151,
-          "pssMB": 1505,
-          "processes": 38
+          "pssMB": 1512,
+          "processes": 37
         },
         {
           "t": 166,
-          "pssMB": 1512,
-          "processes": 38
+          "pssMB": 1508,
+          "processes": 37
         },
         {
-          "t": 181,
-          "pssMB": 1510,
-          "processes": 38
-        },
-        {
-          "t": 196,
+          "t": 182,
           "pssMB": 1505,
-          "processes": 38
+          "processes": 37
         },
         {
-          "t": 211,
-          "pssMB": 1477,
-          "processes": 38
+          "t": 197,
+          "pssMB": 1498,
+          "processes": 37
+        },
+        {
+          "t": 212,
+          "pssMB": 1498,
+          "processes": 37
         },
         {
           "t": 227,
-          "pssMB": 1482,
-          "processes": 38
+          "pssMB": 1477,
+          "processes": 37
         },
         {
           "t": 242,
-          "pssMB": 1475,
-          "processes": 38
+          "pssMB": 1460,
+          "processes": 37
         }
       ]
     }

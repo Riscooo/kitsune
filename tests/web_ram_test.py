@@ -17,7 +17,7 @@ class WebRamTest(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
 
     def test_versions_are_short_and_numbers_follow_each_language(self):
-        cases = {'Mozilla Firefox 158.0': 'Firefox 158', 'Google Chrome for Testing 155.0.8059.79': 'Chrome 155',
+        cases = {'Mozilla Firefox 158.0': 'Firefox 158', 'Mozilla Firefox 159.0.1': 'Firefox 159', 'Mozilla Zen 1.25.0': 'Zen 1.25.0', 'Google Chrome for Testing 155.0.8059.79': 'Chrome 155',
                  'Mozilla Zen 1.23.2b': 'Zen 1.23.2b', 'Kitsune 0.8.0 · Gecko 157.0.1': 'Kitsune 0.8 · Gecko 157'}
         for version, short in cases.items():
             self.assertEqual(web_ram.short_version({'browser': 'X', 'version': version}), short)
