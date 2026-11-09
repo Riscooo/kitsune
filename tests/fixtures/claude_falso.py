@@ -101,6 +101,39 @@ def resultado(texto, inicio, parado=False):
         escribir({**base, 'subtype': 'success', 'is_error': False, 'result': texto, 'terminal_reason': 'completed', 'stop_reason': 'end_turn'})
 
 
+def llamar(nombre, argumentos, ident):
+    """Llama a una herramienta del MCP de Kitsune y lo cuenta como lo cuenta Claude Code (tool_use y tool_result)."""
+    llamada = mcp('tools/call', {'name': nombre, 'arguments': argumentos}, ident=ident)['result']
+    herramienta = f'toolu_falso_{nombre}_{ident}'
+    escribir({'type': 'assistant', 'message': {'id': f'msg_h_{ident}', 'type': 'message', 'role': 'assistant',
+                                               'content': [{'type': 'tool_use', 'id': herramienta, 'name': f'mcp__kitsune__{nombre}', 'input': argumentos}]},
+              'parent_tool_use_id': None})
+    escribir({'type': 'user', 'message': {'role': 'user', 'content': [{'tool_use_id': herramienta, 'type': 'tool_result', 'content': llamada['content'],
+                                                                        **({'is_error': True} if llamada.get('isError') else {})}]},
+              'parent_tool_use_id': None})
+    return llamada
+
+
+def escena_lobo(entrada, numero):
+    """«Resúmeme esta página» (zero_asistente_native): lee la página, anima al lobo, se crea una animación y contesta
+    con markdown (y una etiqueta HTML que el panel debe enseñar como texto)."""
+    inicio = time.time()
+    texto_a_trozos(f'msg_l_{numero}', ['Voy ', 'a ', 'leerla.'])
+    mcp('initialize', {'protocolVersion': '2025-11-25', 'capabilities': {}, 'clientInfo': {'name': 'claude-falso', 'version': '0'}})
+    mcp('notifications/initialized', ident=None)
+    pagina = llamar('pagina_leer', {}, 10)
+    titulo = 'Zorros' if 'Zorros' in json.dumps(pagina, ensure_ascii=False) else 'algo'
+    llamar('lobo_animar', {'nombre': 'feliz'}, 11)
+    datos = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..', 'zero', 'assets', 'lobo.json')
+    if os.path.exists(datos):
+        ejemplo = json.load(open(datos)).get('ejemploClaude')
+        if ejemplo:
+            llamar('lobo_crear_animacion', {'animacion': ejemplo}, 12)
+    final = f'**{titulo} árticos**: viven en el Ártico y cambian de pelaje. <img src=x onerror=alert(1)>'
+    texto_a_trozos(f'msg_m_{numero}', [final[:20], final[20:]])
+    resultado(final, inicio)
+
+
 def turno(contenido, entrada, numero):
     inicio = time.time()
     escribir({'type': 'system', 'subtype': 'init', 'cwd': os.getcwd(), 'tools': ['WebFetch', 'WebSearch', 'mcp__kitsune__pestanas_listar'],
@@ -109,6 +142,9 @@ def turno(contenido, entrada, numero):
     if contenido == 'muere':
         sys.stdout.flush()
         os._exit(3)
+    if contenido == 'Resúmeme esta página':
+        escena_lobo(entrada, numero)
+        return
     if contenido == 'lento':
         terminado = texto_a_trozos(f'msg_lento_{numero}', [f'zorro {i} ' for i in range(60)], pausa=0.25, entrada=entrada)
         resultado('zorros', inicio, parado=not terminado)
