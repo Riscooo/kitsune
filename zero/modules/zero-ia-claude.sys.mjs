@@ -5,9 +5,10 @@
  * proceso muere, el siguiente mensaje lo vuelve a lanzar con --resume y la misma conversación.
  *
  * Aislado de la configuración de la persona: ni sus ajustes (hooks, plugins, permisos, CLAUDE.md, MCP…) ni su
- * memoria. Solo tiene las herramientas del navegador (el servidor MCP de Kitsune), WebSearch y WebFetch: las webs
- * son contenido no fiable (pueden llevar instrucciones escondidas), así que nada de shell ni de leer o escribir
- * archivos.
+ * memoria. Solo tiene las herramientas del navegador (el servidor MCP de Kitsune) y WebSearch: las webs son contenido no
+ * fiable (pueden llevar instrucciones escondidas), así que nada de shell ni de leer o escribir archivos, y tampoco
+ * WebFetch, que dejaría a una web mandar datos a otra dirección sin que se viera (para leer una web, el navegador:
+ * pagina_leer, o abrirla en una pestaña, que se ve).
  *
  *   const ruta = await buscarClaude();
  *   const sesion = new SesionClaude({ ruta, mcp: { url, token }, instrucciones, onEvento });
@@ -25,10 +26,10 @@ ChromeUtils.defineESModuleGetters(lazy, {
 const esperar = ms => new Promise(listo => lazy.setTimeout(listo, ms));
 const esWindows = () => Services.appinfo.OS === 'WINNT';
 
-/** Las herramientas propias de Claude Code que tiene el asistente: buscar y leer en la web. */
-export const HERRAMIENTAS_CLAUDE = Object.freeze(['WebSearch', 'WebFetch']);
+/** Las herramientas propias de Claude Code que tiene el asistente: buscar en la web. */
+export const HERRAMIENTAS_CLAUDE = Object.freeze(['WebSearch']);
 /** Las que nunca (ya quedan fuera con --tools; esto es por si una versión del CLI no lo entendiera). */
-export const VETADAS = Object.freeze(['Bash', 'BashOutput', 'KillShell', 'PowerShell', 'Edit', 'MultiEdit', 'Write', 'NotebookEdit', 'Read',
+export const VETADAS = Object.freeze(['WebFetch', 'Bash', 'BashOutput', 'KillShell', 'PowerShell', 'Edit', 'MultiEdit', 'Write', 'NotebookEdit', 'Read',
   'Glob', 'Grep', 'LS', 'Task', 'Agent', 'Skill', 'SlashCommand']);
 /** Sus ajustes (--settings): sin memoria automática y sin hooks de ningún sitio. */
 export const AJUSTES = Object.freeze({ autoMemoryEnabled: false, disableAllHooks: true });

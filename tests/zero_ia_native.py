@@ -352,8 +352,8 @@ def main():
             return argv[argv.index(nombre) + 1]
         assert argv[0] == '-p' and valor('--input-format') == 'stream-json' and valor('--output-format') == 'stream-json', argv
         assert '--verbose' in argv and '--include-partial-messages' in argv and '--strict-mcp-config' in argv, argv
-        assert valor('--setting-sources') == '' and valor('--tools') == 'WebSearch,WebFetch', argv
-        assert valor('--allowedTools') == 'mcp__kitsune,WebSearch,WebFetch' and valor('--permission-mode') == 'dontAsk', argv
+        assert valor('--setting-sources') == '' and valor('--tools') == 'WebSearch', argv
+        assert valor('--allowedTools') == 'mcp__kitsune,WebSearch' and 'WebFetch' in valor('--disallowedTools') and valor('--permission-mode') == 'dontAsk', argv
         assert 'Bash' in valor('--disallowedTools').split(',') and 'Write' in valor('--disallowedTools').split(','), argv
         assert '--disable-slash-commands' in argv and '--no-chrome' in argv and valor('--model') == 'haiku', argv
         assert valor('--session-id') == sesion['sesion'] and '--resume' not in argv, argv
@@ -366,7 +366,7 @@ def main():
         assert stat.S_IMODE(mcp_json.stat().st_mode) == 0o600 and stat.S_IMODE(carpeta.stat().st_mode) == 0o700
         assert token not in ' '.join(argv), 'el token no va en la línea de órdenes'
         assert llamadas[0]['cwd'] == str(carpeta) and not llamadas[0]['claudecode'] and not llamadas[0]['sesion_externa'], llamadas[0]
-        check('Puente: claude aislado (sin ajustes de la persona, solo el MCP de Kitsune, WebSearch y WebFetch, dontAsk), token en un archivo 0600')
+        check('Puente: claude aislado (sin ajustes de la persona, solo el MCP de Kitsune y WebSearch, sin WebFetch, dontAsk), token en un archivo 0600')
 
         segundo = turno('¿Y ahora?')
         assert [e['tipo'] for e in segundo][-1] == 'fin' and len(llamadas) == len((carpeta / 'llamadas.jsonl').read_text().splitlines()), segundo
