@@ -156,8 +156,13 @@ export function localResults(win, query) {
   return results.length && !looksLikeAddress(typed) ? [...results, web] : [web, ...results];
 }
 
+/** El servicio de búsqueda: desde Gecko 158 ya no está en Services (Services.search), sino en su módulo. */
+function searchService() {
+  return Services.search ?? ChromeUtils.importESModule('moz-src:///toolkit/components/search/SearchService.sys.mjs').SearchService;
+}
+
 async function searchWeb(win, text) {
-  const engine = await Services.search.getDefault();
+  const engine = await searchService().getDefault();
   const submission = engine.getSubmission(text);
   win.openTrustedLinkIn(submission.uri.spec, win.gBrowser.selectedTab.isEmpty ? 'current' : 'tab');
 }

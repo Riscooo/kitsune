@@ -2085,3 +2085,83 @@
 #zero-sound .zero-sound-note:has(img:not([hidden]))::before { display: none; }
 #zero-sound .zero-sound-music b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 #zero-sound .zero-sound-music .zero-sound-play[hidden] { display: none; }
+
+/* ---------------------------------------------------------------- tus estadísticas (zero-stats, Risco 9-11) */
+
+/* La pastilla: tres barras, del color de las piezas, en un disco como el del altavoz. */
+#zero-dock > #zero-stats-pill { padding: 5px; }
+#zero-dock .zero-stats-button {
+  appearance: none; box-sizing: border-box; width: 26px; height: 26px; min-width: 0; margin: 0; padding: 0; border: none; border-radius: 50%;
+  display: grid; place-items: center; background: transparent; cursor: pointer; color: var(--zero-piece-text, #fff);
+}
+#zero-dock .zero-stats-button .zero-fav {
+  width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; color: inherit;
+  background: rgba(255, 255, 255, .14); box-shadow: var(--zero-glass-button);
+  transition: transform 200ms var(--zero-calm), background-color var(--zero-t-fade) var(--zero-soft);
+}
+#zero-dock .zero-stats-button .zero-fav::before { content: ""; width: 13px; height: 13px; background-color: currentColor; mask: var(--zero-stats-icon) center / contain no-repeat; }
+#zero-dock .zero-stats-button:is(:hover, [aria-expanded="true"]) .zero-fav { transform: scale(1.12); background-color: rgba(255, 255, 255, .24); }
+#zero-dock .zero-stats-button:focus-visible { outline: 2px solid rgba(255, 255, 255, .7); outline-offset: 2px; }
+
+/* El panel: la hoja de las piezas (la del sonido), junto a la columna. */
+#zero-stats {
+  --zero-stats-ink: #3a8f74;
+  position: fixed; z-index: 9; box-sizing: border-box; width: 316px; max-height: calc(100vh - 24px); overflow-y: auto; scrollbar-width: thin;
+  padding: 12px 14px 10px; border-radius: 18px;
+  color: var(--zero-piece-text); font: 500 12.5px system-ui, sans-serif;
+  background: var(--zero-sheet);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .08), 0 24px 60px rgba(0, 0, 0, .38), 0 0 0 .5px rgba(0, 0, 0, .45);
+  opacity: 0; scale: .96; translate: -6px 0; transform-origin: left center; pointer-events: none; visibility: hidden;
+  transition: opacity 200ms var(--zero-soft), scale 260ms var(--zero-calm), translate 260ms var(--zero-calm), visibility 0s linear 200ms;
+  -moz-window-dragging: no-drag;
+}
+:root[zero-frame-ink] #zero-stats { box-shadow: inset 0 1px 0 #fff, 0 24px 60px rgba(18, 22, 28, .16), 0 0 0 .5px rgba(18, 22, 28, .12); }
+:root[zero][zero-variant="nacar"] #zero-stats { --zero-stats-ink: #5fc4a2; }
+:root[zero-frame-ink] #zero-stats { --zero-stats-ink: #2f7d64; }
+#zero-stats[open] { opacity: 1; scale: 1; translate: 0 0; pointer-events: auto; visibility: visible; transition-delay: 0s; }
+#zero-stats header { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 0 2px 10px; }
+#zero-stats h4 { margin: 0; font: 600 14px system-ui, sans-serif; }
+#zero-stats h5 { margin: 14px 2px 6px; font: 600 10.5px system-ui, sans-serif; letter-spacing: .04em; text-transform: uppercase; color: var(--zero-piece-quiet); }
+#zero-stats button { appearance: none; margin: 0; border: none; color: inherit; font: inherit; cursor: pointer; }
+#zero-stats .zero-stats-spans { display: flex; padding: 2px; border-radius: 999px; background: var(--zero-piece-hover); }
+#zero-stats .zero-stats-spans > button { height: 22px; padding: 0 9px; border-radius: 999px; background: transparent; font: 600 11px system-ui, sans-serif; opacity: .65; transition: background-color 200ms var(--zero-soft), opacity 200ms var(--zero-soft); }
+#zero-stats .zero-stats-spans > button[on] { opacity: 1; background: rgba(127, 127, 127, .26); }
+#zero-stats .zero-stats-spans > button:focus-visible, #zero-stats .zero-stats-action:focus-visible { outline: 2px solid var(--zero-stats-ink); outline-offset: 1px; }
+/* Las tres cifras: grandes, con lo que son debajo. */
+#zero-stats .zero-stats-figures { display: grid; grid-template-columns: 1.5fr 1fr 1fr; gap: 6px; }
+#zero-stats .zero-stats-figure { display: flex; flex-direction: column; gap: 1px; padding: 8px 10px; border-radius: 12px; background: var(--zero-piece-hover); min-width: 0; }
+#zero-stats .zero-stats-figure b { font: 700 17px system-ui, sans-serif; font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#zero-stats .zero-stats-figure small { font: 500 11px system-ui, sans-serif; color: var(--zero-piece-quiet); }
+/* Las filas: icono, nombre, tiempo y, debajo, su barra (fina, redondeada, de un solo color). */
+#zero-stats .zero-stats-list { display: flex; flex-direction: column; gap: 7px; }
+#zero-stats .zero-stats-row { display: grid; grid-template-columns: auto 1fr auto; grid-template-rows: auto 5px; align-items: center; column-gap: 8px; row-gap: 4px; }
+#zero-stats .zero-stats-cat { grid-template-columns: 1fr auto; }
+#zero-stats .zero-stats-icon { grid-row: 1 / 3; width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; overflow: hidden; background: rgba(255, 255, 255, .92); }
+#zero-stats .zero-stats-icon img { width: 14px; height: 14px; }
+#zero-stats .zero-stats-letter { font: 700 10.5px system-ui, sans-serif; color: #1d2321; }
+#zero-stats .zero-stats-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#zero-stats .zero-stats-value { color: var(--zero-piece-quiet); font-variant-numeric: tabular-nums; white-space: nowrap; }
+#zero-stats .zero-stats-bar { grid-column: 2 / 4; height: 5px; border-radius: 999px; background: var(--zero-piece-hover); position: relative; overflow: hidden; }
+#zero-stats .zero-stats-cat .zero-stats-bar { grid-column: 1 / 3; }
+#zero-stats .zero-stats-bar::after {
+  content: ""; position: absolute; inset: 0 auto 0 0; width: calc(var(--zero-stats-w, 0) * 100%); border-radius: inherit; background: var(--zero-stats-ink);
+  transition: width 420ms var(--zero-calm);
+}
+#zero-stats .zero-stats-empty { margin: 4px 2px; color: var(--zero-piece-quiet); }
+#zero-stats .zero-stats-empty[hidden], #zero-stats [hidden] { display: none; }
+/* Cada día: barras finas ancladas abajo; el valor del día bajo el ratón, debajo. */
+#zero-stats .zero-stats-days { display: grid; grid-template-columns: repeat(var(--zero-stats-n, 7), 1fr); gap: 2px; align-items: end; height: 64px; padding: 0 2px; border-bottom: 1px solid var(--zero-piece-hover); }
+#zero-stats .zero-stats-day { position: relative; height: 100%; display: flex; align-items: flex-end; cursor: default; }
+#zero-stats .zero-stats-day::after { content: attr(data-initial); position: absolute; left: 0; right: 0; bottom: -15px; text-align: center; font: 600 9.5px system-ui, sans-serif; color: var(--zero-piece-quiet); text-transform: uppercase; }
+#zero-stats .zero-stats-days:has(.zero-stats-day[data-initial]:not([data-initial=""])) + .zero-stats-daytip { margin-top: 18px; }
+#zero-stats .zero-stats-day i { display: block; width: 100%; height: max(2px, calc(var(--zero-stats-h, 0) * 100%)); border-radius: 4px 4px 0 0; background: var(--zero-stats-ink); opacity: .85; transition: opacity 160ms var(--zero-soft); }
+#zero-stats .zero-stats-day:hover i { opacity: 1; }
+#zero-stats .zero-stats-days:hover .zero-stats-day:not(:hover) i { opacity: .45; }
+#zero-stats .zero-stats-daytip { display: block; margin: 5px 2px 0; color: var(--zero-piece-quiet); font-size: 11px; min-height: 14px; }
+#zero-stats footer { display: flex; align-items: center; gap: 6px; margin-top: 14px; }
+#zero-stats footer small { margin-inline-end: auto; color: var(--zero-piece-quiet); font-size: 11px; }
+#zero-stats .zero-stats-action { height: 24px; padding: 0 10px; border-radius: 999px; background: var(--zero-piece-hover); font: 600 11px system-ui, sans-serif; }
+#zero-stats .zero-stats-action:hover { background: rgba(127, 127, 127, .24); }
+#zero-stats .zero-stats-action[sure] { background: #c0473b; color: #fff; }
+#zero-stats[off] .zero-stats-figures { opacity: .55; }
+@media (prefers-reduced-motion: reduce) { #zero-stats, #zero-stats * { transition-duration: 1ms !important; } }
