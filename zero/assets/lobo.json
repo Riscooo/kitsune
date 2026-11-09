@@ -1,0 +1,1363 @@
+{
+  "formato": 1,
+  "nombre": "El lobo de Kitsune Zero",
+  "descripcion": "La mascota de Kitsune (un zorrito kitsune de papel y tinta) en pixel art de 16 bits: el cuerpo en 48×48 y el icono del raíl en 24×24.",
+  "paleta": {
+    "k": "#252d2b",
+    "w": "#fbfaf7",
+    "s": "#e3ded4",
+    "d": "#bdb5a8",
+    "r": "#963d32",
+    "o": "#c4644c",
+    "x": "#66271f",
+    "p": "#e7a99b",
+    "y": "#d9a441",
+    "Y": "#f6d77e",
+    "b": "#9b6a24",
+    "a": "#a9d0e2",
+    "A": "#5d8fae",
+    "g": "#8d9389",
+    "G": "#cfd4cc"
+  },
+  "cuadros": {
+    "cabeza": { "x": 1, "y": 10, "filas": [
+      "..........kkkkkkkkkkkk..........",
+      ".......kkkwwwwwwwwwwwskkk.......",
+      ".....kkwwwwwwwwwwwwwwwwwskk.....",
+      "....kwwwwwwwwwwowwwwwwwwwwsk....",
+      "...kwwwwowwwwwwrrwwwwwwowwwsk...",
+      "...kwwwwrrwwwwwrrwwwwwrrwwwsk...",
+      "..kwwwwwrrrwwwwwxwwwwrrrwwwwsk..",
+      "..kwwwwwxrrwwwwwwwwwwrrxwwwwsk..",
+      "..kwwwwwwwwwwwwwwwwwwwwwwwwwsk..",
+      "..kwwwwwwwwwwwwwwwwwwwwwwwwwsk..",
+      "..kwwwwwwwwwwwwwwwwwwwwwwwwwsk..",
+      ".kwwwwwwwwwwwwwwwwwwwwwwwwwwwsk.",
+      "ksswwwwwwwwwwwwwwwwwwwwwwwwwwssk",
+      ".kkwwwwwwwwwwwwwwwwwwwwwwwwwskk.",
+      "..kswwppwwwwwwwwwwwwwwwwppwwsk..",
+      "...kwppppwwwwwwkkwwwwwwppppsk...",
+      "...kswwwwwwwwwwwwwwwwwwwwwwsk...",
+      "....ksswwwwwwwwwwwwwwwwwwssk....",
+      ".....kksswwwwwwwwwwwwwwsskk.....",
+      ".......kkssswwwwwwwwssskk.......",
+      ".........kkksssssssskkk.........",
+      "............kkkkkkkk............"
+    ] },
+    "orejas": { "x": 4, "y": 1, "filas": [
+      "...kk................kk...",
+      "..kwwk..............kwwk..",
+      "..kwwk..............kwwk..",
+      "..kwrwk............kwrwk..",
+      ".kwrrwwk..........kwwrrwk.",
+      ".kwrrrwk..........kwrrrwk.",
+      ".kwrrrwwk........kwwrrrwk.",
+      "kwwrrrrwk........kwrrrrwwk",
+      "kwrrrrrwwk......kwwrrrrrwk",
+      "kwrrrrrrwk......kwrrrrrrwk",
+      "kwrrrrrrrwk....kwrrrrrrrwk",
+      "kwrrrrrrrwk....kwrrrrrrrwk",
+      "kwwrrrrrrwk....kwrrrrrrwwk"
+    ] },
+    "oreja-izquierda": { "x": 4, "y": 1, "filas": [
+      "...kk......",
+      "..kwwk.....",
+      "..kwwk.....",
+      "..kwrwk....",
+      ".kwrrwwk...",
+      ".kwrrrwk...",
+      ".kwrrrwwk..",
+      "kwwrrrrwk..",
+      "kwrrrrrwwk.",
+      "kwrrrrrrwk.",
+      "kwrrrrrrrwk",
+      "kwrrrrrrrwk",
+      "kwwrrrrrrwk"
+    ] },
+    "oreja-derecha": { "x": 19, "y": 1, "filas": [
+      "......kk...",
+      ".....kwwk..",
+      ".....kwwk..",
+      "....kwrwk..",
+      "...kwwrrwk.",
+      "...kwrrrwk.",
+      "..kwwrrrwk.",
+      "..kwrrrrwwk",
+      ".kwwrrrrrwk",
+      ".kwrrrrrrwk",
+      "kwrrrrrrrwk",
+      "kwrrrrrrrwk",
+      "kwrrrrrrwwk"
+    ] },
+    "oreja-gacha-izquierda": { "x": 0, "y": 4, "filas": [
+      ".kk.........",
+      "kwwkk.......",
+      "kwrwwkk.....",
+      "kwrrrwwkk...",
+      ".kwrrrrwwk..",
+      ".kwrrrrrrwk.",
+      "..kwrrrrrrwk",
+      "..kwwrrrrrwk",
+      "...kwwwwwwk."
+    ] },
+    "oreja-gacha-derecha": { "x": 22, "y": 4, "filas": [
+      ".........kk.",
+      ".......kkwwk",
+      ".....kkwwrwk",
+      "...kkwwrrrwk",
+      "..kwwrrrrwk.",
+      ".kwrrrrrrwk.",
+      "kwrrrrrrwk..",
+      "kwrrrrrwwk..",
+      ".kwwwwwwk..."
+    ] },
+    "orejas-gachas": { "ancho": 48, "alto": 48, "capas": [{ "cuadro": "oreja-gacha-izquierda" }, { "cuadro": "oreja-gacha-derecha" }] },
+    "orejas-arriba": { "ancho": 48, "alto": 48, "capas": [{ "cuadro": "orejas", "dy": -1 }] },
+    "orejas-ladeadas": { "ancho": 48, "alto": 48, "capas": [{ "cuadro": "oreja-izquierda", "dy": -1 }, { "cuadro": "oreja-gacha-derecha" }] },
+    "ojos-abiertos": { "x": 10, "y": 20, "filas": [
+      ".kk........kk.",
+      "kwkk......kwkk",
+      "kkkk......kkkk",
+      "kkkk......kkkk",
+      ".kk........kk."
+    ] },
+    "ojos-cerrados": { "x": 10, "y": 23, "filas": [
+      "kkkk......kkkk"
+    ] },
+    "ojos-felices": { "x": 10, "y": 21, "filas": [
+      ".kk........kk.",
+      "k..k......k..k"
+    ] },
+    "ojos-dormidos": { "x": 10, "y": 22, "filas": [
+      "k..k......k..k",
+      ".kk........kk."
+    ] },
+    "ojos-sorpresa": { "x": 10, "y": 19, "filas": [
+      ".kk........kk.",
+      "kwwk......kwwk",
+      "kwkk......kwkk",
+      "kwwk......kwwk",
+      ".kk........kk."
+    ] },
+    "ojos-abajo": { "x": 10, "y": 22, "filas": [
+      "kkkk......kkkk",
+      "kwkk......kwkk",
+      ".kk........kk."
+    ] },
+    "ojos-tristes": { "x": 10, "y": 21, "filas": [
+      "..kk......kk..",
+      "kkwk......kwkk",
+      "kkkk......kkkk",
+      ".kk........kk."
+    ] },
+    "ojos-x": { "x": 10, "y": 20, "filas": [
+      "k..k......k..k",
+      ".kk........kk.",
+      ".kk........kk.",
+      "k..k......k..k"
+    ] },
+    "ojos-entornados": { "x": 10, "y": 21, "filas": [
+      "kkkk......kkkk",
+      "kkwk......kkwk",
+      ".kk........kk."
+    ] },
+    "ojos-guiño": { "x": 10, "y": 20, "filas": [
+      ".kk........kk.",
+      "kwkk......k..k",
+      "kkkk..........",
+      "kkkk..........",
+      ".kk..........."
+    ] },
+    "ojos-arriba": { "ancho": 48, "alto": 48, "capas": [{ "cuadro": "ojos-abiertos", "dx": 1, "dy": -1 }] },
+    "ojos-izquierda": { "ancho": 48, "alto": 48, "capas": [{ "cuadro": "ojos-abiertos", "dx": -1 }] },
+    "ojos-derecha": { "ancho": 48, "alto": 48, "capas": [{ "cuadro": "ojos-abiertos", "dx": 1 }] },
+    "ojos-abajo-izquierda": { "ancho": 48, "alto": 48, "capas": [{ "cuadro": "ojos-abajo", "dx": -1 }] },
+    "ojos-abajo-derecha": { "ancho": 48, "alto": 48, "capas": [{ "cuadro": "ojos-abajo", "dx": 1 }] },
+    "boca-sonrisa": { "x": 14, "y": 26, "filas": [
+      "k.kk.k",
+      ".k..k."
+    ] },
+    "boca-abierta": { "x": 14, "y": 26, "filas": [
+      "k.kk.k",
+      ".kxxk.",
+      "..kk.."
+    ] },
+    "boca-grande": { "x": 14, "y": 26, "filas": [
+      "kkkkkk",
+      "kxxxxk",
+      "kxppxk",
+      ".kkkk."
+    ] },
+    "boca-o": { "x": 15, "y": 26, "filas": [
+      ".kk.",
+      "kxxk",
+      ".kk."
+    ] },
+    "boca-triste": { "x": 15, "y": 27, "filas": [
+      ".kk.",
+      "k..k"
+    ] },
+    "boca-ondulada": { "x": 14, "y": 27, "filas": [
+      ".k..k.",
+      "k.kk.k"
+    ] },
+    "boca-bostezo": { "x": 14, "y": 26, "filas": [
+      ".kkkk.",
+      "kxxxxk",
+      "kxxxxk",
+      "kxppxk",
+      ".kkkk."
+    ] },
+    "boca-pensativa": { "x": 16, "y": 27, "filas": [
+      "kkk"
+    ] },
+    "boca-lengua": { "x": 14, "y": 26, "filas": [
+      "k.kk.k",
+      ".kppk.",
+      "..kk.."
+    ] },
+    "cuerpo": { "x": 5, "y": 30, "filas": [
+      "....krrrrrrrrrrrrrrk....",
+      "...kworrrrrrrrrrrrrsk...",
+      "...kwxrrrrkkkkrrrrxsk...",
+      "..kwwwxxrkYYyykrxxwwsk..",
+      "..kwwwwwwkkkkkkwwwwwsk..",
+      ".kwwwwwwwkyybbkwwwwwwsk.",
+      ".kwwwwwwdwkkkkwdwwwwwsk.",
+      ".kwwwwwwdwwwwwwdwwwwwsk.",
+      "kwwwwwwwdwwwwwwdwwwwwwsk",
+      "kwwwwwwwdwwwwwwdwwwwwwsk",
+      "kwwwwwwwdwwwwwwdwwwwwwsk",
+      "kwwwwwwwdwwwwwwdwwwwwwsk",
+      "kwwwwwwwdwwwwwwdwwwwwwsk",
+      "kwwwkkkkkkwwwwkkkkkkwwsk",
+      "kwwkwwwwwwkwwkwwwwwwkwsk",
+      "ksskswwwwsksskswwwwskssk",
+      "kkkkkkkkkkkkkkkkkkkkkkkk"
+    ] },
+    "cuerpo-sin-pierna-derecha": { "x": 5, "y": 30, "filas": [
+      "....krrrrrrrrrrrrrrk....",
+      "...kworrrrrrrrrrrrrsk...",
+      "...kwxrrrrkkkkrrrrxsk...",
+      "..kwwwxxrkYYyykrxxwwsk..",
+      "..kwwwwwwkkkkkkwwwwwsk..",
+      ".kwwwwwwwkyybbkwwwwwwsk.",
+      ".kwwwwwwdwkkkkwwwwwwwsk.",
+      ".kwwwwwwdwwwwwwwwwwwwsk.",
+      "kwwwwwwwdwwwwwwwwwwwwwsk",
+      "kwwwwwwwdwwwwwwwwwwwwwsk",
+      "kwwwwwwwdwwwwwwwwwwwwwsk",
+      "kwwwwwwwdwwwwwwwwwwwwwsk",
+      "kwwwwwwwdwwwwwwwwwwwwwsk",
+      "kwwwkkkkkkwwwwkkkkkkwwsk",
+      "kwwkwwwwwwkwwkwwwwwwkwsk",
+      "ksskswwwwsksskswwwwskssk",
+      "kkkkkkkkkkkkkkkkkkkkkkkk"
+    ] },
+    "cola": { "x": 28, "y": 16, "filas": [
+      ".....kkkk..........",
+      "...kkooookk........",
+      "..kooooorrkk.......",
+      "..koorrrrrrrk......",
+      "..korrrrrrrrrk.....",
+      "...kkrrrrrrrrrk....",
+      ".....kkxrrrrrrrk...",
+      ".......kxrrrrrrrk..",
+      "........kxrrrrrrrk.",
+      "........kxrrrrrrrk.",
+      "........krrwrrwrrk.",
+      "........krwwwrwwsk.",
+      ".........kwwwwwwsk.",
+      ".........kwwwwwwsk.",
+      ".........kwwwwwwwsk",
+      ".........kwwwwwwwsk",
+      ".........kwwwwwwwsk",
+      ".........kwwwwwwwsk",
+      "........kwwwwwwwwsk",
+      "........kwwwwwwwsk.",
+      ".......kwwwwwwwwsk.",
+      "......kwwwwwwwwsk..",
+      "...kkkwwwwwwwwwsk..",
+      "kkkwwwwwwwwwwssk...",
+      "wwwwwwwwwwwwwssk...",
+      "wwwwwwwwwwwwssk....",
+      "swwwwwwwwwwssk.....",
+      "ssswwwwwsssk.......",
+      "ddssssssskk........",
+      "kddddddkkk.........",
+      "kkkkkkk............"
+    ] },
+    "cola-derecha": { "x": 28, "y": 16, "filas": [
+      "......kkkk.........",
+      "....kkooookk.......",
+      "...kooooorrkk......",
+      "...koorrrrrrrk.....",
+      "...korrrrrrrrrk....",
+      "....kkrrrrrrrrrk...",
+      "......kkxrrrrrrrk..",
+      "........kxrrrrrrrk.",
+      ".........kxrrrrrrrk",
+      ".........kxrrrrrrrk",
+      "........krrwrrwrrk.",
+      "........krwwwrwwsk.",
+      ".........kwwwwwwsk.",
+      ".........kwwwwwwsk.",
+      ".........kwwwwwwwsk",
+      ".........kwwwwwwwsk",
+      ".........kwwwwwwwsk",
+      ".........kwwwwwwwsk",
+      "........kwwwwwwwwsk",
+      "........kwwwwwwwsk.",
+      ".......kwwwwwwwwsk.",
+      "......kwwwwwwwwsk..",
+      "...kkkwwwwwwwwwsk..",
+      "kkkwwwwwwwwwwssk...",
+      "wwwwwwwwwwwwwssk...",
+      "wwwwwwwwwwwwssk....",
+      "swwwwwwwwwwssk.....",
+      "ssswwwwwsssk.......",
+      "ddssssssskk........",
+      "kddddddkkk.........",
+      "kkkkkkk............"
+    ] },
+    "cola-izquierda": { "x": 28, "y": 16, "filas": [
+      "....kkkk...........",
+      "..kkooookk.........",
+      ".kooooorrkk........",
+      ".koorrrrrrrk.......",
+      ".korrrrrrrrrk......",
+      "..kkrrrrrrrrrk.....",
+      "....kkxrrrrrrrk....",
+      "......kxrrrrrrrk...",
+      ".......kxrrrrrrrk..",
+      ".......kxrrrrrrrk..",
+      "........krrwrrwrrk.",
+      "........krwwwrwwsk.",
+      ".........kwwwwwwsk.",
+      ".........kwwwwwwsk.",
+      ".........kwwwwwwwsk",
+      ".........kwwwwwwwsk",
+      ".........kwwwwwwwsk",
+      ".........kwwwwwwwsk",
+      "........kwwwwwwwwsk",
+      "........kwwwwwwwsk.",
+      ".......kwwwwwwwwsk.",
+      "......kwwwwwwwwsk..",
+      "...kkkwwwwwwwwwsk..",
+      "kkkwwwwwwwwwwssk...",
+      "wwwwwwwwwwwwwssk...",
+      "wwwwwwwwwwwwssk....",
+      "swwwwwwwwwwssk.....",
+      "ssswwwwwsssk.......",
+      "ddssssssskk........",
+      "kddddddkkk.........",
+      "kkkkkkk............"
+    ] },
+    "pata-saludo": { "x": 20, "y": 21, "filas": [
+      "......kkkk.",
+      ".....kwwwwk",
+      "....kwpwpwk",
+      "....kwwwwwk",
+      "....kwwwwsk",
+      "...kwwwwsk.",
+      "...kwwwwk..",
+      "..kwwwwsk..",
+      "..kwwwwk...",
+      ".kwwwwsk...",
+      ".kwwwwk....",
+      "kwwwwsk....",
+      "kwwwwk.....",
+      "kwwwsk.....",
+      "kwwwk......"
+    ] },
+    "pata-saludo-b": { "x": 20, "y": 21, "filas": [
+      "........kkkk.",
+      ".......kwwwwk",
+      "......kwpwpwk",
+      ".....kwwwwwk.",
+      ".....kwwwwsk.",
+      "....kwwwwsk..",
+      "...kwwwwk....",
+      "..kwwwwsk....",
+      "..kwwwwk.....",
+      ".kwwwwsk.....",
+      ".kwwwwk......",
+      "kwwwwsk......",
+      "kwwwwk.......",
+      "kwwwsk.......",
+      "kwwwk........"
+    ] },
+    "pata-barbilla": { "x": 8, "y": 27, "filas": [
+      "...kkkk..",
+      "..kwwwwk.",
+      "..kwwwwsk",
+      "..kwwwwsk",
+      "..kswwssk",
+      "..kkwwkk.",
+      ".kwwwk...",
+      ".kwwwk...",
+      "kwwwk....",
+      "kwwk....."
+    ] },
+    "patas-arriba": { "x": 0, "y": 26, "filas": [
+      ".kkkk........................kkkk.",
+      "kwwwwk......................kwwwwk",
+      "kwwwwsk....................kwwwwwk",
+      "kwwwwsk....................kwwwwwk",
+      ".kwwwsk....................kwwwwk.",
+      "..kwwwwk..................kwwwwk..",
+      "...kwwwwk................kwwwwk...",
+      ".....kwwwwk............kwwwwk.....",
+      "......kwwwk............kwwwk......",
+      ".......kwwk............kwwk......."
+    ] },
+    "patas-arriba-b": { "x": 0, "y": 24, "filas": [
+      ".kkkk........................kkkk.",
+      "kwwwwk......................kwwwwk",
+      "kwwwwsk....................kwwwwwk",
+      "kwwwwsk....................kwwwwwk",
+      ".kwwwsk....................kwwwwk.",
+      "..kwwwwk..................kwwwwk..",
+      "...kwwwwk................kwwwwk...",
+      ".....kwwwwk............kwwwwk.....",
+      "......kwwwk............kwwwk......",
+      ".......kwwk............kwwk......."
+    ] },
+    "libro": { "x": 5, "y": 32, "filas": [
+      ".....kkkkkk..kkkkkk.....",
+      "....kwwwwwwkkwwwwwwk....",
+      "....kssssssxxssssssk....",
+      ".kkkkooooorxxrrrrrrkkkk.",
+      "kwwwkorrrrrxxrrrrrxkwwwk",
+      "kwwskorYYrrxxrrYYrxkwwsk",
+      ".kkkkorrrrrxxrrrrrxkkkk.",
+      "....korrrrrxxrrrrrxk....",
+      "....krrrrrrxxrrrrrxk....",
+      "....kxxxxxxkkxxxxxxk....",
+      ".....kkkkkk..kkkkkk....."
+    ] },
+    "hoja-pasando": { "x": 14, "y": 28, "filas": [
+      "..kk",
+      "kwwk",
+      "kwsk",
+      "kwsk",
+      ".kk."
+    ] },
+    "lupa": { "x": 20, "y": 15, "filas": [
+      ".........kkkk..",
+      "........kaaaak.",
+      ".......kawwaaAk",
+      ".......kawaaaAk",
+      ".......kaaaaaAk",
+      ".......kaaaaAAk",
+      "........kAAAAk.",
+      "........kkkkk..",
+      ".......kbk.....",
+      "......kbk......",
+      "....kkbkk......",
+      "...kwwwwk......",
+      "...kwwwwsk.....",
+      "...kwwwwk......",
+      "..kwwwwk.......",
+      "..kwwwsk.......",
+      ".kwwwwk........",
+      ".kwwwk.........",
+      "kwwwwk.........",
+      "kwwwk.........."
+    ] },
+    "lupa-b": { "x": 20, "y": 13, "filas": [
+      "......kkkk..",
+      ".....kaaaak.",
+      "....kawwaaAk",
+      "....kawaaaAk",
+      "....kaaaaaAk",
+      "....kaaaaAAk",
+      ".....kAAAAk.",
+      ".....kkkkk..",
+      "....kbk.....",
+      "...kbk......",
+      ".kkbkk......",
+      "............",
+      ".kwwwwk.....",
+      ".kwwwwsk....",
+      ".kwwwwk.....",
+      "............",
+      ".kwwwwk.....",
+      ".kwwwsk.....",
+      "kwwwwk......",
+      ".kwwwk......",
+      "kwwwwk......",
+      "kwwwk......."
+    ] },
+    "portatil": { "x": 7, "y": 30, "filas": [
+      ".kkk................",
+      "kwwwk...........kkk.",
+      "kwwskkkkkkkkkkkkwwwk",
+      ".kkkGGGGGGGGGGGkwwsk",
+      "...kGggggggggggbkkk.",
+      "...kGggggggggggbk...",
+      "...kGgggggrgggggk...",
+      "...kGggggrrrggggk...",
+      "...kGggggrrrggggk...",
+      "...kGgggggxgggggk...",
+      "...kGggggggggggbk...",
+      "...kbbbbbbbbbbbbk...",
+      ".kkkkkkkkkkkkkkkkkk.",
+      ".kGGGGGGGGGGGGGGGGk.",
+      "..kkkkkkkkkkkkkkkk.."
+    ] },
+    "portatil-b": { "x": 7, "y": 30, "filas": [
+      "................kkk.",
+      ".kkk...........kwwwk",
+      "kwwwkkkkkkkkkkkkwwsk",
+      "kwwskGGGGGGGGGGGkkk.",
+      ".kkkGggggggggggbk...",
+      "...kGggggggggggbk...",
+      "...kGgggggrgggggk...",
+      "...kGggggrrrggggk...",
+      "...kGggggrrrggggk...",
+      "...kGgggggxgggggk...",
+      "...kGggggggggggbk...",
+      "...kbbbbbbbbbbbbk...",
+      ".kkkkkkkkkkkkkkkkkk.",
+      ".kGGGGGGGGGGGGGGGGk.",
+      "..kkkkkkkkkkkkkkkk.."
+    ] },
+    "lomo": { "x": 17, "y": 27, "filas": [
+      "............kkkkkk............",
+      ".........kkkwwwwwwkkk.........",
+      "........kwwwwwwwwwwwwk........",
+      ".......kwwwwwwwwwwwwwwk.......",
+      "......kwwwwwwwwwwwwwwwwk......",
+      ".....kwwwwwwwwwwwwwwwwwwk.....",
+      "....kwwwwwwwwwwwwwwwwwwwsk....",
+      "...kwwwwwwwwwwwwwwwwwwwwssk...",
+      "...kwwwwwwwwwwwwwwwwwwwwssk...",
+      "..kwwwwwwwwwwwwwwwwwwwwwsssk..",
+      "..kwwwwwwwwwwwwwwwwwwwwwsssk..",
+      ".kwwwwwwwwwwwwwwwwwwwwwwssssk.",
+      ".kwwwwwwwwwwwwwwwwwwwwwsssssk.",
+      ".kwwwwwwwwwwwwwwwwwwwwssssssk.",
+      ".kwwwwwwwwwwwwwwwwwwwsssssssk.",
+      "kwwwwwwwwwwwwwwwwwwwsssssssssk",
+      "kwwwwwwwwwwwwwwwwwwssssssssssk",
+      "kwwwwwwwwwwwwwwwwwsssssssssssk",
+      "kwwwwwwwwwwwwwwwwssssssssssssk",
+      "kwwwwwwwwwwwwwwwsssssssssssssk",
+      "kkkkkkkkkkkkkkkkkkkkkkkkkkkkkk"
+    ] },
+    "lomo-respira": { "x": 17, "y": 26, "filas": [
+      "............kkkkkk............",
+      ".........kkkwwwwwwkkk.........",
+      "........kwwwwwwwwwwwwk........",
+      ".......kwwwwwwwwwwwwwwk.......",
+      "......kwwwwwwwwwwwwwwwwk......",
+      ".....kwwwwwwwwwwwwwwwwwwk.....",
+      "....kwwwwwwwwwwwwwwwwwwwsk....",
+      "....kwwwwwwwwwwwwwwwwwwwsk....",
+      "...kwwwwwwwwwwwwwwwwwwwwssk...",
+      "..kwwwwwwwwwwwwwwwwwwwwwsssk..",
+      "..kwwwwwwwwwwwwwwwwwwwwwsssk..",
+      "..kwwwwwwwwwwwwwwwwwwwwwsssk..",
+      ".kwwwwwwwwwwwwwwwwwwwwwwssssk.",
+      ".kwwwwwwwwwwwwwwwwwwwwwsssssk.",
+      ".kwwwwwwwwwwwwwwwwwwwwssssssk.",
+      ".kwwwwwwwwwwwwwwwwwwwsssssssk.",
+      "kwwwwwwwwwwwwwwwwwwwsssssssssk",
+      "kwwwwwwwwwwwwwwwwwwssssssssssk",
+      "kwwwwwwwwwwwwwwwwwsssssssssssk",
+      "kwwwwwwwwwwwwwwwwssssssssssssk",
+      "kwwwwwwwwwwwwwwwsssssssssssssk",
+      "kkkkkkkkkkkkkkkkkkkkkkkkkkkkkk"
+    ] },
+    "cola-enroscada": { "x": 3, "y": 30, "filas": [
+      ".......................................kkkk..",
+      "......................................kssssk.",
+      "......................................kssssk.",
+      "......................................ksssssk",
+      "......................................ksssssk",
+      "......................................ksssssk",
+      "......................................ksssssk",
+      ".......................................kssssk",
+      "......................................ksssssk",
+      ".kkkkkkk.............................kwsssssk",
+      "koooooookkkkkkkkkkkk..........kkkkkkkwwsssssk",
+      "kooooooowwwwwwwwwwwwkkkkkkkkkkwwwwwwwwwsssskk",
+      "krrrrrrrwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwsssk..",
+      "krrrrrrrwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwssk...",
+      ".kkkrrrrwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwsk....",
+      "....kkkkkksssssssssssssssssssssssssssskk.....",
+      "..........kkkkkkkkkkkkkkkkkkkkkkkkkkkk......."
+    ] },
+    "corazon": [
+      ".kk.kk.",
+      "kookrrk",
+      "korrrrk",
+      ".krrrk.",
+      "..krk..",
+      "...k..."
+    ],
+    "corazon-chico": [
+      "or.rr",
+      "rrrrr",
+      ".rrr.",
+      "..r.."
+    ],
+    "zeta": [
+      "ggggg",
+      "...g.",
+      "..g..",
+      ".g...",
+      "ggggg"
+    ],
+    "zeta-chica": [
+      "ggg",
+      ".g.",
+      "ggg"
+    ],
+    "chispa-1": [
+      ".Y.",
+      "YyY",
+      ".Y."
+    ],
+    "chispa-2": [
+      "..Y..",
+      "..y..",
+      "YyYyY",
+      "..y..",
+      "..Y.."
+    ],
+    "chispa-3": [
+      "Y.Y",
+      ".y.",
+      "Y.Y"
+    ],
+    "exclamacion": [
+      "or",
+      "rr",
+      "rr",
+      "rr",
+      "rr",
+      "..",
+      "rr",
+      "rr"
+    ],
+    "interrogacion": [
+      ".orrr.",
+      "or..rr",
+      "....rr",
+      "...rr.",
+      "..rr..",
+      "..rr..",
+      "......",
+      "..rr..",
+      "..rr.."
+    ],
+    "gota": [
+      "..k..",
+      ".kak.",
+      "kwaak",
+      "kaaAk",
+      ".kkk."
+    ],
+    "nota": [
+      "..rr.",
+      "..r.r",
+      "..r..",
+      ".rr..",
+      "rrr..",
+      ".r..."
+    ],
+    "notas": [
+      ".rrrrr",
+      ".r...r",
+      ".r...r",
+      "rr..rr",
+      "rr..rr"
+    ],
+    "punto": [
+      ".kk.",
+      "kwwk",
+      "kwsk",
+      ".kk."
+    ],
+    "bombilla": [
+      "..kkk..",
+      ".kYYyk.",
+      "kYYyyyk",
+      "kYyyyyk",
+      "kyyyybk",
+      ".kyybk.",
+      "..kgk..",
+      "..kGk..",
+      "...k..."
+    ],
+    "polvo": [
+      ".GG..",
+      "GGGG.",
+      "GGGGG"
+    ],
+    "punto-chico": [
+      "gg",
+      "gg"
+    ],
+    "engranaje": [
+      "...kkk...",
+      ".kkkGkkk.",
+      ".kGGGggk.",
+      "kkGgkggkk",
+      "kGgk.kgsk",
+      "kkggkgskk",
+      ".kgggssk.",
+      ".kkkskkk.",
+      "...kkk..."
+    ],
+    "engranaje-b": [
+      ".kk...kk.",
+      "kGGkkkgsk",
+      "kGGGgggsk",
+      ".kGgkggk.",
+      ".kgk.kgk.",
+      ".kggkgsk.",
+      "kgggggssk",
+      "kgskkkssk",
+      ".kk...kk."
+    ],
+    "icono-cabeza": { "x": 0, "y": 8, "filas": [
+      "......kkkkkkkkkkkk......",
+      "....kkwwwwwwwwwwwskk....",
+      "...kwowwwwwoowwwwwosk...",
+      "..kwwrrwwwwrrwwwwrrwsk..",
+      "..kwwwwwwwwwwwwwwwwwsk..",
+      ".kwwwwwwwwwwwwwwwwwwwsk.",
+      ".kwwwwwwwwwwwwwwwwwwwsk.",
+      "kswwwwwwwwwwwwwwwwwwwwsk",
+      ".kwwwwwwwwwwwwwwwwwwwsk.",
+      ".ksppwwwwwwkkwwwwwwppsk.",
+      "..kwwwwwwwwwwwwwwwwwsk..",
+      "..kswwwwwwwwwwwwwwwwsk..",
+      "...ksswwwwwwwwwwwwssk...",
+      "....kksssssssssssskk....",
+      "......kkkkkkkkkkkk......"
+    ] },
+    "icono-orejas": { "x": 2, "y": 1, "filas": [
+      "..kk............kk..",
+      ".kwwk..........kwwk.",
+      ".kwrwk........kwrwk.",
+      "kwrrwwk......kwwrrwk",
+      "kwrrrwk......kwrrrwk",
+      "kwrrrrwk....kwrrrrwk",
+      "kwrrrrwk....kwrrrrwk",
+      "kwrrrrrk....krrrrrwk"
+    ] },
+    "icono-ojos-abiertos": { "x": 6, "y": 13, "filas": [
+      "kw........kw",
+      "kk........kk",
+      "kk........kk"
+    ] },
+    "icono-ojos-cerrados": { "x": 6, "y": 15, "filas": [
+      "kk........kk"
+    ] },
+    "icono-ojos-felices": { "x": 5, "y": 14, "filas": [
+      ".k..........k.",
+      "k.k........k.k"
+    ] },
+    "icono-ojos-dormidos": { "x": 5, "y": 14, "filas": [
+      "k.k........k.k",
+      ".k..........k."
+    ] },
+    "icono-ojos-grandes": { "x": 5, "y": 12, "filas": [
+      ".k..........k.",
+      "kwk........kwk",
+      "kkk........kkk",
+      ".k..........k."
+    ] },
+    "icono-boca-sonrisa": { "x": 9, "y": 18, "filas": [
+      "k.kk.k",
+      ".k..k."
+    ] },
+    "icono-boca-abierta": { "x": 9, "y": 18, "filas": [
+      "k.kk.k",
+      ".kxxk.",
+      "..kk.."
+    ] },
+    "icono-boca-grande": { "x": 9, "y": 18, "filas": [
+      "kkkkkk",
+      "kxxxxk",
+      ".kppk."
+    ] },
+    "icono-corazon": [
+      ".r.r.",
+      "rorrr",
+      "rrrrr",
+      ".rrr.",
+      "..r.."
+    ],
+    "cruz": [
+      "rr..rr",
+      "orrrrx",
+      ".rrrr.",
+      "orrrrx",
+      "rr..rr"
+    ],
+    "ojos-dudosos": { "x": 10, "y": 20, "filas": [
+      ".kk...........",
+      "kwkk......kkkk",
+      "kkkk......kkwk",
+      "kkkk.......kk.",
+      ".kk..........."
+    ] },
+    "ojos-arriba-izquierda": { "ancho": 48, "alto": 48, "capas": [{ "cuadro": "ojos-abiertos", "dx": -1, "dy": -1 }] },
+    "orejas-ladeadas-b": { "ancho": 48, "alto": 48, "capas": [{ "cuadro": "oreja-gacha-izquierda" }, { "cuadro": "oreja-derecha", "dy": -1 }] },
+    "orejas-oreja-arriba": { "ancho": 48, "alto": 48, "capas": [{ "cuadro": "oreja-izquierda", "dy": -2 }, { "cuadro": "oreja-derecha", "dy": -1 }] },
+    "icono-ojos-arriba": { "ancho": 24, "alto": 24, "capas": [{ "cuadro": "icono-ojos-abiertos", "dx": 1, "dy": -1 }] },
+    "icono-ojos-arriba-izquierda": { "ancho": 24, "alto": 24, "capas": [{ "cuadro": "icono-ojos-abiertos", "dx": -1, "dy": -1 }] },
+    "quieto": { "ancho": 48, "alto": 48, "capas": [{ "cuadro": "cola" }, { "cuadro": "cuerpo" }, { "cuadro": "orejas" }, { "cuadro": "cabeza" }, { "cuadro": "ojos-abiertos" }, { "cuadro": "boca-sonrisa" }] },
+    "quieto-cola-derecha": { "ancho": 48, "alto": 48, "capas": [{ "cuadro": "cola-derecha" }, { "cuadro": "cuerpo" }, { "cuadro": "orejas" }, { "cuadro": "cabeza" }, { "cuadro": "ojos-abiertos" }, { "cuadro": "boca-sonrisa" }] },
+    "quieto-cola-izquierda": { "ancho": 48, "alto": 48, "capas": [{ "cuadro": "cola-izquierda" }, { "cuadro": "cuerpo" }, { "cuadro": "orejas" }, { "cuadro": "cabeza" }, { "cuadro": "ojos-abiertos" }, { "cuadro": "boca-sonrisa" }] },
+    "quieto-respira": { "ancho": 48, "alto": 48, "capas": [{ "cuadro": "cola" }, { "cuadro": "cuerpo" }, { "cuadro": "orejas", "dy": 1 }, { "cuadro": "cabeza", "dy": 1 }, { "cuadro": "ojos-abiertos", "dy": 1 }, { "cuadro": "boca-sonrisa", "dy": 1 }] },
+    "quieto-parpadeo": { "ancho": 48, "alto": 48, "capas": [{ "cuadro": "cola" }, { "cuadro": "cuerpo" }, { "cuadro": "orejas" }, { "cuadro": "cabeza" }, { "cuadro": "ojos-cerrados" }, { "cuadro": "boca-sonrisa" }] },
+    "quieto-feliz": { "ancho": 48, "alto": 48, "capas": [{ "cuadro": "cola" }, { "cuadro": "cuerpo" }, { "cuadro": "orejas" }, { "cuadro": "cabeza" }, { "cuadro": "ojos-felices" }, { "cuadro": "boca-sonrisa" }] },
+    "saludar": { "ancho": 48, "alto": 48, "capas": [{ "cuadro": "cola-derecha" }, { "cuadro": "cuerpo" }, { "cuadro": "orejas" }, { "cuadro": "cabeza" }, { "cuadro": "ojos-felices" }, { "cuadro": "boca-abierta" }, { "cuadro": "pata-saludo" }] },
+    "saludar-b": { "ancho": 48, "alto": 48, "capas": [{ "cuadro": "cola-derecha" }, { "cuadro": "cuerpo" }, { "cuadro": "orejas" }, { "cuadro": "cabeza" }, { "cuadro": "ojos-felices" }, { "cuadro": "boca-abierta" }, { "cuadro": "pata-saludo-b" }] },
+    "escuchar": { "ancho": 48, "alto": 48, "capas": [{ "cuadro": "cola" }, { "cuadro": "cuerpo" }, { "cuadro": "orejas-arriba" }, { "cuadro": "cabeza" }, { "cuadro": "ojos-abiertos" }, { "cuadro": "boca-sonrisa" }] },
+    "escuchar-oreja": { "ancho": 48, "alto": 48, "capas": [{ "cuadro": "cola" }, { "cuadro": "cuerpo" }, { "cuadro": "orejas-oreja-arriba" }, { "cuadro": "cabeza" }, { "cuadro": "ojos-abiertos" }, { "cuadro": "boca-sonrisa" }] },
+    "escuchar-parpadeo": { "ancho": 48, "alto": 48, "capas": [{ "cuadro": "cola" }, { "cuadro": "cuerpo" }, { "cuadro": "orejas-arriba" }, { "cuadro": "cabeza" }, { "cuadro": "ojos-cerrados" }, { "cuadro": "boca-sonrisa" }] },
+    "escuchar-cola": { "ancho": 48, "alto": 48, "capas": [{ "cuadro": "cola-derecha" }, { "cuadro": "cuerpo" }, { "cuadro": "orejas-arriba" }, { "cuadro": "cabeza" }, { "cuadro": "ojos-abiertos" }, { "cuadro": "boca-sonrisa" }] },
+    "pensar": { "ancho": 48, "alto": 48, "capas": [{ "cuadro": "cola" }, { "cuadro": "cuerpo" }, { "cuadro": "orejas" }, { "cuadro": "cabeza" }, { "cuadro": "ojos-arriba" }, { "cuadro": "boca-pensativa" }, { "cuadro": "pata-barbilla" }] },
+    "pensar-b": { "ancho": 48, "alto": 48, "capas": [{ "cuadro": "cola-izquierda" }, { "cuadro": "cuerpo" }, { "cuadro": "orejas" }, { "cuadro": "cabeza" }, { "cuadro": "ojos-arriba-izquierda" }, { "cuadro": "boca-pensativa" }, { "cuadro": "pata-barbilla" }] },
+    "hablar": { "ancho": 48, "alto": 48, "capas": [{ "cuadro": "cola" }, { "cuadro": "cuerpo" }, { "cuadro": "orejas" }, { "cuadro": "cabeza" }, { "cuadro": "ojos-abiertos" }, { "cuadro": "boca-abierta" }] },
+    "hablar-b": { "ancho": 48, "alto": 48, "capas": [{ "cuadro": "cola-derecha" }, { "cuadro": "cuerpo" }, { "cuadro": "orejas" }, { "cuadro": "cabeza" }, { "cuadro": "ojos-abiertos" }, { "cuadro": "boca-grande" }] },
+    "hablar-c": { "ancho": 48, "alto": 48, "capas": [{ "cuadro": "cola" }, { "cuadro": "cuerpo" }, { "cuadro": "orejas" }, { "cuadro": "cabeza" }, { "cuadro": "ojos-abiertos" }, { "cuadro": "boca-o" }] },
+    "hablar-parpadeo": { "ancho": 48, "alto": 48, "capas": [{ "cuadro": "cola" }, { "cuadro": "cuerpo" }, { "cuadro": "orejas" }, { "cuadro": "cabeza" }, { "cuadro": "ojos-cerrados" }, { "cuadro": "boca-sonrisa" }] },
+    "feliz": { "ancho": 48, "alto": 48, "capas": [{ "cuadro": "cola-derecha" }, { "cuadro": "cuerpo" }, { "cuadro": "orejas" }, { "cuadro": "cabeza" }, { "cuadro": "ojos-felices" }, { "cuadro": "boca-grande" }] },
+    "celebrar": { "ancho": 48, "alto": 48, "capas": [{ "cuadro": "cola-derecha" }, { "cuadro": "cuerpo" }, { "cuadro": "orejas" }, { "cuadro": "cabeza" }, { "cuadro": "ojos-felices" }, { "cuadro": "boca-grande" }, { "cuadro": "patas-arriba" }] },
+    "celebrar-b": { "ancho": 48, "alto": 48, "capas": [{ "cuadro": "cola-izquierda" }, { "cuadro": "cuerpo" }, { "cuadro": "orejas" }, { "cuadro": "cabeza" }, { "cuadro": "ojos-felices" }, { "cuadro": "boca-grande" }, { "cuadro": "patas-arriba-b" }] },
+    "sorpresa": { "ancho": 48, "alto": 48, "capas": [{ "cuadro": "cola" }, { "cuadro": "cuerpo" }, { "cuadro": "orejas-arriba" }, { "cuadro": "cabeza" }, { "cuadro": "ojos-sorpresa" }, { "cuadro": "boca-o" }] },
+    "confundido": { "ancho": 48, "alto": 48, "capas": [{ "cuadro": "cola" }, { "cuadro": "cuerpo" }, { "cuadro": "orejas-ladeadas", "dx": -1 }, { "cuadro": "cabeza", "dx": -1 }, { "cuadro": "ojos-dudosos", "dx": -1 }, { "cuadro": "boca-ondulada", "dx": -1 }] },
+    "confundido-b": { "ancho": 48, "alto": 48, "capas": [{ "cuadro": "cola-derecha" }, { "cuadro": "cuerpo" }, { "cuadro": "orejas-ladeadas-b", "dx": 1 }, { "cuadro": "cabeza", "dx": 1 }, { "cuadro": "ojos-dudosos", "dx": 1 }, { "cuadro": "boca-ondulada", "dx": 1 }] },
+    "triste": { "ancho": 48, "alto": 48, "capas": [{ "cuadro": "cola" }, { "cuadro": "cuerpo" }, { "cuadro": "orejas-gachas" }, { "cuadro": "cabeza" }, { "cuadro": "ojos-tristes" }, { "cuadro": "boca-triste" }] },
+    "triste-b": { "ancho": 48, "alto": 48, "capas": [{ "cuadro": "cola-izquierda" }, { "cuadro": "cuerpo" }, { "cuadro": "orejas-gachas", "dy": 1 }, { "cuadro": "cabeza", "dy": 1 }, { "cuadro": "ojos-tristes", "dy": 1 }, { "cuadro": "boca-triste", "dy": 1 }] },
+    "error": { "ancho": 48, "alto": 48, "capas": [{ "cuadro": "cola" }, { "cuadro": "cuerpo" }, { "cuadro": "orejas-gachas" }, { "cuadro": "cabeza" }, { "cuadro": "ojos-x" }, { "cuadro": "boca-ondulada" }] },
+    "adormilado": { "ancho": 48, "alto": 48, "capas": [{ "cuadro": "cola" }, { "cuadro": "cuerpo" }, { "cuadro": "orejas", "dy": 1 }, { "cuadro": "cabeza", "dy": 1 }, { "cuadro": "ojos-dormidos", "dy": 1 }, { "cuadro": "boca-sonrisa", "dy": 1 }] },
+    "cabeceo": { "ancho": 48, "alto": 48, "capas": [{ "cuadro": "cola" }, { "cuadro": "cuerpo" }, { "cuadro": "orejas-gachas", "dy": 2 }, { "cuadro": "cabeza", "dy": 2 }, { "cuadro": "ojos-dormidos", "dy": 2 }, { "cuadro": "boca-sonrisa", "dy": 2 }] },
+    "ovillo": { "ancho": 48, "alto": 48, "capas": [{ "cuadro": "lomo" }, { "cuadro": "orejas-gachas", "dy": 13 }, { "cuadro": "cabeza", "dy": 13 }, { "cuadro": "ojos-dormidos", "dy": 13 }, { "cuadro": "boca-sonrisa", "dy": 13 }, { "cuadro": "cola-enroscada" }] },
+    "ovillo-respira": { "ancho": 48, "alto": 48, "capas": [{ "cuadro": "lomo-respira" }, { "cuadro": "orejas-gachas", "dy": 13 }, { "cuadro": "cabeza", "dy": 13 }, { "cuadro": "ojos-dormidos", "dy": 13 }, { "cuadro": "boca-sonrisa", "dy": 13 }, { "cuadro": "cola-enroscada" }] },
+    "bostezo": { "ancho": 48, "alto": 48, "capas": [{ "cuadro": "cola" }, { "cuadro": "cuerpo" }, { "cuadro": "orejas", "dy": -1 }, { "cuadro": "cabeza", "dy": -1 }, { "cuadro": "ojos-cerrados", "dy": -1 }, { "cuadro": "boca-o", "dy": -1 }] },
+    "bostezo-b": { "ancho": 48, "alto": 48, "capas": [{ "cuadro": "cola" }, { "cuadro": "cuerpo" }, { "cuadro": "orejas", "dy": -1 }, { "cuadro": "cabeza", "dy": -1 }, { "cuadro": "ojos-cerrados", "dy": -1 }, { "cuadro": "boca-bostezo", "dy": -1 }] },
+    "buscar": { "ancho": 48, "alto": 48, "capas": [{ "cuadro": "cola" }, { "cuadro": "cuerpo" }, { "cuadro": "orejas" }, { "cuadro": "cabeza" }, { "cuadro": "ojos-derecha" }, { "cuadro": "boca-o" }, { "cuadro": "lupa" }] },
+    "buscar-b": { "ancho": 48, "alto": 48, "capas": [{ "cuadro": "cola-derecha" }, { "cuadro": "cuerpo" }, { "cuadro": "orejas" }, { "cuadro": "cabeza" }, { "cuadro": "ojos-arriba" }, { "cuadro": "boca-sonrisa" }, { "cuadro": "lupa-b" }] },
+    "leer": { "ancho": 48, "alto": 48, "capas": [{ "cuadro": "cola" }, { "cuadro": "cuerpo" }, { "cuadro": "orejas" }, { "cuadro": "cabeza" }, { "cuadro": "ojos-abajo-izquierda" }, { "cuadro": "boca-sonrisa" }, { "cuadro": "libro" }] },
+    "leer-b": { "ancho": 48, "alto": 48, "capas": [{ "cuadro": "cola" }, { "cuadro": "cuerpo" }, { "cuadro": "orejas" }, { "cuadro": "cabeza" }, { "cuadro": "ojos-abajo-derecha" }, { "cuadro": "boca-sonrisa" }, { "cuadro": "libro" }] },
+    "leer-hoja": { "ancho": 48, "alto": 48, "capas": [{ "cuadro": "cola-derecha" }, { "cuadro": "cuerpo" }, { "cuadro": "orejas" }, { "cuadro": "cabeza" }, { "cuadro": "ojos-abajo" }, { "cuadro": "boca-sonrisa" }, { "cuadro": "libro" }, { "cuadro": "hoja-pasando" }] },
+    "trabajar": { "ancho": 48, "alto": 48, "capas": [{ "cuadro": "cola" }, { "cuadro": "cuerpo" }, { "cuadro": "orejas" }, { "cuadro": "cabeza" }, { "cuadro": "ojos-abajo" }, { "cuadro": "boca-lengua" }, { "cuadro": "portatil" }] },
+    "trabajar-b": { "ancho": 48, "alto": 48, "capas": [{ "cuadro": "cola" }, { "cuadro": "cuerpo" }, { "cuadro": "orejas" }, { "cuadro": "cabeza" }, { "cuadro": "ojos-abajo" }, { "cuadro": "boca-lengua" }, { "cuadro": "portatil-b" }] },
+    "despedirse": { "ancho": 48, "alto": 48, "capas": [{ "cuadro": "cola" }, { "cuadro": "cuerpo" }, { "cuadro": "orejas" }, { "cuadro": "cabeza" }, { "cuadro": "ojos-felices" }, { "cuadro": "boca-sonrisa" }, { "cuadro": "pata-saludo" }] },
+    "despedirse-b": { "ancho": 48, "alto": 48, "capas": [{ "cuadro": "cola-derecha" }, { "cuadro": "cuerpo" }, { "cuadro": "orejas" }, { "cuadro": "cabeza" }, { "cuadro": "ojos-felices" }, { "cuadro": "boca-sonrisa" }, { "cuadro": "pata-saludo-b" }] },
+    "reverencia": { "ancho": 48, "alto": 48, "capas": [{ "cuadro": "cola" }, { "cuadro": "cuerpo" }, { "cuadro": "orejas", "dy": 2 }, { "cuadro": "cabeza", "dy": 2 }, { "cuadro": "ojos-felices", "dy": 2 }, { "cuadro": "boca-sonrisa", "dy": 2 }] },
+    "asentir": { "ancho": 48, "alto": 48, "capas": [{ "cuadro": "cola" }, { "cuadro": "cuerpo" }, { "cuadro": "orejas", "dy": 2 }, { "cuadro": "cabeza", "dy": 2 }, { "cuadro": "ojos-felices", "dy": 2 }, { "cuadro": "boca-sonrisa", "dy": 2 }] },
+    "negar": { "ancho": 48, "alto": 48, "capas": [{ "cuadro": "cola" }, { "cuadro": "cuerpo" }, { "cuadro": "orejas", "dx": -1 }, { "cuadro": "cabeza", "dx": -1 }, { "cuadro": "ojos-cerrados", "dx": -1 }, { "cuadro": "boca-ondulada", "dx": -1 }] },
+    "negar-b": { "ancho": 48, "alto": 48, "capas": [{ "cuadro": "cola" }, { "cuadro": "cuerpo" }, { "cuadro": "orejas", "dx": 1 }, { "cuadro": "cabeza", "dx": 1 }, { "cuadro": "ojos-cerrados", "dx": 1 }, { "cuadro": "boca-ondulada", "dx": 1 }] },
+    "guiñar": { "ancho": 48, "alto": 48, "capas": [{ "cuadro": "cola-derecha" }, { "cuadro": "cuerpo" }, { "cuadro": "orejas" }, { "cuadro": "cabeza" }, { "cuadro": "ojos-guiño" }, { "cuadro": "boca-lengua" }] },
+    "cantar": { "ancho": 48, "alto": 48, "capas": [{ "cuadro": "cola" }, { "cuadro": "cuerpo" }, { "cuadro": "orejas", "dx": -1 }, { "cuadro": "cabeza", "dx": -1 }, { "cuadro": "ojos-felices", "dx": -1 }, { "cuadro": "boca-o", "dx": -1 }] },
+    "cantar-b": { "ancho": 48, "alto": 48, "capas": [{ "cuadro": "cola-derecha" }, { "cuadro": "cuerpo" }, { "cuadro": "orejas", "dx": 1 }, { "cuadro": "cabeza", "dx": 1 }, { "cuadro": "ojos-dormidos", "dx": 1 }, { "cuadro": "boca-abierta", "dx": 1 }] },
+    "icono-quieto": { "ancho": 24, "alto": 24, "capas": [{ "cuadro": "icono-orejas" }, { "cuadro": "icono-cabeza" }, { "cuadro": "icono-ojos-abiertos" }, { "cuadro": "icono-boca-sonrisa" }] },
+    "icono-parpadeo": { "ancho": 24, "alto": 24, "capas": [{ "cuadro": "icono-orejas" }, { "cuadro": "icono-cabeza" }, { "cuadro": "icono-ojos-cerrados" }, { "cuadro": "icono-boca-sonrisa" }] },
+    "icono-atento": { "ancho": 24, "alto": 24, "capas": [{ "cuadro": "icono-orejas", "dy": -1 }, { "cuadro": "icono-cabeza" }, { "cuadro": "icono-ojos-grandes" }, { "cuadro": "icono-boca-sonrisa" }] },
+    "icono-atento-parpadeo": { "ancho": 24, "alto": 24, "capas": [{ "cuadro": "icono-orejas", "dy": -1 }, { "cuadro": "icono-cabeza" }, { "cuadro": "icono-ojos-cerrados" }, { "cuadro": "icono-boca-sonrisa" }] },
+    "icono-pensando": { "ancho": 24, "alto": 24, "capas": [{ "cuadro": "icono-orejas" }, { "cuadro": "icono-cabeza" }, { "cuadro": "icono-ojos-arriba" }, { "cuadro": "icono-boca-sonrisa" }] },
+    "icono-pensando-b": { "ancho": 24, "alto": 24, "capas": [{ "cuadro": "icono-orejas" }, { "cuadro": "icono-cabeza" }, { "cuadro": "icono-ojos-arriba-izquierda" }, { "cuadro": "icono-boca-sonrisa" }] },
+    "icono-hablando": { "ancho": 24, "alto": 24, "capas": [{ "cuadro": "icono-orejas" }, { "cuadro": "icono-cabeza" }, { "cuadro": "icono-ojos-abiertos" }, { "cuadro": "icono-boca-abierta" }] },
+    "icono-hablando-b": { "ancho": 24, "alto": 24, "capas": [{ "cuadro": "icono-orejas" }, { "cuadro": "icono-cabeza" }, { "cuadro": "icono-ojos-abiertos" }, { "cuadro": "icono-boca-grande" }] },
+    "icono-feliz": { "ancho": 24, "alto": 24, "capas": [{ "cuadro": "icono-orejas" }, { "cuadro": "icono-cabeza" }, { "cuadro": "icono-ojos-felices" }, { "cuadro": "icono-boca-grande" }] },
+    "icono-durmiendo": { "ancho": 24, "alto": 24, "capas": [{ "cuadro": "icono-orejas" }, { "cuadro": "icono-cabeza" }, { "cuadro": "icono-ojos-dormidos" }, { "cuadro": "icono-boca-sonrisa" }] },
+    "icono-durmiendo-b": { "ancho": 24, "alto": 24, "capas": [{ "cuadro": "icono-orejas", "dy": 1 }, { "cuadro": "icono-cabeza" }, { "cuadro": "icono-ojos-dormidos" }, { "cuadro": "icono-boca-sonrisa" }] }
+  },
+  "efectos": {
+    "corazon": { "descripcion": "Un corazón que sube meciéndose y se apaga.", "cuadros": ["corazon"], "ms": 1400, "dy": -14, "vaiven": 2, "periodo": 900, "desvanecer": true },
+    "corazon-chico": { "descripcion": "Un corazón pequeño que sube.", "cuadros": ["corazon-chico"], "ms": 1200, "dy": -10, "vaiven": 1, "periodo": 700, "desvanecer": true },
+    "chispa": { "descripcion": "Un destello dorado que titila en su sitio.", "cuadros": ["chispa-1", "chispa-2", "chispa-1", "chispa-3"], "cada": 110, "ms": 880, "desvanecer": true },
+    "zzz": { "descripcion": "Una zeta pequeña que sube despacio en diagonal.", "cuadros": ["zeta-chica"], "ms": 2400, "dx": 6, "dy": -14, "vaiven": 1, "periodo": 1200, "desvanecer": true },
+    "zzz-grande": { "descripcion": "Una zeta grande que sube despacio en diagonal.", "cuadros": ["zeta"], "ms": 2400, "dx": 8, "dy": -14, "vaiven": 1, "periodo": 1200, "desvanecer": true },
+    "exclamacion": { "descripcion": "Una exclamación que salta un poco.", "cuadros": ["exclamacion"], "ms": 1100, "dy": -3, "desvanecer": true },
+    "interrogacion": { "descripcion": "Una interrogación que flota y se mece.", "cuadros": ["interrogacion"], "ms": 1800, "dy": -3, "vaiven": 1, "periodo": 1200, "desvanecer": true },
+    "sudor": { "descripcion": "Una gota de sudor que resbala.", "cuadros": ["gota"], "ms": 1300, "dy": 5, "desvanecer": true },
+    "nota": { "descripcion": "Una nota musical que sube hacia la derecha.", "cuadros": ["nota"], "ms": 1600, "dx": 5, "dy": -12, "vaiven": 2, "periodo": 800, "desvanecer": true },
+    "notas": { "descripcion": "Dos notas unidas que suben hacia la izquierda.", "cuadros": ["notas"], "ms": 1600, "dx": -5, "dy": -12, "vaiven": 2, "periodo": 800, "desvanecer": true },
+    "punto": { "descripcion": "Un punto de «pensando», quieto; tres seguidos hacen los puntos suspensivos.", "cuadros": ["punto"], "ms": 1500, "desvanecer": true },
+    "idea": { "descripcion": "Una bombilla que se enciende sobre la cabeza.", "cuadros": ["bombilla"], "ms": 1600, "dy": -2, "desvanecer": true },
+    "polvo": { "descripcion": "Una nubecilla de polvo que sale hacia la izquierda (al caer de un salto).", "cuadros": ["polvo"], "ms": 500, "dx": -5, "desvanecer": true },
+    "polvo-derecha": { "descripcion": "Una nubecilla de polvo que sale hacia la derecha.", "cuadros": ["polvo"], "ms": 500, "dx": 5, "desvanecer": true },
+    "engranaje": { "descripcion": "Un engranaje que gira y sube: está usando una herramienta.", "cuadros": ["engranaje", "engranaje-b"], "cada": 160, "ms": 1500, "dy": -6, "desvanecer": true },
+    "error": { "descripcion": "Una cruz de óxido: algo ha fallado.", "cuadros": ["cruz"], "ms": 1300, "dy": -2, "desvanecer": true },
+    "icono-corazon": { "descripcion": "Un corazón pequeño para el icono.", "cuadros": ["icono-corazon"], "ms": 1000, "dy": -3, "desvanecer": true },
+    "icono-zeta": { "descripcion": "Una zeta pequeña para el icono.", "cuadros": ["zeta-chica"], "ms": 1600, "dx": 2, "dy": -3, "desvanecer": true },
+    "icono-chispa": { "descripcion": "Un destello pequeño para el icono.", "cuadros": ["chispa-1", "chispa-3"], "cada": 150, "ms": 750, "desvanecer": true }
+  },
+  "animaciones": {
+    "cuerpo": {
+      "quieto": {
+        "descripcion": "Sentado tranquilo: respira, mueve la cola y parpadea a ratos. La de siempre.",
+        "bucle": true,
+        "pasos": [
+          { "cuadro": "quieto", "ms": 900 },
+          { "cuadro": "quieto-cola-derecha", "ms": 450 },
+          { "cuadro": "quieto", "ms": 450 },
+          { "cuadro": "quieto-respira", "ms": 700 },
+          { "cuadro": "quieto", "ms": 500 },
+          { "cuadro": "quieto-parpadeo", "ms": 120 },
+          { "cuadro": "quieto", "ms": 700 },
+          { "cuadro": "quieto-cola-izquierda", "ms": 450 },
+          { "cuadro": "quieto", "ms": 450 },
+          { "cuadro": "quieto-respira", "ms": 700 },
+          { "cuadro": "quieto", "ms": 900 },
+          { "cuadro": "quieto-parpadeo", "ms": 100 },
+          { "cuadro": "quieto", "ms": 120 },
+          { "cuadro": "quieto-parpadeo", "ms": 100 },
+          { "cuadro": "quieto", "ms": 500 }
+        ]
+      },
+      "saludar": {
+        "descripcion": "Saluda con la patita, como la mascota «hola», con un corazón.",
+        "fijo": "saludar",
+        "pasos": [
+          { "cuadro": "saludar", "ms": 180 },
+          { "cuadro": "saludar-b", "ms": 180 },
+          { "cuadro": "saludar", "ms": 180 },
+          { "cuadro": "saludar-b", "ms": 180 },
+          { "cuadro": "saludar", "ms": 180 },
+          { "cuadro": "saludar-b", "ms": 180 },
+          { "cuadro": "saludar", "ms": 300 },
+          { "cuadro": "quieto-feliz", "ms": 500 }
+        ],
+        "efectos": [
+          { "efecto": "corazon", "en": 200, "x": 34, "y": 6 }
+        ]
+      },
+      "escuchar": {
+        "descripcion": "Orejas arriba, atento: mientras el usuario escribe.",
+        "bucle": true,
+        "pasos": [
+          { "cuadro": "escuchar", "ms": 1400 },
+          { "cuadro": "escuchar-oreja", "ms": 140 },
+          { "cuadro": "escuchar", "ms": 900 },
+          { "cuadro": "escuchar-parpadeo", "ms": 110 },
+          { "cuadro": "escuchar", "ms": 800 },
+          { "cuadro": "escuchar-cola", "ms": 500 },
+          { "cuadro": "escuchar", "ms": 600 },
+          { "cuadro": "escuchar-oreja", "ms": 140 },
+          { "cuadro": "escuchar", "ms": 300 }
+        ]
+      },
+      "pensar": {
+        "descripcion": "Pata en la barbilla, mira arriba y salen los puntos suspensivos.",
+        "bucle": true,
+        "pasos": [
+          { "cuadro": "pensar", "ms": 1100 },
+          { "cuadro": "pensar-b", "ms": 1100 }
+        ],
+        "efectos": [
+          { "efecto": "punto", "en": 100, "x": 33, "y": 4 },
+          { "efecto": "punto", "en": 450, "x": 38, "y": 0 },
+          { "efecto": "punto", "en": 800, "x": 43, "y": -4 }
+        ]
+      },
+      "hablar": {
+        "descripcion": "Abre y cierra la boca: mientras llega la respuesta.",
+        "bucle": true,
+        "pasos": [
+          { "cuadro": "hablar", "ms": 130 },
+          { "cuadro": "quieto", "ms": 100 },
+          { "cuadro": "hablar-b", "ms": 140 },
+          { "cuadro": "quieto", "ms": 90 },
+          { "cuadro": "hablar-c", "ms": 120 },
+          { "cuadro": "quieto", "ms": 110 },
+          { "cuadro": "hablar", "ms": 120, "dy": 1 },
+          { "cuadro": "quieto", "ms": 90 },
+          { "cuadro": "hablar-b", "ms": 150 },
+          { "cuadro": "hablar-parpadeo", "ms": 110 },
+          { "cuadro": "hablar", "ms": 120 },
+          { "cuadro": "quieto", "ms": 160 }
+        ]
+      },
+      "feliz": {
+        "descripcion": "Da dos saltitos de alegría con corazones.",
+        "fijo": "feliz",
+        "pasos": [
+          { "cuadro": "feliz", "ms": 110, "estirar": [1.12, 0.88] },
+          { "cuadro": "feliz", "ms": 80, "dy": -3 },
+          { "cuadro": "feliz", "ms": 130, "dy": -6 },
+          { "cuadro": "feliz", "ms": 80, "dy": -3 },
+          { "cuadro": "feliz", "ms": 100, "estirar": [1.1, 0.9] },
+          { "cuadro": "feliz", "ms": 110, "estirar": [1.12, 0.88] },
+          { "cuadro": "feliz", "ms": 80, "dy": -2 },
+          { "cuadro": "feliz", "ms": 130, "dy": -4 },
+          { "cuadro": "feliz", "ms": 80, "dy": -2 },
+          { "cuadro": "feliz", "ms": 100, "estirar": [1.1, 0.9] },
+          { "cuadro": "feliz", "ms": 700 }
+        ],
+        "efectos": [
+          { "efecto": "corazon", "en": 150, "x": 36, "y": 2 },
+          { "efecto": "corazon-chico", "en": 500, "x": 2, "y": 6 },
+          { "efecto": "polvo", "en": 400, "x": 4, "y": 42 },
+          { "efecto": "polvo-derecha", "en": 400, "x": 26, "y": 42 },
+          { "efecto": "corazon", "en": 700, "x": 30, "y": -2 }
+        ]
+      },
+      "celebrar": {
+        "descripcion": "¡Bien! Brazos arriba, saltos y chispas.",
+        "fijo": "celebrar",
+        "pasos": [
+          { "cuadro": "celebrar", "ms": 110, "estirar": [1.12, 0.88] },
+          { "cuadro": "celebrar", "ms": 80, "dy": -3 },
+          { "cuadro": "celebrar", "ms": 130, "dy": -6 },
+          { "cuadro": "celebrar", "ms": 80, "dy": -3 },
+          { "cuadro": "celebrar", "ms": 100, "estirar": [1.1, 0.9] },
+          { "cuadro": "celebrar-b", "ms": 160 },
+          { "cuadro": "celebrar", "ms": 160 },
+          { "cuadro": "celebrar-b", "ms": 110, "estirar": [1.12, 0.88] },
+          { "cuadro": "celebrar-b", "ms": 80, "dy": -3 },
+          { "cuadro": "celebrar-b", "ms": 130, "dy": -6 },
+          { "cuadro": "celebrar-b", "ms": 80, "dy": -3 },
+          { "cuadro": "celebrar-b", "ms": 100, "estirar": [1.1, 0.9] },
+          { "cuadro": "celebrar", "ms": 160 },
+          { "cuadro": "celebrar-b", "ms": 160 },
+          { "cuadro": "celebrar", "ms": 500 }
+        ],
+        "efectos": [
+          { "efecto": "chispa", "en": 80, "x": 2, "y": 4 },
+          { "efecto": "chispa", "en": 260, "x": 38, "y": 0 },
+          { "efecto": "chispa", "en": 500, "x": 20, "y": -8 },
+          { "efecto": "chispa", "en": 760, "x": 42, "y": 14 },
+          { "efecto": "chispa", "en": 900, "x": -2, "y": 16 },
+          { "efecto": "chispa", "en": 1150, "x": 30, "y": -6 },
+          { "efecto": "chispa", "en": 1400, "x": 6, "y": -4 },
+          { "efecto": "chispa", "en": 1600, "x": 40, "y": 6 }
+        ]
+      },
+      "sorpresa": {
+        "descripcion": "¡Anda! Da un respingo con una exclamación.",
+        "fijo": "sorpresa",
+        "pasos": [
+          { "cuadro": "quieto", "ms": 80 },
+          { "cuadro": "sorpresa", "ms": 120, "dy": -3, "estirar": [0.92, 1.08] },
+          { "cuadro": "sorpresa", "ms": 90, "dy": -1 },
+          { "cuadro": "sorpresa", "ms": 1100 }
+        ],
+        "efectos": [
+          { "efecto": "exclamacion", "en": 80, "x": 37, "y": -4 }
+        ]
+      },
+      "confundido": {
+        "descripcion": "No lo entiende: ladea la cabeza a un lado y a otro con una interrogación.",
+        "fijo": "confundido",
+        "pasos": [
+          { "cuadro": "confundido", "ms": 700 },
+          { "cuadro": "confundido-b", "ms": 700 },
+          { "cuadro": "confundido", "ms": 700 },
+          { "cuadro": "quieto", "ms": 200 }
+        ],
+        "efectos": [
+          { "efecto": "interrogacion", "en": 100, "x": 36, "y": -4 }
+        ]
+      },
+      "triste": {
+        "descripcion": "Orejas gachas y una gota de sudor.",
+        "fijo": "triste",
+        "pasos": [
+          { "cuadro": "triste", "ms": 600 },
+          { "cuadro": "triste-b", "ms": 900 },
+          { "cuadro": "triste", "ms": 600 },
+          { "cuadro": "triste-b", "ms": 900 },
+          { "cuadro": "triste", "ms": 400 }
+        ],
+        "efectos": [
+          { "efecto": "sudor", "en": 300, "x": 31, "y": 12 }
+        ]
+      },
+      "error": {
+        "descripcion": "Algo ha fallado: se sacude, pone ojos en cruz y sale una cruz.",
+        "fijo": "error",
+        "pasos": [
+          { "cuadro": "error", "ms": 70, "dx": -1 },
+          { "cuadro": "error", "ms": 70, "dx": 1 },
+          { "cuadro": "error", "ms": 70, "dx": -1 },
+          { "cuadro": "error", "ms": 70, "dx": 1 },
+          { "cuadro": "error", "ms": 70 },
+          { "cuadro": "error", "ms": 1300 }
+        ],
+        "efectos": [
+          { "efecto": "error", "en": 60, "x": 36, "y": -2 },
+          { "efecto": "sudor", "en": 300, "x": 31, "y": 12 }
+        ]
+      },
+      "dormir": {
+        "descripcion": "Le entra sueño, cabecea y se hace un ovillo (sigue con «durmiendo»).",
+        "fijo": "ovillo",
+        "luego": "durmiendo",
+        "pasos": [
+          { "cuadro": "adormilado", "ms": 600 },
+          { "cuadro": "cabeceo", "ms": 450 },
+          { "cuadro": "adormilado", "ms": 300 },
+          { "cuadro": "cabeceo", "ms": 600 },
+          { "cuadro": "ovillo", "ms": 120, "estirar": [1.08, 0.92] },
+          { "cuadro": "ovillo", "ms": 500 }
+        ]
+      },
+      "durmiendo": {
+        "descripcion": "Dormido hecho un ovillo, respirando, con zetas.",
+        "bucle": true,
+        "pasos": [
+          { "cuadro": "ovillo", "ms": 1300 },
+          { "cuadro": "ovillo-respira", "ms": 1300 }
+        ],
+        "efectos": [
+          { "efecto": "zzz", "en": 200, "x": 28, "y": 18 },
+          { "efecto": "zzz-grande", "en": 1400, "x": 30, "y": 14 }
+        ]
+      },
+      "bostezar": {
+        "descripcion": "Un bostezo enorme con los ojos cerrados.",
+        "fijo": "bostezo-b",
+        "pasos": [
+          { "cuadro": "quieto", "ms": 150 },
+          { "cuadro": "bostezo", "ms": 250 },
+          { "cuadro": "bostezo-b", "ms": 1000, "estirar": [0.96, 1.04] },
+          { "cuadro": "bostezo", "ms": 220 },
+          { "cuadro": "quieto-parpadeo", "ms": 200 },
+          { "cuadro": "quieto", "ms": 300 }
+        ]
+      },
+      "buscar": {
+        "descripcion": "Busca con la lupa, mirando a un lado y arriba.",
+        "bucle": true,
+        "pasos": [
+          { "cuadro": "buscar", "ms": 650 },
+          { "cuadro": "buscar-b", "ms": 650 },
+          { "cuadro": "buscar", "ms": 650 },
+          { "cuadro": "buscar-b", "ms": 500 },
+          { "cuadro": "buscar", "ms": 300, "dx": 1 }
+        ]
+      },
+      "leer": {
+        "descripcion": "Lee un libro: los ojos van de un lado a otro y pasa la hoja.",
+        "bucle": true,
+        "pasos": [
+          { "cuadro": "leer", "ms": 700 },
+          { "cuadro": "leer-b", "ms": 700 },
+          { "cuadro": "leer", "ms": 700 },
+          { "cuadro": "leer-b", "ms": 700 },
+          { "cuadro": "leer-hoja", "ms": 260 }
+        ]
+      },
+      "trabajar": {
+        "descripcion": "Teclea en su portátil con la lengua fuera y un engranaje que gira: está usando una herramienta.",
+        "bucle": true,
+        "pasos": [
+          { "cuadro": "trabajar", "ms": 140 },
+          { "cuadro": "trabajar-b", "ms": 140 },
+          { "cuadro": "trabajar", "ms": 140 },
+          { "cuadro": "trabajar-b", "ms": 140 },
+          { "cuadro": "trabajar", "ms": 140 },
+          { "cuadro": "trabajar-b", "ms": 140 },
+          { "cuadro": "trabajar", "ms": 500 },
+          { "cuadro": "trabajar-b", "ms": 140 },
+          { "cuadro": "trabajar", "ms": 140 },
+          { "cuadro": "trabajar-b", "ms": 140 },
+          { "cuadro": "trabajar", "ms": 400 }
+        ],
+        "efectos": [
+          { "efecto": "engranaje", "en": 0, "x": 36, "y": 0 },
+          { "efecto": "chispa", "en": 900, "x": 2, "y": 26 }
+        ]
+      },
+      "despedirse": {
+        "descripcion": "Dice adiós con la patita y hace una reverencia.",
+        "fijo": "despedirse",
+        "pasos": [
+          { "cuadro": "despedirse", "ms": 300 },
+          { "cuadro": "despedirse-b", "ms": 300 },
+          { "cuadro": "despedirse", "ms": 300 },
+          { "cuadro": "despedirse-b", "ms": 300 },
+          { "cuadro": "despedirse", "ms": 300 },
+          { "cuadro": "reverencia", "ms": 500 },
+          { "cuadro": "quieto-feliz", "ms": 500 }
+        ],
+        "efectos": [
+          { "efecto": "corazon-chico", "en": 400, "x": 34, "y": 8 }
+        ]
+      },
+      "asentir": {
+        "descripcion": "Dice que sí con la cabeza.",
+        "fijo": "asentir",
+        "pasos": [
+          { "cuadro": "quieto-feliz", "ms": 120 },
+          { "cuadro": "asentir", "ms": 160 },
+          { "cuadro": "quieto-feliz", "ms": 140 },
+          { "cuadro": "asentir", "ms": 160 },
+          { "cuadro": "quieto-feliz", "ms": 400 }
+        ]
+      },
+      "negar": {
+        "descripcion": "Dice que no con la cabeza.",
+        "fijo": "negar",
+        "pasos": [
+          { "cuadro": "negar", "ms": 130 },
+          { "cuadro": "negar-b", "ms": 130 },
+          { "cuadro": "negar", "ms": 130 },
+          { "cuadro": "negar-b", "ms": 130 },
+          { "cuadro": "negar", "ms": 130 },
+          { "cuadro": "quieto", "ms": 300 }
+        ]
+      },
+      "guiñar": {
+        "descripcion": "Guiña un ojo con la lengua fuera y un destello.",
+        "fijo": "guiñar",
+        "pasos": [
+          { "cuadro": "quieto", "ms": 100 },
+          { "cuadro": "guiñar", "ms": 900 },
+          { "cuadro": "quieto-feliz", "ms": 300 }
+        ],
+        "efectos": [
+          { "efecto": "chispa", "en": 120, "x": 26, "y": 14 }
+        ]
+      },
+      "idea": {
+        "descripcion": "¡Se le ocurre algo! Se enciende una bombilla.",
+        "fijo": "sorpresa",
+        "pasos": [
+          { "cuadro": "quieto", "ms": 100 },
+          { "cuadro": "sorpresa", "ms": 120, "dy": -2 },
+          { "cuadro": "sorpresa", "ms": 300 },
+          { "cuadro": "feliz", "ms": 900 }
+        ],
+        "efectos": [
+          { "efecto": "idea", "en": 100, "x": 31, "y": -8 },
+          { "efecto": "chispa", "en": 300, "x": 40, "y": -4 }
+        ]
+      },
+      "cantar": {
+        "descripcion": "Tararea balanceándose, con notas musicales.",
+        "bucle": true,
+        "pasos": [
+          { "cuadro": "cantar", "ms": 400 },
+          { "cuadro": "cantar-b", "ms": 400 },
+          { "cuadro": "cantar", "ms": 400 },
+          { "cuadro": "cantar-b", "ms": 400 }
+        ],
+        "efectos": [
+          { "efecto": "nota", "en": 0, "x": 34, "y": 6 },
+          { "efecto": "notas", "en": 800, "x": 2, "y": 4 }
+        ]
+      },
+      "despertar": {
+        "descripcion": "Se despierta del ovillo, se sienta y bosteza.",
+        "fijo": "bostezo-b",
+        "pasos": [
+          { "cuadro": "ovillo", "ms": 300 },
+          { "cuadro": "adormilado", "ms": 120, "estirar": [0.94, 1.06] },
+          { "cuadro": "adormilado", "ms": 400 },
+          { "cuadro": "bostezo", "ms": 200 },
+          { "cuadro": "bostezo-b", "ms": 800 },
+          { "cuadro": "quieto-parpadeo", "ms": 150 },
+          { "cuadro": "quieto", "ms": 300 }
+        ]
+      }
+    },
+    "icono": {
+      "quieto": {
+        "descripcion": "El icono del raíl: parpadea a ratos.",
+        "bucle": true,
+        "pasos": [
+          { "cuadro": "icono-quieto", "ms": 2600 },
+          { "cuadro": "icono-parpadeo", "ms": 120 },
+          { "cuadro": "icono-quieto", "ms": 1800 },
+          { "cuadro": "icono-parpadeo", "ms": 100 },
+          { "cuadro": "icono-quieto", "ms": 140 },
+          { "cuadro": "icono-parpadeo", "ms": 100 }
+        ]
+      },
+      "atento": {
+        "descripcion": "Orejas arriba y ojos grandes: escucha.",
+        "bucle": true,
+        "pasos": [
+          { "cuadro": "icono-atento", "ms": 1800 },
+          { "cuadro": "icono-atento-parpadeo", "ms": 110 },
+          { "cuadro": "icono-atento", "ms": 1200 },
+          { "cuadro": "icono-quieto", "ms": 120 }
+        ]
+      },
+      "pensando": {
+        "descripcion": "Mira arriba a un lado y a otro, con un destello.",
+        "bucle": true,
+        "pasos": [
+          { "cuadro": "icono-pensando", "ms": 700 },
+          { "cuadro": "icono-pensando-b", "ms": 700 }
+        ],
+        "efectos": [
+          { "efecto": "icono-chispa", "en": 200, "x": 10, "y": 2 }
+        ]
+      },
+      "hablando": {
+        "descripcion": "Abre y cierra la boca.",
+        "bucle": true,
+        "pasos": [
+          { "cuadro": "icono-hablando", "ms": 130 },
+          { "cuadro": "icono-quieto", "ms": 100 },
+          { "cuadro": "icono-hablando-b", "ms": 140 },
+          { "cuadro": "icono-quieto", "ms": 110 },
+          { "cuadro": "icono-hablando", "ms": 120 },
+          { "cuadro": "icono-parpadeo", "ms": 100 }
+        ]
+      },
+      "feliz": {
+        "descripcion": "Ojos felices, un botecito y un corazón.",
+        "fijo": "icono-feliz",
+        "pasos": [
+          { "cuadro": "icono-feliz", "ms": 120, "dy": 1 },
+          { "cuadro": "icono-feliz", "ms": 120 },
+          { "cuadro": "icono-feliz", "ms": 120, "dy": 1 },
+          { "cuadro": "icono-feliz", "ms": 1200 }
+        ],
+        "efectos": [
+          { "efecto": "icono-corazon", "en": 100, "x": 9, "y": 4 }
+        ]
+      },
+      "durmiendo": {
+        "descripcion": "Dormido, con una zeta.",
+        "bucle": true,
+        "pasos": [
+          { "cuadro": "icono-durmiendo", "ms": 1300 },
+          { "cuadro": "icono-durmiendo-b", "ms": 1300 }
+        ],
+        "efectos": [
+          { "efecto": "icono-zeta", "en": 300, "x": 10, "y": 3 }
+        ]
+      }
+    }
+  },
+  "ejemploClaude": {
+    "nombre": "Ejemplo para el asistente: una animación nueva hecha solo con cuadros y efectos de serie",
+    "animaciones": {
+      "cuerpo": {
+        "claude-bailar": {
+          "descripcion": "Baila de alegría: se balancea a un lado y a otro, da un saltito y acaba con los brazos arriba.",
+          "pasos": [
+            { "cuadro": "cantar", "ms": 220 },
+            { "cuadro": "cantar", "ms": 220, "voltear": true },
+            { "cuadro": "feliz", "ms": 140, "dy": -3 },
+            { "cuadro": "feliz", "ms": 110, "estirar": [1.1, 0.9] },
+            { "cuadro": "cantar", "ms": 220 },
+            { "cuadro": "cantar", "ms": 220, "voltear": true },
+            { "cuadro": "celebrar", "ms": 500 }
+          ],
+          "efectos": [
+            { "efecto": "nota", "en": 0, "x": 34, "y": 4 },
+            { "efecto": "notas", "en": 440, "x": 2, "y": 4 },
+            { "efecto": "chispa", "en": 1100, "x": 20, "y": -6 }
+          ]
+        }
+      }
+    }
+  }
+}
