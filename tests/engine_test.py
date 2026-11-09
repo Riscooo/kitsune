@@ -1059,6 +1059,39 @@ class TargetTests(unittest.TestCase):
         self.assertIn("--use-upx", repackages[0])
 
 
+    def test_from_gecko_159_the_uninstaller_is_rebuilt_in_spanish_with_kitsunes_own_make_rule(self):
+        base = Path(tempfile.mkdtemp())
+        layout = engine.Layout(base / "data", base / "state", base / "cache")
+        source = base / "src"
+        (source / "toolkit/mozapps/installer/windows/nsis").mkdir(parents=True)
+        (source / "toolkit/mozapps/installer/windows/nsis/makensis.mk").write_text("installer:: $(CONFIG_DIR)/setup.exe\n")
+        (source / "browser/installer/windows").mkdir(parents=True)
+        (source / "browser/installer/windows/Makefile.in").write_text("stage_installer:\n\ttrue\n")
+        dist = layout.cache / "obj-159.0.1-windows/dist"
+        (dist / "bin/uninstall").mkdir(parents=True)
+        (dist / "bin/uninstall/helper.exe").write_bytes(b"MZ")
+        (layout.cache / "obj-159.0.1-windows/browser/locales/merge-dir/es-ES/browser/installer").mkdir(parents=True)
+        with zipfile.ZipFile(dist / "kitsune-159.0.1.en-US.win64.zip", "w") as archive:
+            archive.writestr("kitsune/kitsune.exe", b"MZ")
+
+        def addons(layout, target, log):
+            target.mkdir(parents=True, exist_ok=True)
+            (target / "uBlock0@raymondhill.net.xpi").write_bytes(b"xpi")
+        calls = []
+        run = lambda command, **kwargs: calls.append(command) or types.SimpleNamespace(returncode=0)
+        engine.finish_windows_package(layout, "159.0.1", source, {}, base / "build.log", log=lambda *_: None, run=run, addons=addons)
+        makes = [command for command in calls if command[0] == "make"]
+        self.assertEqual(makes[0][-1], "kitsune-uninstaller")
+        self.assertIn(engine.UNINSTALLER_MK, makes[0])
+        self.assertIn("AB_CD=es-ES", makes[0])
+        self.assertEqual(makes[1][-1], "instgen/setup.exe")
+        rule = (layout.cache / "obj-159.0.1-windows/browser/installer/windows" / engine.UNINSTALLER_MK).read_text()
+        self.assertIn("--nsi=uninstaller.nsi", rule)
+        self.assertIn("stage_installer", rule)
+        self.assertTrue(engine.legacy_uninstaller(base / "otra"))
+        (source / "browser/installer/windows/Makefile.in").write_text("uninstaller::\n\ttrue\n")
+        self.assertTrue(engine.legacy_uninstaller(source))
+
     def test_kitsune_zero_for_windows_gets_its_product_prefs_and_its_own_installer(self):
         base = Path(tempfile.mkdtemp())
         layout = engine.Layout(base / "data", base / "state", base / "cache")

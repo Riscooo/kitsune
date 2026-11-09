@@ -1746,6 +1746,26 @@ def release_prefs(folder: Path) -> Path:
     return path
 
 
+# Desde Gecko 159 el desinstalador (uninstall/helper.exe) lo hace la compilación, solo en inglés, y ya no hay «make
+# uninstaller». Kitsune lo rehace en el idioma del instalador con la misma herramienta de Mozilla (nsis_build), desde
+# lo que prepara stage_installer, y lo deja donde lo coge el paquete.
+UNINSTALLER_MK = "kitsune-desinstalador.mk"
+UNINSTALLER_RULE = (
+    "# Kitsune: el desinstalador en el idioma de AB_CD (Gecko 159 ya no tiene «make uninstaller»).\n"
+    "kitsune-uninstaller:\n"
+    "\t$(MAKE) -f Makefile stage_installer\n"
+    "\t$(call py_action,nsis_build helper.exe,--config-dir=$(CONFIG_DIR) --nsi=uninstaller.nsi --makensis=$(MAKENSISU) "
+    "$(addprefix --makensis-flag=,$(MAKENSISU_FLAGS)) --output=$(ABS_DIST)/bin/uninstall/helper.exe)\n"
+)
+
+
+def legacy_uninstaller(source: Path) -> bool:
+    """¿Tiene este Gecko su regla «uninstaller» (hasta 158)? Sin los archivos para mirarlo, se supone que sí."""
+    files = [source / "toolkit/mozapps/installer/windows/nsis/makensis.mk", source / "browser/installer/windows/Makefile.in"]
+    texts = [path.read_text() for path in files if path.is_file()]
+    return not texts or any(re.search(r"^uninstaller::?", text, re.M) for text in texts)
+
+
 def finish_windows_package(layout: Layout, version: str, source: Path, env, logfile: Path, log=print, run=subprocess.run,
                            addons=distribution_addons, product="kitsune"):
     """Lo que en Linux se añade al instalar el motor, dentro del paquete de Windows:
@@ -1758,14 +1778,20 @@ def finish_windows_package(layout: Layout, version: str, source: Path, env, logf
     # preparado package-multi-locale. Si algo falla, se rehacen en inglés.
     merge = objdir / "browser/locales/merge-dir/es-ES"
 
+    legacy = legacy_uninstaller(source)
+
     def nsis(target, spanish):
         (nsis_dir / "instgen/helper.exe").unlink(missing_ok=True)
         locale = ["AB_CD=es-ES", f"REAL_LOCALE_MERGEDIR={merge}"] if spanish else []
+        command = ["make", "-C", str(nsis_dir), *locale, target]
+        if target == "uninstaller" and not legacy:
+            nsis_dir.mkdir(parents=True, exist_ok=True)
+            (nsis_dir / UNINSTALLER_MK).write_text(UNINSTALLER_RULE)
+            command = ["make", "-C", str(nsis_dir), "-f", "Makefile", "-f", UNINSTALLER_MK, *locale, "kitsune-uninstaller"]
         with logfile.open("a") as handle:
             handle.write(f"\n=== {now()} make {target} {'es-ES' if spanish else 'en-US'}\n")
             handle.flush()
-            return run(["make", "-C", str(nsis_dir), *locale, target], env=env, stdin=subprocess.DEVNULL,
-                       stdout=handle, stderr=subprocess.STDOUT).returncode == 0
+            return run(command, env=env, stdin=subprocess.DEVNULL, stdout=handle, stderr=subprocess.STDOUT).returncode == 0
     spanish = (merge / "browser/installer").is_dir() and nsis("uninstaller", True) and nsis("instgen/setup.exe", True)
     if not spanish:
         log("El instalador se queda en inglés: no se pudieron preparar los textos en castellano")
