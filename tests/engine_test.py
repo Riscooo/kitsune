@@ -450,6 +450,23 @@ class RecipeTests(unittest.TestCase):
         with self.assertRaises(engine.EngineError):
             engine.tune_build(root)
 
+    def test_gecko_159_thin_lto_lives_in_mozbuild(self):
+        root = self.source_tree()
+        rules = root / "config/makefiles/rust.mk"
+        rules.parent.mkdir(parents=True)
+        rules.write_text("# The check only works when rust code is built with -Clto but without MOZ_LTO_RUST_CROSS.\n")
+        commands = root / engine.RUST_COMMANDS
+        commands.parent.mkdir(parents=True)
+        commands.write_text("    if applies_library_lto(cmd.kind, cmd.lto, substs):\n" + engine.RUST_COMMANDS_LTO)
+        (root / "browser/moz.configure").write_text(engine.UA_ANCHOR + "\n")
+        engine.tune_build(root)
+        engine.tune_build(root)
+        self.assertEqual(commands.read_text().count(engine.RUST_COMMANDS_THIN), 1)
+        self.assertNotIn('"-Clto")', commands.read_text())
+        commands.write_text("moved again\n")
+        with self.assertRaises(engine.EngineError):
+            engine.tune_build(root)
+
     def test_zero_is_built_in_as_its_own_folder_and_counts_for_the_fingerprint(self):
         root = self.source_tree()
         engine.integrate_native(root)

@@ -57,6 +57,10 @@ RUST_FAT_LTO = "cargo_rustc_flags += -Clto$(if $(filter full,$(MOZ_LTO_RUST_CROS
 # Desde Gecko 158 la línea es más sencilla (sin el caso de LTO cruzado).
 RUST_PLAIN_LTO = "cargo_rustc_flags += -Clto\n"
 RUST_THIN_LTO = "cargo_rustc_flags += -Clto=thin"
+# Desde Gecko 159 la bandera la pone mozbuild al montar la orden de cargo.
+RUST_COMMANDS = "python/mozbuild/mozbuild/rust_commands.py"
+RUST_COMMANDS_LTO = '        flags.append("-Clto")\n'
+RUST_COMMANDS_THIN = '        flags.append("-Clto=thin")\n'
 # The user agent keeps Firefox's standard product token (websites decide by it)
 # while the application identity is Kitsune. Gecko only accepts this implied.
 UA_ANCHOR = 'imply_option("MOZ_DEVTOOLS", "all")'
@@ -694,7 +698,7 @@ def recipe_code() -> str:
                                                           optimization_options)]
     parts += [BRAND_FTL, BRAND_PROPERTIES, BRAND_CONFIGURE, KITSUNE_BOOTSTRAP, ABOUT_CREDIT, RUST_THIN_LTO,
               json.dumps(TEXT_PATCHES, sort_keys=True), json.dumps(TEXT_PATCHES_ONLY_IF, sort_keys=True), repr(sorted(MASCOT_GONE_OK)),
-              KITSUNE_BOOKMARKS, SUPPORT_LINK_HIDDEN, SUPPORT_LINK_HIDDEN_158, RUST_PLAIN_LTO,
+              KITSUNE_BOOKMARKS, SUPPORT_LINK_HIDDEN, SUPPORT_LINK_HIDDEN_158, RUST_PLAIN_LTO, RUST_COMMANDS_THIN,
               json.dumps(MASCOT_POSES, sort_keys=True), repr(KITSUNE_LOGOS), json.dumps(L10N_PATCHES, sort_keys=True),
               repr(L10N_LOCALES), L10N_REPO,
               UA_FIREFOX, json.dumps(BRAND_CONTENT, sort_keys=True), repr(ICON_SIZES), repr(NATIVE_FILES),
@@ -1031,7 +1035,13 @@ def tune_build(source: Path):
     """Build-system settings for this PC's memory. Idempotent."""
     rules = source / "config/makefiles/rust.mk"
     text = rules.read_text()
-    if RUST_THIN_LTO not in text:
+    commands = source / RUST_COMMANDS
+    if commands.is_file() and RUST_FAT_LTO not in text and RUST_PLAIN_LTO not in text and RUST_THIN_LTO not in text:
+        # Gecko 159: las órdenes de cargo salen de mozbuild (rust_commands.py), no de rust.mk.
+        code = commands.read_text()
+        if RUST_COMMANDS_THIN not in code:
+            commands.write_text(replace_once(code, RUST_COMMANDS_LTO, RUST_COMMANDS_THIN, "La optimización LTO de Rust"))
+    elif RUST_THIN_LTO not in text:
         if text.count(RUST_PLAIN_LTO) == 1 and RUST_FAT_LTO not in text:
             rules.write_text(text.replace(RUST_PLAIN_LTO, RUST_THIN_LTO + "\n"))
         else:
