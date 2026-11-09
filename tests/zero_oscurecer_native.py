@@ -7,6 +7,11 @@ las que solo son claras se oscurecen («el modo oscuro, vaya»), con el actor de
 2. Una web con su propio modo oscuro llega oscura y no se toca (no se invierte a clara).
 3. En Claro, la web clara se ve clara.
 4. «No oscurecer esta web», en el menú de la página, la deja como es; y «Oscurecer esta web» la vuelve a oscurecer.
+5. Los documentos se leen (Risco, 9-11: «en los Word, en los PowerPoint… no se lee nada»): el texto pintado en un
+   lienzo transparente (Google Docs) sale claro sobre oscuro; el texto encima de una imagen (el fondo de una
+   diapositiva) se ve con sus colores, sobre la imagen; y un marco claro dentro de una web oscura se oscurece solo.
+
+--oscurecer-del-repo: el actor que oscurece sale de install/native del repositorio (sin compilar el motor).
 
 --zero-del-repo: Zero sale de zero/ del repositorio (ver zero_harness.py). El actor que oscurece es de
 Kitsune: hace falta un motor compilado con él.
@@ -33,6 +38,12 @@ def red_png():
     return base64.b64encode(buffer.getvalue()).decode()
 
 
+def white_png():
+    buffer = io.BytesIO()
+    Image.new('RGB', (64, 36), (252, 252, 250)).save(buffer, 'PNG')
+    return base64.b64encode(buffer.getvalue()).decode()
+
+
 PAGES = {
     # Clara y sin versión oscura: fondo blanco, texto negro y una foto roja.
     '/clara': f"""<!doctype html><meta charset="utf-8"><title>Clara</title>
@@ -40,6 +51,23 @@ PAGES = {
 <p style="padding:20px">Una web clara, sin modo oscuro.</p>
 <img id="foto" src="data:image/png;base64,{red_png()}" style="position:absolute;left:300px;top:200px;width:80px;height:80px">
 </body>""",
+    # Un editor que pinta el texto en un lienzo transparente, como Google Docs.
+    '/lienzo': """<!doctype html><meta charset="utf-8"><title>Lienzo</title>
+<body style="margin:0;background:#fff;color:#111;font:16px sans-serif">
+<canvas class="kix-mosaico" width="640" height="360" style="position:absolute;left:100px;top:100px;width:640px;height:360px"></canvas>
+<script>const c = document.querySelector('canvas').getContext('2d'); c.fillStyle = '#111'; c.font = 'bold 44px sans-serif';
+for (let i = 0; i < 6; i++) c.fillText('Hola desde un lienzo', 20, 60 + i * 52);</script></body>""",
+    # Una diapositiva: su fondo es una imagen blanca y el texto (negro) va encima.
+    '/diapositiva': f"""<!doctype html><meta charset="utf-8"><title>Diapositiva</title>
+<body style="margin:0;background:#fff;color:#111;font:16px sans-serif">
+<div class="slide" style="position:absolute;left:100px;top:100px;width:640px;height:360px">
+<img src="data:image/png;base64,{white_png()}" style="position:absolute;inset:0;width:100%;height:100%">
+<div class="caja" style="position:absolute;left:40px;top:120px;font:bold 56px sans-serif;color:#111">Diapositiva legible</div>
+</div></body>""",
+    # Una web oscura con un marco claro dentro (como Word en la web, que va en un marco).
+    '/marco': """<!doctype html><meta charset="utf-8"><title>Marco</title>
+<body style="margin:0;background:#151515;color:#eee">
+<iframe src="/clara" style="position:absolute;left:100px;top:100px;width:700px;height:500px;border:0"></iframe></body>""",
     # Con su propio modo oscuro.
     '/oscura': """<!doctype html><meta charset="utf-8"><title>Oscura</title><meta name="color-scheme" content="light dark">
 <style>body{margin:0;background:#fff;color:#111}@media (prefers-color-scheme: dark){body{background:#202020;color:#eee}}</style>
@@ -64,6 +92,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--browser', type=Path, default=Path.home() / '.local/share/kitsune-browser/engine/current/kitsune')
     parser.add_argument('--zero-del-repo', action='store_true')
+    parser.add_argument('--oscurecer-del-repo', action='store_true')
     args = parser.parse_args()
     root = Path(tempfile.mkdtemp(prefix='kitsune-zero-oscurecer-'))
     evidence = root / 'evidence'; evidence.mkdir()
@@ -102,6 +131,8 @@ def main():
     try:
         driver = WebDriver(profile, evidence, browser=args.browser)
         zero_harness.prepare(chrome, args.zero_del_repo)
+        if args.oscurecer_del_repo:
+            zero_harness.darken_from_repo(chrome)
         eventually(lambda: chrome("return !!document.getElementById('kitsune-zero-key')"), timeout=10)
         chrome("document.getElementById('kitsune-zero-key').doCommand()")
         eventually(lambda: chrome("return document.documentElement.hasAttribute('zero')"), timeout=10)
@@ -143,6 +174,35 @@ def main():
         assert item['label'] == 'Oscurecer esta web', item
         until(lambda: page('sin-excepcion')['background'] < 60, lambda: f'«Oscurecer esta web» no la vuelve a oscurecer: {page("sin-excepcion-fallo")}')
         check('«No oscurecer esta web» la deja como es, y «Oscurecer esta web» la vuelve a oscurecer')
+
+        def region(name, box):
+            """Los tonos (luminancia 0–255) de una zona de la captura: el más oscuro, el más claro y el que más hay."""
+            driver.context('content')
+            img = Image.open(driver.screenshot(f'{next(shots):02d}-{name}.png')).convert('L')
+            k = driver.script('return devicePixelRatio')
+            crop = img.crop(tuple(int(v * k) for v in box))
+            hist = crop.histogram()
+            values = [v for v, n in enumerate(hist) if n]
+            return {'min': values[0], 'max': values[-1], 'mode': max(range(256), key=lambda v: hist[v])}
+
+        driver.navigate(origin + '/lienzo')
+        # El fondo, oscuro, y en el lienzo letras claras: lo que más hay es oscuro y hay tinta clara de verdad.
+        until(lambda: (z := region('lienzo', (110, 110, 730, 450)))['mode'] < 60 and z['max'] > 180,
+              lambda: f'el texto del lienzo no se lee en oscuro: {region("lienzo-fallo", (110, 110, 730, 450))}', timeout=8)
+        check('El texto pintado en un lienzo transparente (como Google Docs) sale claro sobre la página oscura')
+
+        driver.navigate(origin + '/diapositiva')
+        # La diapositiva conserva su papel blanco y su texto negro: los dos con el color con que se diseñaron.
+        until(lambda: (z := region('diapositiva', (110, 110, 730, 450)))['mode'] > 200 and z['min'] < 70,
+              lambda: f'el texto sobre la imagen de la diapositiva no se lee: {region("diapositiva-fallo", (110, 110, 730, 450))}', timeout=8)
+        outside = region('diapositiva-fuera', (800, 40, 1000, 90))
+        assert outside['mode'] < 60, f'la página alrededor de la diapositiva no se oscurece: {outside}'
+        check('El texto encima de una imagen (el fondo de una diapositiva) se ve con sus colores, sobre la imagen')
+
+        driver.navigate(origin + '/marco')
+        until(lambda: region('marco', (600, 520, 790, 590))['mode'] < 60,
+              lambda: f'el marco claro dentro de la web oscura sigue claro: {region("marco-fallo", (600, 520, 790, 590))}', timeout=8)
+        check('Un marco claro dentro de una web oscura se oscurece él solo (Word y PowerPoint en la web van en uno)')
         report['status'] = 'passed'
     finally:
         if driver: driver.close()

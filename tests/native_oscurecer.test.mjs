@@ -23,7 +23,7 @@ function load(preferences = new Map()) {
     } },
   });
   vm.runInContext(source.replaceAll('export function', 'function').replace('export class', 'class') +
-    '\nglobalThis.api = { parseColor, isLightPage, KitsuneOscurecerChild, PAGE_SHEET, PDF_SHEET };', context);
+    '\nglobalThis.api = { parseColor, isLightPage, classifyPixels, selectorOf, documentRules, KitsuneOscurecerChild, PAGE_SHEET, PDF_SHEET };', context);
   return { api: context.api, observers, preferences, shared };
 }
 
@@ -165,4 +165,47 @@ test('dark pages, dark-scheme browsing off, images and other documents are left 
   const other = page();
   child(api, other).handleEvent({ type: 'DOMContentLoaded', target: {} });
   assert.deepEqual(other.sheets, []);
+});
+
+test('a canvas is paper when it is mostly clear or white with some dark ink (Google Docs), an image otherwise', () => {
+  const { api } = load();
+  const pixels = (n, fill) => { const data = new Uint8ClampedArray(n * 4); for (let i = 0; i < n; i++) data.set(fill(i), i * 4); return data; };
+  // El mosaico de Google Docs: transparente con letras negras.
+  assert.equal(api.classifyPixels(pixels(2304, i => i % 20 === 0 ? [20, 20, 20, 255] : [0, 0, 0, 0])), 'papel');
+  // La rejilla de una hoja de cálculo: blanca con texto.
+  assert.equal(api.classifyPixels(pixels(2304, i => i % 30 === 0 ? [40, 40, 40, 255] : [255, 255, 255, 255])), 'papel');
+  // Una foto, un juego o un mapa: colores por todas partes.
+  assert.equal(api.classifyPixels(pixels(2304, i => [(i * 7) % 255, (i * 13) % 255, (i * 3) % 255, 255])), 'imagen');
+  // Un lienzo blanco sin tinta (un fondo) no es papel con texto: se deja como estaba.
+  assert.equal(api.classifyPixels(pixels(2304, () => [255, 255, 255, 255])), 'imagen');
+  // Vacío o ilegible: nada.
+  assert.equal(api.classifyPixels(pixels(2304, () => [0, 0, 0, 0])), null);
+  assert.equal(api.classifyPixels(new Uint8ClampedArray(0)), null);
+});
+
+test('an element is pointed at by its unique id or by its path from <body>, without touching the page', () => {
+  const { api } = load();
+  const node = (localName, parentElement = null, id = '') => {
+    const element = { localName, parentElement, id, children: [], childNodes: [] };
+    if (parentElement) parentElement.children.push(element);
+    return element;
+  };
+  const html = node('html'), body = node('body', html);
+  const doc = { body, documentElement: html, querySelectorAll: selector => selector === '#unico' ? [1] : [1, 2] };
+  for (const element of [html, body]) element.ownerDocument = doc;
+  const slide = node('div', body), other = node('div', body), text = node('p', other);
+  for (const element of [slide, other, text]) element.ownerDocument = doc;
+  assert.equal(api.selectorOf(text), 'body>div:nth-child(2)>p:nth-child(1)');
+  other.id = 'unico';
+  assert.equal(api.selectorOf(other), '#unico');
+  // Un id repetido no sirve: el camino.
+  slide.id = 'repetido';
+  assert.equal(api.selectorOf(slide), 'body>div:nth-child(1)');
+  assert.equal(api.selectorOf(null), null);
+});
+
+test('a page without the DOM calls (or a fake one) gets no extra rules, so the fixed sheet stays the same', () => {
+  const { api } = load();
+  assert.equal(api.documentRules(page().window), '');
+  assert.equal(api.documentRules(null), '');
 });

@@ -318,9 +318,12 @@ function recheckDarken() {
   const exceptions = darkenExceptions();
   for (const win of Services.wm.getEnumerator('navigator:browser')) {
     for (const browser of win.gBrowser?.browsers ?? []) {
-      try {
-        browser.browsingContext?.currentWindowGlobal?.getActor('KitsuneOscurecer').sendAsyncMessage('KitsuneOscurecer:Recheck', { exceptions });
-      } catch { /* una página sin el actor (about:, el inicio…) */ }
+      // También los marcos de dentro (Word y PowerPoint en la web van en uno): cada uno se oscurece por su cuenta.
+      for (const context of browser.browsingContext?.getAllBrowsingContextsInSubtree?.() ?? []) {
+        try {
+          context.currentWindowGlobal?.getActor('KitsuneOscurecer').sendAsyncMessage('KitsuneOscurecer:Recheck', { exceptions });
+        } catch { /* una página sin el actor (about:, el inicio…) */ }
+      }
     }
   }
 }
@@ -376,6 +379,9 @@ function registerDarken() {
     child: { esModuleURI: 'chrome://browser/content/kitsune-oscurecer-child.sys.mjs', events: { DOMContentLoaded: {}, pageshow: {} } },
     // El padre solo envía «mírate otra vez» (recheckDarken); el hijo no manda nada.
     parent: { esModuleURI: 'chrome://browser/content/kitsune-oscurecer-parent.sys.mjs' },
+    // Los marcos también (Risco, 9-11): Word y PowerPoint en la web viven en uno. La página de fuera devuelve el marco
+    // a su color y, si lo de dentro es claro, se oscurece él solo.
+    allFrames: true,
     safeForUntrustedWebProcess: true,
     matches: ['http://*/*', 'https://*/*', 'file:///*'],
     messageManagerGroups: ['browsers'],

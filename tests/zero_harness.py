@@ -78,3 +78,34 @@ def prepare(chrome, from_repo: bool):
     # pruebas lo encienden a mano, como el entrar y salir de antes (sin kitsune.product = "zero").
     chrome(BOOT, [HOST])
     chrome(WATCH_NEW, [HOST])
+
+
+# El actor de Kitsune que oscurece las webs, desde el repositorio (sin compilar el motor): su módulo hijo en la carpeta
+# chrome del perfil (el proceso de la web no puede leer el repositorio) y el actor registrado otra vez con las
+# opciones de install/native/kitsune-appearance.sys.mjs.
+DARKEN = """
+const [childPath, profileDir] = arguments;
+return (async () => {
+const target = PathUtils.join(profileDir, 'chrome', 'oscurecer-del-repo');
+await IOUtils.makeDirectory(target, { createAncestors: true });
+const copy = PathUtils.join(target, 'kitsune-oscurecer-child.sys.mjs');
+await IOUtils.copy(childPath, copy);
+const manifest = PathUtils.join(target, 'chrome.manifest');
+await IOUtils.writeUTF8(manifest, 'override chrome://browser/content/kitsune-oscurecer-child.sys.mjs ' + PathUtils.toFileURI(copy) + String.fromCharCode(10));
+const file = Cc['@mozilla.org/file/local;1'].createInstance(Ci.nsIFile);
+file.initWithPath(manifest);
+Components.manager.QueryInterface(Ci.nsIComponentRegistrar).autoRegister(file);
+try { ChromeUtils.unregisterWindowActor('KitsuneOscurecer'); } catch {}
+ChromeUtils.registerWindowActor('KitsuneOscurecer', {
+  child: { esModuleURI: 'chrome://browser/content/kitsune-oscurecer-child.sys.mjs', events: { DOMContentLoaded: {}, pageshow: {} } },
+  parent: { esModuleURI: 'chrome://browser/content/kitsune-oscurecer-parent.sys.mjs' },
+  allFrames: true, safeForUntrustedWebProcess: true,
+  matches: ['http://*/*', 'https://*/*', 'file:///*'], messageManagerGroups: ['browsers'],
+});
+})();
+"""
+
+
+def darken_from_repo(chrome):
+    profile = chrome("return Services.dirsvc.get('ProfD', Ci.nsIFile).path")
+    chrome(DARKEN, [str(ROOT / 'install/native/kitsune-oscurecer-child.sys.mjs'), profile])
