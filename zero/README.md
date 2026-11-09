@@ -40,8 +40,9 @@ la ventana a Zero y la devuelve, con las mismas pestañas. Diseño completo en
   Y dos pequeños que usan el raíl y la isla: `zero-who`, de qué usuario (contenedor) es una pestaña, y
   `zero-icon`, si un favicon es claro sobre transparente (para darle un fondo oscuro).
   `zero-dock.mjs`, `zero-light.mjs`, `zero-music-fit.mjs`, `zero-pomodoro.mjs`, `zero-silence.mjs`,
-  `zero-sounds.mjs`, `zero-ia-flujo.mjs`, `zero-ia-protocolo.mjs` y `zero-config.sys.mjs` son puros y se prueban con
-  Node. Los `zero-ia-*` son el asistente (ver «El asistente», abajo). El pomodoro, el silencio y los sonidos son
+  `zero-sounds.mjs`, `zero-lobo.mjs`, `zero-stats.mjs`, `zero-ia-texto.mjs`, `zero-ia-flujo.mjs`, `zero-ia-protocolo.mjs` y
+  `zero-config.sys.mjs` son puros y se prueban con Node. Los `zero-ia-*` y `zero-asistente` son el asistente (ver
+  «El asistente», abajo). El pomodoro, el silencio y los sonidos son
   opcionales y vienen apagados.
 - `chrome/zero.css`: todo el aspecto, bajo `:root[zero]`. Lo carga `zero.sys.mjs` solo en las
   ventanas con Zero, como hoja de usuario (así sus `!important` pueden con los de Kitsune y Gecko).
@@ -70,6 +71,11 @@ la ventana a Zero y la devuelve, con las mismas pestañas. Diseño completo en
   propia que el sistema puede colocar. Y una pestaña del raíl soltada sobre la web de otra se pone a su lado
   (o se añade a la vista dividida que haya).
 - `assets/`: el logo («máscara en el cero») y los seis sonidos (`zero-sonido-*.ogg`, CC0).
+- El lobo, la mascota del asistente, en pixel art: `zero-lobo.mjs` (validar, combinar y el reproductor
+  que lo pinta en un `<canvas>`) y sus datos, `assets/lobo.json` (la paleta, los cuadros por capas, los
+  efectos y las animaciones del cuerpo, 48×48, y del icono, 24×24). Las animaciones son datos: el
+  asistente puede crear las suyas con el mismo formato y se suman sin pisar las de serie. La hoja y los GIF
+  de muestra, con `node tools/lobo/hoja.mjs`.
 - `linux/`: la regla de niri que desenfoca lo que hay detrás de la ventana (`kitsune-zero.kdl`) y su
   instalador, que la añade a `~/.config/niri/config.kdl` con copia de seguridad. Sin ella, el fondo es
   una foto desenfocada de la web.
