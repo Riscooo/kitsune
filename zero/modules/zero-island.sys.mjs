@@ -353,7 +353,14 @@ export function attach(win, ctx = {}) {
   const refresh = () => {
     const value = input && doc.activeElement === input ? 'typing' : st.hover || st.menus.size || st.focused ? 'open' : '';
     if (value) toolbox.setAttribute('zero-island', value); else toolbox.removeAttribute('zero-island');
+    claim(win, st);
   };
+  st.refresh = refresh;
+  // Sin nada abierto (zero-empty, lo pone zero-frame) la isla es el buscador del centro: una actividad no se
+  // lo quita.
+  const emptyWatch = new win.MutationObserver(() => claim(win, st));
+  emptyWatch.observe(doc.documentElement, { attributes: true, attributeFilter: ['zero-empty'] });
+  st.cleanups.push(() => emptyWatch.disconnect());
   if (input) {
     listen(input, 'focus', refresh);
     listen(input, 'blur', refresh);
@@ -415,6 +422,7 @@ export function detach(win) {
   const toolbox = win.document.getElementById('navigator-toolbox');
   toolbox?.removeAttribute('zero-island');
   toolbox?.removeAttribute('zero-island-alert');
+  toolbox?.removeAttribute('zero-island-live');
   toolbox?.removeAttribute('zero-icons');
 }
 
@@ -431,8 +439,23 @@ const ICONS = {
   done: 'chrome://global/skin/icons/check.svg',
 };
 
+/** Quién manda en la isla: el mensaje (zero-island-alert) o la isla de siempre. Un aviso (corto) solo se aparta
+ *  si se escribe; una actividad (una descarga, que dura) se aparta en cuanto se usa la isla (ratón, foco o
+ *  escribir) y en el buscador del centro (zero-empty): mientras se descarga se sigue pudiendo buscar (Risco,
+ *  9-11). La línea de progreso de la actividad sigue a la vista (zero-island-live). */
+function claim(win, st) {
+  const doc = win.document;
+  const toolbox = doc.getElementById('navigator-toolbox');
+  if (!toolbox) return;
+  const using = toolbox.getAttribute('zero-island') ?? '';
+  const empty = doc.documentElement.hasAttribute('zero-empty');
+  const own = !!st.showing && (st.live ? !using && !empty : using !== 'typing');
+  toolbox.toggleAttribute('zero-island-alert', own);
+  toolbox.toggleAttribute('zero-island-live', !!st.showing && !!st.live);
+}
+
 /** Pinta un mensaje en la isla (aviso o actividad): icono, texto, detalle, barra y clic. */
-function show(win, st, { text, detail = '', icon = null, progress = null, action = null }) {
+function show(win, st, { text, detail = '', icon = null, progress = null, action = null }, live = false) {
   const doc = win.document;
   const mark = ICONS[icon] ? [el(doc, 'span', { class: 'zero-alert-icon', 'aria-hidden': 'true', style: `--zero-icon: url("${ICONS[icon]}")` })] : [];
   st.msg.replaceChildren(...mark, el(doc, 'b', {}, [text]), ...(detail ? [el(doc, 'small', {}, [` · ${detail}`])] : []));
@@ -440,17 +463,21 @@ function show(win, st, { text, detail = '', icon = null, progress = null, action
   st.action = action;
   st.bar.toggleAttribute('on', progress !== null);
   if (progress !== null) st.bar.style.setProperty('--zero-progress', String(Math.min(1, Math.max(0, progress))));
-  doc.getElementById('navigator-toolbox').setAttribute('zero-island-alert', '');
+  st.showing = true;
+  st.live = live;
+  claim(win, st);
 }
 
 /** Cuando acaba un aviso: si hay una actividad (una descarga), vuelve a ella; si no, la isla descansa. */
 function rest(win, st) {
   const latest = [...st.activities.values()].at(-1);
-  if (latest) { show(win, st, latest); return; }
+  if (latest) { show(win, st, latest, true); return; }
   st.msg.removeAttribute('action');
   st.action = null;
   st.bar.removeAttribute('on');
-  win.document.getElementById('navigator-toolbox')?.removeAttribute('zero-island-alert');
+  st.showing = false;
+  st.live = false;
+  claim(win, st);
 }
 
 /** Un aviso en la isla (lo usan el pomodoro y el silencio): se ensancha, lo dice y vuelve. Con
@@ -472,7 +499,7 @@ export function activity(win, key, data) {
   if (!st) return;
   st.activities.delete(key);
   st.activities.set(key, data);
-  if (!st.alerting) show(win, st, data);
+  if (!st.alerting) show(win, st, data, true);
 }
 
 /** Lo que suena en otra pestaña (o null): { playing, title, still, canNext, toggle(), next(),

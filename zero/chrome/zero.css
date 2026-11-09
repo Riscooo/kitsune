@@ -1654,7 +1654,7 @@
   width: calc(var(--zero-progress, 0) * 100%) !important; border-radius: inherit !important;
   background: currentColor !important; transition: width 400ms var(--zero-calm) !important;
 }
-#main-window[zero] #navigator-toolbox[zero-island-alert] #zero-island-progress[on] { opacity: .85 !important; }
+#main-window[zero] #navigator-toolbox:is([zero-island-alert], [zero-island-live]) #zero-island-progress[on] { opacity: .85 !important; }
 #main-window[zero] #nav-bar:is([zero-ink], :where(:root[zero-frame-ink]:not([zero-full])) *) #zero-island-progress { background: rgba(29, 35, 33, .14) !important; }
 
 /* ---------------------------------------------------------------- pantalla completa */
