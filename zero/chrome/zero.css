@@ -147,6 +147,10 @@
 :root[zero] #tabbrowser-tabpanels {
   margin: 46px 26px 26px 50px !important;
 }
+/* Con el panel del lobo abierto en columna, la web le deja su sitio (zero-asistente pone --zero-ia-space al abrirlo o
+   al acabar de estirarlo, nunca en cada fotograma). */
+:root[zero][zero-ia-open][zero-ia-side="right"]:not([zero-full]) #tabbrowser-tabpanels { margin-right: calc(26px + var(--zero-ia-space, 0px)) !important; }
+:root[zero][zero-ia-open][zero-ia-side="left"]:not([zero-full]) #tabbrowser-tabpanels { margin-left: calc(50px + var(--zero-ia-space, 0px)) !important; }
 :root[zero][zero-full] #tabbrowser-tabpanels { margin: 0 !important; }
 :root[zero] #tabbrowser-tabpanels > .browserSidebarContainer {
   border-radius: 18px !important;
@@ -1256,6 +1260,14 @@
 }
 #zero-settings h4 { margin: 2px 2px 10px; font: 600 14px system-ui, sans-serif; display: flex; align-items: center; gap: 8px; }
 #zero-settings h4 .zero-logo { width: 18px; height: 18px; }
+#zero-settings h4 .zero-wolf-mini { width: 24px; height: 24px; image-rendering: pixelated; }
+/* El engranaje de los ajustes (Risco, 9-11), del color de las piezas. */
+.zero-gear {
+  display: inline-block; flex: none; width: 19px; height: 19px; background-color: currentColor;
+  mask: url("chrome://global/skin/icons/settings.svg") center / contain no-repeat;
+  transition: rotate 600ms var(--zero-calm);
+}
+#zero-mark:is(:hover, [open]) .zero-gear { rotate: 60deg; }
 #zero-settings .zero-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 10px; padding: 8px 2px; border-top: 1px solid rgba(29, 35, 33, .08); }
 /* El texto pide su sitio; si con el segmento no cabe, el segmento baja a su línea, a la derecha. */
 #zero-settings .zero-row-text { flex: 1 1 160px; min-width: 0; }
@@ -2211,3 +2223,111 @@
 /* El «+» con el color de las piezas: en Oscuro sobre un fondo claro salía blanco sobre blanco. */
 :root[zero-frame-ink] #zero-shortcuts .zero-shortcut-add .zero-fav { background: rgba(29, 35, 33, .08); color: #1d2321; }
 :root[zero-frame-ink] #zero-shortcuts .zero-shortcut-add:hover .zero-fav { background: rgba(29, 35, 33, .14); }
+
+
+/* ---------------------------------------------------------------- el lobo y su panel (zero-asistente, Risco 9-11) */
+
+/* El botón: la última pastilla de la columna, con el lobo de 16 bits (24 px, sin suavizar). */
+#zero-dock > #zero-wolf { width: 36px; height: 36px; padding: 6px; cursor: pointer; }
+#zero-dock > #zero-wolf[hidden] { display: none; }
+#zero-wolf .zero-wolf-icon { width: 24px; height: 24px; image-rendering: pixelated; transition: transform 200ms var(--zero-calm); }
+#zero-wolf:is(:hover, [open]) .zero-wolf-icon { transform: scale(1.12) translateY(-1px); }
+#zero-wolf:focus-visible { outline: 2px solid rgba(255, 255, 255, .7); outline-offset: 2px; }
+
+/* El panel: la hoja de las piezas, a un lado (en columna, del alto de la web; en la esquina, flotando abajo). */
+#zero-ia {
+  --zero-ia-accent: #3a8f74;
+  position: fixed; z-index: 8; box-sizing: border-box; display: flex; flex-direction: column;
+  top: 46px; bottom: 26px; right: 10px; width: 380px; min-width: 300px;
+  border-radius: 20px; overflow: hidden;
+  color: var(--zero-piece-text); font: 500 13px system-ui, sans-serif;
+  background: var(--zero-sheet);
+  backdrop-filter: blur(18px) saturate(1.6);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .08), 0 24px 60px rgba(0, 0, 0, .36), 0 0 0 .5px rgba(0, 0, 0, .45);
+  opacity: 0; translate: 14px 0; scale: .98; pointer-events: none; visibility: hidden;
+  transition: opacity 220ms var(--zero-soft), translate var(--zero-t-morph) var(--zero-calm), scale var(--zero-t-morph) var(--zero-calm), visibility 0s linear 220ms;
+  -moz-window-dragging: no-drag;
+}
+#zero-ia[side="left"] { right: auto; left: 50px; translate: -14px 0; }
+#zero-ia[shape="corner"] { top: auto; bottom: 26px; right: 26px; }
+#zero-ia[shape="corner"][side="left"] { right: auto; left: 60px; }
+#zero-ia[open] { opacity: 1; translate: 0 0; scale: 1; pointer-events: auto; visibility: visible; transition-delay: 0s; }
+#zero-ia[resizing] { transition: none; user-select: none; }
+:root[zero-frame-ink] #zero-ia { box-shadow: inset 0 1px 0 #fff, 0 24px 60px rgba(18, 22, 28, .16), 0 0 0 .5px rgba(18, 22, 28, .12); --zero-ia-accent: #2f7d64; }
+:root[zero-full] #zero-ia, :root[zero][inDOMFullscreen] #zero-ia { display: none; }
+
+/* Las asas: el borde de dentro (ancho), el de arriba en la esquina (alto) y su esquina (los dos). */
+#zero-ia .zero-ia-grip { position: absolute; z-index: 2; }
+#zero-ia .zero-ia-grip-w { top: 18px; bottom: 18px; left: 0; width: 7px; cursor: ew-resize; }
+#zero-ia[side="left"] .zero-ia-grip-w { left: auto; right: 0; }
+#zero-ia .zero-ia-grip-h { left: 18px; right: 18px; top: 0; height: 7px; cursor: ns-resize; display: none; }
+#zero-ia .zero-ia-grip-c { left: 0; top: 0; width: 16px; height: 16px; cursor: nwse-resize; display: none; }
+#zero-ia[side="left"] .zero-ia-grip-c { left: auto; right: 0; cursor: nesw-resize; }
+#zero-ia[shape="corner"] :is(.zero-ia-grip-h, .zero-ia-grip-c) { display: block; }
+#zero-ia .zero-ia-grip-w::after { content: ""; position: absolute; top: 50%; left: 2px; width: 3px; height: 38px; margin-top: -19px; border-radius: 3px; background: currentColor; opacity: 0; transition: opacity 160ms var(--zero-soft); }
+#zero-ia .zero-ia-grip-w:hover::after, #zero-ia[resizing] .zero-ia-grip-w::after { opacity: .3; }
+
+#zero-ia header { display: flex; align-items: center; gap: 10px; padding: 10px 10px 8px 12px; border-bottom: 1px solid var(--zero-piece-hover); }
+#zero-ia .zero-ia-wolf { width: 72px; height: 72px; flex: none; image-rendering: pixelated; margin: -4px 0 -6px; }
+#zero-ia .zero-ia-title { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+#zero-ia h4 { margin: 0; font: 700 15px system-ui, sans-serif; }
+#zero-ia .zero-ia-status { min-height: 15px; color: var(--zero-piece-quiet); font-size: 11.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#zero-ia[busy] .zero-ia-status::before { content: ""; display: inline-block; width: 6px; height: 6px; margin-inline-end: 6px; border-radius: 50%; background: var(--zero-ia-accent); animation: zero-ia-pulse 1.1s var(--zero-soft) infinite; vertical-align: middle; }
+@keyframes zero-ia-pulse { 50% { opacity: .3; scale: .7; } }
+#zero-ia .zero-ia-tools { display: flex; align-items: center; gap: 2px; flex-wrap: wrap; justify-content: flex-end; }
+#zero-ia button { appearance: none; margin: 0; border: none; color: inherit; font: inherit; cursor: pointer; }
+#zero-ia .zero-ia-btn, #zero-ia .zero-ia-shapes > button {
+  width: 26px; height: 26px; padding: 0; border-radius: 50%; display: grid; place-items: center; background: transparent; opacity: .72;
+  transition: background-color 160ms var(--zero-soft), opacity 160ms var(--zero-soft);
+}
+#zero-ia :is(.zero-ia-btn, .zero-ia-shapes > button):hover { background: var(--zero-piece-hover); opacity: 1; }
+#zero-ia :is(.zero-ia-btn, .zero-ia-shapes > button, .zero-ia-send):focus-visible { outline: 2px solid var(--zero-ia-accent); outline-offset: 1px; }
+#zero-ia :is(.zero-ia-btn, .zero-ia-shapes > button)::before { content: ""; width: 15px; height: 15px; background-color: currentColor; mask: var(--zero-ia-icon) center / contain no-repeat; }
+#zero-ia .zero-ia-new { --zero-ia-icon: url("chrome://global/skin/icons/edit.svg"); }
+#zero-ia .zero-ia-side { --zero-ia-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M1 5h11l-3-3 1-1 5 4.5L10 10 9 9l3-3H1zM15 11H4l3 3-1 1-5-4.5L6 6l1 1-3 3h11z'/%3E%3C/svg%3E"); }
+#zero-ia .zero-ia-shapes { display: flex; gap: 1px; padding: 1px; border-radius: 999px; background: var(--zero-piece-hover); }
+#zero-ia .zero-ia-shapes > button { width: 24px; height: 24px; }
+#zero-ia .zero-ia-shapes > button[on] { opacity: 1; background: rgba(127, 127, 127, .28); }
+#zero-ia .zero-ia-shapes > [data-shape="column"] { --zero-ia-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect x='1.5' y='2' width='13' height='12' rx='2' fill='none' stroke='black' stroke-width='1.5'/%3E%3Crect x='9' y='2' width='5.5' height='12' rx='1'/%3E%3C/svg%3E"); }
+#zero-ia .zero-ia-shapes > [data-shape="corner"] { --zero-ia-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect x='1.5' y='2' width='13' height='12' rx='2' fill='none' stroke='black' stroke-width='1.5'/%3E%3Crect x='8' y='7.5' width='6.5' height='6.5' rx='1'/%3E%3C/svg%3E"); }
+#zero-ia .zero-ia-hide { --zero-ia-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M8 3.5C4.6 3.5 2 6 1 8c.5 1 1.3 2.1 2.4 3l1-1C3.6 9.4 3 8.7 2.7 8 3.6 6.5 5.5 5 8 5c.7 0 1.3.1 1.9.3l1.2-1.2c-.9-.4-2-.6-3.1-.6zm4.6 1.5-1 1c.8.6 1.4 1.3 1.7 2-1 1.5-2.8 3-5.3 3-.7 0-1.3-.1-1.9-.3l-1.2 1.2c1 .4 2 .6 3.1.6 3.4 0 6-2.5 7-4.5-.5-1-1.3-2.1-2.4-3z'/%3E%3Cpath d='M2.3 13.2 13.2 2.3l.9.9L3.2 14.1z'/%3E%3C/svg%3E"); }
+#zero-ia .zero-ia-close { --zero-ia-icon: url("chrome://global/skin/icons/close.svg"); }
+
+/* La conversación. */
+#zero-ia .zero-ia-log { flex: 1; min-height: 0; overflow-y: auto; scrollbar-width: thin; padding: 12px 12px 6px; display: flex; flex-direction: column; gap: 10px; user-select: text; }
+#zero-ia .zero-ia-msg { max-width: 100%; line-height: 1.45; overflow-wrap: anywhere; }
+#zero-ia .zero-ia-yo { align-self: flex-end; max-width: 85%; padding: 8px 12px; border-radius: 16px 16px 4px 16px; background: var(--zero-ia-accent); color: #fff; white-space: pre-wrap; }
+#zero-ia .zero-ia-claude .zero-ia-text > :first-child { margin-top: 0; }
+#zero-ia .zero-ia-claude .zero-ia-text > :last-child { margin-bottom: 0; }
+#zero-ia .zero-ia-claude :is(p, ul, ol, blockquote, pre) { margin: 0 0 8px; }
+#zero-ia .zero-ia-claude :is(h4, h5, h6) { margin: 10px 0 6px; font-weight: 700; }
+#zero-ia .zero-ia-claude :is(ul, ol) { padding-inline-start: 20px; }
+#zero-ia .zero-ia-claude blockquote { padding-inline-start: 10px; border-inline-start: 3px solid var(--zero-piece-hover); color: var(--zero-piece-quiet); }
+#zero-ia .zero-ia-claude code { font: 12px ui-monospace, monospace; padding: 1px 4px; border-radius: 5px; background: var(--zero-piece-hover); }
+#zero-ia .zero-ia-claude pre { padding: 8px 10px; border-radius: 10px; background: rgba(0, 0, 0, .28); overflow-x: auto; }
+:root[zero-frame-ink] #zero-ia .zero-ia-claude pre { background: rgba(29, 35, 33, .06); }
+#zero-ia .zero-ia-claude pre code { padding: 0; background: none; white-space: pre; }
+#zero-ia .zero-ia-claude a { color: inherit; text-decoration: underline; text-decoration-color: var(--zero-ia-accent); text-underline-offset: 2px; cursor: pointer; }
+#zero-ia .zero-ia-error { color: #ff8a7a; }
+:root[zero-frame-ink] #zero-ia .zero-ia-error { color: #b3392c; }
+#zero-ia .zero-ia-tool { align-self: flex-start; padding: 3px 9px; border-radius: 999px; background: var(--zero-piece-hover); color: var(--zero-piece-quiet); font-size: 11px; }
+#zero-ia .zero-ia-empty { margin: auto 4px; color: var(--zero-piece-quiet); text-align: center; }
+#zero-ia .zero-ia-empty[hidden], #zero-ia[no-claude] .zero-ia-empty, #zero-ia:not([no-claude]) .zero-ia-install { display: none; }
+#zero-ia .zero-ia-suggestions { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; margin-top: 10px; }
+#zero-ia .zero-ia-suggestions > button { padding: 6px 11px; border-radius: 999px; background: var(--zero-piece-hover); color: var(--zero-piece-text); font-size: 12px; }
+#zero-ia .zero-ia-suggestions > button:hover { background: rgba(127, 127, 127, .26); }
+#zero-ia .zero-ia-install { padding: 12px 14px; color: var(--zero-piece-text); }
+#zero-ia .zero-ia-install pre { padding: 8px 10px; border-radius: 10px; background: rgba(0, 0, 0, .28); font: 12px ui-monospace, monospace; white-space: pre-wrap; user-select: all; }
+
+#zero-ia footer { display: flex; align-items: flex-end; gap: 8px; padding: 8px 10px 10px; border-top: 1px solid var(--zero-piece-hover); }
+#zero-ia .zero-ia-input {
+  flex: 1; box-sizing: border-box; min-height: 36px; max-height: 160px; resize: none; margin: 0; padding: 8px 12px; border: none; border-radius: 18px;
+  color: inherit; font: 500 13px system-ui, sans-serif; background: var(--zero-piece-hover); outline: none;
+}
+#zero-ia .zero-ia-input:focus-visible { box-shadow: 0 0 0 2px var(--zero-ia-accent); }
+#zero-ia .zero-ia-input::placeholder { color: var(--zero-piece-quiet); }
+#zero-ia .zero-ia-send { width: 36px; height: 36px; flex: none; border-radius: 50%; display: grid; place-items: center; background: var(--zero-ia-accent); color: #fff; }
+#zero-ia .zero-ia-send::before { content: ""; width: 16px; height: 16px; background-color: currentColor; mask: url("chrome://global/skin/icons/arrow-up.svg") center / contain no-repeat; }
+#zero-ia .zero-ia-send[stop]::before { width: 11px; height: 11px; mask: none; border-radius: 2px; }
+#zero-ia[no-claude] footer { opacity: .45; pointer-events: none; }
+@media (prefers-reduced-motion: reduce) { #zero-ia, #zero-ia *, #zero-wolf * { transition-duration: 1ms !important; animation: none !important; } }

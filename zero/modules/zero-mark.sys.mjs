@@ -419,11 +419,13 @@ export function attach(win, ctx) {
   st.cleanups.push(() => fullWatch.disconnect());
   const title = host.t('Ajustes de Kitsune Zero', 'Kitsune Zero settings');
 
+  // Los ajustes, con un engranaje (Risco, 9-11: «que los ajustes sean lo típico de un engranaje»); la marca de Zero
+  // es ahora el lobo de 16 bits, el botón del asistente (zero-asistente).
   st.mark = el(doc, 'button', { type: 'button', id: 'zero-mark', class: 'zero-pill', title, 'aria-label': title, 'aria-expanded': 'false', 'aria-controls': 'zero-settings' },
-    [el(doc, 'span', { class: 'zero-logo', 'aria-hidden': 'true' })]);
+    [el(doc, 'span', { class: 'zero-gear', 'aria-hidden': 'true' })]);
   st.rows = el(doc, 'div', { class: 'zero-rows' });
   st.panel = el(doc, 'section', { id: 'zero-settings', role: 'dialog', 'aria-label': title }, [
-    el(doc, 'h4', {}, [el(doc, 'span', { class: 'zero-logo', 'aria-hidden': 'true' }), 'Kitsune Zero']),
+    el(doc, 'h4', {}, [el(doc, 'canvas', { class: 'zero-wolf-mini', width: '24', height: '24', 'aria-hidden': 'true' }), 'Kitsune Zero']),
     st.rows,
   ]);
   doc.body.append(st.panel);
