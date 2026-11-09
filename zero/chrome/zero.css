@@ -1340,27 +1340,62 @@
    que Gecko reserva alrededor de la ventana del menú (4 px): si no, se corta en recto, y un margen
    mayor descoloca el menú. */
 #main-window[zero] #appMenu-popup {
-  --panel-background-color: rgb(248, 247, 244) !important;
+  /* La hoja y su tinta van siempre juntas (Risco, 9-11: con Kitsune en oscuro, la hoja clara llevaba el texto
+     claro del tema y no se leía nada): Claro, hoja clara y tinta oscura; Oscuro, hoja ahumada y tinta clara.
+     --kb-text y los suyos se redefinen aquí para que todo lo de dentro que los usa (panelview, iconos, zoom)
+     pinte con la tinta de la hoja, y color-scheme para que los light-dark() de Gecko elijan la misma. */
+  --zero-menu-sheet: rgb(248, 247, 244);
+  --zero-menu-ink: #1d2321;
+  --zero-menu-quiet: rgba(29, 35, 33, .5);
+  --zero-menu-line: rgba(29, 35, 33, .08);
+  --zero-menu-hover: rgba(29, 35, 33, .06);
+  --zero-menu-press: rgba(29, 35, 33, .1);
+  color-scheme: light !important;
+  --kb-text: var(--zero-menu-ink) !important;
+  --kb-muted: var(--zero-menu-quiet) !important;
+  --kb-raised: var(--zero-menu-sheet) !important;
+  --kb-hover: var(--zero-menu-hover) !important;
+  --kb-line: var(--zero-menu-line) !important;
+  --panel-background-color: var(--zero-menu-sheet) !important;
+  --panel-background: var(--zero-menu-sheet) !important;
+  --panel-color: var(--zero-menu-ink) !important;
   --panel-box-shadow-margin: 4px !important;
-  --panel-text-color: #1d2321 !important;
-  --panel-border-color: rgba(29, 35, 33, .08) !important;
+  --panel-text-color: var(--zero-menu-ink) !important;
+  --panel-border-color: var(--zero-menu-line) !important;
   --panel-border-radius: 18px !important;
   --panel-padding: 6px !important;
   --panel-box-shadow: 0 1px 3px rgba(0, 0, 0, .14), 0 0 0 1px rgba(29, 35, 33, .07) !important;
   --menuitem-border-radius: 10px !important;
   --menuitem-padding-block: 7px !important;
   --menuitem-padding-inline: 10px !important;
-  --panel-separator-color: rgba(29, 35, 33, .08) !important;
+  --panel-separator-color: var(--zero-menu-line) !important;
+  --panel-item-hover-bgcolor: var(--zero-menu-hover) !important;
+  --panel-item-active-bgcolor: var(--zero-menu-press) !important;
   font: 500 13px system-ui, sans-serif !important;
 }
+#main-window[zero][zero-variant="sobrio"] #appMenu-popup {
+  --zero-menu-sheet: rgb(32, 32, 37);
+  --zero-menu-ink: #f1efea;
+  --zero-menu-quiet: rgba(241, 239, 234, .55);
+  --zero-menu-line: rgba(255, 255, 255, .1);
+  --zero-menu-hover: rgba(255, 255, 255, .09);
+  --zero-menu-press: rgba(255, 255, 255, .15);
+  color-scheme: dark !important;
+  --panel-box-shadow: 0 1px 3px rgba(0, 0, 0, .4), 0 0 0 1px rgba(255, 255, 255, .08) !important;
+}
+#main-window[zero] #appMenu-popup :is(panelview, .panel-header, .subviewbutton, .subviewbutton-nav, .toolbarbutton-text, label, description, h1) {
+  color: var(--zero-menu-ink) !important;
+}
+#main-window[zero] #appMenu-popup .subviewbutton[disabled] { color: var(--zero-menu-quiet) !important; opacity: 1 !important; }
+#main-window[zero] #appMenu-popup :is(.subviewbutton, .subviewbutton-nav, .toolbarbutton-1) { fill: currentColor !important; -moz-context-properties: fill, fill-opacity !important; }
 #main-window[zero] #appMenu-popup .subviewbutton {
   border-radius: 10px !important;
   transition: background-color 200ms var(--zero-soft) !important;
 }
-#main-window[zero] #appMenu-popup .subviewbutton:not([disabled]):hover { background-color: rgba(29, 35, 33, .06) !important; }
-#main-window[zero] #appMenu-popup .subviewbutton:not([disabled]):hover:active { background-color: rgba(29, 35, 33, .1) !important; }
-#main-window[zero] #appMenu-popup toolbarseparator { border-color: rgba(29, 35, 33, .08) !important; margin-inline: 10px !important; }
-#main-window[zero] #appMenu-popup :is(.subviewbutton[shortcut]::after, .menu-accel, .subviewbutton-iconic > .toolbarbutton-text + *) { color: rgba(29, 35, 33, .45) !important; }
+#main-window[zero] #appMenu-popup .subviewbutton:not([disabled]):hover { background-color: var(--zero-menu-hover) !important; }
+#main-window[zero] #appMenu-popup .subviewbutton:not([disabled]):hover:active { background-color: var(--zero-menu-press) !important; }
+#main-window[zero] #appMenu-popup toolbarseparator { border-color: var(--zero-menu-line) !important; margin-inline: 10px !important; }
+#main-window[zero] #appMenu-popup :is(.subviewbutton[shortcut]::after, .menu-accel, .subviewbutton-iconic > .toolbarbutton-text + *, #appMenu-zoom-controls .toolbarbutton-text) { color: var(--zero-menu-quiet) !important; }
 #main-window[zero] #appMenu-popup :is(#appMenu-zoom-controls, .panel-header) toolbarbutton:not(.subviewbutton) { border-radius: 50% !important; }
 
 /* ---------------------------------------------------------------- el pomodoro (zero-pomodoro) */

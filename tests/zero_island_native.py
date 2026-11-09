@@ -234,6 +234,33 @@ def main():
         until(lambda: sized(176), timeout=5)
         check('El menú de Kitsune va con el aspecto de Zero')
 
+        # Con Kitsune en oscuro (su tinta, --kb-text, clara), el menú de Zero seguía con la hoja clara y la tinta
+        # del tema: no se leía nada (Risco, 9-11). En Claro y en Oscuro, la tinta va con su hoja.
+        ink = """const panel = PanelUI.panel; const content = panel.shadowRoot?.querySelector('[part=content]') ?? panel;
+            const rgb = c => c.match(/[\\d.]+/g).slice(0, 3).map(Number);
+            const lum = ([r, g, b]) => { const f = v => { v /= 255; return v <= .03928 ? v / 12.92 : ((v + .055) / 1.055) ** 2.4; }; return .2126 * f(r) + .7152 * f(g) + .0722 * f(b); };
+            const bg = rgb(getComputedStyle(content).backgroundColor);
+            const rows = [...document.querySelectorAll('#appMenu-mainView .subviewbutton:not([disabled]) .toolbarbutton-text, #appMenu-mainView .subviewbutton:not([disabled])')]
+              .filter(el => el.getBoundingClientRect().width > 0);
+            const worst = Math.min(...rows.map(el => { const a = lum(rgb(getComputedStyle(el).color)), b = lum(bg); return (Math.max(a, b) + .05) / (Math.min(a, b) + .05); }));
+            return { bg, worst, rows: rows.length };"""
+        chrome("document.documentElement.style.setProperty('--kb-text', '#eceae6'); document.documentElement.style.setProperty('--kb-raised', '#2a2a30')")
+        for variant, dark in (('nacar', False), ('sobrio', True)):
+            chrome(f"Services.prefs.setStringPref('kitsune.zero.variant', '{variant}')")
+            until(lambda: chrome("return document.documentElement.getAttribute('zero-variant')") == variant, timeout=5)
+            hover('nav-bar')
+            until(lambda: sized(400), timeout=5)
+            chrome("PanelUI.show()")
+            until(lambda: chrome("return PanelUI.panel.state") == 'open', timeout=5)
+            seen = chrome(ink)
+            chrome("PanelUI.hide()")
+            away()
+            until(lambda: sized(176), timeout=5)
+            assert seen['rows'] > 5 and seen['worst'] >= 7, (variant, seen)
+            assert (sum(seen['bg']) / 3 < 80) == dark, (variant, seen)
+        chrome("document.documentElement.style.removeProperty('--kb-text'); document.documentElement.style.removeProperty('--kb-raised'); Services.prefs.clearUserPref('kitsune.zero.variant')")
+        check('Con Kitsune en oscuro, el menú se lee: en Claro hoja clara y tinta oscura, en Oscuro al revés')
+
         chrome("Services.prefs.setBoolPref('kitsune.zero.islandIcons', true)")
         icons = """const host = document.getElementById('zero-host'); const icon = host.querySelector('.zero-host-icon'); const text = host.querySelector('.zero-host-text');
             const seen = el => el && el.getBoundingClientRect().width > 2 && getComputedStyle(el).display !== 'none' && Number(getComputedStyle(el).opacity) > 0.5;
