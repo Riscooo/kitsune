@@ -76,6 +76,14 @@ IGNORE = [
     r"(layout\.disable-pixel-alignment|media\.webrtc\.send_mlkem_keyshare|network\.dns\.mru_to_tail)",
     # Cuándo arranca Glean (la telemetría de Gecko): su subida ya está apagada y bloqueada.
     r"telemetry\.fog\.init_on_shutdown",
+    # Gecko 159 quitó content.notify.* (cada cuánto pinta una página mientras carga): ya no existen, y en 0.5
+    # tenían el mismo valor que la fábrica de entonces.
+    r"content\.notify\.(backoffcount|interval|ontimer)",
+    # Gecko 159 cambió a propósito estos (una función web nueva, ajuste fino de TCP y de DoH, direcciones de servicios
+    # de la pestaña nueva de Mozilla, que Kitsune no usa, y su estado): se queda el valor de Gecko, nunca el de 154.
+    r"(dom\.scoped-custom-element-registries\.enabled|network\.tcp\.(notsent_lowat|user_timeout)|network\.trr\.(allow_default_http3_first|preserve_on_background))",
+    r"(browser\.newtabpage\.activity-stream\.(sports\.worldCup\..*Endpoint|telemetry\.structuredIngestion\.endpoint|discoverystream\.rec\.impressions))",
+    r"(browser\.newtabpage\.activity-stream\.widgets\.sportsWidget\.(poll.*Ms|celebrations\.windowMs|size))",
 ]
 
 # Sync stays available in both modes (it only does anything after signing in);
