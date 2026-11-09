@@ -495,5 +495,12 @@ test('open pages are told to look again, with the list of sites left as they are
   f.api.recheckDarken();
   assert.deepEqual(sent, [['https://a.example', 'KitsuneOscurecer:Recheck', { exceptions: ['b.example'] }],
                           ['https://b.example', 'KitsuneOscurecer:Recheck', { exceptions: ['b.example'] }]]);
+  // Los marcos de dentro también (Word y PowerPoint en la web van en uno, Risco 9-11).
+  sent.length = 0;
+  const framed = tab('https://c.example');
+  const inner = tab('https://word.example').browsingContext;
+  framed.browsingContext.getAllBrowsingContextsInSubtree = () => [framed.browsingContext, inner];
+  fixture({ windows: [{ gBrowser: { browsers: [framed] } }] }).api.recheckDarken();
+  assert.deepEqual(sent.map(item => item[0]), ['https://c.example', 'https://word.example']);
 });
 

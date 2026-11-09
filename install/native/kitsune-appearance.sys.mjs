@@ -319,7 +319,7 @@ function recheckDarken() {
   for (const win of Services.wm.getEnumerator('navigator:browser')) {
     for (const browser of win.gBrowser?.browsers ?? []) {
       // También los marcos de dentro (Word y PowerPoint en la web van en uno): cada uno se oscurece por su cuenta.
-      for (const context of browser.browsingContext?.getAllBrowsingContextsInSubtree?.() ?? []) {
+      for (const context of browser.browsingContext?.getAllBrowsingContextsInSubtree?.() ?? [browser.browsingContext]) {
         try {
           context.currentWindowGlobal?.getActor('KitsuneOscurecer').sendAsyncMessage('KitsuneOscurecer:Recheck', { exceptions });
         } catch { /* una página sin el actor (about:, el inicio…) */ }
