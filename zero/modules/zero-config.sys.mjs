@@ -28,6 +28,8 @@ export const PREFS = Object.freeze({
   soundsPause: 'sounds.pauseInBreak', // callarse en los descansos del pomodoro
   welcomed: 'welcomed',               // ya se dijo una vez cómo volver de Zero
   railIcons: 'railIcons',             // el raíl con solo iconos (sin ensancharse ni títulos)
+  railWindow: 'rail.window',          // las pestañas de 3 en 3, pasando con la rueda (Risco, 9-11)
+  shortcutsWindow: 'shortcuts.window', // los accesos directos de 3 en 3 (Risco, 9-11)
   hints: 'hints',                     // la «i» de ayuda junto a las opciones de los ajustes
   growAt: 'growAt',                   // dónde se dejaron los botones de ampliar (JSON {x, y}, de 0 a 1)
   glassStrength: 'glass.strength',    // la fuerza de la lámina de vidrio (doblez y brillos), de 0 a 100 o más
@@ -36,7 +38,27 @@ export const PREFS = Object.freeze({
 export const DEFAULTS = Object.freeze({ always: false, inherit: true, variant: 'nacar', backdrop: 'auto', backgroundImage: '', backgroundOpacity: '1', focus: true, volume: '1', islandIcons: false,
   pomodoro: false, pomodoroPreset: '25', pomodoroBreak: 'soft', pomodoroGuide: 'breathe', pomodoroState: '',
   silence: false, silenceNotify: true, silenceBlock: true, silenceBlocked: '', silenceOnlyWork: false, silenceScroll: true,
-  sounds: false, soundsLevels: '{"lluvia":0.5}', soundsPause: true, welcomed: false, railIcons: false, hints: true, growAt: '' });
+  sounds: false, soundsLevels: '{"lluvia":0.5}', soundsPause: true, welcomed: false, railIcons: false, railWindow: false, shortcutsWindow: true, hints: true, growAt: '' });
+
+/** Cuántas filas se ven a la vez con «de 3 en 3». */
+export const WINDOW_ROWS = 3;
+
+/** Con la rueda, a qué fila se va desde `index` (la primera que se ve): una más o una menos por cada giro, sin
+ *  pasarse de los extremos (la última ventana enseña las tres últimas). */
+export function windowStep(index, delta, rows, visible = WINDOW_ROWS) {
+  const last = Math.max(0, rows - visible);
+  if (!delta) return Math.min(Math.max(index, 0), last);
+  return Math.min(Math.max(index + Math.sign(delta), 0), last);
+}
+
+/** Qué ventana enseña la fila `selected` sin moverse si ya se ve: la de ahora, o la más cercana que la incluya. */
+export function windowFor(index, selected, rows, visible = WINDOW_ROWS) {
+  const last = Math.max(0, rows - visible);
+  if (selected < 0) return Math.min(index, last);
+  if (selected < index) return selected;
+  if (selected >= index + visible) return Math.min(selected - visible + 1, last);
+  return Math.min(index, last);
+}
 
 export const prefName = (prefix, key) => `${prefix}${key}`;
 

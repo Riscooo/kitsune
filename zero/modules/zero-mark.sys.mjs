@@ -142,6 +142,25 @@ function zeroSection(win, host) {
         watch: watchPref(PREFS.railIcons),
       },
       {
+        // De 3 en 3 (Risco, 9-11): con más de tres pestañas, se ven tres y la rueda las pasa de una en una.
+        kind: 'switch', id: PREFS.railWindow,
+        label: host.t('Pestañas de 3 en 3', 'Tabs 3 at a time'),
+        detail: host.t('Con más de tres pestañas, se ven tres y con la rueda del ratón pasas de una a otra. El «+» siempre se ve.',
+                       'With more than three tabs, three are shown and the mouse wheel moves through them. The «+» is always there.'),
+        get: () => { try { return prefs.getBoolPref(prefName(prefix, PREFS.railWindow), false); } catch { return false; } },
+        set: on => prefs.setBoolPref(prefName(prefix, PREFS.railWindow), !!on),
+        watch: watchPref(PREFS.railWindow),
+      },
+      {
+        kind: 'switch', id: PREFS.shortcutsWindow,
+        label: host.t('Accesos directos de 3 en 3', 'Shortcuts 3 at a time'),
+        detail: host.t('Se ven tres y la rueda pasa al siguiente. Arrástralos para ordenarlos a tu gusto (o Alt+↑/↓).',
+                       'Three are shown and the wheel moves to the next. Drag them to put them in your order (or Alt+↑/↓).'),
+        get: () => { try { return prefs.getBoolPref(prefName(prefix, PREFS.shortcutsWindow), true); } catch { return true; } },
+        set: on => prefs.setBoolPref(prefName(prefix, PREFS.shortcutsWindow), !!on),
+        watch: watchPref(PREFS.shortcutsWindow),
+      },
+      {
         // Estricto o Cómodo, como en «Tu inicio» de Kitsune (Risco, 21-10). Lo aplica Kitsune al arrancar.
         kind: 'segment', id: 'privacy', when: () => !!privacy,
         label: host.t('Privacidad', 'Privacy'),

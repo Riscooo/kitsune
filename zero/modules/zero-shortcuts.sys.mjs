@@ -6,9 +6,12 @@
  * pulsar uno lleva a esa web (a su pestaña si está abierta, si no en una nueva); el clic derecho lo quita.
  * Cada perfil (espacio) tiene los suyos. Va en Windows, macOS y Linux.
  *
- * - kitsune.zero.shortcuts: { perfil: [{ url, title, icon }] }.
+ * Risco (9-11): «que solo se muestren 3, y yo los pueda reorganizar a mi gusto». Con «de 3 en 3» (ajuste de Zero,
+ * encendido de serie) se ven tres y la rueda pasa de uno en uno; se reordenan arrastrándolos (o con Alt+↑/↓).
+ *
+ * - kitsune.zero.shortcuts: { perfil: [{ url, title, icon }] }, en el orden en que se ven.
  */
-import { prefName } from './zero-config.sys.mjs';
+import { prefName, PREFS, WINDOW_ROWS, windowStep } from './zero-config.sys.mjs';
 
 const HTML = 'http://www.w3.org/1999/xhtml';
 const PREF = 'shortcuts';
@@ -54,6 +57,83 @@ function removeShortcut(win, st, url) {
   writeAll(st.host, all);
 }
 
+/** Mueve un acceso de su sitio a otro (los dos, índices de la lista del perfil). */
+export function moveShortcut(win, st, from, to) {
+  const all = readAll(st.host), id = profileOf(win, st.host);
+  const items = [...(all[id] ?? [])];
+  if (from < 0 || from >= items.length || to < 0 || to >= items.length || from === to) return false;
+  const [moved] = items.splice(from, 1);
+  items.splice(to, 0, moved);
+  all[id] = items;
+  writeAll(st.host, all);
+  return true;
+}
+
+const windowOn = st => { try { return st.host.prefs.getBoolPref(prefName(st.host.prefix, PREFS.shortcutsWindow), true); } catch { return true; } };
+
+/** De 3 en 3: la lista enseña tres y se pasa de uno en uno. */
+function layoutWindow(win, st, instant = false) {
+  const count = st.list.children.length;
+  const on = windowOn(st) && count > WINDOW_ROWS;
+  st.list.toggleAttribute('zero-window', on);
+  st.window.index = on ? windowStep(st.window.index, 0, count) : 0;
+  const top = on ? (st.list.children[st.window.index]?.offsetTop ?? 0) : 0;
+  st.list.scrollTo({ top, behavior: instant || win.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth' });
+  st.list.toggleAttribute('more-up', on && st.window.index > 0);
+  st.list.toggleAttribute('more-down', on && st.window.index + WINDOW_ROWS < count);
+}
+
+/** Reordenar arrastrando: pasados 5 px el acceso sigue al ratón, los demás le hacen hueco y al soltarlo se queda
+ *  en su sitio nuevo. Un arrastre más corto es un clic. */
+function reorder(win, st) {
+  let drag = null;
+  st.list.addEventListener('pointerdown', event => {
+    st.dragged = false;
+    const node = event.button === 0 && event.target.closest('.zero-shortcut');
+    if (!node) return;
+    drag = { node, startY: event.clientY, pointerId: event.pointerId, active: false };
+  });
+  st.list.addEventListener('pointermove', event => {
+    if (!drag || event.pointerId !== drag.pointerId) return;
+    const dy = event.clientY - drag.startY;
+    if (!drag.active) {
+      if (Math.abs(dy) < 5) return;
+      drag.active = true;
+      try { st.list.setPointerCapture(event.pointerId); } catch { /* sin captura */ }
+      drag.rows = [...st.list.children];
+      drag.index = drag.rows.indexOf(drag.node);
+      drag.centers = drag.rows.map(row => { const r = row.getBoundingClientRect(); return r.top + r.height / 2; });
+      drag.step = drag.rows.length > 1 ? (drag.centers.at(-1) - drag.centers[0]) / (drag.rows.length - 1) : 30;
+      st.pill.setAttribute('reordering', '');
+      drag.node.setAttribute('dragging', '');
+    }
+    drag.node.style.transform = `translateY(${dy}px) scale(1.08)`;
+    const center = drag.centers[drag.index] + dy;
+    let target = drag.index;
+    while (target > 0 && center < drag.centers[target - 1]) target--;
+    while (target < drag.centers.length - 1 && center > drag.centers[target + 1]) target++;
+    drag.target = target;
+    drag.rows.forEach((row, i) => {
+      if (row === drag.node) return;
+      const shift = target < drag.index && i >= target && i < drag.index ? drag.step
+        : target > drag.index && i <= target && i > drag.index ? -drag.step : 0;
+      row.style.transform = shift ? `translateY(${shift}px)` : '';
+    });
+  });
+  const end = event => {
+    if (!drag || (event?.pointerId !== undefined && event.pointerId !== drag.pointerId)) return;
+    const done = drag;
+    drag = null;
+    if (!done.active) return;
+    st.dragged = true;
+    for (const row of done.rows) row.style.transform = '';
+    done.node.removeAttribute('dragging');
+    st.pill.removeAttribute('reordering');
+    if (done.target !== undefined && done.target !== done.index) moveShortcut(win, st, done.index, done.target);
+  };
+  for (const type of ['pointerup', 'pointercancel', 'lostpointercapture']) st.list.addEventListener(type, end);
+}
+
 /** A esa web: a su pestaña si está abierta (en este perfil), si no en una nueva. */
 function go(win, url) {
   const gb = win.gBrowser;
@@ -85,6 +165,7 @@ function render(win, st) {
   });
   const now = [...st.list.children];
   if (now.length !== nodes.length || now.some((node, i) => node !== nodes[i])) st.list.replaceChildren(...nodes);
+  layoutWindow(win, st);
 }
 
 export function attach(win, ctx) {
@@ -92,7 +173,7 @@ export function attach(win, ctx) {
   const dock = doc.getElementById('zero-dock');
   if (!dock) return;
   const t = host.t ?? (es => es);
-  const st = { host, cleanups: [] };
+  const st = { host, cleanups: [], window: { index: 0, acc: 0 } };
   state.set(win, st);
   const listen = (target, type, fn, options) => { target.addEventListener(type, fn, options); st.cleanups.push(() => target.removeEventListener(type, fn, options)); };
 
@@ -110,8 +191,32 @@ export function attach(win, ctx) {
     addShortcut(win, st, { url: gb.selectedBrowser.currentURI?.spec ?? '', title: tab.label, icon });
   });
   st.list.addEventListener('click', event => {
+    if (st.dragged) { st.dragged = false; return; } // venía de arrastrar
     const node = event.target.closest('.zero-shortcut');
     if (node) go(win, node.dataset.url);
+  });
+  reorder(win, st);
+  // De 3 en 3: la rueda pasa de uno en uno.
+  st.list.addEventListener('wheel', event => {
+    if (!st.list.hasAttribute('zero-window')) return;
+    event.preventDefault();
+    const now = win.performance.now();
+    if (now - (st.window.at ?? 0) > 400) st.window.acc = 0;
+    st.window.at = now;
+    st.window.acc += event.deltaY * (event.deltaMode === 1 ? 24 : event.deltaMode === 2 ? 200 : 1);
+    if (Math.abs(st.window.acc) < 24 || now - (st.window.stepped ?? 0) < 90) return;
+    st.window.stepped = now;
+    const next = windowStep(st.window.index, st.window.acc, st.list.children.length);
+    st.window.acc = 0;
+    if (next !== st.window.index) { st.window.index = next; layoutWindow(win, st); }
+  }, { passive: false });
+  // Con el teclado: Alt+↑/↓ mueve el acceso que tiene el foco.
+  st.list.addEventListener('keydown', event => {
+    const node = event.target.closest?.('.zero-shortcut');
+    if (!node || !event.altKey || (event.key !== 'ArrowUp' && event.key !== 'ArrowDown')) return;
+    event.preventDefault();
+    const from = [...st.list.children].indexOf(node), to = from + (event.key === 'ArrowUp' ? -1 : 1);
+    if (moveShortcut(win, st, from, to)) win.requestAnimationFrame(() => st.list.querySelector(`[data-url="${win.CSS.escape(node.dataset.url)}"]`)?.focus());
   });
   st.list.addEventListener('contextmenu', event => {
     const node = event.target.closest('.zero-shortcut');
@@ -141,8 +246,10 @@ export function attach(win, ctx) {
   try { const undo = host.spaces?.watch(win, () => render(win, st)); if (undo) st.cleanups.push(undo); } catch { /* sin espacios */ }
   listen(win.gBrowser.tabContainer, 'TabSelect', () => render(win, st));
   const prefs = { observe: () => render(win, st) };
-  host.prefs.addObserver(prefName(host.prefix, PREF), prefs);
-  st.cleanups.push(() => host.prefs.removeObserver(prefName(host.prefix, PREF), prefs));
+  for (const key of [PREF, PREFS.shortcutsWindow]) {
+    host.prefs.addObserver(prefName(host.prefix, key), prefs);
+    st.cleanups.push(() => host.prefs.removeObserver(prefName(host.prefix, key), prefs));
+  }
   render(win, st);
 }
 

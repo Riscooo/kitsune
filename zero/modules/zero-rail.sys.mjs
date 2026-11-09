@@ -9,7 +9,7 @@
 import { dockScales } from './zero-dock.mjs';
 import { userOf, paintUser } from './zero-who.sys.mjs';
 import { lightIcon } from './zero-icon.sys.mjs';
-import { prefName, PREFS } from './zero-config.sys.mjs';
+import { prefName, PREFS, WINDOW_ROWS, windowStep, windowFor } from './zero-config.sys.mjs';
 import { isEmptyPage } from './zero-island.sys.mjs';
 
 // El icono de una pestaña vacía: el de la pestaña nueva del navegador. La que abre al arrancar (en blanco)
@@ -244,6 +244,52 @@ function render(win, st) {
     fadeOut(win, node);
   }
   st.add.style.setProperty('--i', String(offset + order.length));
+  layoutWindow(win, st);
+}
+
+/* De 3 en 3 (ajuste de Zero; Risco, 9-11: «que me enseñe las 3 pestañas que tengo y yo con la rueda del ratón pueda
+ * alternar de una a otra»): con más de tres filas, el raíl enseña tres; la rueda (o las flechas de arriba y abajo)
+ * las pasa de una en una, y el «+» de pestaña nueva sigue siempre a la vista. La elegida siempre se ve. */
+const windowRows = st => [...st.tabsBox.children].filter(node => !node.hasAttribute('leaving'));
+
+function scrollWindow(win, st, instant = false) {
+  const rows = windowRows(st);
+  const top = rows[st.window.index]?.offsetTop ?? 0;
+  st.tabsBox.scrollTo({ top, behavior: instant || quiet(win) ? 'instant' : 'smooth' });
+  const up = st.window.index, down = Math.max(0, rows.length - WINDOW_ROWS - st.window.index);
+  st.tabsBox.toggleAttribute('more-up', up > 0);
+  st.tabsBox.toggleAttribute('more-down', down > 0);
+  st.up.dataset.n = String(up); st.down.dataset.n = String(down);
+  st.up.hidden = !up; st.down.hidden = !down;
+  const t = st.host.t;
+  st.up.setAttribute('aria-label', t(`${up} pestañas más arriba`, `${up} more tabs above`));
+  st.down.setAttribute('aria-label', t(`${down} pestañas más abajo`, `${down} more tabs below`));
+}
+
+function layoutWindow(win, st, instant = false) {
+  if (!st.window) return false;
+  const rows = windowRows(st);
+  const on = st.window.on && rows.length > WINDOW_ROWS;
+  const was = st.rail.hasAttribute('zero-window');
+  st.rail.toggleAttribute('zero-window', on);
+  if (!on) {
+    st.up.hidden = st.down.hidden = true;
+    st.tabsBox.removeAttribute('more-up'); st.tabsBox.removeAttribute('more-down');
+    if (was) st.tabsBox.scrollTop = 0;
+    return false;
+  }
+  const selected = rows.findIndex(node => node.hasAttribute('selected'));
+  st.window.index = windowFor(st.window.index, selected, rows.length);
+  scrollWindow(win, st, instant || !was);
+  return true;
+}
+
+function stepWindow(win, st, delta) {
+  const rows = windowRows(st);
+  const next = windowStep(st.window.index, delta, rows.length);
+  if (next === st.window.index) return;
+  st.window.index = next;
+  scrollWindow(win, st);
 }
 
 /** Un grupo de pestañas de Gecko: una fila con un círculo de su color (su inicial; plegado, cuántas
@@ -422,7 +468,11 @@ export function attach(win, ctx) {
   st.add = item(doc, 'zero-new', { 'aria-label': host.t('Nueva pestaña', 'New tab') });
   st.add.querySelector('.zero-fav').textContent = '+';
   st.add.querySelector('.zero-tt').textContent = host.t('Nueva pestaña', 'New tab');
-  st.rail = el(doc, 'nav', { id: 'zero-rail', 'aria-label': host.t('Pestañas', 'Tabs') }, [st.spacesBox, st.sep, st.tabsBox, st.add]);
+  // De 3 en 3: cuántas quedan arriba y abajo, que también se pulsan para pasar.
+  st.up = el(doc, 'button', { type: 'button', class: 'zero-window-more zero-window-up', hidden: 'true', tabindex: '-1' });
+  st.down = el(doc, 'button', { type: 'button', class: 'zero-window-more zero-window-down', hidden: 'true', tabindex: '-1' });
+  st.window = { on: false, index: 0, acc: 0 };
+  st.rail = el(doc, 'nav', { id: 'zero-rail', 'aria-label': host.t('Pestañas', 'Tabs') }, [st.spacesBox, st.sep, st.up, st.tabsBox, st.down, st.add]);
   // La columna de pastillas de la izquierda (Risco, 15-10): el perfil y su modo arriba (zero-profiles), en
   // medio las pestañas y abajo los accesos directos; la columna se coloca y se aparta entera.
   st.dock = el(doc, 'div', { id: 'zero-dock' }, [st.rail]);
@@ -432,6 +482,7 @@ export function attach(win, ctx) {
   const close = tab => { if (tab && !tab.closing) win.gBrowser.removeTab(tab, { animate: true }); };
   st.rail.addEventListener('click', event => {
     if (st.dragged) { st.dragged = false; return; } // venía de arrastrar
+    if (event.target.closest('.zero-window-more')) { stepWindow(win, st, event.target.closest('.zero-window-up') ? -1 : 1); return; }
     const node = event.target.closest('.zero-item');
     if (!node || node.hasAttribute('leaving')) return;
     // La ×: cierra esa pestaña sin elegirla; el altavoz la silencia o le devuelve el sonido.
@@ -516,6 +567,29 @@ export function attach(win, ctx) {
   });
   st.rail.addEventListener('mouseleave', () => { pointerY = null; win.cancelAnimationFrame(frame); frame = 0; dock(st, null); });
 
+  // De 3 en 3: la rueda pasa de una en una (un trackpad manda muchos giros pequeños: se juntan).
+  st.tabsBox.addEventListener('wheel', event => {
+    if (!st.rail.hasAttribute('zero-window')) return;
+    event.preventDefault();
+    const now = win.performance.now();
+    if (now - (st.window.at ?? 0) > 400) st.window.acc = 0;
+    st.window.at = now;
+    st.window.acc += event.deltaY * (event.deltaMode === 1 ? 24 : event.deltaMode === 2 ? 200 : 1);
+    if (Math.abs(st.window.acc) < 24) return;
+    if (now - (st.window.stepped ?? 0) < 90) return; // una rueda suave no se salta tres de golpe
+    st.window.stepped = now;
+    stepWindow(win, st, st.window.acc);
+    st.window.acc = 0;
+  }, { passive: false });
+  if (host.prefs) {
+    const name = prefName(host.prefix, PREFS.railWindow);
+    const apply = () => { let on = false; try { on = host.prefs.getBoolPref(name, false); } catch { /* de serie */ } st.window.on = on; layoutWindow(win, st, true); };
+    const observer = { observe: apply };
+    host.prefs.addObserver(name, observer);
+    st.cleanups.push(() => host.prefs.removeObserver(name, observer));
+    st.window.on = (() => { try { return host.prefs.getBoolPref(name, false); } catch { return false; } })();
+  }
+
   // «Pestañas: solo iconos» (ajuste de Zero): el raíl no se ensancha; el nombre de la que está bajo el
   // ratón sale en una etiqueta junto a su icono, como en el Dock.
   if (host.prefs) {
@@ -550,6 +624,7 @@ export function attach(win, ctx) {
   // Con muchas pestañas el raíl se desplaza: la elegida siempre a la vista, con un poco de aire.
   // Se mide con offsetTop y no con el rectángulo: la que acaba de abrirse aún entra encogida.
   const keepInView = (instant = false) => win.requestAnimationFrame(() => {
+    if (layoutWindow(win, st, instant)) return; // de 3 en 3: la ventana va a la elegida
     const node = st.tabsBox.querySelector('.zero-tab[selected]:not([leaving])');
     if (!node || node.offsetParent !== st.rail) return;
     const air = 7, top = node.offsetTop - air, bottom = node.offsetTop + node.offsetHeight + air;

@@ -2165,3 +2165,49 @@
 #zero-stats .zero-stats-action[sure] { background: #c0473b; color: #fff; }
 #zero-stats[off] .zero-stats-figures { opacity: .55; }
 @media (prefers-reduced-motion: reduce) { #zero-stats, #zero-stats * { transition-duration: 1ms !important; } }
+
+/* ---------------------------------------------------------------- de 3 en 3 (Risco, 9-11) */
+
+/* Las pestañas: con más de tres, se ven tres y la rueda las pasa de una en una (zero-rail, rail.window). Sin el
+   efecto Dock dentro de la ventana (movería las filas mientras se pasan); el «+» sigue debajo, siempre a la vista. */
+#zero-rail[zero-window] .zero-tabs {
+  position: relative; flex: none; max-height: calc(3 * 26px + 2 * 2px);
+  overflow-x: hidden; overflow-y: auto; scrollbar-width: none; overscroll-behavior: contain;
+  scroll-snap-type: y mandatory;
+}
+#zero-rail[zero-window] .zero-tabs > .zero-item { scroll-snap-align: start; margin-block: 0 !important; }
+#zero-rail[zero-window] .zero-tabs .zero-fav { transform: none !important; }
+#zero-rail[zero-window] .zero-tabs[more-up] { mask-image: linear-gradient(to bottom, transparent 0, #000 9px); }
+#zero-rail[zero-window] .zero-tabs[more-down] { mask-image: linear-gradient(to top, transparent 0, #000 9px); }
+#zero-rail[zero-window] .zero-tabs[more-up][more-down] { mask-image: linear-gradient(to bottom, transparent 0, #000 9px, #000 calc(100% - 9px), transparent 100%); }
+/* Cuántas quedan arriba y abajo: un número pequeño con su flecha, que también pasa al pulsarlo. */
+.zero-window-more {
+  appearance: none; flex: none; box-sizing: border-box; height: 14px; margin: 0; padding: 0; border: none; border-radius: 999px;
+  display: flex; align-items: center; justify-content: center; gap: 2px; width: 100%;
+  background: transparent; color: inherit; opacity: .62; cursor: pointer;
+  font: 700 9.5px system-ui, sans-serif; font-variant-numeric: tabular-nums;
+  transition: opacity 160ms var(--zero-soft), background-color 160ms var(--zero-soft);
+}
+.zero-window-more[hidden] { display: none; }
+.zero-window-more:hover { opacity: 1; background: rgba(127, 127, 127, .18); }
+.zero-window-more::before { content: ""; width: 7px; height: 7px; background-color: currentColor; mask: url("chrome://global/skin/icons/arrow-down.svg") center / contain no-repeat; }
+.zero-window-up::before { rotate: 180deg; }
+.zero-window-more::after { content: attr(data-n); }
+/* Los accesos directos, igual: tres a la vista y la rueda pasa de uno en uno (shortcuts.window, de serie). Se
+   reordenan arrastrándolos: el que se lleva crece un poco y los demás le hacen hueco. */
+#zero-shortcuts .zero-shortcut-list[zero-window] {
+  position: relative; max-height: calc(3 * 26px + 2 * 4px); overflow-x: hidden; overflow-y: auto; scrollbar-width: none;
+  overscroll-behavior: contain; scroll-snap-type: y mandatory;
+}
+#zero-shortcuts .zero-shortcut-list[zero-window] > .zero-shortcut { flex: none; scroll-snap-align: start; }
+#zero-shortcuts .zero-shortcut-list[zero-window][more-up] { mask-image: linear-gradient(to bottom, transparent 0, #000 8px); }
+#zero-shortcuts .zero-shortcut-list[zero-window][more-down] { mask-image: linear-gradient(to top, transparent 0, #000 8px); }
+#zero-shortcuts .zero-shortcut-list[zero-window][more-up][more-down] { mask-image: linear-gradient(to bottom, transparent 0, #000 8px, #000 calc(100% - 8px), transparent 100%); }
+#zero-shortcuts .zero-shortcut { transition: transform 200ms var(--zero-calm); touch-action: none; }
+#zero-shortcuts[reordering] .zero-shortcut { cursor: grabbing; }
+#zero-shortcuts .zero-shortcut[dragging] { transition: none; z-index: 1; position: relative; }
+#zero-shortcuts .zero-shortcut[dragging] .zero-fav { box-shadow: 0 6px 16px rgba(0, 0, 0, .3); }
+#zero-shortcuts .zero-shortcut:focus-visible { outline: 2px solid rgba(255, 255, 255, .8); outline-offset: 1px; }
+/* El «+» con el color de las piezas: en Oscuro sobre un fondo claro salía blanco sobre blanco. */
+:root[zero-frame-ink] #zero-shortcuts .zero-shortcut-add .zero-fav { background: rgba(29, 35, 33, .08); color: #1d2321; }
+:root[zero-frame-ink] #zero-shortcuts .zero-shortcut-add:hover .zero-fav { background: rgba(29, 35, 33, .14); }
