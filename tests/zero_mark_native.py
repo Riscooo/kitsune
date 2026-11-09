@@ -1,6 +1,6 @@
 """Kitsune Zero · la marca de agua y los ajustes, en el motor real (perfil temporal, sin ventana en pantalla).
 
-1. Los ajustes son la última pastilla de la columna izquierda (Dani, 15-10; en las dos variantes), del color
+1. Los ajustes (un engranaje, Risco 9-11) son la última pastilla de la columna izquierda antes del lobo (Dani, 15-10; en las dos variantes), del color
    de las piezas de cada una, y brotan de ella.
 2. Un clic abre los ajustes (#zero-settings), que brotan de la marca; se cierran con un clic fuera o con Esc.
 3. «Ventanas nuevas» (como esta / en Zero / normales) cambia kitsune.zero.inherit y kitsune.zero.always,
@@ -62,7 +62,7 @@ return {
   inherit: Services.prefs.getBoolPref('kitsune.zero.inherit', true),
   backdropPref: Services.prefs.getStringPref('kitsune.zero.backdrop', 'auto'),
   backdrop: document.documentElement.getAttribute('zero-backdrop'),
-  variant: document.documentElement.getAttribute('zero-variant'), inDock: mark?.parentNode?.id === 'zero-dock' && mark === mark.parentNode.lastElementChild,
+  variant: document.documentElement.getAttribute('zero-variant'), inDock: mark?.parentNode?.id === 'zero-dock' && (mark === mark.parentNode.lastElementChild || mark.nextElementSibling?.id === 'zero-wolf'), gear: !!mark?.querySelector('.zero-gear'),
   full: document.documentElement.hasAttribute('zero-full'),
 };
 """
@@ -126,7 +126,7 @@ def main():
 
         chrome("Services.prefs.setStringPref('kitsune.zero.backdrop', 'system')")
         # Con «Nácar», del cristal claro de sus piezas: blanca.
-        until(lambda: (m := mark())['mark'] is not None and m['inDock'] and abs(m['mark']['x'] - 7) <= 1
+        until(lambda: (m := mark())['mark'] is not None and m['inDock'] and m['gear'] and abs(m['mark']['x'] - 7) <= 1
               and m['color'] == 'rgb(255, 255, 255)' and m['opacity'] > 0.85)
         chrome("Services.prefs.setIntPref('ui.systemUsesDarkTheme', 0)")
         # Con «Sobrio», del color de sus piezas: tinta en claro, clara en oscuro.
@@ -144,7 +144,7 @@ def main():
         chrome("Services.prefs.clearUserPref('kitsune.zero.backdrop')")
         until(lambda: (m := mark())['variant'] == 'nacar' and m['inDock'])
         chrome("Services.prefs.clearUserPref('ui.systemUsesDarkTheme')")
-        check('Los ajustes son la última pastilla de la columna, del color de las piezas de cada variante, y brotan de ella')
+        check('Los ajustes son un engranaje en la última pastilla de la columna antes del lobo, del color de las piezas de cada variante, y brotan de ella')
 
         click('#zero-mark')
         until(lambda: mark()['open'] and mark()['panelOpacity'] == 1)
@@ -184,12 +184,12 @@ def main():
         check('«Ventanas nuevas», «Estilo» (Claro / Oscuro, también las webs) y «Fondo» cambian sus ajustes y el aspecto al momento')
 
         # (Las filas que dependen del fondo se van al repintar la hoja, un momento después.)
-        until(lambda: len(mark()['rows']) == 11)
+        until(lambda: len(mark()['rows']) == 17)
         rows = mark()['rows']
         # Las de Zero (ventanas nuevas, estilo, fondo, foto de fondo, modo concentración, pestañas, privacidad, info; con el
         # fondo de la web, sin la opacidad; sin «Reiniciar» mientras no se pida otro modo) y los interruptores del
         # pomodoro, el silencio y los sonidos, apagados: sin sus opciones.
-        assert len(rows) == 11 and [r.split(' ')[0][:8] for r in rows[8:]] == ['Pomodoro', 'Silencio', 'Sonidos'], rows
+        assert len(rows) == 17 and [r.split(' ')[0][:8] for r in rows[-3:]] == ['Pomodoro', 'Silencio', 'Sonidos'], rows
         assert not any(word in ' '.join(rows) for word in ('Tiempos', 'Webs vetadas', 'Aviso de scroll', 'Lluvia')), rows
         assert chrome("return !document.querySelector('#zero-settings [data-pref=islandIcons]')"), 'la isla de arriba no lleva «solo iconos»'
         click('#zero-settings [data-pref="railIcons"] [data-value="icons"]')
@@ -253,7 +253,7 @@ def main():
               const animated = leaving.filter(r => r.getAnimations().some(a => a.playState === 'running')).length;
               setTimeout(() => done({ before, leaving: leaving.length, animated, after: document.querySelectorAll('#zero-settings .zero-row').length, live: count() }), 800);
             }, 60);""", [], asynchronous=True)
-        assert gone['leaving'] >= 2 and gone['animated'] == gone['leaving'] and gone['after'] == gone['live'] == 11, gone
+        assert gone['leaving'] >= 2 and gone['animated'] == gone['leaving'] and gone['after'] == gone['live'] == 17, gone
         chrome("Services.prefs.clearUserPref('kitsune.zero.pomodoro.preset')")
         check('Sin el atajo en la cabecera; las filas entran y se van con animación, el interruptor y el segmento se deslizan')
 
