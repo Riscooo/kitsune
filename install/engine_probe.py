@@ -97,7 +97,8 @@ def run_chrome_script(browser: Path, script: str, env_extra=None, user_prefs=Non
     base = user_js.read_text().split("// kitsune-engine-probe\n")[0] if user_js.exists() else ""
     user_js.write_text(base + "// kitsune-engine-probe\n" + harness_block)
     env = {key: value for key, value in os.environ.items() if not key.startswith("KITSUNE_")}
-    env.update({"MOZ_HEADLESS": "1", **(env_extra or {})})
+    # Gecko 159 quitó --remote-allow-system-access: el contexto chrome de Marionette se pide con esta variable.
+    env.update({"MOZ_HEADLESS": "1", "MOZ_REMOTE_ALLOW_SYSTEM_ACCESS": "1", **(env_extra or {})})
     process = subprocess.Popen([str(browser), "--marionette", "--remote-allow-system-access", "--headless",
                                 "--no-remote", "--profile", str(profile)],
                                stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,

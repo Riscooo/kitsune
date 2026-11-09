@@ -61,6 +61,9 @@ class WebDriver:
         self.session_id = None
         self.port = unused_port()
         self.log = (evidence / "geckodriver.log").open("a")
+        # Gecko 159 quitó --remote-allow-system-access: el contexto chrome se pide con esta variable, que geckodriver
+        # pasa al navegador porque la hereda (su «env» de las capacidades no llega).
+        os.environ["MOZ_REMOTE_ALLOW_SYSTEM_ACCESS"] = "1"
         self.process = subprocess.Popen(
             [str(driver), "--host", "127.0.0.1", "--port", str(self.port),
              "--allow-system-access", "--log", "info"],

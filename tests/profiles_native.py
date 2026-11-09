@@ -134,7 +134,7 @@ def main():
     (units / "kitsune-home.service").write_text("# In-process HTTP fixture, already listening\n")
     (units / "kitsune-home@.service").write_text("# In-process HTTP fixture, already listening\n")
     adapter = temporary / "test-browser-adapter"
-    adapter.write_text("#!/bin/sh\n" + ("unset MOZ_HEADLESS\n" if options.headed else "export MOZ_HEADLESS=1\n") + "previous=''\nprofile=''\nfor arg do\n  if [ \"${previous}\" = --profile ]; then profile=\"${arg}\"; break; fi\n  previous=\"${arg}\"\ndone\nif [ -f \"${profile}/.parentlock\" ]; then\n  exec " + shlex.quote(str(options.browser)) + " \"$@\"\nfi\nexec " + shlex.quote(str(options.browser)) + " --marionette --remote-allow-system-access " + ("" if options.headed else "-headless ") + "\"$@\"\n")
+    adapter.write_text("#!/bin/sh\nexport MOZ_REMOTE_ALLOW_SYSTEM_ACCESS=1\n" + ("unset MOZ_HEADLESS\n" if options.headed else "export MOZ_HEADLESS=1\n") + "previous=''\nprofile=''\nfor arg do\n  if [ \"${previous}\" = --profile ]; then profile=\"${arg}\"; break; fi\n  previous=\"${arg}\"\ndone\nif [ -f \"${profile}/.parentlock\" ]; then\n  exec " + shlex.quote(str(options.browser)) + " \"$@\"\nfi\nexec " + shlex.quote(str(options.browser)) + " --marionette --remote-allow-system-access " + ("" if options.headed else "-headless ") + "\"$@\"\n")
     adapter.chmod(0o700)
     # The launcher runs engine/current/kitsune: the adapter stands in for it here.
     engine_dir = browser_root / "engine/current"
