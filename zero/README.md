@@ -36,11 +36,15 @@ la ventana a Zero y la devuelve, con las mismas pestañas. Diseño completo en
   - `zero-media`: lo que suena en otra pestaña, en la isla (aviso, onda, pausa y siguiente), con el
     MediaController de Gecko;
   - `zero-glass`: el cristal en vivo sobre la web y el texto que se adapta (`zero-light.mjs`). Su
-    actor (`zero-glass-child.sys.mjs`) solo cuenta el scroll de la página.
+    actor (`zero-glass-child.sys.mjs`) solo cuenta el scroll de la página;
+  - `zero-luz` (antes que `zero-frame`): la luz del día y el material de Windows 11. Las paletas, el sol y la mezcla
+    están en `zero-sol.mjs`, que es puro y reutilizable fuera de Zero; el material, en `zero-material.mjs`, también
+    puro. Pone `--sol-*`, `zero-sol`, `zero-sol-scheme` y `zero-material` en la raíz, enciende Acrílico o Mica de DWM
+    con los ajustes de Gecko y añade «Luz y material» a los ajustes. Ver `docs/zero/luz.md`.
   Y dos pequeños que usan el raíl y la isla: `zero-who`, de qué usuario (contenedor) es una pestaña, y
   `zero-icon`, si un favicon es claro sobre transparente (para darle un fondo oscuro).
   `zero-dock.mjs`, `zero-light.mjs`, `zero-music-fit.mjs`, `zero-pomodoro.mjs`, `zero-silence.mjs`,
-  `zero-sounds.mjs`, `zero-lobo.mjs`, `zero-stats.mjs`, `zero-ia-texto.mjs`, `zero-ia-flujo.mjs`, `zero-ia-protocolo.mjs` y
+  `zero-sounds.mjs`, `zero-lobo.mjs`, `zero-stats.mjs`, `zero-sol.mjs`, `zero-material.mjs`, `zero-ia-texto.mjs`, `zero-ia-flujo.mjs`, `zero-ia-protocolo.mjs` y
   `zero-config.sys.mjs` son puros y se prueban con Node. Los `zero-ia-*` y `zero-asistente` son el asistente (ver
   «El asistente», abajo). El pomodoro, el silencio y los sonidos son
   opcionales y vienen apagados.

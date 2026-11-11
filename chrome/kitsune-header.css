@@ -323,3 +323,11 @@
     }
   }
 }
+
+/* Kitsune Zero en Windows 11 enciende el material del sistema (widget.windows.mica, zero-luz): las ventanas normales
+ * de Kitsune siguen opacas, como siempre (con el material encendido, browser.css de Gecko deja transparente la raíz). */
+@-moz-document url("chrome://browser/content/browser.xhtml") {
+  @media (-moz-windows-mica) {
+    :root#main-window:not([zero]) { background-color: var(--kitsune-frame, Canvas) !important; }
+  }
+}

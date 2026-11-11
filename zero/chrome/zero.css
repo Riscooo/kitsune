@@ -2340,3 +2340,103 @@
 #zero-ia .zero-ia-send[stop]::before { width: 11px; height: 11px; mask: none; border-radius: 2px; }
 #zero-ia[no-claude] footer { opacity: .45; pointer-events: none; }
 @media (prefers-reduced-motion: reduce) { #zero-ia, #zero-ia *, #zero-wolf * { transition-duration: 1ms !important; animation: none !important; } }
+
+/* ---------------------------------------------------------------- la luz y el material (zero-luz) */
+
+/* Con la luz (zero-sol.mjs: amanecer, día, atardecer, noche), las piezas son cristal blanco esmerilado y mate: el
+   color de la luz con la opacidad de las superficies (--zero-surface-alpha, 85 % de serie), un filo gris claro de
+   contraste mínimo y una sombra corta. La opacidad va en el fondo, nunca en el texto ni en los iconos, que llevan el
+   color de la luz enteros. Con un 85 % de superficie manda la superficie, no lo que haya detrás: la tinta ya no la
+   decide la luz de la web. De noche, grafito. (`[zero-os]` solo sube la especificidad sobre Claro y Oscuro.) */
+:root[zero][zero-sol][zero-os] {
+  --zero-glass-fill: linear-gradient(180deg, rgb(from var(--sol-raised) r g b / var(--zero-surface-alpha, .85)),
+                                             rgb(from var(--sol-surface) r g b / var(--zero-surface-alpha, .85)));
+  --zero-glass-edge: 0 0 0 .5px rgb(from var(--sol-line) r g b / .9), 0 1px 2px rgb(from var(--sol-shadow) r g b / .06),
+                     0 6px 18px -6px rgb(from var(--sol-shadow) r g b / .12);
+  --zero-glass-button: none;
+  --zero-glass-halo: none;
+  --zero-rim: rgb(from var(--sol-line) r g b / .85);
+  --zero-sheet: rgb(from var(--sol-raised) r g b / max(.94, var(--zero-surface-alpha, .85)));
+  --zero-piece-text: var(--sol-text);
+  --zero-piece-quiet: var(--sol-quiet);
+  --zero-piece-hover: rgb(from var(--sol-text) r g b / .07);
+  /* El desenfoque de lo que pinta Zero detrás de sus piezas (donde lo hay: en el marco de Windows, el de verdad lo
+     pone DWM y su radio no se puede elegir). */
+  --zero-blur: 20px;
+}
+:root[zero][zero-sol-scheme="light"] { color-scheme: light; }
+:root[zero][zero-sol-scheme="dark"] { color-scheme: dark; }
+
+/* El filo: una línea fina, continua y gris clara, sin los colores de la pompa. */
+:root[zero][zero-sol][zero-os] :is(#nav-bar, #zero-rail, #zero-pomo, #zero-grow, #zero-settings, #zero-dock > .zero-pill)::after {
+  border-color: var(--zero-rim) !important; border-width: .5px !important; mask-image: none !important;
+}
+
+/* El texto y los iconos de las piezas, con la tinta de la luz. */
+#main-window[zero][zero-sol][zero-os] #nav-bar:is(*, [zero-ink]) {
+  color: var(--sol-text) !important;
+  text-shadow: none !important;
+  --toolbarbutton-icon-fill: var(--sol-text) !important;
+  --toolbarbutton-icon-fill-attention: var(--sol-accent) !important;
+  --toolbarbutton-hover-background: rgb(from var(--sol-text) r g b / .07) !important;
+  --toolbarbutton-active-background: rgb(from var(--sol-text) r g b / .12) !important;
+}
+#main-window[zero][zero-sol][zero-os] #nav-bar:is(*, [zero-ink]) :is(#zero-host, #zero-island-msg, #urlbar-input) { color: var(--sol-text) !important; }
+#main-window[zero][zero-sol][zero-os] #nav-bar:is(*, [zero-ink]) #urlbar-input::placeholder { color: var(--sol-quiet) !important; }
+#main-window[zero][zero-sol][zero-os] #nav-bar > .zero-load { background: rgb(from var(--sol-accent) r g b / .7) !important; }
+#main-window[zero][zero-sol][zero-os] #zero-island-progress { background: rgb(from var(--sol-text) r g b / .12) !important; }
+:root[zero][zero-sol][zero-os] :is(#zero-rail, #zero-grow, #zero-pomo, #zero-dock > .zero-pill, #zero-mark):is(*, [zero-ink]) {
+  color: var(--sol-text) !important; text-shadow: none !important;
+}
+:root[zero][zero-sol][zero-os] #zero-rail:is(*, [zero-ink]) .zero-sep { background: var(--zero-rim) !important; }
+:root[zero][zero-sol][zero-os] #zero-rail:is(*, [zero-ink]) :is(.zero-space, .zero-new) .zero-fav { background: rgb(from var(--sol-text) r g b / .06) !important; color: var(--sol-text) !important; }
+:root[zero][zero-sol][zero-os] #zero-rail-tip { color: var(--sol-text) !important; background: var(--zero-sheet) !important; box-shadow: var(--zero-glass-edge) !important; }
+
+/* Los ajustes: la hoja de la luz, su texto y su acento. */
+:root[zero][zero-sol][zero-os] #zero-settings { background: var(--zero-sheet) !important; color: var(--sol-text) !important; }
+:root[zero][zero-sol][zero-os] #zero-settings :is(.zero-row-text, .zero-row:has(> .zero-slider) .zero-row-text) { color: var(--sol-text) !important; }
+:root[zero][zero-sol][zero-os] #zero-settings .zero-row { border-top-color: rgb(from var(--sol-line) r g b / .7) !important; }
+:root[zero][zero-sol][zero-os] #zero-settings .zero-switch { background: rgb(from var(--sol-text) r g b / .16) !important; }
+:root[zero][zero-sol][zero-os] #zero-settings .zero-switch[on] { background: var(--sol-accent) !important; }
+:root[zero][zero-sol][zero-os] #zero-settings .zero-segment { background: rgb(from var(--sol-text) r g b / .06) !important; }
+:root[zero][zero-sol][zero-os] #zero-settings .zero-seg-thumb { background: var(--sol-raised) !important; box-shadow: 0 0 0 .5px var(--zero-rim), 0 1px 3px rgb(from var(--sol-shadow) r g b / .12) !important; }
+:root[zero][zero-sol][zero-os] #zero-settings .zero-slider::-moz-range-track { background: rgb(from var(--sol-text) r g b / .14) !important; }
+:root[zero][zero-sol][zero-os] #zero-settings .zero-slider::-moz-range-progress { background: var(--sol-accent) !important; }
+:root[zero][zero-sol][zero-os] #zero-settings .zero-slider:focus-visible { outline-color: var(--sol-accent) !important; }
+:root[zero][zero-sol][zero-os] #zero-settings .zero-list { color: var(--sol-text) !important; background: rgb(from var(--sol-text) r g b / .05) !important; }
+:root[zero][zero-sol][zero-os] #zero-settings .zero-list:focus { background: var(--sol-raised) !important; box-shadow: 0 0 0 2px rgb(from var(--sol-accent) r g b / .5) !important; }
+:root[zero][zero-sol][zero-os] #zero-settings .zero-list::placeholder { color: var(--sol-quiet) !important; }
+:root[zero][zero-sol][zero-os] #zero-settings .zero-info { border-color: rgb(from var(--sol-text) r g b / .35) !important; color: var(--sol-quiet) !important; }
+:root[zero][zero-sol][zero-os] #zero-settings .zero-action-button { color: var(--sol-text) !important; background: rgb(from var(--sol-text) r g b / .06) !important; }
+:root[zero][zero-sol][zero-os] #zero-settings-tip { color: var(--sol-text) !important; background: var(--zero-sheet) !important; box-shadow: var(--zero-glass-edge) !important; }
+
+/* Sin material detrás (Linux sin la regla, Windows en Opaco, Niebla): la niebla es la luz, lisa. */
+:root[zero][zero-sol][zero-backdrop="mist"] #zero-bg {
+  background-color: var(--sol-surface);
+  background-image: linear-gradient(180deg, var(--sol-raised), var(--sol-surface));
+}
+
+/* Windows 11: el material (Acrílico o Mica) lo pone DWM detrás de la ventana transparente. Encima, el tinte del marco:
+   el color de la luz con su opacidad (--zero-frame-tint, 70 % de serie: con ventanas oscuras detrás, menos se ve gris), para un blanco o marfil que deja ver el
+   escritorio difuminado. Un filo de 1 px gris claro en lugar del contorno oscuro. Maximizada, recta (zero.css, arriba). */
+:root[zero][zero-material]:is([zero-material="acrylic"], [zero-material="mica"])[zero-backdrop="system"] #zero-bg {
+  display: block;
+  opacity: 1;
+  background-image: none;
+  background-color: rgb(from var(--sol-surface, #f5f7fa) r g b / var(--zero-frame-tint, .7));
+  box-shadow: inset 0 0 0 1px rgb(from var(--sol-line, #dbe0e7) r g b / .5) !important;
+  transition: background-color 1200ms var(--zero-soft), border-radius var(--zero-t-move) var(--zero-calm);
+}
+:root[zero][zero-material][zero-backdrop="system"]:is([inFullscreen], [sizemode="fullscreen"], [sizemode="maximized"]) #zero-bg { box-shadow: none !important; }
+/* Sin la luz del canto ni el filo blanco de la lámina de Linux: este cristal es mate. */
+:root[zero][zero-material][zero-backdrop="system"] body { box-shadow: none !important; }
+:root[zero][zero-material][zero-backdrop="system"] body::after { display: none !important; }
+/* Detrás de las piezas del marco no hay nada que desenfocar en Gecko (el material lo pone Windows): sin el
+   desenfoque de CSS, que costaría en cada fotograma sin verse. */
+:root[zero][zero-material][zero-backdrop="system"] :is(#nav-bar, #zero-rail, #zero-dock > .zero-pill, #zero-mark, #zero-grow, #zero-settings, #zero-lights::before, #zero-engines) {
+  backdrop-filter: none !important;
+}
+
+/* Experimental (Webs transparentes): las páginas sin fondo propio dejan ver el material. Las que tienen fondo lo
+   conservan; Gecko solo deja transparentes los <browser> creados con browser.tabs.allow_transparent_browser. */
+:root[zero][zero-web-clear] .browserContainer { background-color: transparent !important; }

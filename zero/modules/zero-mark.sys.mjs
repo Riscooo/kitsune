@@ -47,7 +47,7 @@ function zeroSection(win, host) {
     // sale o se va con el modo de privacidad pedido.
     watch: fn => {
       const observer = new win.MutationObserver(() => fn());
-      observer.observe(win.document.documentElement, { attributes: true, attributeFilter: ['zero-backdrop'] });
+      observer.observe(win.document.documentElement, { attributes: true, attributeFilter: ['zero-backdrop', 'zero-sol'] });
       const unwatch = watchPrivacy(fn);
       return () => { observer.disconnect(); unwatch(); };
     },
@@ -73,6 +73,8 @@ function zeroSection(win, host) {
         // Claro u Oscuro (Risco, 21-10; antes, las variantes «Nácar» de Risco y «Sobrio» de Dani, con los mismos
         // valores): cambian las piezas y las webs; lo de alrededor es el mismo.
         kind: 'segment', id: PREFS.variant,
+        // Con la luz (zero-luz), el modo lo pone ella: la fila sale solo con la luz apagada.
+        when: () => !win.document.documentElement.hasAttribute('zero-sol'),
         label: host.t('Estilo', 'Style'),
         detail: host.t('Claro: piezas de cristal claro y transparente, y las webs en claro. Oscuro: cristal ahumado, y las webs en oscuro.',
                        'Light: clear, see-through glass pieces, and pages in light. Dark: smoked glass, and pages in dark.'),

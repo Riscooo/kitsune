@@ -10,6 +10,7 @@
  */
 import { readPrefs, PREFS, prefName, shortcutText } from './zero-config.sys.mjs';
 import * as frame from './zero-frame.sys.mjs';
+import * as luz from './zero-luz.sys.mjs';
 import * as pane from './zero-pane.sys.mjs';
 import * as island from './zero-island.sys.mjs';
 import * as rail from './zero-rail.sys.mjs';
@@ -33,8 +34,9 @@ const REMEMBER = 'kitsune-zero';
 let host = null;
 // Las piezas de Zero, en orden: al encender se ponen así y al apagar se quitan al revés.
 // La lámina va la primera (detrás de todo, y así recibe ya la primera foto del marco); el cristal en
-// vivo, el último: se pone detrás de las piezas que ya están.
-const pieces = [pane, frame, island, rail, grab, profiles, shortcuts, stats, music, audio, mark, asistente, pomodoro, silence, sounds, downloads, media, glass];
+// vivo, el último: se pone detrás de las piezas que ya están. La luz y el material, antes que el marco: el marco
+// elige el fondo y el modo (claro u oscuro) con lo que ellos digan.
+const pieces = [pane, luz, frame, island, rail, grab, profiles, shortcuts, stats, music, audio, mark, asistente, pomodoro, silence, sounds, downloads, media, glass];
 const decorated = new WeakSet();
 const starting = new WeakSet(); // ventanas que ya esperan a terminar de arrancar
 const early = new WeakSet();    // ventanas que ya se pintan en Zero y esperan a sus piezas
@@ -151,7 +153,9 @@ async function decorate(win) {
   if (win.toolbar?.visible !== false && (always() || (first.inherit && from && active(from)))) {
     const root = win.document.documentElement;
     root.setAttribute('zero', '');
-    root.setAttribute('zero-variant', frame.variantOf(first.variant));
+    // La luz y el material, desde el primer fotograma (y el modo, el que diga la luz si manda ella).
+    try { luz.early(win, host); } catch (error) { console.error('Kitsune Zero: luz', error); }
+    root.setAttribute('zero-variant', frame.effectiveVariant(first.variant, root));
     const backdrop = frame.knownBackdrop(first.backdrop, first.variant);
     if (backdrop) root.setAttribute('zero-backdrop', backdrop);
     sheet(win, true);
@@ -168,7 +172,10 @@ async function decorate(win) {
   // a que la ventana termine de arrancar antes de mirar nada.
   if (!win.gBrowser || !win.gBrowserInit?.delayedStartupFinished) await win.delayedStartupPromise;
   if (decorated.has(win) || !win.gBrowser || !win.toolbar?.visible) {
-    if (early.delete(win)) { for (const name of ['zero', 'zero-backdrop']) win.document.documentElement.removeAttribute(name); sheet(win, false); }
+    if (early.delete(win)) {
+      for (const name of ['zero', 'zero-backdrop', 'zero-sol', 'zero-sol-scheme', 'zero-material', 'zero-web-clear']) win.document.documentElement.removeAttribute(name);
+      sheet(win, false);
+    }
     return;
   }
   decorated.add(win);
@@ -185,7 +192,12 @@ async function decorate(win) {
 }
 
 export const Zero = {
-  start(h) { host ??= h; frame.warm(); },
+  start(h) {
+    host ??= h;
+    // El material antes que nada (si todas las ventanas serán de Zero): que la primera ya nazca con él.
+    try { luz.warm(h, { always: readPrefs(h.prefs, h.prefix).always }); } catch (error) { console.error('Kitsune Zero: luz', error); }
+    frame.warm(h);
+  },
   decorate: win => decorate(win),
   toggle: (win, on) => toggle(win, on),
   active: win => active(win),

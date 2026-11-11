@@ -33,12 +33,24 @@ export const PREFS = Object.freeze({
   hints: 'hints',                     // la «i» de ayuda junto a las opciones de los ajustes
   growAt: 'growAt',                   // dónde se dejaron los botones de ampliar (JSON {x, y}, de 0 a 1)
   glassStrength: 'glass.strength',    // la fuerza de la lámina de vidrio (doblez y brillos), de 0 a 100 o más
+  // El material y la luz (zero-luz; ver docs/zero/luz.md).
+  material: 'material',               // Windows 11: 'auto' | 'acrylic' | 'mica' | 'opaque' (zero-material.mjs)
+  surfaceOpacity: 'surface.opacity',  // la opacidad de las superficies de Zero (isla, raíl, menús), de 0.5 a 1 (string)
+  surfaceTint: 'surface.tint',        // el color de la luz sobre el material del marco, de 0 a 0.95 (string; 0.7 de serie)
+  light: 'light.mode',                // 'solar' (sol; sin coordenadas, la hora) | 'clock' | 'fixed' | 'off' (zero-sol.mjs)
+  lightCoords: 'light.coords',        // 'lat, lon' con un decimal (opcional; nunca se pide la ubicación)
+  lightClock: 'light.clock',          // 'HH:MM-HH:MM': salida y puesta «por la hora»
+  lightPeriod: 'light.period',        // con 'fixed': 'amanecer' | 'dia' | 'atardecer' | 'noche'
+  lightTransition: 'light.transition', // minutos de cada transición (string)
+  webTransparent: 'web.transparent',  // experimental: las páginas sin fondo propio dejan ver el material
 });
 
 export const DEFAULTS = Object.freeze({ always: false, inherit: true, variant: 'nacar', backdrop: 'auto', backgroundImage: '', backgroundOpacity: '1', focus: true, volume: '1', islandIcons: false,
   pomodoro: false, pomodoroPreset: '25', pomodoroBreak: 'soft', pomodoroGuide: 'breathe', pomodoroState: '',
   silence: false, silenceNotify: true, silenceBlock: true, silenceBlocked: '', silenceOnlyWork: false, silenceScroll: true,
-  sounds: false, soundsLevels: '{"lluvia":0.5}', soundsPause: true, welcomed: false, railIcons: false, railWindow: false, shortcutsWindow: true, hints: true, growAt: '' });
+  sounds: false, soundsLevels: '{"lluvia":0.5}', soundsPause: true, welcomed: false, railIcons: false, railWindow: false, shortcutsWindow: true, hints: true, growAt: '',
+  material: 'auto', surfaceOpacity: '0.85', surfaceTint: '0.7', light: 'solar', lightCoords: '', lightClock: '07:30-19:30', lightPeriod: 'dia',
+  lightTransition: '50', webTransparent: false });
 
 /** Cuántas filas se ven a la vez con «de 3 en 3». */
 export const WINDOW_ROWS = 3;
