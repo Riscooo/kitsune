@@ -1,36 +1,63 @@
 ﻿<#
 .SYNOPSIS
-  Copia un motor de Kitsune (o Kitsune Zero) para Windows ya compilado y le pone el Zero y el chrome de este repositorio,
-  sin recompilar Gecko: sustituye sus archivos dentro de browser/omni.ja.
+  Pone el Zero y el chrome de este repositorio en un motor de Kitsune (o Kitsune Zero) para Windows ya compilado, sin
+  recompilar Gecko: sustituye sus archivos dentro de browser/omni.ja.
 
 .DESCRIPTION
-  Sirve para probar en Windows los cambios de zero/ (módulos, zero.css, recursos) y de chrome/ con un motor publicado.
   La compilación de verdad (install/kitsune-engine.py) mete los mismos archivos en el mismo sitio:
   chrome://browser/content/zero/ (jar: chrome/browser/content/browser/zero/) y
   chrome://browser/content/kitsune-chrome/ (jar: chrome/browser/content/browser/kitsune-chrome/).
 
-  No toca el motor de origen: trabaja en una copia. Necesita 7-Zip (winget install 7zip.7zip).
+  Dos formas:
+  - Con -Destino: copia el motor ahí y parchea la copia (para probar sin tocar nada).
+  - Con -EnSuSitio: parchea el motor instalado. Antes guarda browser\omni.ja.antes-zero (la primera vez; si ya está, la
+    conserva), y -Deshacer lo devuelve. Kitsune tiene que estar cerrado. Una actualización de Kitsune lo sustituye todo.
+
+  Necesita 7-Zip (winget install 7zip.7zip).
 
 .EXAMPLE
-  # Del instalador publicado: 7z x Kitsune-Zero-...-Windows-x64.exe -oinstalador
   .\tools\windows\parchear-motor.ps1 -Motor .\instalador\core -Destino $env:TEMP\kitsune-zero-parcheado
+  .\tools\windows\parchear-motor.ps1 -Motor "$env:LOCALAPPDATA\Kitsune Zero" -EnSuSitio
+  .\tools\windows\parchear-motor.ps1 -Motor "$env:LOCALAPPDATA\Kitsune Zero" -Deshacer
 #>
 param(
   [Parameter(Mandatory)] [string] $Motor,
-  [Parameter(Mandatory)] [string] $Destino,
+  [string] $Destino,
+  [switch] $EnSuSitio,
+  [switch] $Deshacer,
   [string] $Repo = (Resolve-Path "$PSScriptRoot\..\.."),
   [string] $SieteZip = 'C:\Program Files\7-Zip\7z.exe'
 )
 $ErrorActionPreference = 'Stop'
 
 if (-not (Test-Path "$Motor\kitsune.exe")) { throw "No hay kitsune.exe en $Motor" }
-if (-not (Test-Path $SieteZip)) { throw "Falta 7-Zip ($SieteZip): winget install 7zip.7zip" }
-if ((Resolve-Path $Motor).Path -eq [IO.Path]::GetFullPath($Destino)) { throw 'El destino tiene que ser otra carpeta' }
+$Motor = (Resolve-Path $Motor).Path
+$abierto = Get-CimInstance Win32_Process -Filter "Name='kitsune.exe'" | Where-Object { $_.ExecutablePath -and $_.ExecutablePath.StartsWith($Motor, [StringComparison]::OrdinalIgnoreCase) }
 
-# La copia del motor (si ya existe, se rehace).
-if (Test-Path $Destino) { Remove-Item -Recurse -Force $Destino }
-New-Item -ItemType Directory -Force $Destino | Out-Null
-Copy-Item -Recurse -Force "$Motor\*" $Destino
+if ($Deshacer) {
+  $copia = "$Motor\browser\omni.ja.antes-zero"
+  if (-not (Test-Path $copia)) { throw "No hay copia que devolver ($copia)" }
+  if ($abierto) { throw 'Cierra Kitsune antes (este motor está abierto)' }
+  Copy-Item $copia "$Motor\browser\omni.ja" -Force
+  Remove-Item $copia
+  Write-Host "Devuelto el omni.ja de antes en $Motor"
+  return
+}
+
+if (-not (Test-Path $SieteZip)) { throw "Falta 7-Zip ($SieteZip): winget install 7zip.7zip" }
+if ($EnSuSitio) {
+  if ($abierto) { throw 'Cierra Kitsune antes (este motor está abierto)' }
+  $Destino = $Motor
+  $copia = "$Motor\browser\omni.ja.antes-zero"
+  if (-not (Test-Path $copia)) { Copy-Item "$Motor\browser\omni.ja" $copia; Write-Host "Copia de seguridad: $copia" }
+} else {
+  if (-not $Destino) { throw 'Falta -Destino (o -EnSuSitio)' }
+  if ($Motor -eq [IO.Path]::GetFullPath($Destino)) { throw 'El destino tiene que ser otra carpeta (o usa -EnSuSitio)' }
+  # La copia del motor (si ya existe, se rehace).
+  if (Test-Path $Destino) { Remove-Item -Recurse -Force $Destino }
+  New-Item -ItemType Directory -Force $Destino | Out-Null
+  Copy-Item -Recurse -Force "$Motor\*" $Destino
+}
 
 # Los archivos, con las rutas que tienen dentro de omni.ja.
 $staging = Join-Path ([IO.Path]::GetTempPath()) ("kitsune-omni-" + [guid]::NewGuid())
