@@ -185,8 +185,8 @@ El JSON (esquema 1) es estable. Ejemplo:
 Hay tres formas de integrarlo:
 - **JS o Node**: `import { themeAt, exportTheme } from 'zero/modules/zero-sol.mjs'`. No tiene dependencias.
 - **Programas en otros lenguajes**: leen el JSON. Si hace falta en vivo, una tarea programada de Windows puede llamar
-  a `sol.mjs --escribir` cada 5 minutos (`windows/luz/instalar-tarea.ps1`). No hace falta un servicio.
-- **Wallpaper Engine**: ver `windows/wallpaper-engine/`. El fondo puede ir solo, porque SceneScript tiene
+  a `sol.mjs --escribir` cada 5 minutos (`shtella-windows/luz/instalar-tarea.ps1`). No hace falta un servicio.
+- **Wallpaper Engine**: ver `shtella-windows/wallpaper-engine/`, en el repositorio del escritorio. El fondo puede ir solo, porque SceneScript tiene
   `engine.timeOfDay`, o recibir la luz por la línea de órdenes de Wallpaper Engine (`-control applyProperties`).
 
 ## Pruebas
