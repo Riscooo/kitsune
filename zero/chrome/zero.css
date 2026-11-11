@@ -2440,3 +2440,62 @@
 /* Experimental (Webs transparentes): las páginas sin fondo propio dejan ver el material. Las que tienen fondo lo
    conservan; Gecko solo deja transparentes los <browser> creados con browser.tabs.allow_transparent_browser. */
 :root[zero][zero-web-clear] .browserContainer { background-color: transparent !important; }
+/* Las hojas que salen de las piezas (la ficha de perfiles, la música y su minipanel, las sugerencias de la barra):
+   la hoja de la luz en lugar del cristal ahumado fijo. De noche, sus reglas de serie (texto y campos en blanco) se leen
+   sobre el grafito; de día, al amanecer y al atardecer, pasan a la tinta de la luz. */
+:root[zero][zero-sol] :is(#zero-profiles, #zero-music-services, #zero-music, #zero-mini) {
+  background: var(--zero-sheet) !important;
+  box-shadow: 0 0 0 .5px var(--zero-rim), 0 1px 2px rgb(from var(--sol-shadow) r g b / .08), 0 18px 44px -8px rgb(from var(--sol-shadow) r g b / .24) !important;
+}
+#main-window[zero][zero-sol]:not([zero-empty]) #urlbar .urlbarView:popover-open {
+  background: var(--zero-sheet) !important; text-shadow: none !important;
+  box-shadow: 0 0 0 .5px var(--zero-rim), 0 18px 44px -8px rgb(from var(--sol-shadow) r g b / .24) !important;
+}
+/* Los campos de la ficha, con su cristal: sin !important, el estilo de los campos de Kitsune los dejaba en cajas blancas
+   lisas sobre la ficha oscura (y el texto blanco no se veía). */
+#zero-profiles .zero-profile-detail { color: #fff !important; background: rgba(255, 255, 255, .08) !important; box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .12) !important; }
+#zero-profiles .zero-profile-detail:focus { background: rgba(255, 255, 255, .14) !important; box-shadow: inset 0 0 0 1.5px rgba(255, 255, 255, .48) !important; }
+:root[zero][zero-sol-scheme="light"] :is(#zero-profiles, #zero-music-services, #zero-music, #zero-mini) { color: var(--sol-text) !important; }
+:root[zero][zero-sol-scheme="light"] #zero-profiles :is(.zero-profile-name, .zero-profile-detail) {
+  color: var(--sol-text) !important; background: rgb(from var(--sol-text) r g b / .045) !important;
+  box-shadow: inset 0 0 0 1px rgb(from var(--sol-line) r g b / .95) !important;
+}
+:root[zero][zero-sol-scheme="light"] #zero-profiles :is(.zero-profile-name, .zero-profile-detail):focus {
+  background: var(--sol-raised) !important; box-shadow: inset 0 0 0 1.5px rgb(from var(--sol-accent) r g b / .8) !important;
+}
+:root[zero][zero-sol-scheme="light"] #zero-profiles :is(.zero-profile-name, .zero-profile-detail)::placeholder { color: var(--sol-quiet) !important; }
+:root[zero][zero-sol-scheme="light"] #zero-profiles .zero-profile-name::selection { background: rgb(from var(--sol-accent) r g b / .25); color: var(--sol-text); }
+:root[zero][zero-sol-scheme="light"] #zero-profiles .zero-profile-icons > button { color: var(--sol-text); }
+:root[zero][zero-sol-scheme="light"] #zero-profiles .zero-profile-icons > button:hover { background: rgb(from var(--sol-text) r g b / .07); }
+:root[zero][zero-sol-scheme="light"] #zero-profiles .zero-profile-icons > button[aria-checked="true"] { background: rgb(from var(--sol-text) r g b / .1); box-shadow: inset 0 0 0 1px rgb(from var(--sol-text) r g b / .22); }
+:root[zero][zero-sol-scheme="light"] #zero-profiles .zero-profile-colors > button[aria-checked="true"] { box-shadow: 0 0 0 2px var(--sol-raised), 0 0 0 3.5px var(--sol-text); }
+:root[zero][zero-sol-scheme="light"] #zero-profiles :is(.zero-profile-label, .zero-profile-hint) { color: var(--sol-quiet); }
+:root[zero][zero-sol-scheme="light"] #zero-profiles .zero-profile-question { color: var(--sol-text); }
+:root[zero][zero-sol-scheme="light"] #zero-profiles .zero-profile-seg { background: rgb(from var(--sol-text) r g b / .06); }
+:root[zero][zero-sol-scheme="light"] #zero-profiles .zero-profile-seg > button { color: rgb(from var(--sol-text) r g b / .72); }
+:root[zero][zero-sol-scheme="light"] #zero-profiles .zero-profile-seg > button:hover { color: var(--sol-text); }
+:root[zero][zero-sol-scheme="light"] #zero-profiles .zero-profile-seg > button[aria-checked="true"] {
+  background: var(--sol-raised); color: var(--sol-text); box-shadow: 0 0 0 .5px var(--zero-rim), 0 1px 3px rgb(from var(--sol-shadow) r g b / .12);
+}
+:root[zero][zero-sol-scheme="light"] #zero-profiles .zero-profile-row > button { background: rgb(from var(--sol-text) r g b / .06); }
+:root[zero][zero-sol-scheme="light"] #zero-profiles .zero-profile-row > button:hover { background: rgb(from var(--sol-text) r g b / .1); }
+:root[zero][zero-sol-scheme="light"] #zero-profiles .zero-profile-row > button[data-action="delete"] { color: #a8382a; }
+:root[zero][zero-sol-scheme="light"] #zero-profiles .zero-profile-row > button[data-action="delete"]:disabled { background: rgb(from var(--sol-text) r g b / .03); }
+:root[zero][zero-sol-scheme="light"] #zero-profiles .zero-profile-row > button[data-action="create"] { background: var(--sol-text); color: var(--sol-raised); }
+:root[zero][zero-sol-scheme="light"] #zero-profiles .zero-profile-row > button[data-action="create"]:hover { background: rgb(from var(--sol-text) r g b / .86); }
+:root[zero][zero-sol-scheme="light"] :is(#zero-music-services > button, #zero-music header > button, #zero-mini > button):hover { background-color: rgb(from var(--sol-text) r g b / .07); }
+:root[zero][zero-sol-scheme="light"] #zero-music :is(.zero-music-player, .zero-music-drm) { border-top-color: rgb(from var(--sol-line) r g b / .9); }
+/* Las sugerencias de la barra, en tinta de la luz (las variables con que las pinta Kitsune). */
+#main-window[zero][zero-sol-scheme="light"]:not([zero-empty]) #urlbar .urlbarView:popover-open {
+  color: var(--sol-text) !important;
+  --urlbarview-background-color-hover: rgb(from var(--sol-text) r g b / .06) !important;
+  --kb-selected: rgb(from var(--sol-text) r g b / .08) !important; --kb-primary-container: rgb(from var(--sol-text) r g b / .08) !important;
+  --kb-text: var(--sol-text) !important; --kitsune-text: var(--sol-text) !important; --kitsune-quiet: var(--sol-quiet) !important;
+  --kitsune-rule: rgb(from var(--sol-line) r g b / .9) !important; --kb-secondary: var(--sol-quiet) !important; --kb-accent: var(--sol-accent) !important;
+  --urlbarview-text-color-selected: var(--sol-text) !important; --urlbarview-text-color-action: var(--sol-quiet) !important;
+  --urlbarview-text-color-secondary: var(--sol-quiet) !important; --urlbarview-separator-color: rgb(from var(--sol-line) r g b / .9) !important;
+}
+#main-window[zero][zero-sol-scheme="light"]:not([zero-empty]) #urlbar .urlbarView:popover-open :is(.urlbarView-row, .urlbarView-title, .urlbarView-action, .urlbarView-url, .urlbarView-title-separator) {
+  color: var(--sol-text) !important; text-shadow: none !important; fill: var(--sol-text) !important;
+}
+#main-window[zero][zero-sol-scheme="light"]:not([zero-empty]) #urlbar .urlbarView:popover-open :is(.urlbarView-action, .urlbarView-url) { color: var(--sol-quiet) !important; }

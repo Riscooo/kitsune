@@ -95,6 +95,14 @@ async function waitFor(m, test, ms = 20000) {
   return state
 }
 
+/** Si la fila «Fondo» de los ajustes (abiertos desde antes) ofrece «Cristal» ahora; y lo que ofrecía con el material apagado. */
+const BACKDROP_OPTIONS = `return (async () => {
+  const win = Services.wm.getMostRecentWindow('navigator:browser'); const doc = win.document;
+  await new Promise(r => win.setTimeout(r, 600));
+  const despues = !!doc.querySelector('#zero-settings [data-pref="backdrop"] [data-value="system"]');
+  doc.getElementById('zero-mark').click();
+  return { antes: win.zeroCristalAntes, despues };
+})();`
 /** Pixel de la web (lo que pinta su proceso), para ver que conserva sus colores. */
 const PIXEL = `return (async () => {
   const win = Services.wm.getMostRecentWindow('navigator:browser');
@@ -168,12 +176,20 @@ async function run() {
     d = dwm(hwnd)
     check('con las transparencias de Windows apagadas, Zero va opaco', s.material === 'opaque' && !s.mica && d.backdrop !== 3, { material: s.material, dwm: DWMSBT[d.backdrop] })
     await photo(hwnd, '0-transparencias-apagadas')
+    // Los ajustes abiertos con el material apagado: «Fondo» sin «Cristal».
+    await m.js(`Services.wm.getMostRecentWindow('navigator:browser').document.getElementById('zero-mark').click(); return true;`)
+    await sleep(900)
+    await m.js(`const win = Services.wm.getMostRecentWindow('navigator:browser'), doc = win.document; win.zeroCristalAntes = !!doc.querySelector('#zero-settings [data-pref=\"backdrop\"] [data-value=\"system\"]'); return true;`)
     if (!process.argv.includes('--probar-transparencia')) throw new Error('Las transparencias de Windows están apagadas: añade --probar-transparencia para encenderlas durante la prueba (se dejan como estaban)')
     restoreTransparency = original
     ps('-Hwnd', '0', '-Que', 'transparencia', '-Valor', '1')
   }
   // ---- Acrílico (de serie), sin reiniciar: Zero se entera del cambio de Windows
   s = await waitFor(m, st => st.sol === 'dia' && st.material === 'acrylic', 15000)
+  if (original === 0) {
+    const cristal = await m.js(BACKDROP_OPTIONS)
+    check('los ajustes ofrecen «Cristal» al encenderse el material, sin reabrir la ventana', cristal.antes === false && cristal.despues === true, cristal)
+  }
   check('de serie, Acrílico', s.material === 'acrylic', s.material)
   check('con Acrílico, el fondo de Zero es el cristal del sistema', s.backdrop === 'system', s.backdrop)
   check('Gecko tiene encendido el material (widget.windows.mica, 2 = Acrílico)', s.mica && s.micaType === 2, { mica: s.mica, tipo: s.micaType, media: s.micaMedia })

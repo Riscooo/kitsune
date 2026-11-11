@@ -47,7 +47,7 @@ function zeroSection(win, host) {
     // sale o se va con el modo de privacidad pedido.
     watch: fn => {
       const observer = new win.MutationObserver(() => fn());
-      observer.observe(win.document.documentElement, { attributes: true, attributeFilter: ['zero-backdrop', 'zero-sol'] });
+      observer.observe(win.document.documentElement, { attributes: true, attributeFilter: ['zero-backdrop', 'zero-sol', 'zero-glass'] });
       const unwatch = watchPrivacy(fn);
       return () => { observer.disconnect(); unwatch(); };
     },
@@ -86,11 +86,14 @@ function zeroSection(win, host) {
       {
         kind: 'segment', id: PREFS.backdrop,
         label: host.t('Fondo', 'Background'),
-        // Cristal solo donde el sistema lo pone (macOS 26, o un escritorio con la regla de Kitsune).
-        options: [
-          ...(win.document.documentElement.getAttribute('zero-glass') === 'system' ? [{ value: 'system', label: host.t('Cristal', 'Glass') }] : []),
-          { value: 'space', label: host.t('Espacio', 'Space') }, { value: 'mist', label: host.t('Niebla', 'Mist') },
-          { value: 'photo', label: host.t('Foto', 'Photo') }, { value: 'web', label: host.t('Web', 'Page') }],
+        // Cristal solo donde el sistema lo pone (macOS 26, un escritorio con la regla de Kitsune o Windows 11 con su
+        // material). Se mira cada vez que se pinta la fila: el material puede encenderse o apagarse sin cerrar la ventana.
+        get options() {
+          return [
+            ...(win.document.documentElement.getAttribute('zero-glass') === 'system' ? [{ value: 'system', label: host.t('Cristal', 'Glass') }] : []),
+            { value: 'space', label: host.t('Espacio', 'Space') }, { value: 'mist', label: host.t('Niebla', 'Mist') },
+            { value: 'photo', label: host.t('Foto', 'Photo') }, { value: 'web', label: host.t('Web', 'Page') }];
+        },
         // Con «auto» se marca el que está puesto de verdad.
         get: () => win.document.documentElement.getAttribute('zero-backdrop'),
         // «Foto» sin foto elegida, o pulsada otra vez con la foto puesta, abre el selector para elegirla.
@@ -348,6 +351,9 @@ function leave(win, node) {
 
 /** Pone las filas que tocan sin rehacer las que ya están: las nuevas entran y las que sobran se van
  *  (con animación si el panel está a la vista), y un interruptor pulsado sigue siendo el mismo. */
+/** Las opciones de un segmento, para saber si han cambiado. */
+const optionsKey = row => (row.kind === 'segment' ? (row.options ?? []).map(option => option.value).join('|') : '');
+
 function renderRows(win, st) {
   const doc = win.document;
   for (const undo of st.sectionCleanups ?? []) { try { undo(); } catch { /* ya no estaba */ } }
@@ -368,12 +374,14 @@ function renderRows(win, st) {
   // Una sección puesta de nuevo (otra vez la misma fase) rehace sus filas, sin animación (antes de
   // recorrer: así el recorrido no tropieza con filas que ya no están).
   for (const { key, section } of wanted) { const item = st.live.get(key); if (item && item.section !== section) drop(key, item, false); }
+  // Un segmento cuyas opciones han cambiado (el «Cristal» del fondo, que depende del material) se rehace.
+  for (const { key, row } of wanted) { const item = st.live.get(key); if (item && row.kind === 'segment' && item.options !== optionsKey(row)) drop(key, item, false); }
   let cursor = st.rows.firstChild;
   for (const { key, row, section } of wanted) {
     let item = st.live.get(key);
     const fresh = !item;
     if (fresh) {
-      item = { section, undo: [] };
+      item = { section, undo: [], options: optionsKey(row) };
       item.node = rowNode(doc, row, item.undo);
       st.live.set(key, item);
     }
