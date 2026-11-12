@@ -17,7 +17,9 @@
  * - Las animaciones que crea Claude (lobo_crear_animacion) se guardan aparte, en el perfil
  *   (kitsune-zero-lobo/animaciones.json): no hace falta actualizar ni recompilar nada para tener una nueva.
  * - «Usar Kitsune Zero desde Claude Code» (ajuste, apagado de serie): el MCP se queda abierto en un puerto fijo para
- *   que Claude Code (en una terminal) maneje el navegador; los ajustes dan la orden para añadirlo.
+ *   que Claude Code (en una terminal) maneje el navegador; los ajustes dan la orden para añadirlo. Ese servidor, además
+ *   de las herramientas del panel, maneja las páginas como una persona (clic, escribir, capturas, JavaScript…:
+ *   zero-ia-navegar). El del panel no: el lobo lee webs que no son de fiar (herramientasDelPanel/herramientasDeFuera).
  */
 import { prefName } from './zero-config.sys.mjs';
 import { parse } from './zero-ia-texto.mjs';
@@ -25,6 +27,9 @@ import { validar, combinar, crearReproductor, catalogo } from './zero-lobo.mjs';
 import { iniciarServidor, datosParaClaudeCode } from './zero-ia-mcp.sys.mjs';
 import { buscarClaude, SesionClaude } from './zero-ia-claude.sys.mjs';
 import { herramientasDe } from './zero-ia-herramientas.sys.mjs';
+import { herramientasDeNavegar } from './zero-ia-navegar.sys.mjs';
+import { INSTRUCCIONES_NAVEGAR } from './zero-ia-navegar.mjs';
+import { INSTRUCCIONES as INSTRUCCIONES_MCP } from './zero-ia-protocolo.mjs';
 
 const HTML = 'http://www.w3.org/1999/xhtml';
 const LOBO = 'chrome://browser/content/zero/lobo.json';
@@ -411,7 +416,7 @@ async function asegurarSesion(win, st) {
   const ruta = await comprobarClaude(win, st);
   if (!ruta) throw new Error(st.host.t('No encuentro Claude Code en este ordenador.', 'Claude Code is not installed on this computer.'));
   await cargarLobo();
-  st.servidor ??= await iniciarServidor({ nombre: 'kitsune', herramientas: herramientasDe(win, ganchosLobo(win, st)) });
+  st.servidor ??= await iniciarServidor({ nombre: 'kitsune', herramientas: herramientasDelPanel(win, ganchosLobo(win, st)) });
   const carpeta = PathUtils.join(Services.dirsvc.get('ProfD', Ci.nsIFile).path, 'kitsune-ia');
   await IOUtils.makeDirectory(carpeta, { createAncestors: true });
   const ejemplo = shared.datos?.ejemploClaude ? JSON.stringify(shared.datos.ejemploClaude) : '';
@@ -480,6 +485,19 @@ function ajustarEntrada(st) {
 
 // ---------------------------------------------------------------- MCP para Claude Code de fuera
 
+/** Las herramientas del servidor del panel: el lobo lee webs que no son de fiar (una puede llevar instrucciones
+ *  escondidas), así que solo mira: pestañas, leer, buscar, historial y sus animaciones. Nada de clic, escribir ni
+ *  JavaScript en las páginas. */
+export function herramientasDelPanel(win, ganchos = {}) {
+  return herramientasDe(win, ganchos);
+}
+
+/** Las del servidor de fuera, el que la persona conecta a su Claude Code en una terminal («Usar Kitsune Zero desde
+ *  Claude Code»): las del panel y, además, manejar las páginas como una persona (zero-ia-navegar). */
+export function herramientasDeFuera(ventana, { lobo } = {}) {
+  return [...herramientasDe(ventana, { lobo }), ...herramientasDeNavegar(ventana)];
+}
+
 async function abrirFuera(host) {
   if (shared.servidorFuera || !pref(host, P.external, false)) return shared.servidorFuera;
   let token = pref(host, P.token, '');
@@ -497,7 +515,10 @@ async function abrirFuera(host) {
     listar: () => (shared.datos ? catalogo(datosLobo()).animaciones : []),
     crear: crearAnimacion,
   };
-  shared.servidorFuera = await iniciarServidor({ nombre: 'kitsune', puerto, token, herramientas: herramientasDe(ventana, { lobo }) });
+  shared.servidorFuera = await iniciarServidor({
+    nombre: 'kitsune', puerto, token, herramientas: herramientasDeFuera(ventana, { lobo }),
+    instrucciones: `${INSTRUCCIONES_MCP} ${INSTRUCCIONES_NAVEGAR}`,
+  });
   if (shared.servidorFuera?.puerto && shared.servidorFuera.puerto !== puerto) setPref(host, P.port, String(shared.servidorFuera.puerto));
   return shared.servidorFuera;
 }
@@ -535,7 +556,8 @@ function seccionAjustes(win, st) {
       {
         kind: 'switch', id: P.external,
         label: t('Usar Kitsune Zero desde Claude Code', 'Use Kitsune Zero from Claude Code'),
-        detail: t('Abre un MCP solo en este ordenador para que Claude Code (en una terminal) maneje el navegador.', 'Opens an MCP on this computer only so Claude Code (in a terminal) can drive the browser.'),
+        detail: t('Abre un MCP solo en este ordenador para que Claude Code (en una terminal) maneje el navegador: tus pestañas y tus webs (clic, escribir, capturas, JavaScript).',
+          'Opens an MCP on this computer only so Claude Code (in a terminal) can drive the browser: your tabs and your pages (click, type, screenshots, JavaScript).'),
         get: () => pref(host, P.external, false),
         set: on => setPref(host, P.external, !!on),
       },

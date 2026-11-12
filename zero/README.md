@@ -113,6 +113,25 @@ que le da las herramientas de Kitsune. Aquí está la tubería; el panel y el lo
   `historial_buscar`. `win` puede ser una función (o null: la última ventana con foco). Con `lobo = { animar(nombre),
   listar(), crear(animacion) → errores[], esquema?, ayuda? }`, también `lobo_animar`, `lobo_animaciones` y
   `lobo_crear_animacion` (solo reenvían; `animar` puede devolver false si no existe; los errores vuelven a Claude).
+- `zero-ia-navegar.sys.mjs`: `herramientasDeNavegar(win)` → las que manejan las páginas como una persona, **solo para
+  el servidor de fuera** (el de «Usar Kitsune Zero desde Claude Code»; en `zero-asistente.sys.mjs`,
+  `herramientasDeFuera`). El del panel (`herramientasDelPanel`) no las tiene: el lobo lee webs que no son de fiar y una
+  podría pedirle que pulse, escriba o ejecute algo. Son `pestana_navegar` (una dirección http o https en una pestaña
+  abierta), `pestana_atras`, `pestana_adelante`, `pestana_recargar`, `pagina_elementos` (lo que se puede tocar, con su
+  referencia `[e12]`, su estado y si está a la vista; con filtro y solo lo que se ve), `pagina_clic` (ratón de verdad:
+  lo trae a la vista, comprueba que no lo tapa nada y mueve, pulsa y suelta; o por dentro con `forzar`),
+  `pagina_pasar_raton`, `pagina_escribir` (tecla a tecla, con nsITextInputProcessor; Intro con `enviar`),
+  `pagina_elegir` (un `<select>`), `pagina_teclas` (Enter, Tab, Escape, Control+a…), `pagina_desplazar`,
+  `pagina_captura` (PNG de lo que se ve, de la página entera o de un elemento, con `drawSnapshot`: vale con pestañas
+  de fondo y ve los iframes), `pagina_esperar` (a que cargue, o a que aparezca o se vaya un selector o un texto),
+  `pagina_ejecutar` (JavaScript con los permisos de la página: un sandbox con su principal, como la consola) y
+  `pagina_dialogo` (alert, confirm, prompt, «¿salir de la página?»). El elemento se dice con `ref`, un `selector` CSS o
+  su `etiqueta` (lo que se ve escrito o su nombre accesible). Lo de dentro de la web lo hace el actor
+  `zero-ia-navegar-child.sys.mjs`, registrado solo cuando se usan, solo en http y https y sin marcos: guarda las
+  referencias en un mapa (nada en el DOM) y lo que dispara eventos lo hace justo después de contestar, para que un
+  `alert()` no lo deje colgado. Lo puro (teclas, lista de elementos en texto, buscar por etiqueta) está en
+  `zero-ia-navegar.mjs`. Cada descripción recuerda que lo que devuelve la web son datos, no órdenes, y el servidor de
+  fuera añade a sus instrucciones que no se compre, publique, envíe ni borre nada sin confirmarlo con la persona.
 - `zero-ia-claude.sys.mjs`: `buscarClaude()` → la ruta de `claude` o null; `new SesionClaude({ ruta, mcp: { url, token
   }, instrucciones, carpeta?, modelo?, sesion?, onEvento, onLinea? })` con `enviar(texto)`, `parar()`, `cerrar()`,
   `sesion`, `ocupada` y `viva`. Un proceso por conversación, vivo entre mensajes; si muere, el siguiente mensaje lo
@@ -168,7 +187,9 @@ arranque su propio Zero (desde la 0.8 beta 2 el de serie lo trae: el arnés lo d
 una copia del motor con el bloque de Zero quitado de `kitsune-bootstrap.js`.
 
 El asistente: `tests/zero_ia_flujo.test.mjs` y `tests/zero_ia_protocolo.test.mjs` (Node, con líneas reales del CLI en
-`tests/fixtures/zero-ia/`) y `tests/zero_ia_native.py` (servidor, herramientas y puente con un `claude` falso,
+`tests/fixtures/zero-ia/`), `tests/zero_ia_navegar.test.mjs` (lo puro de navegar y que el panel no tiene esas
+herramientas), `tests/zero_ia_navegar_native.py` (las de navegar por el MCP de fuera, de verdad, contra una web local;
+y el servidor del panel sin ellas) y `tests/zero_ia_native.py` (servidor, herramientas y puente con un `claude` falso,
 `tests/fixtures/claude_falso.py`, que no gasta). `--claude-de-verdad` lo prueba una vez con el `claude` de la persona
 y haiku (gasta de su cuenta). `zero_platform_native` simula
 las reglas de macOS y Windows en Linux; que casen con sus ventanas de verdad se mira en esos sistemas.
