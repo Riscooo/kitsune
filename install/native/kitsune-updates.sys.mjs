@@ -18,6 +18,8 @@ const PAGE = 'https://kitsune-navegador.vercel.app/#descargar';
 /** La primera mirada, al poco de abrirse; luego, cada cuarto de hora. */
 export const FIRST_CHECK_MS = 10 * 1000;
 export const CHECK_EVERY_MS = 15 * 60 * 1000;
+/** Si la primera mirada no llega a la web (recién abierto, la wifi aún entrando), otra al minuto, no al cuarto de hora. */
+export const RETRY_MS = 60 * 1000;
 /** Entre dos miradas, al menos este rato: con varias ventanas o un reinicio seguido se pregunta una vez. */
 const MIN_GAP_MS = 5 * 60 * 1000;
 
@@ -78,6 +80,20 @@ const platformKey = () => platformFor(Services.appinfo.OS, Services.appinfo.XPCO
 export async function showUpdateNotice(win, info) {
   const box = win.gNotificationBox;
   if (!box || box.getNotificationWithValue('kitsune-update')) return;
+  if (info.ready && info.admin) {
+    // Windows, Kitsune en C:\Program Files: instalar pide permiso de administrador, y se pide aquí, delante.
+    await box.appendNotification('kitsune-update', {
+      label: t(`${productName()} ${releaseLabel(info.release)} está listo. Para instalarlo, Windows te pedirá permiso de administrador.`,
+               `${productName()} ${releaseLabel(info.release)} is ready. To install it, Windows will ask for administrator permission.`),
+      priority: box.PRIORITY_INFO_MEDIUM,
+    }, [{
+      label: t('Instalar y reiniciar', 'Install and restart'),
+      accessKey: 'I',
+      // true: el aviso sigue ahí si se dice que no a Windows.
+      callback: () => { void updater()?.restart(win); return true; },
+    }]);
+    return;
+  }
   if (info.ready) {
     await box.appendNotification('kitsune-update', {
       label: t(`${productName()} ${releaseLabel(info.release)} está listo: se instala al cerrar ${productName()}.`,
@@ -86,7 +102,7 @@ export async function showUpdateNotice(win, info) {
     }, [{
       label: t('Reiniciar ahora', 'Restart now'),
       accessKey: 'R',
-      callback: () => { updater()?.restart(); },
+      callback: () => { void updater()?.restart(win); },
     }]);
     return;
   }
@@ -108,7 +124,8 @@ export const KitsuneUpdates = {
     const installed = Services.prefs.getStringPref('kitsune.release', '');
     if (!installed || !Services.prefs.getBoolPref('kitsune.update.check', true) || !platformKey()) return;
     const { setTimeout, setInterval } = ChromeUtils.importESModule('resource://gre/modules/Timer.sys.mjs');
-    setTimeout(() => void this.check().catch(() => {}), FIRST_CHECK_MS);
+    // Si la primera no llega a la web, otra al minuto (sin eso, la siguiente era a los 15 min: 12-11, en el insti).
+    setTimeout(() => void this.check().catch(() => setTimeout(() => void this.check().catch(() => {}), RETRY_MS)), FIRST_CHECK_MS);
     setInterval(() => void this.check().catch(() => {}), CHECK_EVERY_MS);
     // Una versión que se preparó en otra sesión y no llegó a instalarse (Kitsune no se cerró bien).
     void this.resume().catch(() => {});
@@ -118,7 +135,7 @@ export const KitsuneUpdates = {
     if (!installed || !await updater()?.available()) return null;
     const release = await updater().resume(installed, compareReleases);
     if (release && !pending) {
-      pending = { release, ready: true };
+      pending = { release, ready: true, admin: await updater().needsAdmin() };
       for (const win of Services.wm.getEnumerator('navigator:browser')) await showUpdateNotice(win, pending);
     }
     return release;
@@ -133,7 +150,6 @@ export const KitsuneUpdates = {
     if (!installed || !platform || !Services.prefs.getBoolPref('kitsune.update.check', true)) return null;
     const last = Number(Services.prefs.getStringPref('kitsune.update.lastCheck', '0'));
     if (!shouldAsk(now, last)) return pending;
-    Services.prefs.setStringPref('kitsune.update.lastCheck', String(now));
     const url = testing ? override : DOWNLOADS;
     // AbortSignal.timeout necesita una ventana; aquí, un temporizador normal.
     const { setTimeout, clearTimeout } = ChromeUtils.importESModule('resource://gre/modules/Timer.sys.mjs');
@@ -142,6 +158,8 @@ export const KitsuneUpdates = {
     let downloads;
     try {
       const response = await fetch(url, { credentials: 'omit', cache: 'no-store', referrerPolicy: 'no-referrer', signal: controller.signal });
+      // Solo cuenta como mirada si la web contestó: sin red, la del minuto siguiente no se la salta (shouldAsk).
+      Services.prefs.setStringPref('kitsune.update.lastCheck', String(now));
       if (!response.ok) return null;
       downloads = await response.json();
     } finally { clearTimeout(timer); }
@@ -153,7 +171,7 @@ export const KitsuneUpdates = {
     if (pending && await updater()?.available()) {
       try {
         await updater().stage({ release: pending.release, entry: list[platform], ...(testing ? { origin: new URL(override).origin } : {}) });
-        pending = { ...pending, ready: true };
+        pending = { ...pending, ready: true, admin: await updater().needsAdmin() };
       } catch (error) {
         console.warn('Kitsune: no se ha podido preparar la versión nueva', error);
       }
