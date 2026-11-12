@@ -41,7 +41,8 @@
   :root[zero] :is(#navigator-toolbox, #navigator-toolbox *, #tabbrowser-tabbox, #tabbrowser-tabpanels, #tabbrowser-tabpanels > .browserSidebarContainer,
                   #zero-lights, #zero-lights *, #zero-grow, #zero-grow *, #zero-rail, #zero-rail *, #zero-mark, #zero-mark *,
                   #zero-settings, #zero-settings *, #zero-settings *::after, #sidebar-box),
-  :root[zero] :is(#navigator-toolbox, #zero-rail, #zero-grow, #zero-settings) *::after {
+  :root[zero] :is(#navigator-toolbox, #zero-rail, #zero-grow, #zero-settings) *::after,
+  :root[zero] #navigator-toolbox #nav-bar::before {
     transition-duration: 1ms !important; transition-delay: 0ms !important;
     animation: none !important;
   }
@@ -622,15 +623,19 @@
    asomaba detrás de la G del buscador y la G se veía «como duplicada» (Risco, 15-10). El ::before de la
    barra queda para el destello. */
 #main-window[zero] #navigator-toolbox > #nav-bar::before { content: none !important; }
-/* Y, mientras crece, un destello de luz que la cruza una vez, como un reflejo pasando por el vidrio. */
+/* Y, mientras crece, un destello de luz que la cruza una vez, como un reflejo pasando por el vidrio.
+   La posición va en una propiedad registrada: con «background: … !important» la animación no podía mover
+   background-position (un !important gana a una animación) y el destello se quedaba quieto a la izquierda,
+   encendiéndose y apagándose (Risco, 12-11: «la animación de ese reflejo no está bien hecha»). */
+@property --zero-sweep-x { syntax: '<percentage>'; inherits: false; initial-value: -80%; }
 #main-window[zero][zero-empty] #navigator-toolbox[zero-island="typing"] #nav-bar::before {
   content: "" !important; position: absolute !important; inset: 0 !important; order: 0 !important; flex: none !important;
   width: auto !important; height: auto !important; margin: 0 !important; border-radius: inherit !important; pointer-events: none;
-  background: linear-gradient(105deg, transparent 0%, rgba(255, 255, 255, 0) 35%, rgba(255, 255, 255, .28) 50%, rgba(255, 255, 255, 0) 65%, transparent 100%) no-repeat !important;
-  background-size: 45% 100% !important;
-  animation: zero-sweep 900ms cubic-bezier(.4, 0, .2, 1) 120ms 1 both;
+  background: linear-gradient(105deg, rgba(255, 255, 255, 0) 30%, rgba(255, 255, 255, .1) 42%, rgba(255, 255, 255, .34) 50%, rgba(255, 255, 255, .1) 58%, rgba(255, 255, 255, 0) 70%)
+              var(--zero-sweep-x) 0 / 40% 100% no-repeat !important;
+  animation: zero-sweep 1000ms cubic-bezier(.45, .05, .25, 1) 80ms 1 both;
 }
-@keyframes zero-sweep { from { background-position: -80% 0; opacity: 1; } 85% { opacity: 1; } to { background-position: 180% 0; opacity: 0; } }
+@keyframes zero-sweep { from { --zero-sweep-x: -80%; opacity: 0; } 12% { opacity: 1; } 80% { opacity: 1; } to { --zero-sweep-x: 180%; opacity: 0; } }
 #main-window[zero][zero-empty] #nav-bar {
   height: 44px !important; min-height: 44px !important; max-height: 44px !important; padding-inline: 6px !important;
   box-shadow: var(--zero-glass-edge), 0 6px 18px rgba(0, 0, 0, .14) !important;
@@ -1242,7 +1247,10 @@
 /* Los ajustes: una hoja de cristal esmerilado que brota de la marca. */
 #zero-settings {
   position: fixed; left: 58px; bottom: 22px; z-index: 7; /* junto a la marca */
-  box-sizing: border-box; width: 320px; max-height: calc(100% - 80px); overflow-y: auto; scrollbar-width: none;
+  box-sizing: border-box; width: 320px; max-height: calc(100% - 80px);
+  /* No se desplaza la hoja sino sus filas (.zero-rows): el anillo de luz (::after, inset 0) se iba con el scroll y,
+     al bajar, lo de abajo quedaba fuera del cristal (Risco, 12-11). La cabecera se queda arriba. */
+  display: flex; flex-direction: column; overflow: hidden;
   padding: 14px 14px 6px; border-radius: 22px;
   color: #1d2321; font: 500 12.5px system-ui, sans-serif;
   background: rgba(246, 245, 241, .38);
@@ -1258,7 +1266,14 @@
   opacity: 1; transform: none; filter: none; pointer-events: auto;
   transition: opacity 360ms var(--zero-soft), transform var(--zero-t-morph) var(--zero-calm), filter 360ms var(--zero-soft);
 }
-#zero-settings h4 { margin: 2px 2px 10px; font: 600 14px system-ui, sans-serif; display: flex; align-items: center; gap: 8px; }
+#zero-settings h4 { flex: none; margin: 2px 2px 10px; font: 600 14px system-ui, sans-serif; display: flex; align-items: center; gap: 8px; }
+/* Las filas, lo único que se desplaza; con un margen para que el foco de los botones del borde no se corte. */
+#zero-settings > .zero-rows {
+  flex: 1 1 auto; min-height: 0; overflow-y: auto; scrollbar-width: none; overscroll-behavior: contain;
+  margin-inline: -4px; padding-inline: 4px;
+  /* Al pasar bajo la cabecera (y por el borde de abajo) se funden en vez de cortarse en seco. */
+  mask-image: linear-gradient(to bottom, transparent, #000 8px, #000 calc(100% - 8px), transparent);
+}
 #zero-settings h4 .zero-logo { width: 18px; height: 18px; }
 #zero-settings h4 .zero-wolf-mini { width: 24px; height: 24px; image-rendering: pixelated; }
 /* El engranaje de los ajustes (Risco, 9-11), del color de las piezas. */
@@ -2276,7 +2291,6 @@
 #zero-ia .zero-ia-wolf { width: 64px; height: 64px; flex: none; image-rendering: pixelated; margin: -8px -4px -2px -6px; transition: width 360ms var(--zero-calm), height 360ms var(--zero-calm); }
 #zero-ia:not([chatting]) .zero-ia-wolf { width: 128px; height: 128px; }
 #zero-ia .zero-ia-title { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
-#zero-ia h4 { margin: 0; font: 700 15px system-ui, sans-serif; }
 #zero-ia .zero-ia-status { min-height: 15px; color: var(--zero-piece-quiet); font-size: 11.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 #zero-ia[busy] .zero-ia-status::before { content: ""; display: inline-block; width: 6px; height: 6px; margin-inline-end: 6px; border-radius: 50%; background: var(--zero-ia-accent); animation: zero-ia-pulse 1.1s var(--zero-soft) infinite; vertical-align: middle; }
 @keyframes zero-ia-pulse { 50% { opacity: .3; scale: .7; } }
