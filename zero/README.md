@@ -121,7 +121,8 @@ que le da las herramientas de Kitsune. Aquí está la tubería; el panel y el lo
   `cerrado` (`codigo`, `inesperado`).
 
 Cómo se lanza `claude`, y por qué: `-p --input-format stream-json --output-format stream-json --verbose
---include-partial-messages` (un proceso que sigue vivo y contesta a trozos); `--setting-sources ''` y `--settings`
+--include-partial-messages` (un proceso que sigue vivo y contesta a trozos); `--setting-sources=` (vacío y pegado: en
+Windows, Subprocess no entrecomilla y un `''` suelto se perdería) y `--settings`
 con `{ autoMemoryEnabled: false, disableAllHooks: true }` (ni los hooks, plugins, permisos, CLAUDE.md ni la memoria de
 la persona); `--strict-mcp-config --mcp-config <archivo>` (solo el servidor de Kitsune, con su token en un archivo
 0600 de una carpeta 0700: en la línea de órdenes lo vería cualquiera con `ps`); `--tools WebSearch,WebFetch
