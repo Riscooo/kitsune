@@ -91,6 +91,10 @@ export class Marionette {
 /** Un perfil nuevo con sus ajustes (user.js). */
 export function makeProfile(prefs = {}) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'kitsune-zero-prueba-'))
+  // El registro de perfiles del inicio (kitsune-profiles.json) va, de serie, en la carpeta de Kitsune de la persona
+  // (%APPDATA%\Mozilla\Kitsune): cada perfil de prueba se apuntaba allí como un «Perfil» más, y su perfil de verdad
+  // acababa con un contenedor por cada uno (22, Risco, 12-11). Las pruebas lo guardan en su propio perfil.
+  prefs = { 'kitsune.home.profilesRoot': dir, ...prefs }
   const lines = Object.entries(prefs).map(([k, v]) => `user_pref(${JSON.stringify(k)}, ${JSON.stringify(v)});`)
   fs.writeFileSync(path.join(dir, 'user.js'), lines.join('\n') + '\n')
   return dir
