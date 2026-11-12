@@ -258,7 +258,12 @@ async function run() {
   for (const period of ['noche', 'amanecer', 'atardecer']) {
     await setPrefs(m, { 'kitsune.zero.light.period': period })
     s = await waitFor(m, st => st.sol === period && st.material === 'acrylic')
-    check(`${period}: la luz cambia (${s.solSurface})`, s.sol === period, { scheme: s.scheme, variant: s.variant, superficie: s.solSurface, texto: s.solText })
+    // Si no cambia, en qué se queda: el ajuste, lo que calcula la luz y cuántas ventanas tiene (¿llegó el aviso?).
+    const why = s.sol === period ? {} : await m.js(`
+      const luz = ChromeUtils.importESModule('chrome://browser/content/zero/zero-luz.sys.mjs'), snap = luz.snapshot();
+      return { ajuste: Services.prefs.getStringPref('kitsune.zero.light.mode', '?') + '/' + Services.prefs.getStringPref('kitsune.zero.light.period', '?'),
+               calculada: snap.theme?.period ?? null, ventanas: snap.windows, sol: Services.wm.getMostRecentWindow('navigator:browser').document.documentElement.getAttribute('zero-sol') };`)
+    check(`${period}: la luz cambia (${s.solSurface})`, s.sol === period, { scheme: s.scheme, variant: s.variant, superficie: s.solSurface, texto: s.solText, ...why })
     if (period === 'noche') {
       check('de noche, oscuro (modo Oscuro en las piezas)', s.scheme === 'dark' && s.variant === 'sobrio', { scheme: s.scheme, variant: s.variant })
       check('de noche, las webs no se oscurecen a la fuerza', s.overrideUser === false, s.overrideUser)
