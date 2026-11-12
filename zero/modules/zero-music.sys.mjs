@@ -178,8 +178,21 @@ function ensurePanel(win, st, service) {
   st.title.textContent = service.name;
   // Activo, como la pestaña elegida: se pinta y puede empezar a sonar sola (Firefox no deja a las de fondo).
   try { browser.docShellIsActive = true; } catch { /* sin esa propiedad */ }
+  allowAutoplay(service.url);
   browser.loadURI(Services.io.newURI(service.url), { triggeringPrincipal: Services.scriptSecurityManager.getSystemPrincipal() });
   watchController(win, st);
+}
+
+/** El reproductor que se ha elegido suena sin un clic dentro de su web. Con el autoplay con sonido bloqueado (lo de
+ *  serie), un play() que no venga de un clic en la página falla: al abrir el panel (la web retoma lo que sonaba) o al
+ *  usar el minipanel, la isla o las teclas multimedia, que son de Zero y no de la web. Spotify lo toma por una
+ *  canción que no se puede poner y pasa a la siguiente (Risco, 12-11: «te pasa las 3 primeras canciones»). El
+ *  permiso es del origen del servicio y solo para esta sesión. */
+function allowAutoplay(url) {
+  try {
+    const principal = Services.scriptSecurityManager.createContentPrincipalFromOrigin(new URL(url).origin);
+    Services.perms.addFromPrincipal(principal, 'autoplay-media', Ci.nsIPermissionManager.ALLOW_ACTION, Ci.nsIPermissionManager.EXPIRE_SESSION);
+  } catch { /* una dirección sin origen */ }
 }
 
 /** La DRM que pide la web del panel: apagada, la barra para activarla; sin Widevine (Gecko ya lo está
