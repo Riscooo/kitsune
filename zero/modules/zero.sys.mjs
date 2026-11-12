@@ -173,7 +173,7 @@ async function decorate(win) {
   if (!win.gBrowser || !win.gBrowserInit?.delayedStartupFinished) await win.delayedStartupPromise;
   if (decorated.has(win) || !win.gBrowser || !win.toolbar?.visible) {
     if (early.delete(win)) {
-      for (const name of ['zero', 'zero-backdrop', 'zero-sol', 'zero-sol-scheme', 'zero-material', 'zero-web-clear']) win.document.documentElement.removeAttribute(name);
+      for (const name of ['zero', 'zero-backdrop', 'zero-sol', 'zero-sol-scheme', 'zero-sol-style', 'zero-material', 'zero-web-clear']) win.document.documentElement.removeAttribute(name);
       sheet(win, false);
     }
     return;

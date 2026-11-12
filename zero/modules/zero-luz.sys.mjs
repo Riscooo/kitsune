@@ -41,7 +41,7 @@ export function lightConfig() {
   const [sunrise, sunset] = String(str('lightClock')).split('-');
   return normalizeConfig({
     mode: str('light'), latitude: coords?.latitude ?? null, longitude: coords?.longitude ?? null,
-    sunrise, sunset, period: str('lightPeriod'), transition: str('lightTransition'),
+    sunrise, sunset, period: str('lightPeriod'), transition: str('lightTransition'), scheme: str('lightScheme'),
   });
 }
 
@@ -127,16 +127,20 @@ function paint(win, st) {
   if (before !== (material ?? null)) win.dispatchEvent(new win.CustomEvent('zero-material', { detail: { material } }));
 
   const schemeBefore = root.getAttribute('zero-sol-scheme');
+  const styleBefore = root.getAttribute('zero-sol-style');
   if (theme) {
     root.setAttribute('zero-sol', theme.period);
     root.setAttribute('zero-sol-scheme', theme.scheme);
+    // El estilo elegido (Auto, Claro u Oscuro): zero-frame decide con él si las webs siguen el modo (como sin la luz).
+    root.setAttribute('zero-sol-style', theme.style ?? 'auto');
     for (const [name, value] of Object.entries(cssVars(theme))) setVar(root, st, name, value);
   } else {
-    root.removeAttribute('zero-sol');
-    root.removeAttribute('zero-sol-scheme');
+    for (const name of ['zero-sol', 'zero-sol-scheme', 'zero-sol-style']) root.removeAttribute(name);
     for (const name of [...st.vars.keys()].filter(n => n.startsWith('--sol-'))) { root.style.removeProperty(name); st.vars.delete(name); }
   }
-  if (schemeBefore !== root.getAttribute('zero-sol-scheme')) win.dispatchEvent(new win.CustomEvent('zero-sol', { detail: { scheme: theme?.scheme ?? null } }));
+  if (schemeBefore !== root.getAttribute('zero-sol-scheme') || styleBefore !== root.getAttribute('zero-sol-style')) {
+    win.dispatchEvent(new win.CustomEvent('zero-sol', { detail: { scheme: theme?.scheme ?? null, style: theme?.style ?? null } }));
+  }
 }
 
 function schedule() {
@@ -304,7 +308,7 @@ export function detach(win) {
   windows.delete(win);
   for (const undo of st.cleanups.reverse()) { try { undo(); } catch { /* ya no estaba */ } }
   const root = win.document.documentElement;
-  for (const name of ['zero-sol', 'zero-sol-scheme', 'zero-material', 'zero-web-clear']) root.removeAttribute(name);
+  for (const name of ['zero-sol', 'zero-sol-scheme', 'zero-sol-style', 'zero-material', 'zero-web-clear']) root.removeAttribute(name);
   clearVars(root, st);
   if (!windows.size) {
     // Sin ventanas de Zero, ni temporizador ni material (las ventanas normales de Kitsune son opacas).

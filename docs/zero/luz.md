@@ -118,10 +118,16 @@ sin fondo propio dejan ver el material. Solo afecta a las pestañas creadas desd
 - Los cambios entre dos miradas son pequeños, por debajo de 0,03 de luminancia por minuto. El tinte del marco los
   suaviza con una transición CSS de 1,2 s.
 
-**Con la luz, el modo es el suyo.**
-- De noche, Oscuro (las piezas de «Sobrio»); de día, Claro. La fila «Estilo» se esconde.
-- Las webs se quedan con sus colores: Zero no fuerza `layout.css.prefers-color-scheme.content-override` ni oscurece las
-  webs claras. Eso sigue siendo cosa de Oscuro con la luz apagada.
+**Con la luz, «Estilo» tiene tres opciones** (`light.scheme`; Risco, 12-11: «encima de la iluminación, también un
+modo oscuro como antes»):
+- **Auto** (de serie): de noche, Oscuro (las piezas de «Sobrio»); de día, Claro. Las webs se quedan con sus colores:
+  Zero no fuerza `layout.css.prefers-color-scheme.content-override` ni oscurece las webs claras.
+- **Oscuro**: siempre oscuro, y la luz sigue tiñéndolo (paletas oscuras). Las webs, como Oscuro sin la luz: su versión
+  oscura, y las que solo son claras, oscurecidas.
+- **Claro**: siempre claro, también de noche (una noche clara). Las webs, en su versión clara.
+- Claro y Oscuro también se guardan en `variant`, el modo de siempre: al apagar la luz se queda el mismo, y al revés.
+- La raíz lleva el estilo en `zero-sol-style`; el evento `zero-sol` salta también cuando cambia el estilo aunque no
+  cambie el esquema (de Auto a Oscuro, de noche).
 
 ### Paletas
 
@@ -132,7 +138,20 @@ sin fondo propio dejan ver el material. Solo afecta a las pestañas creadas desd
 | Atardecer | `#ede2df` | `#f5edea` | `#2d2422` | `#975f49` | claro |
 | Noche | `#252d39` | `#2d3644` | `#e8ecf1` | `#93a9c4` | oscuro |
 
-Se pueden cambiar con `palettes` en la configuración (`normalizePalettes`): solo los colores `#rrggbb` válidos.
+Con el estilo Oscuro (`DARK_PALETTES`):
+
+| Luz | Superficie | Elevada | Texto | Acento |
+|---|---|---|---|---|
+| Amanecer | `#2b2620` | `#352f28` | `#f3ebdf` | `#d9b07a` |
+| Día | `#202429` | `#292e35` | `#eceff3` | `#94b3d8` |
+| Atardecer | `#2a2226` | `#342a2f` | `#f2e7e8` | `#dc9c88` |
+| Noche | `#1b212b` | `#242b37` | `#e7ebf1` | `#8ea7c8` |
+
+Con el estilo Claro (`LIGHT_PALETTES`), las de serie salvo la noche: `#e8eaf1`, `#f2f3f8`, texto `#1e2230`, acento
+`#56678f`.
+
+Se pueden cambiar con `palettes` en la configuración (`normalizePalettes`, sobre las del estilo): solo los colores
+`#rrggbb` válidos.
 
 ## Ajustes (`kitsune.zero.*`)
 
@@ -143,6 +162,7 @@ Se pueden cambiar con `palettes` en la configuración (`normalizePalettes`): sol
 | `light.clock` | `"07:30-19:30"` | `07:30-19:30` |
 | `light.period` | `amanecer`, `dia`, `atardecer`, `noche` | `dia` |
 | `light.transition` | minutos | `50` |
+| `light.scheme` | `auto`, `light`, `dark` (fila «Estilo») | `auto` |
 | `material` | `auto`, `acrylic`, `mica`, `opaque` | `auto` |
 | `surface.opacity` | 0,5 a 1 | `0.85` |
 | `surface.tint` | 0 a 0,95 | `0.7` |

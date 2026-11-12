@@ -42,6 +42,7 @@ export const PREFS = Object.freeze({
   lightClock: 'light.clock',          // 'HH:MM-HH:MM': salida y puesta «por la hora»
   lightPeriod: 'light.period',        // con 'fixed': 'amanecer' | 'dia' | 'atardecer' | 'noche'
   lightTransition: 'light.transition', // minutos de cada transición (string)
+  lightScheme: 'light.scheme',        // con la luz, el «Estilo»: 'auto' (claro de día, oscuro de noche) | 'light' | 'dark'
   webTransparent: 'web.transparent',  // experimental: las páginas sin fondo propio dejan ver el material
 });
 
@@ -50,7 +51,7 @@ export const DEFAULTS = Object.freeze({ always: false, inherit: true, variant: '
   silence: false, silenceNotify: true, silenceBlock: true, silenceBlocked: '', silenceOnlyWork: false, silenceScroll: true,
   sounds: false, soundsLevels: '{"lluvia":0.5}', soundsPause: true, welcomed: false, railIcons: false, railWindow: false, shortcutsWindow: true, hints: true, growAt: '',
   material: 'auto', surfaceOpacity: '0.85', surfaceTint: '0.7', light: 'solar', lightCoords: '', lightClock: '07:30-19:30', lightPeriod: 'dia',
-  lightTransition: '50', webTransparent: false });
+  lightTransition: '50', lightScheme: 'auto', webTransparent: false });
 
 /** Cuántas filas se ven a la vez con «de 3 en 3». */
 export const WINDOW_ROWS = 3;

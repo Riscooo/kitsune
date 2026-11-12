@@ -29,6 +29,28 @@ export const PALETTES = Object.freeze({
   noche: Object.freeze({ surface: '#252d39', raised: '#2d3644', line: '#3d4858', text: '#e8ecf1', quiet: '#a4aebb', accent: '#93a9c4', shadow: '#05080d', scheme: 'dark', material: 0.8 }),
 });
 
+/** El «Estilo» con la luz (Risco, 12-11: «encima de la iluminación, también un modo oscuro como antes»):
+ *  - 'auto': las cuatro luces de arriba, claras de día y oscuras de noche;
+ *  - 'dark': siempre oscuro, pero la luz sigue tiñéndolo: umbra al amanecer, grafito de día, ciruela al atardecer
+ *    y azul noche;
+ *  - 'light': siempre claro, también de noche (una noche clara, fría). */
+export const SCHEMES = Object.freeze(['auto', 'light', 'dark']);
+
+export const DARK_PALETTES = Object.freeze({
+  amanecer: Object.freeze({ surface: '#2b2620', raised: '#352f28', line: '#4a4137', text: '#f3ebdf', quiet: '#bcae9b', accent: '#d9b07a', shadow: '#0b0804', scheme: 'dark', material: 0.8 }),
+  dia: Object.freeze({ surface: '#202429', raised: '#292e35', line: '#3a414b', text: '#eceff3', quiet: '#a9b1bc', accent: '#94b3d8', shadow: '#040609', scheme: 'dark', material: 0.8 }),
+  atardecer: Object.freeze({ surface: '#2a2226', raised: '#342a2f', line: '#4a3c42', text: '#f2e7e8', quiet: '#bba8ac', accent: '#dc9c88', shadow: '#0a0405', scheme: 'dark', material: 0.8 }),
+  noche: Object.freeze({ surface: '#1b212b', raised: '#242b37', line: '#343d4c', text: '#e7ebf1', quiet: '#9fa9b8', accent: '#8ea7c8', shadow: '#020306', scheme: 'dark', material: 0.8 }),
+});
+
+export const LIGHT_PALETTES = Object.freeze({
+  ...PALETTES,
+  noche: Object.freeze({ surface: '#e8eaf1', raised: '#f2f3f8', line: '#cfd3de', text: '#1e2230', quiet: '#565d6f', accent: '#56678f', shadow: '#141826', scheme: 'light', material: 0.85 }),
+});
+
+/** Las cuatro luces de un estilo. */
+export const paletteFamily = scheme => (scheme === 'dark' ? DARK_PALETTES : scheme === 'light' ? LIGHT_PALETTES : PALETTES);
+
 export const DEFAULT_CONFIG = Object.freeze({
   mode: 'solar',        // 'solar' (con coordenadas) | 'clock' (salida y puesta fijas) | 'fixed' (una luz) | 'off'
   latitude: null,
@@ -36,6 +58,7 @@ export const DEFAULT_CONFIG = Object.freeze({
   sunrise: '07:30',     // «por la hora», y sin coordenadas
   sunset: '19:30',
   period: 'dia',        // con 'fixed'
+  scheme: 'auto',       // el estilo: 'auto' | 'light' | 'dark' (SCHEMES)
   transition: 50,       // minutos que tarda cada cambio a cada lado de la salida y la puesta
   step: 5,              // minutos entre dos repintados durante una transición
 });
@@ -181,18 +204,21 @@ export function normalizeConfig(input = {}) {
   if (parseClock(input.sunset) !== null) c.sunset = input.sunset.trim();
   if (parseClock(c.sunset) <= parseClock(c.sunrise)) { c.sunrise = DEFAULT_CONFIG.sunrise; c.sunset = DEFAULT_CONFIG.sunset; }
   if (PERIOD_SET.has(input.period)) c.period = input.period;
+  if (SCHEMES.includes(input.scheme)) c.scheme = input.scheme;
   const transition = Number(input.transition), step = Number(input.step);
   if (Number.isFinite(transition)) c.transition = clamp(transition, 5, 180);
   if (Number.isFinite(step)) c.step = clamp(step, 1, 30);
-  c.palettes = normalizePalettes(input.palettes);
+  c.palettes = normalizePalettes(input.palettes, c.scheme);
   return c;
 }
 
-/** Paletas propias sobre las de serie: solo los colores que sean '#rrggbb', y el esquema y el material válidos. */
-export function normalizePalettes(custom) {
+/** Paletas propias sobre las de serie (las del estilo): solo los colores que sean '#rrggbb', y el esquema y el
+ *  material válidos. */
+export function normalizePalettes(custom, scheme = 'auto') {
   const out = {};
+  const family = paletteFamily(scheme);
   for (const period of PERIODS) {
-    const base = PALETTES[period], given = custom?.[period] ?? {};
+    const base = family[period], given = custom?.[period] ?? {};
     const palette = { ...base };
     for (const token of COLOR_TOKENS) if (parseHex(given[token])) palette[token] = toHex(parseHex(given[token]));
     if (given.scheme === 'light' || given.scheme === 'dark') palette.scheme = given.scheme;
@@ -315,6 +341,7 @@ export function themeAt(date = Date.now(), input = {}) {
     to: pos.to,
     progress: Math.round(pos.t * 1000) / 1000,
     scheme,
+    style: config.scheme,
     colors,
     material,
     sun: events && !events.polar ? { sunrise: events.sunrise, sunset: events.sunset } : (events?.polar ? { polar: events.polar } : null),
@@ -345,6 +372,7 @@ export function exportTheme(theme) {
     to: theme.to,
     progress: theme.progress,
     scheme: theme.scheme,
+    style: theme.style ?? 'auto',
     colors: theme.colors,
     colorsUnit: unit,
     material: theme.material,

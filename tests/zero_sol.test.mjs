@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 import {
   sunTimes, themeAt, normalizeConfig, parseCoords, parseClock, contrast, luminance, mix, ensureContrast,
-  PALETTES, PERIODS, cssVars, exportTheme, timeline,
+  PALETTES, PERIODS, cssVars, exportTheme, timeline, DARK_PALETTES, LIGHT_PALETTES, SCHEMES,
 } from '../zero/modules/zero-sol.mjs'
 
 const MIN = 60000
@@ -68,6 +68,42 @@ test('las cuatro luces se leen bien: texto AAA, secundario AA y acentos visibles
   assert.equal(PALETTES.noche.surface, '#252d39')
   assert.equal(PALETTES.dia.scheme, 'light')
   assert.equal(PALETTES.noche.scheme, 'dark')
+})
+
+test('el estilo Oscuro es oscuro a todas horas, teñido por la luz; el Claro, claro también de noche; Auto, como siempre', () => {
+  // Las paletas de los dos estilos nuevos se leen tan bien como las de serie.
+  for (const [name, family] of [['oscuro', DARK_PALETTES], ['claro', LIGHT_PALETTES]]) {
+    for (const period of PERIODS) {
+      const p = family[period]
+      assert.ok(contrast(p.text, p.surface) >= 7, `${name}/${period}: texto ${contrast(p.text, p.surface).toFixed(2)}`)
+      assert.ok(contrast(p.text, p.raised) >= 7, `${name}/${period}: texto sobre lo elevado`)
+      assert.ok(contrast(p.quiet, p.surface) >= 4.5, `${name}/${period}: secundario ${contrast(p.quiet, p.surface).toFixed(2)}`)
+      assert.ok(contrast(p.accent, p.surface) >= 3, `${name}/${period}: acento ${contrast(p.accent, p.surface).toFixed(2)}`)
+    }
+  }
+  assert.deepEqual(SCHEMES, ['auto', 'light', 'dark'])
+  assert.equal(normalizeConfig({ scheme: 'raro' }).scheme, 'auto')
+  // A lo largo de un día «por la hora», cada 20 minutos: Oscuro nunca es claro, Claro nunca es oscuro.
+  const day = new Date(2026, 5, 21)
+  const seen = { dark: new Set(), light: new Set() }
+  for (let minutes = 0; minutes < 24 * 60; minutes += 20) {
+    const at = new Date(+day + minutes * MIN)
+    const dark = themeAt(at, { mode: 'clock', scheme: 'dark' })
+    const light = themeAt(at, { mode: 'clock', scheme: 'light' })
+    assert.equal(dark.scheme, 'dark', `oscuro a las ${minutes / 60}`)
+    assert.equal(light.scheme, 'light', `claro a las ${minutes / 60}`)
+    assert.equal(dark.style, 'dark')
+    assert.ok(contrast(dark.colors.text, dark.colors.surface) >= 4.5 && contrast(light.colors.text, light.colors.surface) >= 4.5)
+    seen.dark.add(dark.colors.surface); seen.light.add(light.colors.surface)
+  }
+  // La luz sigue tiñendo: no es un único color oscuro (ni claro) todo el día.
+  assert.ok(seen.dark.size > 4 && seen.light.size > 4, `oscuros distintos: ${seen.dark.size}; claros: ${seen.light.size}`)
+  // Cada luz fija con cada estilo; Auto es lo de siempre (claro de día, oscuro de noche).
+  assert.equal(themeAt(Date.now(), { mode: 'fixed', period: 'dia', scheme: 'dark' }).colors.surface, DARK_PALETTES.dia.surface)
+  assert.equal(themeAt(Date.now(), { mode: 'fixed', period: 'noche', scheme: 'light' }).colors.surface, LIGHT_PALETTES.noche.surface)
+  assert.equal(themeAt(Date.now(), { mode: 'fixed', period: 'noche' }).colors.surface, PALETTES.noche.surface)
+  assert.equal(themeAt(Date.now(), { mode: 'fixed', period: 'dia', scheme: 'auto' }).scheme, 'light')
+  assert.equal(exportTheme(themeAt(Date.now(), { mode: 'fixed', scheme: 'dark' })).style, 'dark')
 })
 
 test('los colores se mezclan en OKLab y el contraste se recupera sin cambiar de tinta', () => {

@@ -272,6 +272,35 @@ async function run() {
     }
     await photo(hwnd, `5-acrilico-${period}`)
   }
+  // ---- El estilo con la luz (Risco, 12-11: «encima de la iluminación, también un modo oscuro como antes»)
+  const WEB = `return { esquema: Services.prefs.getIntPref('layout.css.prefers-color-scheme.content-override', -1),
+    forzado: Services.prefs.prefHasUserValue('layout.css.prefers-color-scheme.content-override'),
+    oscurecer: Services.prefs.getBoolPref('kitsune.oscurecer.enabled', false),
+    estilo: Services.wm.getMostRecentWindow('navigator:browser').document.documentElement.getAttribute('zero-sol-style') };`
+  await setPrefs(m, { 'kitsune.zero.light.period': 'dia', 'kitsune.zero.light.scheme': 'dark' })
+  s = await waitFor(m, st => st.sol === 'dia' && st.scheme === 'dark', 8000)
+  let web = await m.js(WEB)
+  check('Oscuro de día: piezas oscuras con el grafito del día (#202429)', s.scheme === 'dark' && s.variant === 'sobrio' && s.solSurface === '#202429',
+    { scheme: s.scheme, variant: s.variant, superficie: s.solSurface, estilo: web.estilo })
+  check('Oscuro: las webs en oscuro, como antes (esquema 0 y oscurecer)', web.esquema === 0 && web.oscurecer === true, web)
+  await photo(hwnd, '5b-oscuro-dia')
+  // De noche, de Auto a Oscuro: el esquema no cambia (oscuro los dos), pero las webs sí tienen que pasar a oscuro.
+  await setPrefs(m, { 'kitsune.zero.light.scheme': 'auto', 'kitsune.zero.light.period': 'noche' })
+  await waitFor(m, st => st.sol === 'noche', 8000)
+  await setPrefs(m, { 'kitsune.zero.light.scheme': 'dark' })
+  await sleep(800)
+  web = await m.js(WEB)
+  check('de noche, de Auto a Oscuro: las webs pasan a oscuro', web.esquema === 0 && web.oscurecer === true && web.estilo === 'dark', web)
+  await setPrefs(m, { 'kitsune.zero.light.scheme': 'light' })
+  s = await waitFor(m, st => st.sol === 'noche' && st.scheme === 'light', 8000)
+  web = await m.js(WEB)
+  check('Claro de noche: claro (la noche clara, #e8eaf1) y las webs en claro', s.scheme === 'light' && s.variant === 'nacar' && s.solSurface === '#e8eaf1' && web.esquema === 1 && !web.oscurecer,
+    { scheme: s.scheme, variant: s.variant, superficie: s.solSurface, ...web })
+  await setPrefs(m, { 'kitsune.zero.light.scheme': 'auto', 'kitsune.zero.light.period': 'dia' })
+  s = await waitFor(m, st => st.sol === 'dia' && st.scheme === 'light', 8000)
+  web = await m.js(WEB)
+  check('Auto otra vez: las webs con sus colores (nada forzado)', !web.forzado && !web.oscurecer && web.estilo === 'auto', web)
+
   const after = await m.js(`const w = Services.wm.getMostRecentWindow('navigator:browser'); return w.gBrowser.selectedBrowser.browsingContext.currentWindowGlobal.innerWindowId;`)
   check('cambiar la luz no recarga la web', marker === after, { antes: marker, despues: after })
 
@@ -306,10 +335,20 @@ async function run() {
     const settings = doc.getElementById('zero-settings');
     const rows = [...(settings?.querySelectorAll('[data-pref]') ?? [])].map(el => el.dataset.pref);
     const bg = settings ? win.getComputedStyle(settings).backgroundColor : null;
-    return { open: !!settings && settings.getBoundingClientRect().height > 50, rows, bg };
+    const estilo = [...(settings?.querySelectorAll('[data-pref="variant"] [data-value]') ?? [])].map(el => el.dataset.value);
+    // Pulsar «Oscuro» en la fila: guarda el estilo con la luz y el modo de siempre.
+    settings?.querySelector('[data-pref="variant"] [data-value="sobrio"]')?.click();
+    await new Promise(r => win.setTimeout(r, 400));
+    const pulsado = { estilo: Services.prefs.getStringPref('kitsune.zero.light.scheme', '?'), modo: Services.prefs.getStringPref('kitsune.zero.variant', '?') };
+    settings?.querySelector('[data-pref="variant"] [data-value="auto"]')?.click();
+    await new Promise(r => win.setTimeout(r, 400));
+    pulsado.despues = Services.prefs.getStringPref('kitsune.zero.light.scheme', '?');
+    return { open: !!settings && settings.getBoundingClientRect().height > 50, rows, bg, estilo, pulsado };
   })();`)
   check('los ajustes enseñan Luz, Material, Superficies y Tinte', ['light.mode', 'material', 'surface.opacity', 'surface.tint'].every(id => panel.rows.includes(id)),
     { abiertos: panel.open, filas: panel.rows.filter(id => /light|material|surface|web\./.test(id)), fondo: panel.bg })
+  check('con la luz, «Estilo» ofrece Auto, Claro y Oscuro', panel.estilo.join(',') === 'auto,nacar,sobrio', panel.estilo)
+  check('«Oscuro» en Estilo guarda el estilo y el modo; «Auto» vuelve a la luz', panel.pulsado.estilo === 'dark' && panel.pulsado.modo === 'sobrio' && panel.pulsado.despues === 'auto', panel.pulsado)
   await photo(hwnd, '7-ajustes')
   await m.js(`const doc = Services.wm.getMostRecentWindow('navigator:browser').document; doc.documentElement.dispatchEvent(new doc.defaultView.KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); return true;`)
 

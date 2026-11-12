@@ -41,6 +41,9 @@ function zeroSection(win, host) {
     return () => prefs.removeObserver('kitsune.privacy.requested', observer);
   };
   const privacy = host.privacy?.available?.() ? host.privacy : null;
+  // La luz (zero-luz) encendida en esta ventana, y el estilo elegido con ella.
+  const lit = () => win.document.documentElement.hasAttribute('zero-sol');
+  const lightScheme = () => { try { return prefs.getStringPref(prefName(prefix, PREFS.lightScheme), 'auto'); } catch { return 'auto'; } };
   return {
     id: 'zero',
     // Las filas que dependen del fondo (la foto, la opacidad) siguen al que está puesto de verdad, y la de reiniciar
@@ -73,15 +76,34 @@ function zeroSection(win, host) {
         // Claro u Oscuro (Risco, 21-10; antes, las variantes «Nácar» de Risco y «Sobrio» de Dani, con los mismos
         // valores): cambian las piezas y las webs; lo de alrededor es el mismo.
         kind: 'segment', id: PREFS.variant,
-        // Con la luz (zero-luz), el modo lo pone ella: la fila sale solo con la luz apagada.
-        when: () => !win.document.documentElement.hasAttribute('zero-sol'),
+        // Con la luz (zero-luz), también «Auto» (Risco, 12-11: «encima de la iluminación, también un modo oscuro como
+        // antes»): Auto es claro de día y oscuro de noche; Claro u Oscuro, siempre, y la luz tiñe sus colores según la
+        // hora. Con la luz se guarda en light.scheme; Claro y Oscuro también en el modo de siempre (variant), para que
+        // al apagar la luz se quede el mismo, y al revés.
         label: host.t('Estilo', 'Style'),
-        detail: host.t('Claro: piezas de cristal claro y transparente, y las webs en claro. Oscuro: cristal ahumado, y las webs en oscuro.',
-                       'Light: clear, see-through glass pieces, and pages in light. Dark: smoked glass, and pages in dark.'),
-        options: [{ value: 'nacar', label: host.t('Claro', 'Light') }, { value: 'sobrio', label: host.t('Oscuro', 'Dark') }],
-        get: () => variantOf(prefs.getStringPref(prefName(prefix, PREFS.variant), 'nacar')),
-        set: value => prefs.setStringPref(prefName(prefix, PREFS.variant), value),
-        watch: watchPref(PREFS.variant),
+        get detail() {
+          return lit()
+            ? host.t('Auto: claro de día y oscuro de noche, y las webs con sus colores. Claro u Oscuro: siempre, con los colores de la luz de cada hora, y las webs en claro o en oscuro.',
+                     'Auto: light by day and dark at night, and pages keep their colours. Light or Dark: always, with the colours of each hour, and pages in light or in dark.')
+            : host.t('Claro: piezas de cristal claro y transparente, y las webs en claro. Oscuro: cristal ahumado, y las webs en oscuro.',
+                     'Light: clear, see-through glass pieces, and pages in light. Dark: smoked glass, and pages in dark.');
+        },
+        get options() {
+          return [...(lit() ? [{ value: 'auto', label: host.t('Auto', 'Auto') }] : []),
+            { value: 'nacar', label: host.t('Claro', 'Light') }, { value: 'sobrio', label: host.t('Oscuro', 'Dark') }];
+        },
+        get: () => {
+          if (lit()) return ({ light: 'nacar', dark: 'sobrio' })[lightScheme()] ?? 'auto';
+          return variantOf(prefs.getStringPref(prefName(prefix, PREFS.variant), 'nacar'));
+        },
+        set: value => {
+          if (value === 'auto') { prefs.setStringPref(prefName(prefix, PREFS.lightScheme), 'auto'); return; }
+          const variant = variantOf(value);
+          prefs.setStringPref(prefName(prefix, PREFS.variant), variant);
+          // Con la luz, el estilo; sin ella, si ya había uno elegido, que siga al modo.
+          if (lit() || lightScheme() !== 'auto') prefs.setStringPref(prefName(prefix, PREFS.lightScheme), variant === 'sobrio' ? 'dark' : 'light');
+        },
+        watch: fn => { const undo = [watchPref(PREFS.variant)(fn), watchPref(PREFS.lightScheme)(fn)]; return () => undo.forEach(u => u()); },
       },
       {
         kind: 'segment', id: PREFS.backdrop,

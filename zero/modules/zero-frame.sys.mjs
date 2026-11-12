@@ -16,8 +16,8 @@ import * as luz from './zero-luz.sys.mjs';
 
 export { variantOf };
 
-/** El modo que se ve: si manda la luz (zero-luz pone zero-sol-scheme en la raíz), el suyo (de noche, Oscuro); si
- *  no, el elegido en los ajustes. */
+/** El modo que se ve: si manda la luz (zero-luz pone zero-sol-scheme en la raíz), el suyo (en «Auto», Oscuro de
+ *  noche; con el estilo Oscuro, siempre); si no, el elegido en los ajustes. */
 export function effectiveVariant(value, root) {
   const solar = root?.getAttribute?.('zero-sol-scheme');
   if (solar === 'dark') return 'sobrio';
@@ -419,11 +419,17 @@ export function attach(win, ctx) {
     try { value = host.prefs.getStringPref(variantPref, 'nacar'); } catch { /* de serie */ }
     root.setAttribute('zero-variant', effectiveVariant(value, root));
     if (root.hasAttribute('zero-sol-scheme')) {
-      // Con la luz, las webs se quedan con sus colores: ni se les dice qué esquema usar (el de serie de Gecko, que
-      // sigue al navegador) ni se oscurecen de noche.
-      if (Services.prefs.prefHasUserValue(WEBSITE_SCHEME)) Services.prefs.clearUserPref(WEBSITE_SCHEME);
-      if (Services.prefs.getBoolPref(DARKEN, false)) Services.prefs.setBoolPref(DARKEN, false);
-      return;
+      const style = root.getAttribute('zero-sol-style');
+      if (style !== 'light' && style !== 'dark') {
+        // Con la luz en «Auto», las webs se quedan con sus colores: ni se les dice qué esquema usar (el de serie de
+        // Gecko, que sigue al navegador) ni se oscurecen de noche.
+        if (Services.prefs.prefHasUserValue(WEBSITE_SCHEME)) Services.prefs.clearUserPref(WEBSITE_SCHEME);
+        if (Services.prefs.getBoolPref(DARKEN, false)) Services.prefs.setBoolPref(DARKEN, false);
+        return;
+      }
+      // Con un estilo elegido (Claro u Oscuro), las webs lo siguen como sin la luz (Risco, 12-11: «un modo oscuro como
+      // antes»): en Oscuro, su versión oscura, y las que solo son claras, oscurecidas.
+      value = style === 'dark' ? 'sobrio' : 'nacar';
     }
     const scheme = websiteScheme(value);
     if (Services.prefs.getIntPref(WEBSITE_SCHEME, -1) !== scheme) Services.prefs.setIntPref(WEBSITE_SCHEME, scheme);
