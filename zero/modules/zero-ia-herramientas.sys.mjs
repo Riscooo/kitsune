@@ -11,7 +11,9 @@
  *
  * Claude lee webs, y una web puede llevar instrucciones escondidas: estas herramientas no tocan archivos ni
  * ajustes, solo abren direcciones http y https, y el texto de las páginas se le da como datos (lo lee el actor
- * zero-ia-child, que solo contesta cuando se le pregunta).
+ * zero-ia-child, que solo contesta cuando se le pregunta). Son las que tiene el asistente del panel; las que manejan
+ * la página (clic, escribir, JavaScript…) están aparte, en zero-ia-navegar.sys.mjs, y solo las lleva el servidor de
+ * fuera (el de Claude Code en una terminal).
  */
 import { direccionSegura } from './zero-ia-protocolo.mjs';
 
@@ -47,8 +49,8 @@ function registrar() {
   } catch { /* ya estaba */ }
 }
 
-const esperar = ms => new Promise(listo => lazy.setTimeout(listo, ms));
-function conTiempo(promesa, ms, mensaje) {
+export const esperar = ms => new Promise(listo => lazy.setTimeout(listo, ms));
+export function conTiempo(promesa, ms, mensaje) {
   let id;
   const tope = new Promise((_, rechazar) => { id = lazy.setTimeout(() => rechazar(new Error(mensaje)), ms); });
   return Promise.race([promesa, tope]).finally(() => lazy.clearTimeout(id));
@@ -57,22 +59,22 @@ function conTiempo(promesa, ms, mensaje) {
 // Un id corto y estable por pestaña (mientras viva), para que Claude las nombre.
 const ids = new WeakMap();
 let siguiente = 1;
-const idDe = tab => { if (!ids.has(tab)) ids.set(tab, siguiente++); return ids.get(tab); };
+export const idDe = tab => { if (!ids.has(tab)) ids.set(tab, siguiente++); return ids.get(tab); };
 
-const direccionDe = tab => { try { return tab.linkedBrowser?.currentURI?.spec ?? ''; } catch { return ''; } };
+export const direccionDe = tab => { try { return tab.linkedBrowser?.currentURI?.spec ?? ''; } catch { return ''; } };
 
 /** Las pestañas que ve la persona (las del espacio de la ventana; las ocultas no). */
-function pestanas(win) {
+export function pestanas(win) {
   return (win.gBrowser.visibleTabs ?? win.gBrowser.tabs).filter(tab => tab.isConnected && !tab.closing);
 }
 
-function pestanaPorId(win, id) {
+export function pestanaPorId(win, id) {
   const tab = pestanas(win).find(item => idDe(item) === Number(id));
   if (!tab) throw new Error(`No hay ninguna pestaña con el id ${id}: pide la lista con pestanas_listar`);
   return tab;
 }
 
-function datosDe(win, tab) {
+export function datosDe(win, tab) {
   return {
     id: idDe(tab),
     titulo: String(tab.label ?? ''),
@@ -84,7 +86,7 @@ function datosDe(win, tab) {
 }
 
 /** Espera a que la pestaña termine de cargar (como mucho `ms`). */
-async function esperarCarga(tab, destino, ms = CARGA_MAXIMA) {
+export async function esperarCarga(tab, destino, ms = CARGA_MAXIMA) {
   const browser = tab.linkedBrowser;
   const limite = Date.now() + ms;
   await esperar(200);
@@ -181,13 +183,17 @@ async function historial(texto, cuantos) {
 const NADA = { type: 'object', properties: {}, additionalProperties: false };
 const ID = { type: 'integer', description: 'El id de la pestaña (de pestanas_listar).' };
 
+/** La ventana sobre la que actúan las herramientas: `win`, lo que devuelva si es una función o, si es null, la última
+ *  que tuvo el foco. Lanza un error (para Claude) si no hay ninguna. */
+export function ventanaDe(win) {
+  const elegida = typeof win === 'function' ? win() : win ?? lazy.BrowserWindowTracker.getTopWindow();
+  if (!elegida || elegida.closed || !elegida.gBrowser) throw new Error('No hay ninguna ventana de Kitsune abierta');
+  return elegida;
+}
+
 /** Las herramientas del navegador para la ventana `win` (ver arriba), en el formato de iniciarServidor. */
 export function herramientasDe(win, { lobo } = {}) {
-  const ventana = () => {
-    const elegida = typeof win === 'function' ? win() : win ?? lazy.BrowserWindowTracker.getTopWindow();
-    if (!elegida || elegida.closed || !elegida.gBrowser) throw new Error('No hay ninguna ventana de Kitsune abierta');
-    return elegida;
-  };
+  const ventana = () => ventanaDe(win);
 
   const herramientas = [
     {
