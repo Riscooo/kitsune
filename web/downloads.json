@@ -26,10 +26,10 @@
   },
   "zero": {
     "windows": {
-      "url": "https://github.com/Riscooo/kitsune/releases/download/v0.8.0-beta.6/Kitsune-Zero-0.8.0-beta.6-Windows-x64.exe",
+      "url": "https://github.com/Riscooo/kitsune/releases/download/v0.8.0-beta.7/Kitsune-Zero-0.8.0-beta.7-Windows-x64.exe",
       "size": "97 MB",
       "note": "Beta · aún sin firmar",
-      "release": "0.8.0-beta.6"
+      "release": "0.8.0-beta.7"
     },
     "macos": {
       "url": "https://github.com/Riscooo/kitsune/releases/download/v0.8.0-beta.6/Kitsune-Zero-0.8.0-beta.6-macOS-AppleSilicon.dmg",

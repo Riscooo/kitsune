@@ -352,7 +352,9 @@ def main():
             return argv[argv.index(nombre) + 1]
         assert argv[0] == '-p' and valor('--input-format') == 'stream-json' and valor('--output-format') == 'stream-json', argv
         assert '--verbose' in argv and '--include-partial-messages' in argv and '--strict-mcp-config' in argv, argv
-        assert valor('--setting-sources') == '' and valor('--tools') == 'WebSearch', argv
+        # Pegado y sin argumentos vacíos: en Windows, Subprocess no entrecomilla y un '' suelto se pierde.
+        assert '--setting-sources=' in argv and '--setting-sources' not in argv and '' not in argv, argv
+        assert valor('--tools') == 'WebSearch', argv
         assert valor('--allowedTools') == 'mcp__kitsune,WebSearch' and 'WebFetch' in valor('--disallowedTools') and valor('--permission-mode') == 'dontAsk', argv
         assert 'Bash' in valor('--disallowedTools').split(',') and 'Write' in valor('--disallowedTools').split(','), argv
         assert '--disable-slash-commands' in argv and '--no-chrome' in argv and valor('--model') == 'haiku', argv

@@ -12,7 +12,12 @@
  *     - macOS: se monta el .dmg, se copia la app al lado de la tuya, se le quita la cuarentena
  *       (la nueva viene del mismo sitio que la que ya abriste) y se cambia de golpe;
  *     - Windows: en cuanto Kitsune se ha cerrado del todo, su instalador en silencio (/S) en la
- *       misma carpeta (actualizar.cmd, ver windowsScript).
+ *       misma carpeta (actualizar.cmd, ver windowsScript). Si esa carpeta es de administrador
+ *       (C:\Program Files, lo normal si al instalar se dijo «Sí» a Windows), no se instala a
+ *       escondidas al cerrar: el instalador pediría el permiso desde un proceso oculto, ya sin
+ *       ventana, y Windows lo deja parpadeando en la barra de tareas (nadie lo ve y no se instala).
+ *       Entonces el permiso se pide con «Instalar y reiniciar», delante y con Kitsune abierto
+ *       (actualizar-admin.cmd, ver windowsAdminScript y runElevated).
  * «Reiniciar ahora» cierra Kitsune (con lo que se instala) y lo vuelve a abrir ya nuevo.
  * kitsune.update.auto lo enciende o lo apaga (queda solo el aviso). En Linux y en Windows viene
  * encendido (Risco, 22-10: en el portátil del insti tuvo que bajarse la beta 4 a mano); en macOS,
@@ -98,6 +103,8 @@ const realPath = path => {
 let installing = null;
 // Windows: «Reiniciar ahora» pidió volver a abrir Kitsune después de instalar.
 let reopen = false;
+// Windows: la carpeta cuya instalación ya corre con permiso de administrador (actualizar-admin.cmd, pedido delante).
+let elevated = null;
 // Solo las pruebas cambian la lista de descargas (y solo a 127.0.0.1); entonces vale su carpeta de instalación.
 const testing = () => /^http:\/\/127\.0\.0\.1:\d{2,5}\//.test(Services.prefs.getStringPref('kitsune.update.testUrl', ''));
 
@@ -106,6 +113,21 @@ async function installed() {
   if (platform() === 'linux') return !!await packagedFolder();
   if (platform().startsWith('macos')) return !!macBundle();
   return platform() === 'windows';
+}
+
+/** Windows: ¿hace falta permiso de administrador para escribir en la carpeta de Kitsune? (C:\Program Files…)
+ *  Es la misma prueba que hace el instalador de Mozilla antes de pedir el permiso él solo. */
+async function needsAdmin() {
+  if (platform() !== 'windows') return false;
+  const folder = testing() && Services.prefs.getStringPref('kitsune.update.testInstallDir', '') || Services.dirsvc.get('GreBinD', Ci.nsIFile).path;
+  const probe = PathUtils.join(folder, `.kitsune-escritura-${Services.appinfo.processID}`);
+  try {
+    await IOUtils.writeUTF8(probe, '');
+    await IOUtils.remove(probe, { ignoreAbsent: true });
+    return false;
+  } catch {
+    return true;
+  }
 }
 
 /** La carpeta del paquete de Linux en uso, o null si este Kitsune no se instaló con instalar.sh. */
@@ -181,6 +203,8 @@ async function installMac(folder) {
  *   necesita (sin ella, el instalador de Mozilla lo pide siempre). No vuelve a poner los accesos del escritorio ni de
  *   la barra de tareas que hayas quitado.
  * - Con «Reiniciar ahora», después vuelve a abrir Kitsune.
+ * - Si la instala actualizar-admin.cmd (carpeta de administrador, KITSUNE_ACTUALIZAR_ADMIN=1), aquí no se instala:
+ *   solo se espera a que acabe (su marca hecho.txt) para volver a abrir Kitsune sin permiso de administrador.
  * Las rutas llegan por el entorno (KITSUNE_ACTUALIZAR_*), no escritas aquí: un .cmd se lee en la página de códigos
  * de la consola, y una carpeta con tildes saldría estropeada.
  */
@@ -194,19 +218,116 @@ export function windowsScript(file) {
     'set /a vueltas+=1',
     'if %vueltas% geq 120 exit /b 1',
     'tasklist /FI "PID eq %KITSUNE_ACTUALIZAR_PID%" /FI "IMAGENAME eq %KITSUNE_ACTUALIZAR_IMAGEN%" /NH 2>nul | find " %KITSUNE_ACTUALIZAR_PID% " >nul && goto espera',
+    'if "%KITSUNE_ACTUALIZAR_ADMIN%"=="1" goto administrador',
     'ping -n 4 127.0.0.1 >nul',
     `"%~dp0${file}" /S /InstallDirectoryPath="%KITSUNE_ACTUALIZAR_CARPETA%" /DesktopShortcut=false /TaskbarShortcut=false`,
+    'goto reabrir',
+    ':administrador',
+    'set vueltas=0',
+    ':instalando',
+    'if exist "%~dp0hecho.txt" goto reabrir',
+    'ping -n 2 127.0.0.1 >nul',
+    'set /a vueltas+=1',
+    'if %vueltas% lss 600 goto instalando',
+    ':reabrir',
     'if "%KITSUNE_ACTUALIZAR_REABRIR%"=="1" start "" "%KITSUNE_ACTUALIZAR_EXE%"',
     '',
   ].join('\r\n');
 }
 
-/** Windows: lanza actualizar.cmd aparte (nsIProcess, que no muere con Kitsune). Si Windows pide permiso de
- *  administrador, lo pide entonces. */
+/**
+ * Windows, carpeta de administrador: la orden (actualizar-admin.cmd) que corre ya con permiso de administrador.
+ * Un proceso elevado no hereda el entorno de quien lo pide, así que llega todo por argumentos (Unicode, sin pasar por
+ * la página de códigos): %1 el número del proceso de Kitsune, %2 su nombre y %3 su carpeta. Espera a que se cierre
+ * como actualizar.cmd, instala y deja hecho.txt con el código del instalador. Nunca vuelve a abrir Kitsune: lo
+ * abriría como administrador (eso lo hace actualizar.cmd, sin permiso).
+ */
+export function windowsAdminScript(file) {
+  if (!/^[\w.-]+\.exe$/.test(file ?? '')) return null;
+  return [
+    '@echo off',
+    'set vueltas=0',
+    ':espera',
+    'ping -n 2 127.0.0.1 >nul',
+    'set /a vueltas+=1',
+    'if %vueltas% geq 120 goto fin',
+    'tasklist /FI "PID eq %~1" /FI "IMAGENAME eq %~2" /NH 2>nul | find " %~1 " >nul && goto espera',
+    'ping -n 4 127.0.0.1 >nul',
+    `"%~dp0${file}" /S /InstallDirectoryPath="%~3" /DesktopShortcut=false /TaskbarShortcut=false`,
+    ':fin',
+    '>"%~dp0hecho.txt" echo %errorlevel%',
+    '',
+  ].join('\r\n');
+}
+
+/** Windows: la línea con la que cmd.exe corre actualizar-admin.cmd. null si una ruta trae " o % (cmd /c las
+ *  rompería): entonces no se instala solo y queda «Descargar». */
+export function windowsAdminParameters(script, pid, image, folder) {
+  if ([script, image, folder].some(value => typeof value !== 'string' || !value || /["%]/.test(value)) || !/^\d+$/.test(String(pid))) return null;
+  return `/c ""${script}" ${pid} "${image}" "${folder}""`;
+}
+
+/** Windows: lanza `file` con permiso de administrador (ShellExecuteExW, «runas»). El aviso de Windows sale delante
+ *  solo si se le da la ventana que está delante (sin ella, o desde un proceso oculto, Windows lo deja parpadeando en
+ *  la barra de tareas). Devuelve false si se dice que no o si algo falla. */
+function runElevated(win, file, parameters) {
+  const { ctypes } = ChromeUtils.importESModule('resource://gre/modules/ctypes.sys.mjs');
+  const shell32 = ctypes.open('shell32.dll');
+  try {
+    const text = ctypes.char16_t.ptr;
+    const INFO = new ctypes.StructType('SHELLEXECUTEINFOW', [
+      { cbSize: ctypes.uint32_t }, { fMask: ctypes.uint32_t }, { hwnd: ctypes.voidptr_t }, { lpVerb: text },
+      { lpFile: text }, { lpParameters: text }, { lpDirectory: text }, { nShow: ctypes.int },
+      { hInstApp: ctypes.voidptr_t }, { lpIDList: ctypes.voidptr_t }, { lpClass: text }, { hkeyClass: ctypes.voidptr_t },
+      { dwHotKey: ctypes.uint32_t }, { hIconOrMonitor: ctypes.voidptr_t }, { hProcess: ctypes.voidptr_t },
+    ]);
+    const ShellExecuteExW = shell32.declare('ShellExecuteExW', ctypes.winapi_abi, ctypes.int32_t, INFO.ptr);
+    const verb = ctypes.char16_t.array()('runas'), target = ctypes.char16_t.array()(file);
+    const args = ctypes.char16_t.array()(parameters);
+    const info = new INFO();
+    info.cbSize = INFO.size;
+    info.fMask = 0x100 | 0x400; // SEE_MASK_NOASYNC | SEE_MASK_FLAG_NO_UI
+    const handle = win?.docShell?.treeOwner?.QueryInterface(Ci.nsIBaseWindow).nativeHandle;
+    info.hwnd = handle ? ctypes.voidptr_t(ctypes.UInt64(BigInt(handle).toString())) : ctypes.voidptr_t(0);
+    info.lpVerb = verb.addressOfElement(0);
+    info.lpFile = target.addressOfElement(0);
+    info.lpParameters = args.addressOfElement(0);
+    info.nShow = 0; // SW_HIDE: sin ventana de consola
+    return ShellExecuteExW(info.address()) !== 0;
+  } catch (error) {
+    console.warn('Kitsune: no se ha podido pedir permiso de administrador', error);
+    return false;
+  } finally {
+    shell32.close();
+  }
+}
+
+/** Windows, carpeta de administrador: pide el permiso ahora (con Kitsune abierto y delante) y deja corriendo
+ *  actualizar-admin.cmd, que instala en cuanto Kitsune se cierre. false si no se da el permiso. */
+async function launchElevatedInstaller(folder, win) {
+  const ready = await IOUtils.readJSON(PathUtils.join(folder, READY));
+  const text = windowsAdminScript(ready?.file);
+  if (!text) return false;
+  const script = PathUtils.join(folder, 'actualizar-admin.cmd');
+  await IOUtils.writeUTF8(script, text);
+  await IOUtils.remove(PathUtils.join(folder, 'hecho.txt'), { ignoreAbsent: true });
+  const dir = name => Services.dirsvc.get(name, Ci.nsIFile).path;
+  const parameters = windowsAdminParameters(script, Services.appinfo.processID, PathUtils.filename(dir('XREExeF')), dir('GreBinD'));
+  if (!parameters) return false;
+  if (!runElevated(win, Services.env.get('ComSpec') || 'C:\\Windows\\System32\\cmd.exe', parameters)) return false;
+  elevated = folder;
+  return true;
+}
+
+/** Windows: lanza actualizar.cmd aparte (nsIProcess, que no muere con Kitsune). En una carpeta de administrador
+ *  solo si el permiso ya se dio delante (launchElevatedInstaller): si no, no se lanza nada y la versión queda lista
+ *  para «Instalar y reiniciar». */
 async function launchWindowsInstaller(folder) {
   const ready = await IOUtils.readJSON(PathUtils.join(folder, READY));
   const text = windowsScript(ready?.file);
   if (!text) return false;
+  const admin = elevated === folder;
+  if (!admin && await needsAdmin()) return false;
   const script = PathUtils.join(folder, 'actualizar.cmd');
   await IOUtils.writeUTF8(script, text);
   const dir = name => Services.dirsvc.get(name, Ci.nsIFile).path;
@@ -216,16 +337,20 @@ async function launchWindowsInstaller(folder) {
     KITSUNE_ACTUALIZAR_EXE: dir('XREExeF'),
     KITSUNE_ACTUALIZAR_IMAGEN: PathUtils.filename(dir('XREExeF')),
     KITSUNE_ACTUALIZAR_REABRIR: reopen ? '1' : '',
+    KITSUNE_ACTUALIZAR_ADMIN: admin ? '1' : '',
   };
   // Al volver a abrirse, con este mismo perfil, como cuando Gecko se reinicia (AppShutdown::MaybeDoRestart).
   if (reopen) Object.assign(env, { XRE_PROFILE_PATH: dir('ProfD'), XRE_PROFILE_LOCAL_PATH: dir('ProfLD') });
   for (const [name, value] of Object.entries(env)) Services.env.set(name, value);
-  const cmd = Cc['@mozilla.org/file/local;1'].createInstance(Ci.nsIFile);
-  cmd.initWithPath(Services.env.get('ComSpec') || 'C:\\Windows\\System32\\cmd.exe');
-  const process = Cc['@mozilla.org/process/util;1'].createInstance(Ci.nsIProcess);
-  process.init(cmd);
-  process.startHidden = true;
-  process.runw(false, ['/c', script]);
+  // Con permiso de administrador ya instala actualizar-admin.cmd; actualizar.cmd solo hace falta para volver a abrir.
+  if (!admin || reopen) {
+    const cmd = Cc['@mozilla.org/file/local;1'].createInstance(Ci.nsIFile);
+    cmd.initWithPath(Services.env.get('ComSpec') || 'C:\\Windows\\System32\\cmd.exe');
+    const process = Cc['@mozilla.org/process/util;1'].createInstance(Ci.nsIProcess);
+    process.init(cmd);
+    process.startHidden = true;
+    process.runw(false, ['/c', script]);
+  }
   // De «listo» a «intentado»: la próxima apertura mira si se instaló (resume).
   await IOUtils.writeJSON(PathUtils.join(folder, TRIED), { ...ready, at: new Date().toISOString() });
   await IOUtils.remove(PathUtils.join(folder, READY), { ignoreAbsent: true });
@@ -293,7 +418,8 @@ export const KitsuneUpdater = {
       } else if (tried?.release === release && newer(release, installed) === 1 && Date.now() - Date.parse(tried.at) < 10 * MINUTE) {
         // Windows: se intentó hace nada; puede que el instalador siga trabajando. Se mira en la próxima apertura.
       } else {
-        // Windows: se intentó y sigue la versión vieja (no se dio permiso, o Kitsune no llegó a cerrarse).
+        // Windows: se intentó y sigue la versión vieja (falló el instalador, o Kitsune no llegó a cerrarse). Sin el
+        // permiso de administrador ya no se llega aquí: entonces no se intenta (queda lista, ver launchWindowsInstaller).
         if (tried?.release === release && newer(release, installed) === 1) Services.prefs.setStringPref(FAILED, release);
         // Ya instalada, más vieja o a medias: sobra.
         await IOUtils.remove(folder, { recursive: true, ignoreAbsent: true });
@@ -322,8 +448,12 @@ export const KitsuneUpdater = {
     }
   },
 
-  /** «Reiniciar ahora»: se cierra como siempre (preguntando si hay descargas, etc.) y vuelve a abrir. */
-  restart() {
+  /** Windows: ¿instalarla pide permiso de administrador? (Kitsune en C:\Program Files) */
+  needsAdmin,
+
+  /** «Reiniciar ahora» («Instalar y reiniciar»): se cierra como siempre (preguntando si hay descargas, etc.) y vuelve
+   *  a abrir. `win`, la ventana del aviso: en Windows, el permiso de administrador se pide delante de ella. */
+  async restart(win) {
     const cancel = Cc['@mozilla.org/supports-PRBool;1'].createInstance(Ci.nsISupportsPRBool);
     Services.obs.notifyObservers(cancel, 'quit-application-requested', 'restart');
     if (cancel.data) return;
@@ -331,6 +461,8 @@ export const KitsuneUpdater = {
       Services.startup.quit(Ci.nsIAppStartup.eAttemptQuit | Ci.nsIAppStartup.eRestart);
       return;
     }
+    // Windows en C:\Program Files: el permiso, ahora y delante; si se dice que no, Kitsune sigue abierto como estaba.
+    if (elevated !== installing && await needsAdmin() && !await launchElevatedInstaller(installing, win)) return;
     // Windows: Gecko volvería a abrir el Kitsune viejo antes de que el instalador pudiera cambiarlo. Se cierra sin
     // más y lo vuelve a abrir actualizar.cmd, ya nuevo y con las pestañas de ahora, como tras un reinicio.
     const SESSION = 'browser.sessionstore.resume_session_once';

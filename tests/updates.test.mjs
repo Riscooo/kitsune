@@ -1,7 +1,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { compareReleases, newerRelease, platformFor, releaseLabel, productDownloads, shouldAsk, FIRST_CHECK_MS, CHECK_EVERY_MS } from '../install/native/kitsune-updates.sys.mjs'
-import { expectedSha256, hex, linuxPackage, platformOf, releasePackage, windowsScript } from '../install/native/kitsune-updater.sys.mjs'
+import { compareReleases, newerRelease, platformFor, releaseLabel, productDownloads, shouldAsk, FIRST_CHECK_MS, CHECK_EVERY_MS, RETRY_MS } from '../install/native/kitsune-updates.sys.mjs'
+import { expectedSha256, hex, linuxPackage, platformOf, releasePackage, windowsScript, windowsAdminScript, windowsAdminParameters } from '../install/native/kitsune-updater.sys.mjs'
 
 test('releases order betas before the final version and compare numbers, not text', () => {
   assert.equal(compareReleases('0.7.0-beta.3', '0.7.0-beta.2'), 1)
@@ -123,4 +123,41 @@ test('Windows installs the new version in the same folder once Kitsune has reall
   assert.match(lines[install], / \/InstallDirectoryPath="%KITSUNE_ACTUALIZAR_CARPETA%" /)
   assert.match(lines[install], / \/DesktopShortcut=false \/TaskbarShortcut=false$/)
   for (const bad of ['x.exe" & calc & "', '..\\otro.exe', 'Kitsune.msi', '', null]) assert.equal(windowsScript(bad), null, bad)
+})
+
+test('if the first look does not reach the web, another one comes a minute later, not a quarter of an hour (12-11)', () => {
+  assert.ok(RETRY_MS <= 60 * 1000, RETRY_MS)
+})
+
+test('Windows in C:\\Program Files: the elevated script installs, the plain one only waits for it to reopen Kitsune (12-11)', () => {
+  const file = 'Kitsune-Zero-0.8.0-beta.7-Windows-x64.exe'
+  const plain = windowsScript(file).split('\r\n')
+  const jump = plain.indexOf('if "%KITSUNE_ACTUALIZAR_ADMIN%"=="1" goto administrador')
+  const install = plain.findIndex(line => line.startsWith(`"%~dp0${file}" /S `))
+  const wait = plain.indexOf('if exist "%~dp0hecho.txt" goto reabrir')
+  const reopen = plain.findIndex(line => line.startsWith('if "%KITSUNE_ACTUALIZAR_REABRIR%"=="1" start '))
+  // Con permiso de administrador, la copia sin permiso no instala nada: espera a hecho.txt y vuelve a abrir.
+  assert.ok(jump > 0 && install > jump && wait > install && reopen > wait, plain.join('\n'))
+  assert.ok(plain.slice(jump, install).includes('ping -n 4 127.0.0.1 >nul'))
+  assert.ok(plain.slice(wait).includes('if %vueltas% lss 600 goto instalando'))
+
+  const admin = windowsAdminScript(file)
+  const lines = admin.split('\r\n')
+  assert.ok(!/[^\x00-\x7f]/.test(admin), 'solo ASCII')
+  // Un proceso elevado no hereda el entorno: todo llega por argumentos, nada por KITSUNE_ACTUALIZAR_*.
+  assert.ok(!admin.includes('KITSUNE_ACTUALIZAR_'), admin)
+  const waitPid = lines.findIndex(line => line.startsWith('tasklist /FI "PID eq %~1" /FI "IMAGENAME eq %~2" /NH'))
+  const run = lines.findIndex(line => line.startsWith(`"%~dp0${file}" /S /InstallDirectoryPath="%~3" `))
+  const done = lines.indexOf('>"%~dp0hecho.txt" echo %errorlevel%')
+  assert.ok(waitPid > 0 && run > waitPid && done > run, admin)
+  // Nunca vuelve a abrir Kitsune: sería como administrador.
+  assert.ok(!/start ""/.test(admin), admin)
+  for (const bad of ['x.exe" & calc & "', '..\\otro.exe', '', null]) assert.equal(windowsAdminScript(bad), null, bad)
+
+  const script = 'C:\\Users\\José\\AppData\\Local\\Kitsune Zero\\actualizacion\\0.8.0-beta.7\\actualizar-admin.cmd'
+  assert.equal(windowsAdminParameters(script, 4321, 'kitsune.exe', 'C:\\Program Files\\Kitsune Zero'),
+    `/c ""${script}" 4321 "kitsune.exe" "C:\\Program Files\\Kitsune Zero""`)
+  assert.equal(windowsAdminParameters(script, 4321, 'kitsune.exe', 'C:\\Kitsune 100%x%'), null)
+  assert.equal(windowsAdminParameters(script, '4321 & calc', 'kitsune.exe', 'C:\\Program Files\\Kitsune Zero'), null)
+  assert.equal(windowsAdminParameters(script, 4321, 'kitsune".exe', 'C:\\Program Files\\Kitsune Zero'), null)
 })
