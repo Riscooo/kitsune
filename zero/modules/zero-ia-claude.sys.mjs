@@ -90,7 +90,9 @@ export function argumentosClaude({ archivos, modelo, sesion, reanudar }) {
     '--verbose',
     '--include-partial-messages',
     // Ni los ajustes de la persona, ni los del proyecto, ni los locales: sin sus hooks, plugins, permisos ni CLAUDE.md.
-    '--setting-sources', '',
+    // Con «=» y en un solo argumento: en Windows, Subprocess no entrecomilla lo que no lleva espacios, así que un ''
+    // suelto desaparecería y claude tomaría «--settings» por la fuente (y se cerraría sin contestar).
+    '--setting-sources=',
     '--settings', archivos.ajustes,
     // Solo el servidor MCP de Kitsune (ni los de la persona ni los conectores de claude.ai).
     '--strict-mcp-config',

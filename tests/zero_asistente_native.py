@@ -8,7 +8,8 @@ que puedas modificar el espacio que te ocupa… y un botón para ocultarlo».
 1. En la columna: el engranaje (ajustes) y, debajo, el lobo (un lienzo de pixel art que se mueve solo).
 2. Un clic en el lobo abre su panel a la derecha, en columna, y la web se aparta; en la esquina flota encima; en
    «Pestaña» ocupa la web; a la izquierda, junto a la columna.
-3. Se estira desde su borde (y lo recuerda); «Ocultar el lobo» lo quita de la columna y vuelve desde los ajustes.
+3. Se estira desde su borde (y lo recuerda); «Ocultar el asistente» lo quita de la columna y vuelve desde los ajustes.
+   Ningún texto a la vista dice «lobo»: se ve el dibujo y basta.
 4. Sin Claude Code, el panel dice cómo instalarlo.
 5. Con Claude (el falso): la respuesta llega a trozos y se pinta (markdown sin HTML), lo que hace sale en una línea,
    el lobo cambia de animación, Claude lo anima por el MCP y crea una animación nueva que se guarda en el perfil.
@@ -114,6 +115,19 @@ def main():
         until(lambda: (l := look())['card']['right'] <= l['panel']['left'] + 1 and l['card']['right'] < before['right'] - 250)
         check('Un clic en el lobo abre su panel a la derecha, en columna, y la web se aparta para dejarle sitio')
 
+        # Risco (12-11): «que solo salga el lobo pero que no ponga nada de lobo»: ni en el panel ni en los ajustes.
+        con_lobo = chrome("""
+          const textos = [];
+          for (const raiz of [document.getElementById('zero-ia'), document.getElementById('zero-wolf'), document.getElementById('zero-settings')]) {
+            if (!raiz) continue;
+            textos.push(raiz.textContent);
+            for (const el of [raiz, ...raiz.querySelectorAll('*')]) for (const a of ['title', 'aria-label', 'placeholder']) textos.push(el.getAttribute(a) ?? '');
+          }
+          return textos.filter(texto => /lobo|wolf/i.test(texto)).map(texto => texto.trim().slice(0, 80));
+        """)
+        assert con_lobo == [], con_lobo
+        check('Ningún texto del panel, del botón ni de los ajustes dice «lobo»: solo se ve el dibujo')
+
         click('#zero-ia .zero-ia-shapes [data-shape="corner"]')
         until(lambda: (l := look())['shape'] == 'corner' and abs(l['card']['right'] - before['right']) <= 1 and l['panel']['h'] < l['H'] - 100)
         click('#zero-ia .zero-ia-shapes [data-shape="tab"]')
@@ -145,7 +159,7 @@ def main():
         until(lambda: abs(look()['card']['right'] - before['right']) <= 1)
         chrome("Services.prefs.setBoolPref('kitsune.zero.ia.shown', true)")
         until(lambda: look()['wolfHidden'] is False)
-        check('«Ocultar el lobo» lo quita de la columna (y la web vuelve a su sitio); vuelve desde los ajustes')
+        check('«Ocultar el asistente» lo quita de la columna (y la web vuelve a su sitio); vuelve desde los ajustes')
 
         chrome("Services.prefs.setStringPref('kitsune.zero.ia.claude', '/no/existe/claude')")
         click('#zero-wolf')
