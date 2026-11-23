@@ -11,8 +11,19 @@
  */
 import { lightOf, inkFor } from './zero-light.mjs';
 import { PREFS, prefName, variantOf, websiteScheme, darkensWebs } from './zero-config.sys.mjs';
+import { glassy } from './zero-material.mjs';
+import * as luz from './zero-luz.sys.mjs';
 
 export { variantOf };
+
+/** El modo que se ve: si manda la luz (zero-luz pone zero-sol-scheme en la raíz), el suyo (en «Auto», Oscuro de
+ *  noche; con el estilo Oscuro, siempre); si no, el elegido en los ajustes. */
+export function effectiveVariant(value, root) {
+  const solar = root?.getAttribute?.('zero-sol-scheme');
+  if (solar === 'dark') return 'sobrio';
+  if (solar === 'light') return 'nacar';
+  return variantOf(value);
+}
 
 /** El color que manda en una foto (RGBA): ni el papel blanco ni el texto negro, salvo que no haya más. */
 export function dominantColor(bytes) {
@@ -54,6 +65,8 @@ export const BACKDROPS = Object.freeze(['system', 'web', 'space', 'mist', 'photo
 export function backdropMode(pref, env = {}) {
   if (BACKDROPS.includes(pref)) return pref;
   if (env.rule && env.desktop !== 'macos') return 'system';
+  // Con la luz (zero-luz), la niebla, que pinta el color de la luz (también de noche: grafito, no espacio).
+  if (env.solar) return 'mist';
   return variantOf(env.variant) === 'sobrio' ? 'space' : 'mist';
 }
 
@@ -115,9 +128,17 @@ const el = (doc, tag, attributes = {}, children = []) => {
   return node;
 };
 
-/** ¿Hay quien ponga el cristal detrás de la ventana? Un escritorio con la regla de Kitsune instalada. */
+/** Windows: el cristal lo pone el propio Windows 11 (Acrílico o Mica de DWM, zero-luz) si el material lo deja ver. */
+function windowsEnv(win = null) {
+  const material = luz.currentMaterial(win);
+  return (knownEnv = { niri: false, desktop: 'windows', rule: glassy(material), material });
+}
+
+/** ¿Hay quien ponga el cristal detrás de la ventana? Un escritorio con la regla de Kitsune instalada, Windows 11
+ *  con su material o el cristal de macOS 26. */
 async function compositorEnv() {
   let desktop = null, rule = false;
+  if (Services.appinfo.OS === 'WINNT') return windowsEnv();
   if (Services.appinfo.OS === 'Darwin') {
     // macOS: lo de detrás lo pone el cristal de Apple, si lo hay y se ha encendido (lo pone el motor al
     // ponerse transparente la ventana, con kitsune.zero.macos-glass = true).
@@ -136,7 +157,8 @@ async function compositorEnv() {
 // toca (si se esperase a mirarlo, pasaría un fotograma o dos por la foto de la web: un parpadeo).
 let knownEnv = null;
 
-/** Mira el compositor ya (al cargar Zero), para que la primera ventana no tenga que esperar. */
+/** Mira el compositor ya (al cargar Zero), para que la primera ventana no tenga que esperar. (El anfitrión ya se lo
+ *  ha dado a zero-luz, que elige el material en Windows.) */
 export function warm() { if (!knownEnv) compositorEnv().catch(() => {}); }
 
 /** El fondo que toca con lo que ya se sabe (el compositor, si el tema es oscuro y la variante), o null si aún no
@@ -211,8 +233,10 @@ function schedule(win, st) {
 function applyBackdrop(win, st) {
   const root = win.document.documentElement;
   const read = (key, fallback) => { try { return st.host.prefs.getStringPref(prefName(st.host.prefix, PREFS[key]), fallback); } catch { return fallback; } };
-  const dark = win.matchMedia('(prefers-color-scheme: dark)').matches;
-  const env = { ...st.env, dark, variant: root.getAttribute('zero-variant') };
+  // Claro u oscuro: el de la luz, si manda ella; si no, el del sistema.
+  const solar = root.getAttribute('zero-sol-scheme');
+  const dark = solar ? solar === 'dark' : win.matchMedia('(prefers-color-scheme: dark)').matches;
+  const env = { ...st.env, dark, variant: root.getAttribute('zero-variant'), solar: !!solar };
   let mode = backdropMode(read('backdrop', 'auto'), env);
   // Una foto elegida por la persona vive en su perfil. La ruta no sale del equipo; se convierte a una
   // URL file: solo para que la hoja de chrome pueda pintarla. Sin foto (o si ya no está), el de serie.
@@ -236,7 +260,7 @@ function applyBackdrop(win, st) {
     // Con el fondo del sistema, detrás está el escritorio (transparente) y no se sabe su luz: las piezas
     // siguen el modo del sistema (en oscuro, blanco; en claro, tinta). El espacio y la foto (con su velo)
     // son oscuros; la niebla, clara.
-    st.frameInk = mode === 'mist' || (mode === 'system' && !dark) ? 'ink' : 'white';
+    st.frameInk = (mode === 'mist' && !(solar && dark)) || (mode === 'system' && !dark) ? 'ink' : 'white';
     root.toggleAttribute('zero-frame-ink', st.frameInk === 'ink');
   }
   paintColors(win, st);
@@ -393,7 +417,20 @@ export function attach(win, ctx) {
   const setVariant = () => {
     let value = 'nacar';
     try { value = host.prefs.getStringPref(variantPref, 'nacar'); } catch { /* de serie */ }
-    root.setAttribute('zero-variant', variantOf(value));
+    root.setAttribute('zero-variant', effectiveVariant(value, root));
+    if (root.hasAttribute('zero-sol-scheme')) {
+      const style = root.getAttribute('zero-sol-style');
+      if (style !== 'light' && style !== 'dark') {
+        // Con la luz en «Auto», las webs se quedan con sus colores: ni se les dice qué esquema usar (el de serie de
+        // Gecko, que sigue al navegador) ni se oscurecen de noche.
+        if (Services.prefs.prefHasUserValue(WEBSITE_SCHEME)) Services.prefs.clearUserPref(WEBSITE_SCHEME);
+        if (Services.prefs.getBoolPref(DARKEN, false)) Services.prefs.setBoolPref(DARKEN, false);
+        return;
+      }
+      // Con un estilo elegido (Claro u Oscuro), las webs lo siguen como sin la luz (Risco, 12-11: «un modo oscuro como
+      // antes»): en Oscuro, su versión oscura, y las que solo son claras, oscurecidas.
+      value = style === 'dark' ? 'sobrio' : 'nacar';
+    }
     const scheme = websiteScheme(value);
     if (Services.prefs.getIntPref(WEBSITE_SCHEME, -1) !== scheme) Services.prefs.setIntPref(WEBSITE_SCHEME, scheme);
     // Y en Oscuro, las webs claras que no tienen versión oscura, también (con «No oscurecer esta web» en su menú).
@@ -534,6 +571,15 @@ export function attach(win, ctx) {
   for (const name of backdropPrefs) host.prefs.addObserver(name, observer);
   st.cleanups.push(() => { for (const name of backdropPrefs) host.prefs.removeObserver(name, observer); });
 
+  // La luz cambió de esquema (al anochecer y al amanecer): el modo y la tinta del marco. Y si cambia el material
+  // (Windows), el fondo: con cristal, el del sistema.
+  listen(win, 'zero-sol', () => { setVariant(); applyBackdrop(win, st); });
+  listen(win, 'zero-material', () => {
+    if (Services.appinfo.OS !== 'WINNT') return;
+    st.env = windowsEnv(win); applyBackdrop(win, st);
+  });
+  if (Services.appinfo.OS === 'WINNT') st.env = windowsEnv(win);
+
   applyBackdrop(win, st);
   // Si el sistema pasa de claro a oscuro (o al revés), la tinta de lo de encima también.
   const scheme = win.matchMedia('(prefers-color-scheme: dark)');
@@ -541,7 +587,7 @@ export function attach(win, ctx) {
   scheme.addEventListener('change', onScheme);
   st.cleanups.push(() => scheme.removeEventListener('change', onScheme));
   // Se vuelve a mirar (la regla de niri se puede haber instalado o quitado), y solo se repinta si cambia.
-  compositorEnv().then(env => {
+  if (Services.appinfo.OS !== 'WINNT') compositorEnv().then(env => {
     if (state.get(win) !== st || (env.desktop === st.env.desktop && env.rule === st.env.rule)) return;
     st.env = env; applyBackdrop(win, st);
   }).catch(() => {});

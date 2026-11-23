@@ -18,10 +18,14 @@
  * - La DRM (Risco, 22-10: con Spotify no sonaba nada): está apagada hasta que una web la pide, y la barra
  *   «Activar DRM» de Gecko solo sale en las pestañas. Si la pide la web del panel, el panel saca la suya (lo
  *   dice zero-drm-child); su botón la activa como el de Gecko, y cuando Widevine está instalado la web se recarga.
+ * - En Windows, lo que se pone en la web de Spotify suena por su app (zero-spotify), y el minipanel lleva la app.
  * Va en Windows, macOS y Linux.
  */
 import { prefName } from './zero-config.sys.mjs';
 import { fitMusic, MUSIC_MIN_WIDTH } from './zero-music-fit.mjs';
+import { esSpotify } from './zero-spotify.mjs';
+import { porLaApp, conectar, alEstado, tocar } from './zero-spotify.sys.mjs';
+import { app as appSpotify } from './zero-spotify-app.sys.mjs';
 
 const HTML = 'http://www.w3.org/1999/xhtml';
 const SERVICE_PREF = 'music.service';
@@ -128,7 +132,9 @@ function drive(st, name) {
   const c = st?.controller;
   try {
     // Gecko 158 pide el motivo de la pausa (las versiones que no lo piden no lo miran).
-    if (name === 'play') { if (c.isPlaying) c.pause('user'); else c.play(); }
+    // Con la app de Spotify cerrada no hay a quién darle: se toca en la web, que la abre y se conecta.
+    if (name === 'play' && conApp(st) && !c.isActive) tocar(st.browser);
+    else if (name === 'play') { if (c.isPlaying) c.pause('user'); else c.play(); }
     else if (name === 'next') c.nextTrack();
     else if (name === 'prev') c.prevTrack();
   } catch { /* aún no suena nada */ }
@@ -137,7 +143,11 @@ function drive(st, name) {
 /** Lo mismo, desde fuera (el panel de sonido). */
 export function musicControl(win, name) { drive(state.get(win), name); }
 
+/** ¿Suena por la app de Spotify? (solo su web, en Windows) */
+const conApp = st => porLaApp() && esSpotify(st.serviceUrl);
+
 function controllerOf(st) {
+  if (conApp(st)) return appSpotify;
   try { return st.browser?.browsingContext?.mediaController ?? null; } catch { return null; }
 }
 
@@ -160,7 +170,11 @@ function ensurePanel(win, st, service) {
     ]);
     st.panel.querySelector('.zero-music-minimize').addEventListener('click', () => show(win, st, 'mini'));
     st.panel.querySelector('.zero-music-change').addEventListener('click', () => { show(win, st, 'closed'); openServices(win, st); });
-    st.drmButton.addEventListener('click', () => enableDrm(st));
+    st.drmButton.addEventListener('click', () => {
+      if (st.drmView === 'sin-app') win.openTrustedLinkIn('https://www.spotify.com/download/', 'tab');
+      else if (st.drmView === 'no-ha-ido') void conectar(st.browser);
+      else enableDrm(st);
+    });
     st.panel.append(resizeEdge(win, st));
     doc.body.append(st.panel);
     useDrmActor();
@@ -201,18 +215,49 @@ function allowAutoplay(url) {
 function drmStatus(st, status) {
   if (status === 'api-disabled' || status === 'cdm-disabled') showDrm(st, 'off');
   else if (status === 'cdm-not-installed') { showDrm(st, 'installing'); reloadWhenInstalled(st); }
-  else if (status === 'available' || status === 'cdm-created') showDrm(st, null);
+  else if (status === 'available' || status === 'cdm-created') {
+    if (st.drmView === 'off' || st.drmView === 'installing') showDrm(st, null);
+  }
 }
 
-/** 'off' (apagada: el aviso y su botón), 'installing' (solo el aviso) o null (sin barra). */
+/** 'off' (apagada: el aviso y su botón), 'installing' (solo el aviso), lo de la app de Spotify ('conectando', 'abriendo',
+ *  'sin-app', 'no-ha-ido') o null (sin barra). */
 function showDrm(st, view) {
   st.drm.hidden = !view;
+  st.drmView = view;
   if (!view) return;
-  const name = st.title.textContent;
-  st.drmText.textContent = view === 'off'
-    ? st.t(`${name} necesita la DRM (contenido protegido) para sonar.`, `${name} needs DRM (protected content) to play.`)
-    : st.t('Instalando la DRM (Widevine)…', 'Installing DRM (Widevine)…');
-  st.drmButton.hidden = view !== 'off';
+  const name = st.title.textContent, t = st.t;
+  const [text, button] = {
+    off: [t(`${name} necesita la DRM (contenido protegido) para sonar.`, `${name} needs DRM (protected content) to play.`), t('Activar DRM', 'Enable DRM')],
+    installing: [t('Instalando la DRM (Widevine)…', 'Installing DRM (Widevine)…'), null],
+    conectando: [t('Conectando con la app de Spotify…', 'Connecting to the Spotify app…'), null],
+    abriendo: [t('Abriendo la app de Spotify: tarda unos segundos…', 'Opening the Spotify app: it takes a few seconds…'), null],
+    'sin-app': [t('Para que suene hace falta la app de Spotify (vale la gratuita).', 'To play, you need the Spotify app (the free one works).'), t('Descargarla', 'Get it')],
+    'no-ha-ido': [t('No he podido conectar con la app de Spotify.', 'Could not connect to the Spotify app.'), t('Reintentar', 'Try again')],
+  }[view];
+  st.drmText.textContent = text;
+  st.drmButton.textContent = button ?? '';
+  st.drmButton.hidden = !button;
+}
+
+/** Cómo va la conexión de una web de Spotify con su app: en la barra del panel o, si es una pestaña, en la isla. */
+function appStatus(win, st, browser, como) {
+  if (browser !== st.browser) {
+    if ((browser.documentGlobal ?? browser.ownerGlobal) !== win || win.gBrowser?.selectedBrowser !== browser) return;
+    const [text, detail] = { abriendo: [st.t('Abriendo la app de Spotify…', 'Opening the Spotify app…'), ''], 'sin-app': ['Spotify', st.t('Para que suene hace falta su app', 'To play, its app is needed')],
+      'no-ha-ido': ['Spotify', st.t('No he podido conectar con su app', 'Could not connect to its app')] }[como] ?? [];
+    if (text) st.island?.alert(text, detail, 4200);
+    return;
+  }
+  if (['conectando', 'abriendo', 'sin-app', 'no-ha-ido'].includes(como)) showDrm(st, como);
+  else if (['conectando', 'abriendo', 'sin-app', 'no-ha-ido'].includes(st.drmView)) showDrm(st, null);
+}
+
+/** El ayudante de la app, solo mientras se ve el minipanel. */
+function useApp(st) {
+  const wanted = conApp(st) && st.view === 'mini';
+  if (wanted && !st.stopApp) st.stopApp = appSpotify.usar();
+  else if (!wanted && st.stopApp) { st.stopApp(); st.stopApp = null; }
 }
 
 /** Lo mismo que el botón de la barra de Gecko: la enciende (también Widevine, si se apagó) y recarga la web; al
@@ -247,7 +292,8 @@ function stopDrmWait(st) {
 
 /** Lo que dice el controlador de medios de Gecko (lo que suena), en el minipanel. */
 function watchController(win, st) {
-  const update = () => paintMini(win, st);
+  // El mismo siempre: la app de Spotify es una para todas las ventanas, y lo que no se quite se queda hasta cerrar Kitsune.
+  const update = st.pintar ??= () => paintMini(win, st);
   const hook = () => {
     // El zoom va con la web: si cambia de proceso al cargar, se vuelve a poner.
     applyZoom(st);
@@ -299,6 +345,7 @@ function show(win, st, view) {
   try { if (st.browser) st.browser.docShellIsActive = view === 'open'; } catch { /* sin esa propiedad */ }
   if (view === 'mini') { placeMini(win, st); paintMini(win, st); }
   if (view === 'open') layoutPanel(win, st);
+  useApp(st);
 }
 
 /** Junto a la columna, con el ancho que pide su web (o el que se le dejó) dentro de la ventana. */
@@ -368,7 +415,7 @@ export function attach(win, ctx) {
   const dock = doc.getElementById('zero-dock');
   if (!dock) return;
   const t = host.t ?? (es => es);
-  const st = { host, t, cleanups: [], view: 'closed' };
+  const st = { host, t, cleanups: [], view: 'closed', island: ctx.island };
   state.set(win, st);
   const listen = (target, type, fn, options) => { target.addEventListener(type, fn, options); st.cleanups.push(() => target.removeEventListener(type, fn, options)); };
 
@@ -393,11 +440,15 @@ export function attach(win, ctx) {
   ]);
   doc.body.append(st.services, st.mini);
   st.cleanups.push(() => {
+    st.stopApp?.();
+    st.stopApp = null;
     win.clearInterval(st.hooking);
-    if (st.controller) for (const name of EVENTS) { try { st.controller.removeEventListener(name, paintMini); } catch { /* ya no está */ } }
+    if (st.controller && st.pintar) for (const name of EVENTS) { try { st.controller.removeEventListener(name, st.pintar); } catch { /* ya no está */ } }
+    st.controller = null;
     st.anchor?.removeAttribute('on'); st.pill.remove(); st.services.remove(); st.mini.remove(); st.panel?.remove();
   });
 
+  st.cleanups.push(alEstado((browser, como) => appStatus(win, st, browser, como)));
   st.button.addEventListener('click', () => openMusic(win, st.button));
   st.services.addEventListener('click', event => {
     const button = event.target.closest('[data-service]');

@@ -5,9 +5,14 @@
  * ordenador (un JSON en el perfil): nada sale de aquí, no se guarda qué se busca (solo cuántas veces) ni las
  * direcciones (solo el dominio).
  *
- * Datos: { version: 1, days: { 'AAAA-MM-DD': { sites: { dominio: segundos }, searches: n, pages: n } } }.
+ * Datos: { version: 1, days: { 'AAAA-MM-DD': { sites: { dominio: segundos }, searches: n, pages: n, hours?: [24 segundos],
+ * estudio?, pomos?, notas?, subrayados?, citas? } }, total?: { lo mismo, desde siempre }, logros?: { id: día } }.
+ * Desde la 0.8.0-beta.8 se guarda algo más de un año (antes, 90 días), para el panel a pantalla completa y los logros
+ * (zero-logros.mjs).
  */
-export const KEEP_DAYS = 90;
+export const KEEP_DAYS = 400;
+/** Lo que se cuenta además del tiempo: segundos de estudio, pomodoros, notas, subrayados y citas. */
+export const COUNTERS = Object.freeze(['estudio', 'pomos', 'notas', 'subrayados', 'citas']);
 const MAX_SITES_PER_DAY = 400;
 const SITE = /^[a-z0-9.-]{1,253}$/;
 
@@ -29,14 +34,24 @@ export const emptyData = () => ({ version: 1, days: {} });
 export function sanitize(value) {
   const data = emptyData();
   const days = value && typeof value === 'object' && value.days && typeof value.days === 'object' ? value.days : {};
+  const count = n => (Number.isFinite(n) && n > 0 ? Math.min(Math.round(n), 1e9) : 0);
   for (const [day, entry] of Object.entries(days)) {
     if (!/^\d{4}-\d{2}-\d{2}$/.test(day) || !entry || typeof entry !== 'object') continue;
     const sites = {};
     for (const [site, seconds] of Object.entries(entry.sites ?? {}).slice(0, MAX_SITES_PER_DAY)) {
       if (SITE.test(site) && Number.isFinite(seconds) && seconds > 0) sites[site] = Math.min(Math.round(seconds), 86400);
     }
-    const count = n => (Number.isFinite(n) && n > 0 ? Math.min(Math.round(n), 1e6) : 0);
     data.days[day] = { sites, searches: count(entry.searches), pages: count(entry.pages) };
+    if (Array.isArray(entry.hours) && entry.hours.length === 24) data.days[day].hours = entry.hours.map(n => Math.min(count(n), 3600));
+    for (const key of COUNTERS) if (count(entry[key])) data.days[day][key] = count(entry[key]);
+  }
+  if (value?.total && typeof value.total === 'object') {
+    data.total = {};
+    for (const key of COUNTERS) if (count(value.total[key])) data.total[key] = count(value.total[key]);
+  }
+  if (value?.logros && typeof value.logros === 'object') {
+    data.logros = {};
+    for (const [id, day] of Object.entries(value.logros).slice(0, 200)) if (/^[a-z0-9-]{1,40}$/.test(id) && /^\d{4}-\d{2}-\d{2}$/.test(day)) data.logros[id] = day;
   }
   return data;
 }
@@ -46,18 +61,50 @@ function dayOf(data, day) {
   return data.days[day];
 }
 
-/** Suma tiempo a una web (su dominio) en ese día. */
-export function addTime(data, day, site, seconds) {
+/** Suma tiempo a una web (su dominio) en ese día (y, si se dice, en esa hora). */
+export function addTime(data, day, site, seconds, hour = null) {
   const name = String(site ?? '').toLowerCase();
   if (!SITE.test(name) || !(seconds > 0)) return false;
   const entry = dayOf(data, day);
   if (!(name in entry.sites) && Object.keys(entry.sites).length >= MAX_SITES_PER_DAY) return false;
   entry.sites[name] = Math.min((entry.sites[name] ?? 0) + seconds, 86400);
+  if (Number.isInteger(hour) && hour >= 0 && hour < 24) {
+    entry.hours ??= Array(24).fill(0);
+    entry.hours[hour] = Math.min(entry.hours[hour] + seconds, 3600);
+  }
+  return true;
+}
+
+/** Suma a uno de los contadores (COUNTERS), en el día y en el total. */
+export function addCount(data, day, key, n = 1) {
+  if (!COUNTERS.includes(key) || !(n > 0)) return false;
+  const entry = dayOf(data, day);
+  entry[key] = (entry[key] ?? 0) + n;
+  data.total ??= {};
+  data.total[key] = (data.total[key] ?? 0) + n;
   return true;
 }
 
 export function addSearch(data, day) { dayOf(data, day).searches++; }
 export function addPage(data, day) { dayOf(data, day).pages++; }
+
+/** Junta con lo de otra copia: de cada cosa de cada día se queda el valor mayor (traerla dos veces no cuenta doble, y nada de
+ *  lo de aquí se pierde), de los totales el mayor y de los logros el día más antiguo. Devuelve cuántos días han cambiado. */
+export function merge(data, other) {
+  let days = 0;
+  for (const [day, entry] of Object.entries(other.days)) {
+    const mine = dayOf(data, day), before = JSON.stringify(mine);
+    for (const [site, seconds] of Object.entries(entry.sites)) {
+      if (site in mine.sites || Object.keys(mine.sites).length < MAX_SITES_PER_DAY) mine.sites[site] = Math.max(mine.sites[site] ?? 0, seconds);
+    }
+    for (const key of ['searches', 'pages', ...COUNTERS]) { const n = Math.max(mine[key] ?? 0, entry[key] ?? 0); if (n) mine[key] = n; }
+    if (entry.hours) mine.hours = entry.hours.map((n, i) => Math.max(n, mine.hours?.[i] ?? 0));
+    if (JSON.stringify(mine) !== before) days++;
+  }
+  for (const key of COUNTERS) { const n = Math.max(data.total?.[key] ?? 0, other.total?.[key] ?? 0); if (n) { data.total ??= {}; data.total[key] = n; } }
+  for (const [id, day] of Object.entries(other.logros ?? {})) { data.logros ??= {}; if (!data.logros[id] || day < data.logros[id]) data.logros[id] = day; }
+  return days;
+}
 
 /** Quita los días de hace más de `keep`. */
 export function prune(data, today, keep = KEEP_DAYS) {
@@ -112,6 +159,7 @@ export function summarize(data, today, span = 1) {
   const days = lastDays(today, span);
   const sites = new Map(), categories = new Map();
   let total = 0, searches = 0, pages = 0;
+  const hours = Array(24).fill(0), counters = Object.fromEntries(COUNTERS.map(key => [key, 0]));
   const perDay = days.map(day => {
     const entry = data.days[day];
     let seconds = 0;
@@ -124,10 +172,38 @@ export function summarize(data, today, span = 1) {
     total += seconds;
     searches += entry?.searches ?? 0;
     pages += entry?.pages ?? 0;
-    return { day, seconds };
+    (entry?.hours ?? []).forEach((value, hour) => { hours[hour] += value; });
+    for (const key of COUNTERS) counters[key] += entry?.[key] ?? 0;
+    return { day, seconds, estudio: entry?.estudio ?? 0 };
   });
   const sorted = map => [...map].map(([id, seconds]) => ({ id, seconds })).sort((a, b) => b.seconds - a.seconds || a.id.localeCompare(b.id));
-  return { span, total, searches, pages, sites: sorted(sites).map(({ id, seconds }) => ({ site: id, seconds })), categories: sorted(categories), days: perDay };
+  return { span, total, searches, pages, sites: sorted(sites).map(({ id, seconds }) => ({ site: id, seconds })), categories: sorted(categories), days: perDay, hours, counters };
+}
+
+/** El cambio respecto a los `span` días de antes: { antes (segundos), cambio (-1 a …; null si antes no hubo nada) }. */
+export function compare(data, today, span) {
+  const first = lastDays(today, span)[0], [previousEnd] = lastDays(first, 2);
+  const antes = summarize(data, previousEnd, span).total, ahora = summarize(data, today, span).total;
+  return { antes, cambio: antes > 0 ? (ahora - antes) / antes : null };
+}
+
+/** Un año de días por meses: [{ month: 'AAAA-MM', seconds }], del más antiguo al de ahora. */
+export function byMonth(days) {
+  const months = new Map();
+  for (const { day, seconds } of days) months.set(day.slice(0, 7), (months.get(day.slice(0, 7)) ?? 0) + seconds);
+  return [...months].map(([month, seconds]) => ({ month, seconds }));
+}
+
+/** El calendario de las últimas `weeks` semanas (de lunes a domingo): columnas de 7 { day, seconds, level } (null, los
+ *  días que aún no han llegado). El nivel, de 0 a 4, según el día con más. */
+export function calendar(data, today, weeks, of = entry => Object.values(entry?.sites ?? {}).reduce((a, b) => a + b, 0)) {
+  const [y, m, d] = today.split('-').map(Number);
+  const weekday = (new Date(y, m - 1, d).getDay() + 6) % 7;
+  const days = lastDays(today, (weeks - 1) * 7 + weekday + 1).map(day => ({ day, seconds: of(data.days[day]) || 0 }));
+  const max = Math.max(...days.map(item => item.seconds), 1);
+  const cells = days.map(item => ({ ...item, level: item.seconds ? Math.max(1, Math.ceil((item.seconds / max) * 4)) : 0 }));
+  while (cells.length < weeks * 7) cells.push(null);
+  return Array.from({ length: weeks }, (_, i) => cells.slice(i * 7, i * 7 + 7));
 }
 
 /** «2 h 05 min», «35 min», «menos de 1 min». */

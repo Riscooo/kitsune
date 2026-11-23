@@ -15,7 +15,15 @@ test('Zero reads its settings from the host prefs, and falls back to its default
   assert.deepEqual(DEFAULTS, { always: false, inherit: true, variant: 'nacar', backdrop: 'auto', backgroundImage: '', backgroundOpacity: '1', focus: true, volume: '1', islandIcons: false,
     pomodoro: false, pomodoroPreset: '25', pomodoroBreak: 'soft', pomodoroGuide: 'breathe', pomodoroState: '',
     silence: false, silenceNotify: true, silenceBlock: true, silenceBlocked: '', silenceOnlyWork: false, silenceScroll: true,
-    sounds: false, soundsLevels: '{"lluvia":0.5}', soundsPause: true, welcomed: false, railIcons: false, railWindow: false, shortcutsWindow: true, hints: true, growAt: '' })
+    sounds: false, soundsLevels: '{"lluvia":0.5}', soundsPause: true, welcomed: false, railIcons: false, railWindow: false, shortcutsWindow: true, hints: true, growAt: '',
+    material: 'auto', surfaceOpacity: '0.85', surfaceTint: '0.7', light: 'solar', lightCoords: '', lightClock: '07:30-19:30', lightPeriod: 'dia',
+    lightTransition: '50', lightScheme: 'auto', webTransparent: false })
+  // El material y la luz (zero-luz).
+  assert.equal(prefName('kitsune.zero.', PREFS.material), 'kitsune.zero.material')
+  assert.equal(prefName('kitsune.zero.', PREFS.surfaceOpacity), 'kitsune.zero.surface.opacity')
+  assert.equal(prefName('kitsune.zero.', PREFS.light), 'kitsune.zero.light.mode')
+  assert.equal(prefName('kitsune.zero.', PREFS.lightCoords), 'kitsune.zero.light.coords')
+  assert.equal(prefName('kitsune.zero.', PREFS.webTransparent), 'kitsune.zero.web.transparent')
   assert.equal(prefName('kitsune.zero.', PREFS.welcomed), 'kitsune.zero.welcomed')
   assert.equal(prefName('kitsune.zero.', PREFS.railIcons), 'kitsune.zero.railIcons')
   assert.equal(prefName('kitsune.zero.', PREFS.hints), 'kitsune.zero.hints')

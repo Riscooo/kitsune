@@ -23,7 +23,7 @@ agradece cualquier ayuda: fallos, ideas, temas, traducciones y código.
 | `chrome/` | La estética Tinta de la ventana y de las páginas internas. Solo tokens de color de papel (`palette.css`). |
 | `start/` | «Tu inicio»: la página de inicio, sus ajustes y la ayuda. |
 | `install/home-server.py`, `install/home-extension/` | El inicio en Linux (servidor local) y en Windows/macOS (extensión interna). Hacen lo mismo y hay pruebas que lo comparan. |
-| `web/` | La web de descarga. Se publica a mano con cada versión, no al subir a `main`. |
+| `web/` | La web de descarga. Vercel la publica al subir a `main` (ver `docs/publicar.md`). |
 | `tests/` | Pruebas: `*.test.mjs` (Node), `*_test.py` (Python) y `*_native.py` (con el motor real). |
 
 ## Compilar sin congelar el ordenador

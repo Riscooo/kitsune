@@ -113,3 +113,28 @@ test('Apple Liquid Glass is off unless kitsune.zero.macos-glass turns it on (it 
   assert.equal(macGlassOn('Darwin', '24.6.0', prefs(true)), false)
   assert.equal(macGlassOn('Darwin', '25.0.0', prefs(false)), false)
 })
+
+test('con la luz, el modo lo dice ella (de noche, Oscuro) y, sin cristal, el fondo es la niebla de la luz', async () => {
+  const { effectiveVariant } = await import('../zero/modules/zero-frame.sys.mjs')
+  const root = scheme => ({ getAttribute: name => (name === 'zero-sol-scheme' ? scheme : null) })
+  assert.equal(effectiveVariant('nacar', root('dark')), 'sobrio')
+  assert.equal(effectiveVariant('sobrio', root('light')), 'nacar')
+  assert.equal(effectiveVariant('sobrio', root(null)), 'sobrio')   // sin la luz, lo elegido
+  assert.equal(effectiveVariant('raro', null), 'nacar')
+  assert.equal(backdropMode('auto', { solar: true, variant: 'sobrio' }), 'mist')
+  assert.equal(backdropMode('auto', { solar: false, variant: 'sobrio' }), 'space')
+  // Windows 11 con Acrílico o Mica es «el cristal del sistema»; lo elegido a mano se respeta.
+  assert.equal(backdropMode('auto', { desktop: 'windows', rule: true, solar: true }), 'system')
+  assert.equal(backdropMode('photo', { desktop: 'windows', rule: true }), 'photo')
+})
+
+test('la hoja de Zero pinta la luz y el material sin opacidad global: el alfa va en el fondo, no en el texto', () => {
+  const css = readFileSync(new URL('../zero/chrome/zero.css', import.meta.url), 'utf8')
+  const luz = css.slice(css.indexOf('la luz y el material (zero-luz)'))
+  assert.ok(luz.length > 100)
+  assert.match(luz, /--zero-glass-fill: linear-gradient\(180deg, rgb\(from var\(--sol-raised\) r g b \/ var\(--zero-surface-alpha/)
+  assert.match(luz, /\[zero-material="acrylic"\], \[zero-material="mica"\]\)\[zero-backdrop="system"\] #zero-bg/)
+  // Ninguna regla de la sección baja la opacidad de una pieza entera (eso volvería transparente el texto).
+  assert.doesNotMatch(luz, /(^|[;{\s])opacity:\s*0?\.\d/m)
+  assert.match(luz, /:root\[zero\]\[zero-web-clear\] \.browserContainer/)
+})

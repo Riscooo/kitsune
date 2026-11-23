@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { bookmarksFromTree, checkCopy, decryptCopy, encryptCopy, summary } from '../install/native/kitsune-copia.sys.mjs'
+import { bookmarksFromTree, checkCopy, decryptCopy, encryptCopy, missingZero, summary } from '../install/native/kitsune-copia.sys.mjs'
 
 const copy = () => ({
   version: 1, created: '2026-10-14T08:00:00.000Z',
@@ -47,4 +47,12 @@ test('the bookmarks tree from Gecko becomes the roots with something inside', ()
   const roots = bookmarksFromTree(tree)
   assert.deepEqual(roots.map(root => root.title), ['Menú de marcadores', 'Barra de marcadores'])
   assert.deepEqual(roots[1].children, [{ title: 'Carpeta', children: [{ title: 'Dos', url: 'https://dos.example/' }] }])
+})
+
+test('a copy says what of Zero could not go in it, and never stays quiet about the notes', () => {
+  const whole = { zero: { version: 1, notas: [], faltan: [] } }
+  assert.deepEqual(missingZero(whole, true), [])
+  assert.deepEqual(missingZero({ zero: { version: 1, faltan: ['notas', 'raro'] } }, true), ['las notas'])
+  assert.equal(missingZero({}, true).length, 4, 'se quedó fuera entera')
+  assert.deepEqual(missingZero({}, false), [], 'no se pidió')
 })

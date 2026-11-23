@@ -41,13 +41,16 @@ function zeroSection(win, host) {
     return () => prefs.removeObserver('kitsune.privacy.requested', observer);
   };
   const privacy = host.privacy?.available?.() ? host.privacy : null;
+  // La luz (zero-luz) encendida en esta ventana, y el estilo elegido con ella.
+  const lit = () => win.document.documentElement.hasAttribute('zero-sol');
+  const lightScheme = () => { try { return prefs.getStringPref(prefName(prefix, PREFS.lightScheme), 'auto'); } catch { return 'auto'; } };
   return {
     id: 'zero',
     // Las filas que dependen del fondo (la foto, la opacidad) siguen al que está puesto de verdad, y la de reiniciar
     // sale o se va con el modo de privacidad pedido.
     watch: fn => {
       const observer = new win.MutationObserver(() => fn());
-      observer.observe(win.document.documentElement, { attributes: true, attributeFilter: ['zero-backdrop'] });
+      observer.observe(win.document.documentElement, { attributes: true, attributeFilter: ['zero-backdrop', 'zero-sol', 'zero-glass'] });
       const unwatch = watchPrivacy(fn);
       return () => { observer.disconnect(); unwatch(); };
     },
@@ -73,22 +76,46 @@ function zeroSection(win, host) {
         // Claro u Oscuro (Risco, 21-10; antes, las variantes «Nácar» de Risco y «Sobrio» de Dani, con los mismos
         // valores): cambian las piezas y las webs; lo de alrededor es el mismo.
         kind: 'segment', id: PREFS.variant,
+        // Con la luz (zero-luz), también «Auto» (Risco, 12-11: «encima de la iluminación, también un modo oscuro como
+        // antes»): Auto es claro de día y oscuro de noche; Claro u Oscuro, siempre, y la luz tiñe sus colores según la
+        // hora. Con la luz se guarda en light.scheme; Claro y Oscuro también en el modo de siempre (variant), para que
+        // al apagar la luz se quede el mismo, y al revés.
         label: host.t('Estilo', 'Style'),
-        detail: host.t('Claro: piezas de cristal claro y transparente, y las webs en claro. Oscuro: cristal ahumado, y las webs en oscuro.',
-                       'Light: clear, see-through glass pieces, and pages in light. Dark: smoked glass, and pages in dark.'),
-        options: [{ value: 'nacar', label: host.t('Claro', 'Light') }, { value: 'sobrio', label: host.t('Oscuro', 'Dark') }],
-        get: () => variantOf(prefs.getStringPref(prefName(prefix, PREFS.variant), 'nacar')),
-        set: value => prefs.setStringPref(prefName(prefix, PREFS.variant), value),
-        watch: watchPref(PREFS.variant),
+        get detail() {
+          return lit()
+            ? host.t('Auto: claro de día y oscuro de noche, y las webs con sus colores. Claro u Oscuro: siempre, con los colores de la luz de cada hora, y las webs en claro o en oscuro.',
+                     'Auto: light by day and dark at night, and pages keep their colours. Light or Dark: always, with the colours of each hour, and pages in light or in dark.')
+            : host.t('Claro: piezas de cristal claro y transparente, y las webs en claro. Oscuro: cristal ahumado, y las webs en oscuro.',
+                     'Light: clear, see-through glass pieces, and pages in light. Dark: smoked glass, and pages in dark.');
+        },
+        get options() {
+          return [...(lit() ? [{ value: 'auto', label: host.t('Auto', 'Auto') }] : []),
+            { value: 'nacar', label: host.t('Claro', 'Light') }, { value: 'sobrio', label: host.t('Oscuro', 'Dark') }];
+        },
+        get: () => {
+          if (lit()) return ({ light: 'nacar', dark: 'sobrio' })[lightScheme()] ?? 'auto';
+          return variantOf(prefs.getStringPref(prefName(prefix, PREFS.variant), 'nacar'));
+        },
+        set: value => {
+          if (value === 'auto') { prefs.setStringPref(prefName(prefix, PREFS.lightScheme), 'auto'); return; }
+          const variant = variantOf(value);
+          prefs.setStringPref(prefName(prefix, PREFS.variant), variant);
+          // Con la luz, el estilo; sin ella, si ya había uno elegido, que siga al modo.
+          if (lit() || lightScheme() !== 'auto') prefs.setStringPref(prefName(prefix, PREFS.lightScheme), variant === 'sobrio' ? 'dark' : 'light');
+        },
+        watch: fn => { const undo = [watchPref(PREFS.variant)(fn), watchPref(PREFS.lightScheme)(fn)]; return () => undo.forEach(u => u()); },
       },
       {
         kind: 'segment', id: PREFS.backdrop,
         label: host.t('Fondo', 'Background'),
-        // Cristal solo donde el sistema lo pone (macOS 26, o un escritorio con la regla de Kitsune).
-        options: [
-          ...(win.document.documentElement.getAttribute('zero-glass') === 'system' ? [{ value: 'system', label: host.t('Cristal', 'Glass') }] : []),
-          { value: 'space', label: host.t('Espacio', 'Space') }, { value: 'mist', label: host.t('Niebla', 'Mist') },
-          { value: 'photo', label: host.t('Foto', 'Photo') }, { value: 'web', label: host.t('Web', 'Page') }],
+        // Cristal solo donde el sistema lo pone (macOS 26, un escritorio con la regla de Kitsune o Windows 11 con su
+        // material). Se mira cada vez que se pinta la fila: el material puede encenderse o apagarse sin cerrar la ventana.
+        get options() {
+          return [
+            ...(win.document.documentElement.getAttribute('zero-glass') === 'system' ? [{ value: 'system', label: host.t('Cristal', 'Glass') }] : []),
+            { value: 'space', label: host.t('Espacio', 'Space') }, { value: 'mist', label: host.t('Niebla', 'Mist') },
+            { value: 'photo', label: host.t('Foto', 'Photo') }, { value: 'web', label: host.t('Web', 'Page') }];
+        },
         // Con «auto» se marca el que está puesto de verdad.
         get: () => win.document.documentElement.getAttribute('zero-backdrop'),
         // «Foto» sin foto elegida, o pulsada otra vez con la foto puesta, abre el selector para elegirla.
@@ -346,6 +373,9 @@ function leave(win, node) {
 
 /** Pone las filas que tocan sin rehacer las que ya están: las nuevas entran y las que sobran se van
  *  (con animación si el panel está a la vista), y un interruptor pulsado sigue siendo el mismo. */
+/** Las opciones de un segmento, para saber si han cambiado. */
+const optionsKey = row => (row.kind === 'segment' ? (row.options ?? []).map(option => option.value).join('|') : '');
+
 function renderRows(win, st) {
   const doc = win.document;
   for (const undo of st.sectionCleanups ?? []) { try { undo(); } catch { /* ya no estaba */ } }
@@ -366,12 +396,14 @@ function renderRows(win, st) {
   // Una sección puesta de nuevo (otra vez la misma fase) rehace sus filas, sin animación (antes de
   // recorrer: así el recorrido no tropieza con filas que ya no están).
   for (const { key, section } of wanted) { const item = st.live.get(key); if (item && item.section !== section) drop(key, item, false); }
+  // Un segmento cuyas opciones han cambiado (el «Cristal» del fondo, que depende del material) se rehace.
+  for (const { key, row } of wanted) { const item = st.live.get(key); if (item && row.kind === 'segment' && item.options !== optionsKey(row)) drop(key, item, false); }
   let cursor = st.rows.firstChild;
   for (const { key, row, section } of wanted) {
     let item = st.live.get(key);
     const fresh = !item;
     if (fresh) {
-      item = { section, undo: [] };
+      item = { section, undo: [], options: optionsKey(row) };
       item.node = rowNode(doc, row, item.undo);
       st.live.set(key, item);
     }

@@ -1,7 +1,7 @@
 /* Copia de Kitsune: tus cosas en un archivo cifrado, para llevarlas a otro ordenador sin servidor.
  *
- * - Guardar: marcadores, espacios con sus pestañas y, si quieres, el historial (90 días) y las
- *   contraseñas, en un archivo .kitsune cifrado con tu contraseña (PBKDF2-SHA-256 con 600 000
+ * - Guardar: marcadores, espacios con sus pestañas, lo de Kitsune Zero (notas, subrayados, estudio,
+ *   estadísticas y logros) y, si quieres, el historial (90 días) y las contraseñas, en un archivo .kitsune cifrado con tu contraseña (PBKDF2-SHA-256 con 600 000
  *   vueltas y AES-GCM de 256 bits). Sin la contraseña no se puede leer, ni siquiera saber qué lleva.
  * - Traer: los marcadores van a una carpeta «De otro Kitsune (fecha)»; los espacios se crean (o se
  *   usan los que ya tengan ese nombre) con sus pestañas, que se abren sin cargar; el historial se
@@ -86,7 +86,10 @@ export function checkCopy(value) {
       passwordField: typeof login.passwordField === 'string' ? login.passwordField : '' }));
   const bookmarks = (Array.isArray(value.bookmarks) ? value.bookmarks : []).map(root => ({ title: text(root?.title) || t('Marcadores', 'Bookmarks'), children: checkItems(root?.children) }))
     .filter(root => root.children.some(item => item.type !== 'separator'));
-  return { version: 1, created: typeof value.created === 'string' ? value.created : null, bookmarks, spaces, tabs, history: pages, logins };
+  const copy = { version: 1, created: typeof value.created === 'string' ? value.created : null, bookmarks, spaces, tabs, history: pages, logins };
+  // Lo de Zero lo comprueba Zero al traerlo (cada pieza, lo suyo); aquí solo que sea lo suyo y no un disparate de grande.
+  if (value.zero && typeof value.zero === 'object' && value.zero.version === 1 && JSON.stringify(value.zero).length < 128 * 1024 * 1024) copy.zero = value.zero;
+  return copy;
 }
 
 export const countItems = items => items.reduce((sum, item) => sum + (item.url ? 1 : item.children ? countItems(item.children) : 0), 0);
@@ -100,8 +103,23 @@ export function summary(copy) {
     `${copy.spaces.length} space${copy.spaces.length === 1 ? '' : 's'} with ${copy.tabs.length} tab${copy.tabs.length === 1 ? '' : 's'}`));
   if (copy.history.length) parts.push(t(`${copy.history.length} página${copy.history.length === 1 ? '' : 's'} del historial`, `${copy.history.length} history page${copy.history.length === 1 ? '' : 's'}`));
   if (copy.logins.length) parts.push(t(`${copy.logins.length} contraseña${copy.logins.length === 1 ? '' : 's'}`, `${copy.logins.length} password${copy.logins.length === 1 ? '' : 's'}`));
+  const notes = copy.zero?.notas?.length ?? 0;
+  if (notes) parts.push(t(`${notes} nota${notes === 1 ? '' : 's'}`, `${notes} note${notes === 1 ? '' : 's'}`));
   return parts.join(' · ');
 }
+
+/** Lo de Kitsune Zero, si está (null en un Kitsune sin él). */
+function zeroCopy() {
+  try { return ChromeUtils.importESModule('chrome://browser/content/zero/zero-copia.sys.mjs').ZeroCopia; } catch { return null; }
+}
+/** Lo de Zero que se pidió y no ha podido ir en la copia (o que se ha quedado fuera por grande). */
+const ZERO_PARTS = { notas: ['las notas', 'your notes'], subrayados: ['los subrayados', 'your highlights'], estudio: ['el estudio', 'your study pages'], estadisticas: ['las estadísticas', 'your stats'] };
+export function missingZero(copy, wanted) {
+  if (!wanted) return [];
+  const gone = copy.zero ? copy.zero.faltan ?? [] : Object.keys(ZERO_PARTS);
+  return Object.keys(ZERO_PARTS).filter(part => gone.includes(part)).map(part => t(...ZERO_PARTS[part]));
+}
+const zeroSpaces = () => { try { return lazy.spaces.KitsuneSpaces.list().spaces.map(({ id, name }) => ({ id, name })); } catch { return []; } };
 
 /** PlacesUtils.promiseBookmarksTree → las raíces con algo dentro, como las guarda la copia. */
 export function bookmarksFromTree(tree) {
@@ -123,7 +141,7 @@ const lazy = {
 };
 
 /** Junta lo que se ha pedido de este Kitsune. */
-async function collect(win, { bookmarks = true, tabs = true, history = false, logins = false } = {}) {
+async function collect(win, { bookmarks = true, tabs = true, zero = true, history = false, logins = false } = {}) {
   const copy = { version: 1, created: new Date().toISOString(), bookmarks: [], spaces: [], tabs: [], history: [], logins: [] };
   if (bookmarks) copy.bookmarks = bookmarksFromTree(await lazy.PlacesUtils.promiseBookmarksTree(lazy.PlacesUtils.bookmarks.rootGuid));
   if (tabs) {
@@ -159,13 +177,14 @@ async function collect(win, { bookmarks = true, tabs = true, history = false, lo
     copy.logins = (await Services.logins.getAllLogins()).map(login => ({ origin: login.origin, formActionOrigin: login.formActionOrigin,
       httpRealm: login.httpRealm, username: login.username, password: login.password, usernameField: login.usernameField, passwordField: login.passwordField }));
   }
+  if (zero) { const part = await zeroCopy()?.juntar({ espacios: zeroSpaces() }); if (part) copy.zero = part; }
   return checkCopy(copy);
 }
 
 /** Trae a este Kitsune lo que se haya elegido de una copia. Devuelve cuánto ha traído. */
-async function restore(win, copy, { bookmarks = true, tabs = true, history = true, logins = true } = {}) {
+async function restore(win, copy, { bookmarks = true, tabs = true, zero = true, history = true, logins = true } = {}) {
   const { PlacesUtils } = lazy;
-  const result = { bookmarks: 0, spaces: 0, tabs: 0, pages: 0, logins: 0 };
+  const result = { bookmarks: 0, spaces: 0, tabs: 0, pages: 0, logins: 0, notes: 0 };
   if (bookmarks && copy.bookmarks.length) {
     const date = new Date(copy.created ?? Date.now()).toLocaleDateString(t('es-ES', 'en-US'));
     const toFolder = item => item.type === 'separator' ? { type: PlacesUtils.bookmarks.TYPE_SEPARATOR }
@@ -198,6 +217,8 @@ async function restore(win, copy, { bookmarks = true, tabs = true, history = tru
     }
     await KitsuneSpaces.refresh(win);
   }
+  // Después de los espacios: cada estudio va al suyo.
+  if (zero && copy.zero) result.notes = (await zeroCopy()?.traer(copy.zero, { espacios: zeroSpaces() }))?.notas ?? 0;
   if (history && copy.history.length) {
     for (let index = 0; index < copy.history.length; index += 500) {
       try {
@@ -229,6 +250,7 @@ export const KitsuneCopia = {
   async save(win, { path, password, ...choices }) {
     const copy = await collect(win, choices);
     await IOUtils.writeJSON(path, await encryptCopy(copy, password), { tmpPath: `${path}.tmp` });
+    if (copy.zero && !copy.zero.faltan?.includes('notas')) zeroCopy()?.hecha();
     return copy;
   },
   /** Abre una copia (con su contraseña) y la trae. Devuelve { copy, result }. */
@@ -271,6 +293,7 @@ function buildPanel(win) {
     el(doc, 'p', {}, [t('Tus cosas en un archivo cifrado con tu contraseña, para llevarlas a otro ordenador. Sin servidor: el archivo lo llevas tú.',
       'Your things in a file encrypted with your password, to take them to another computer. No server: you carry the file.')]),
     el(doc, 'div', { class: 'kitsune-import-what' }, [check('bookmarks', t('Marcadores', 'Bookmarks'), true), check('tabs', t('Espacios y pestañas', 'Spaces and tabs'), true),
+      check('zero', t('Notas y estudio', 'Notes and study'), true),
       check('history', t('Historial (90 días)', 'History (90 days)'), false), check('logins', t('Contraseñas', 'Passwords'), false)]),
     password('password', t('Contraseña de la copia', 'Copy password')),
     password('repeat', t('Repítela (solo para guardar)', 'Repeat it (only to save)')),
@@ -282,7 +305,7 @@ function buildPanel(win) {
   ]);
   panel.append(form);
   const status = form.querySelector('.kitsune-import-status');
-  const choices = () => Object.fromEntries(['bookmarks', 'tabs', 'history', 'logins'].map(name => [name, form.elements[name].checked]));
+  const choices = () => Object.fromEntries(['bookmarks', 'tabs', 'zero', 'history', 'logins'].map(name => [name, form.elements[name].checked]));
   const busy = value => { for (const button of form.querySelectorAll('button')) button.disabled = value; };
   form.addEventListener('submit', async event => {
     event.preventDefault();
@@ -295,7 +318,9 @@ function buildPanel(win) {
     status.textContent = t('Guardando…', 'Saving…');
     try {
       const copy = await KitsuneCopia.save(win, { path, password: value, ...choices() });
-      status.textContent = t(`Copia guardada: ${summary(copy) || 'vacía'}. Sin su contraseña no se puede abrir.`, `Copy saved: ${summary(copy) || 'empty'}. It cannot be opened without its password.`);
+      const gone = missingZero(copy, choices().zero && zeroCopy()).join(', ');
+      status.textContent = t(`Copia guardada: ${summary(copy) || 'vacía'}. Sin su contraseña no se puede abrir.`, `Copy saved: ${summary(copy) || 'empty'}. It cannot be opened without its password.`)
+        + (gone ? t(` Ojo: no se ha podido guardar ${gone}.`, ` Careful: could not save ${gone}.`) : '');
     } catch (error) {
       status.textContent = t('No se ha podido guardar la copia.', 'The copy could not be saved.');
       Services.console.logStringMessage('Kitsune: copia: ' + error);
@@ -310,8 +335,8 @@ function buildPanel(win) {
     status.textContent = t('Trayendo…', 'Bringing…');
     try {
       const { result } = await KitsuneCopia.load(win, { path, password: value, ...choices() });
-      status.textContent = t(`Traído: ${result.bookmarks} marcadores, ${result.tabs} pestañas (${result.spaces} espacios nuevos), ${result.pages} páginas del historial y ${result.logins} contraseñas.`,
-        `Brought: ${result.bookmarks} bookmarks, ${result.tabs} tabs (${result.spaces} new spaces), ${result.pages} history pages and ${result.logins} passwords.`);
+      status.textContent = t(`Traído: ${result.bookmarks} marcadores, ${result.tabs} pestañas (${result.spaces} espacios nuevos), ${result.pages} páginas del historial, ${result.logins} contraseñas y ${result.notes} notas.`,
+        `Brought: ${result.bookmarks} bookmarks, ${result.tabs} tabs (${result.spaces} new spaces), ${result.pages} history pages, ${result.logins} passwords and ${result.notes} notes.`);
     } catch (error) {
       status.textContent = error.message === 'password' ? t('Esa no es la contraseña de esta copia.', 'That is not the password of this copy.')
         : t('Ese archivo no es una copia de Kitsune.', 'That file is not a Kitsune copy.');

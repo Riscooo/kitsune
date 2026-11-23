@@ -186,7 +186,10 @@ function draw(win, st) {
   const root = win.document.documentElement;
   // Con la web ampliada no hay lámina, ni con un fondo que pinta Zero (espacio, niebla, foto): su fondo lleva su
   // propio filo. Es la de «Sobrio» en los dos modos (Risco, 21-10: «lo de alrededor, como en Sobrio»).
-  const hidden = root.hasAttribute('zero-full') || ['space', 'mist', 'photo'].includes(root.getAttribute('zero-backdrop'));
+  // Ni con el material de Windows 11 (zero-luz): lo de detrás lo compone DWM fuera de Gecko, la lente no tendría
+  // nada que doblar, y ese cristal es mate (blanco esmerilado), sin el canto de una lámina.
+  const hidden = root.hasAttribute('zero-full') || ['space', 'mist', 'photo'].includes(root.getAttribute('zero-backdrop')) ||
+    ['acrylic', 'mica'].includes(root.getAttribute('zero-material'));
   if (canvas.hidden !== hidden) canvas.hidden = hidden;
   if (hidden || !st.gl) return;
   const W = win.innerWidth, H = win.innerHeight, k = win.devicePixelRatio || 1;
@@ -272,7 +275,7 @@ export function attach(win, ctx) {
   if (panels) { listen(panels, 'transitionstart', () => schedule(win, st)); listen(panels, 'transitionend', () => schedule(win, st)); }
   // Con la web ampliada no hay lámina; la pestaña vacía no tiene tarjeta.
   const observer = new win.MutationObserver(() => schedule(win, st));
-  observer.observe(doc.documentElement, { attributes: true, attributeFilter: ['zero-full', 'zero-empty', 'zero-backdrop', 'zero-variant', 'zero-os', 'sizemode', 'inFullscreen'] });
+  observer.observe(doc.documentElement, { attributes: true, attributeFilter: ['zero-full', 'zero-empty', 'zero-backdrop', 'zero-variant', 'zero-os', 'zero-material', 'sizemode', 'inFullscreen'] });
   const sidebar = doc.getElementById('sidebar-box');
   if (sidebar) observer.observe(sidebar, { attributes: true, attributeFilter: ['hidden'] });
   if (panels) observer.observe(panels, { attributes: true, attributeFilter: ['splitview'] });

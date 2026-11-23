@@ -17,7 +17,9 @@
  * - Las animaciones que crea Claude (lobo_crear_animacion) se guardan aparte, en el perfil
  *   (kitsune-zero-lobo/animaciones.json): no hace falta actualizar ni recompilar nada para tener una nueva.
  * - «Usar Kitsune Zero desde Claude Code» (ajuste, apagado de serie): el MCP se queda abierto en un puerto fijo para
- *   que Claude Code (en una terminal) maneje el navegador; los ajustes dan la orden para añadirlo.
+ *   que Claude Code (en una terminal) maneje el navegador; los ajustes dan la orden para añadirlo. Ese servidor, además
+ *   de las herramientas del panel, maneja las páginas como una persona (clic, escribir, capturas, JavaScript…:
+ *   zero-ia-navegar). El del panel no: el lobo lee webs que no son de fiar (herramientasDelPanel/herramientasDeFuera).
  */
 import { prefName } from './zero-config.sys.mjs';
 import { parse } from './zero-ia-texto.mjs';
@@ -25,6 +27,10 @@ import { validar, combinar, crearReproductor, catalogo } from './zero-lobo.mjs';
 import { iniciarServidor, datosParaClaudeCode } from './zero-ia-mcp.sys.mjs';
 import { buscarClaude, SesionClaude } from './zero-ia-claude.sys.mjs';
 import { herramientasDe } from './zero-ia-herramientas.sys.mjs';
+import * as reparto from './zero-reparto.sys.mjs';
+import { herramientasDeNavegar } from './zero-ia-navegar.sys.mjs';
+import { INSTRUCCIONES_NAVEGAR } from './zero-ia-navegar.mjs';
+import { INSTRUCCIONES as INSTRUCCIONES_MCP } from './zero-ia-protocolo.mjs';
 
 const HTML = 'http://www.w3.org/1999/xhtml';
 const LOBO = 'chrome://browser/content/zero/lobo.json';
@@ -177,16 +183,22 @@ function forma(win, st) {
   return { side, shape, width, height };
 }
 
+/** Cómo quiere estar (para zero-reparto, que coloca la web, el bloc y este panel). */
+function paraReparto(win, st) {
+  if (!st.panel.hasAttribute('open')) return null;
+  const { side, shape, width, height } = st.arrastre?.forma ?? forma(win, st);
+  return { lado: side === 'left' ? 'izq' : 'der', forma: { corner: 'esquina', tab: 'pestana' }[shape] ?? 'columna', ancho: width, alto: height };
+}
+
 /** Pone el panel donde y como toca; en columna y abierto, la web le deja sitio (al acabar de estirarlo, no en cada
  *  fotograma: cambiar el tamaño de la web es caro). */
 function colocar(win, st, { vivo = false } = {}) {
-  const { side, shape, width, height } = st.arrastre?.forma ?? forma(win, st);
+  const { side, shape, width } = st.arrastre?.forma ?? forma(win, st);
   const panel = st.panel, root = win.document.documentElement;
   panel.setAttribute('side', side);
   panel.setAttribute('shape', shape);
-  panel.style.width = shape === 'tab' ? '' : `${width}px`;
-  panel.style.height = shape === 'corner' ? `${height}px` : '';
   const abierto = panel.hasAttribute('open');
+  reparto.colocar(win, { vivo });
   if (!vivo) {
     root.toggleAttribute('zero-ia-open', abierto && shape === 'column');
     root.setAttribute('zero-ia-side', side);
@@ -204,6 +216,7 @@ function estirable(win, st) {
     st.arrastre = { eje, x: event.clientX, y: event.clientY, inicio, forma: { ...inicio }, id: event.pointerId, asa: event.currentTarget };
     try { event.currentTarget.setPointerCapture(event.pointerId); } catch { /* sin captura */ }
     st.panel.setAttribute('resizing', '');
+    reparto.tirar(win, 'ia');
   };
   const mover = event => {
     const a = st.arrastre;
@@ -218,6 +231,7 @@ function estirable(win, st) {
     if (!a || (event.pointerId !== undefined && event.pointerId !== a.id)) return;
     st.arrastre = null;
     st.panel.removeAttribute('resizing');
+    reparto.tirar(win, null, Math.round(a.forma.width));
     setPref(st.host, P.width, String(Math.round(a.forma.width)));
     if (a.forma.shape === 'corner') setPref(st.host, P.height, String(Math.round(a.forma.height)));
     colocar(win, st);
@@ -234,6 +248,7 @@ function abrir(win, st, abierto = !st.panel.hasAttribute('open')) {
   st.panel.toggleAttribute('open', abierto);
   st.boton.setAttribute('aria-expanded', String(abierto));
   st.boton.toggleAttribute('open', abierto);
+  if (abierto) reparto.delante(win, 'ia');
   colocar(win, st);
   if (abierto) {
     st.grande.empezar();
@@ -273,6 +288,14 @@ function burbuja(win, st, quien, texto = '') {
   const cuerpo = el(doc, 'div', { class: 'zero-ia-text' });
   const nodo = el(doc, 'div', { class: `zero-ia-msg zero-ia-${quien}`, role: quien === 'claude' ? 'article' : null }, [cuerpo]);
   const mensaje = { quien, texto, nodo, cuerpo, herramientas: null };
+  if (quien === 'claude') {
+    // Lo que dice, al bloc (Risco, 23-11: «cuando estuve con la ia me di cuenta de que nos vendría muy bien un block de
+    // notas»). Solo va en esta dirección: el asistente no ve las notas.
+    const label = st.host.t('Guardar en el bloc', 'Save to notes');
+    const guardar = el(doc, 'button', { type: 'button', class: 'zero-ia-guardar', title: label, 'aria-label': label });
+    guardar.addEventListener('click', () => void ChromeUtils.importESModule(new URL('./zero-notas.sys.mjs', import.meta.url).href).guardar(win, mensaje.texto));
+    nodo.append(guardar);
+  }
   st.mensajes.push(mensaje);
   st.panel.setAttribute('chatting', '');
   st.log.append(nodo);
@@ -411,7 +434,7 @@ async function asegurarSesion(win, st) {
   const ruta = await comprobarClaude(win, st);
   if (!ruta) throw new Error(st.host.t('No encuentro Claude Code en este ordenador.', 'Claude Code is not installed on this computer.'));
   await cargarLobo();
-  st.servidor ??= await iniciarServidor({ nombre: 'kitsune', herramientas: herramientasDe(win, ganchosLobo(win, st)) });
+  st.servidor ??= await iniciarServidor({ nombre: 'kitsune', herramientas: herramientasDelPanel(win, ganchosLobo(win, st)) });
   const carpeta = PathUtils.join(Services.dirsvc.get('ProfD', Ci.nsIFile).path, 'kitsune-ia');
   await IOUtils.makeDirectory(carpeta, { createAncestors: true });
   const ejemplo = shared.datos?.ejemploClaude ? JSON.stringify(shared.datos.ejemploClaude) : '';
@@ -480,6 +503,19 @@ function ajustarEntrada(st) {
 
 // ---------------------------------------------------------------- MCP para Claude Code de fuera
 
+/** Las herramientas del servidor del panel: el lobo lee webs que no son de fiar (una puede llevar instrucciones
+ *  escondidas), así que solo mira: pestañas, leer, buscar, historial y sus animaciones. Nada de clic, escribir ni
+ *  JavaScript en las páginas. */
+export function herramientasDelPanel(win, ganchos = {}) {
+  return herramientasDe(win, ganchos);
+}
+
+/** Las del servidor de fuera, el que la persona conecta a su Claude Code en una terminal («Usar Kitsune Zero desde
+ *  Claude Code»): las del panel y, además, manejar las páginas como una persona (zero-ia-navegar). */
+export function herramientasDeFuera(ventana, { lobo } = {}) {
+  return [...herramientasDe(ventana, { lobo }), ...herramientasDeNavegar(ventana)];
+}
+
 async function abrirFuera(host) {
   if (shared.servidorFuera || !pref(host, P.external, false)) return shared.servidorFuera;
   let token = pref(host, P.token, '');
@@ -497,7 +533,10 @@ async function abrirFuera(host) {
     listar: () => (shared.datos ? catalogo(datosLobo()).animaciones : []),
     crear: crearAnimacion,
   };
-  shared.servidorFuera = await iniciarServidor({ nombre: 'kitsune', puerto, token, herramientas: herramientasDe(ventana, { lobo }) });
+  shared.servidorFuera = await iniciarServidor({
+    nombre: 'kitsune', puerto, token, herramientas: herramientasDeFuera(ventana, { lobo }),
+    instrucciones: `${INSTRUCCIONES_MCP} ${INSTRUCCIONES_NAVEGAR}`,
+  });
   if (shared.servidorFuera?.puerto && shared.servidorFuera.puerto !== puerto) setPref(host, P.port, String(shared.servidorFuera.puerto));
   return shared.servidorFuera;
 }
@@ -535,7 +574,8 @@ function seccionAjustes(win, st) {
       {
         kind: 'switch', id: P.external,
         label: t('Usar Kitsune Zero desde Claude Code', 'Use Kitsune Zero from Claude Code'),
-        detail: t('Abre un MCP solo en este ordenador para que Claude Code (en una terminal) maneje el navegador.', 'Opens an MCP on this computer only so Claude Code (in a terminal) can drive the browser.'),
+        detail: t('Abre un MCP solo en este ordenador para que Claude Code (en una terminal) maneje el navegador: tus pestañas y tus webs (clic, escribir, capturas, JavaScript).',
+          'Opens an MCP on this computer only so Claude Code (in a terminal) can drive the browser: your tabs and your pages (click, type, screenshots, JavaScript).'),
         get: () => pref(host, P.external, false),
         set: on => setPref(host, P.external, !!on),
       },
@@ -611,6 +651,8 @@ export function attach(win, ctx) {
   ]);
   doc.body.append(st.panel);
   st.cleanups.push(() => { st.boton.remove(); st.panel.remove(); });
+  st.cleanups.push(reparto.registrar(win, 'ia', { panel: st.panel, forma: () => paraReparto(win, st), ancho: px => setPref(host, P.width, px) }));
+  st.panel.addEventListener('pointerdown', () => reparto.delante(win, 'ia'));
   pintarBoton(st);
 
   st.icono = loboEn(win, st.iconoCanvas, 'icono', 1);
@@ -630,7 +672,11 @@ export function attach(win, ctx) {
   st.cleanups.push(() => { st.icono.parar(); st.grande.parar(); });
 
   // Lo que se pulsa.
-  st.boton.addEventListener('click', () => abrir(win, st));
+  st.boton.addEventListener('click', () => {
+    // Con el panel detrás del bloc (en una ventana baja, a turnos), el botón lo trae delante.
+    if (st.panel.hasAttribute('open') && st.panel.hasAttribute('oculto')) { reparto.delante(win, 'ia'); reparto.colocar(win); return; }
+    abrir(win, st);
+  });
   st.cerrar.addEventListener('click', () => abrir(win, st, false));
   st.nueva.addEventListener('click', () => nuevaConversacion(win, st));
   st.lado.addEventListener('click', () => setPref(host, P.side, forma(win, st).side === 'right' ? 'left' : 'right'));

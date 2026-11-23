@@ -16,6 +16,7 @@
 import { PRESETS, view, normalize, toggle, skip, reset } from './zero-pomodoro.mjs';
 import { prefName, PREFS } from './zero-config.sys.mjs';
 import { GlassPane } from './zero-glass.sys.mjs';
+import { sumar } from './zero-stats.sys.mjs';
 
 /** De dónde sale la hora (las pruebas la adelantan). */
 export const clock = { now: () => Date.now() };
@@ -24,6 +25,7 @@ const HTML = 'http://www.w3.org/1999/xhtml';
 const HOLD = 1500;              // ms manteniendo «Saltar» para saltar el descanso
 const BREATH = { in: 4000, out: 6000 };
 const state = new WeakMap();    // ventana → { … }
+let counted = null;             // el último pomodoro contado (cuándo empezó)
 
 const el = (doc, tag, attributes = {}, children = []) => {
   const node = doc.createElementNS(HTML, tag);
@@ -316,6 +318,9 @@ function update(win, st) {
   if (st.lastPhase && st.lastPhase !== v.phase) {
     const t = st.host.t;
     if (st.lastPhase === 'work' && (v.phase === 'short' || v.phase === 'long')) {
+      // Terminado de verdad (saltarlo reescribe el reloj), y una vez aunque haya varias ventanas.
+      const saved = st.p.saved();
+      if (saved?.phase === 'work' && Number.isFinite(saved.startedAt) && counted !== saved.startedAt) { counted = saved.startedAt; sumar('pomos'); }
       st.island?.alert(`${v.phase === 'long' ? t('Descanso largo', 'Long break') : t('Descanso', 'Break')} · ${clockText(v.left)}`,
         t('levántate, mira lejos, bebe agua', 'stand up, look far away, drink some water'), 6000, 'break');
     } else if ((st.lastPhase === 'short' || st.lastPhase === 'long') && v.phase === 'waiting') {

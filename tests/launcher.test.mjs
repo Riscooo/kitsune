@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import test from 'node:test';
+import nodeTest from 'node:test';
 import { mkdtemp, mkdir, readFile, writeFile, stat, readdir, cp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { resolve, join } from 'node:path';
@@ -8,6 +8,8 @@ import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 
 const exec = promisify(execFile);
+// El lanzador es un guion de sh, solo de Linux: en Windows no hay nada que probar.
+const test = (name, run) => nodeTest(name, { skip: process.platform === 'win32' ? 'el lanzador es de Linux' : false }, run);
 const source = await readFile(new URL('../install/kitsune-browser', import.meta.url), 'utf8');
 
 async function setup() {

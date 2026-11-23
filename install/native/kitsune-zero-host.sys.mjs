@@ -38,6 +38,8 @@ const spaces = {
   list: () => (spacesModule()?.list().spaces ?? []).map(({ id, name, icon, color }) => ({ id, name, icon, color })),
   current: win => spacesModule()?.active(win) ?? null,
   select: (win, id) => spacesModule()?.switchTo(win, id),
+  /** El espacio de una pestaña (para el modo Estudio). */
+  of: tab => { try { return ChromeUtils.importESModule('chrome://browser/content/kitsune-spaces.sys.mjs').tabSpace(tab); } catch { return null; } },
   /** El editor de «Nuevo espacio» de Kitsune, junto a `anchor` (en Zero, la bolita del perfil). */
   openEditor: (win, anchor) => spacesModule()?.openEditor(win, anchor),
   // Crear, cambiar (nombre, color, icono; lo demás se queda) y borrar (sus pestañas pasan al primero que
