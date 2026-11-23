@@ -78,7 +78,8 @@ const lista = (dir, base = dir) => fs.readdirSync(dir, { withFileTypes: true }).
 const A = lista(antes).sort(), B = lista(nuevo).sort()
 if (A.join() !== B.join()) throw new Error('Han cambiado los archivos del instalador')
 const cambian = A.filter(n => sha(path.join(antes, n)) !== sha(path.join(nuevo, n)))
-const esperados = ['core/browser/omni.ja', `core/defaults/pref/${deVersion[0]}`, 'core/kitsune.exe']
+// (Sobre el instalador de la misma versión, en las pruebas de cada cambio, el número ya es el que toca.)
+const esperados = ['core/browser/omni.ja', 'core/kitsune.exe', ...(viejaVersion === release ? [] : [`core/defaults/pref/${deVersion[0]}`])]
 if (cambian.sort().join() !== esperados.sort().join()) throw new Error(`Cambian ${cambian}`)
 
 // Otra vez el instalador, con la misma compresión que usa Mozilla (la que sabe abrir su programa).
