@@ -25,7 +25,16 @@ const check = (name, ok, detail = null) => { results.push({ name, ok: !!ok, deta
 const PAGE = n => `<!doctype html><meta charset="utf-8"><title>Tema ${n}</title><style>body{font:18px/1.6 Georgia,serif;max-width:640px;margin:60px auto;color:#222;background:#fff}</style>
 <h1>Tema ${n}: la célula</h1><p id="p1">La célula es la unidad básica de la vida. Todos los seres vivos están hechos de células.</p>
 <p id="p2">La mitosis es la división de una célula en dos células hijas iguales. Ocurre en varias fases seguidas.</p><p style="height:1400px"></p><p id="fin">Final del tema ${n}.</p>`
-const server = http.createServer((req, res) => { res.setHeader('content-type', 'text/html; charset=utf-8'); res.end(PAGE(/\/(\d)/.exec(req.url)?.[1] ?? '0')) })
+/** Un PDF de una página con una línea de texto. */
+const PDF = (() => {
+  const text = 'BT /F1 28 Tf 72 700 Td (La mitosis en un PDF) Tj ET'
+  const objects = ['<</Type/Catalog/Pages 2 0 R>>', '<</Type/Pages/Kids[3 0 R]/Count 1>>', '<</Type/Page/Parent 2 0 R/MediaBox[0 0 612 792]/Contents 4 0 R/Resources<</Font<</F1 5 0 R>>>>>>', `<</Length ${text.length}>>stream\n${text}\nendstream`, '<</Type/Font/Subtype/Type1/BaseFont/Helvetica>>']
+  let body = '%PDF-1.4\n'
+  const at = objects.map((o, i) => { const here = body.length; body += `${i + 1} 0 obj${o}endobj\n`; return here })
+  const xref = body.length
+  return Buffer.from(body + `xref\n0 6\n0000000000 65535 f \n${at.map(n => `${String(n).padStart(10, '0')} 00000 n \n`).join('')}trailer<</Size 6/Root 1 0 R>>\nstartxref\n${xref}\n%%EOF`)
+})()
+const server = http.createServer((req, res) => { if (req.url.endsWith('.pdf')) { res.setHeader('content-type', 'application/pdf'); res.end(PDF); return } res.setHeader('content-type', 'text/html; charset=utf-8'); res.end(PAGE(/\/(\d)/.exec(req.url)?.[1] ?? '0')) })
 await new Promise(r => server.listen(0, '127.0.0.1', r))
 const base = `http://127.0.0.1:${server.address().port}`
 
@@ -139,6 +148,20 @@ try {
   check('Los subrayados se guardan cifrados', !/lula|127\.0\.0\.1/.test(marks))
   await js(`win.gBrowser.selectedBrowser.reload()`)
   check('Al volver a la página, el subrayado sigue ahí', await until(() => content(`return CSS.highlights.get('kitsune-zero-amarillo')?.size === 1 && [...CSS.highlights.get('kitsune-zero-amarillo')][0].toString() === 'célula'`), 10000).catch(() => false))
+  // En un PDF: la palabra, con doble clic, al bloc.
+  await go(`${base}/apuntes.pdf`)
+  await c.send('Marionette:SetContext', { value: 'content' })
+  const word = await until(async () => { const r = await c.send('WebDriver:ExecuteScript', { script: `const s = [...document.querySelectorAll('.textLayer span')].find(e => /mitosis/.test(e.textContent)); if (!s) return null; const r = document.createRange(), i = s.textContent.indexOf('mitosis'); r.setStart(s.firstChild, i); r.setEnd(s.firstChild, i + 7); const b = r.getBoundingClientRect(); return [Math.round(b.left + b.width / 2), Math.round(b.top + b.height / 2)]`, args: [], newSandbox: false }); return r.value }, 12000).catch(() => null)
+  if (word) {
+    const down = { type: 'pointerDown', button: 0 }, up = { type: 'pointerUp', button: 0 }
+    await c.send('WebDriver:PerformActions', { actions: [{ type: 'pointer', id: 'raton', parameters: { pointerType: 'mouse' }, actions: [{ type: 'pointerMove', x: word[0], y: word[1], duration: 0, origin: 'viewport' }, down, up, down, up] }] })
+  }
+  await c.send('Marionette:SetContext', { value: 'chrome' })
+  check('En un PDF también sale la píldora', await until(() => box('zero-rotulador').then(b => b?.open)).catch(() => false), word)
+  await js(`$('#zero-rotulador .zr-bloc').click()`)
+  const pdf = await until(() => js(`const n = mod('zero-notas-almacen.sys.mjs').lista('')[0]; const q = n.bloques.filter(b => b.t === 'q').at(-1); return /pdf$/.test(q?.de?.url ?? '') ? [q.x.join(''), q.de.url] : null`)).catch(() => null)
+  check('Y lo marcado en él va al bloc', pdf?.[0] === 'mitosis' && pdf[1] === `${base}/apuntes.pdf`, pdf)
+  await go(`${base}/1`)
   // Con el bloc cerrado y sin Estudio, nada sobre la página.
   await js(`$('#zero-notas .zn-cerrar').click()`)
   await select('p1', 0, 9)
@@ -253,6 +276,20 @@ try {
   await js(`win.dispatchEvent(new win.KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))`)
   check('Esc las cierra', await until(() => box('zero-stats').then(b => !b.open)).catch(() => false))
 
+  // ---------------------------------------------------------------- la app de Spotify en el panel (solo mira: no da a nada)
+  await js(`win.__elegir = id => { const m = mod('zero-music.sys.mjs'); $('#zero-music-pill .zero-music').click(); return !!doc.querySelector('#zero-music-services [data-service="' + id + '"]'); }`)
+  check('La lista de música ofrece la app de Spotify', await js(`return win.__elegir('spotify-app')`))
+  await js(`$('#zero-music-services [data-service="spotify-app"]').click()`)
+  await until(() => js(`const a = mod('zero-spotify-app.sys.mjs').app; return $('#zero-music').hasAttribute('open') && !!$('#zero-music .zero-music-app')`))
+  const app = await until(() => js(`const a = mod('zero-spotify-app.sys.mjs').app; return a.resto !== undefined && (a.ahora.abierta || a.error || win.__vez > 12) ? { abierta: a.ahora.abierta, error: a.error ? String(a.error) : null, cancion: !!a.ahora.titulo, portada: a.ahora.portada.length, texto: $('#zero-music .zero-app-text b').textContent } : ((win.__vez = (win.__vez ?? 0) + 1), null)`), 20000).catch(() => null)
+  check('El panel dice lo que hay en la app (o que se abra), sin errores', app && !app.error && app.texto.length > 2 && (!app.abierta || app.cancion), app)
+  await sleep(600); await shot('10-spotify-app')
+  await js(`$('#zero-music .zero-music-minimize').click()`); await sleep(400)
+  check('Y el minipanel también', await js(`return $('#zero-mini').hasAttribute('open') && $('#zero-mini .zero-mini-title').textContent.length > 1`))
+  await js(`$('#zero-mini .zero-mini-close').click()`)
+  await js(`await new Promise(r => win.setTimeout(r, 600))`)
+  check('Al cerrarlo, el ayudante se para', await js(`const a = mod('zero-spotify-app.sys.mjs').app; return a.resto === ''`))
+
   // ---------------------------------------------------------------- cerrar Kitsune y volver
   await js(`await mod('zero-estudio.sys.mjs')._debug.guardarYa();`)
   const errors = await js(`return win.__errores`)
@@ -275,6 +312,12 @@ try {
     const eme = await content(`return navigator.requestMediaKeySystemAccess('com.widevine.alpha', [{ initDataTypes: ['cenc'], audioCapabilities: [{ contentType: 'audio/mp4; codecs="mp4a.40.2"' }] }]).then(() => 'widevine', e => e.name)`)
     const pr = await content(`return navigator.requestMediaKeySystemAccess('com.microsoft.playready.recommendation.3000', [{ initDataTypes: ['cenc'], audioCapabilities: [{ contentType: 'audio/mp4; codecs="mp4a.40.2"' }] }]).then(a => a.createMediaKeys()).then(() => 'playready', e => e.name + ' ' + e.message)`)
     check('A Spotify se le ofrece la DRM de Windows y no Widevine', eme === 'NotSupportedError' && pr === 'playready', { eme, pr })
+    await js(`Services.prefs.setStringPref('kitsune.zero.music.service', 'spotify'); $('#zero-music-pill .zero-music').click()`)
+    await until(() => js(`return !!$('#zero-music .zero-music-player')`))
+    await js(`for (const fn of mod('zero-spotify.sys.mjs')._debug.estado.escuchas) fn({ sistema: 'playready', dada: false, status: 403 })`)
+    check('Si Spotify niega la licencia, el panel ofrece su app', await js(`const d = $('#zero-music .zero-music-drm'); return !d.hidden && /app/i.test(d.querySelector('button').textContent)`))
+    await js(`$('#zero-music .zero-music-drm button').click()`)
+    check('Y con un clic se pasa a ella', await until(() => js(`return !!$('#zero-music .zero-music-app') && !$('#zero-music .zero-music-player')`)).catch(() => false))
   }
 } catch (error) {
   let mas = null
