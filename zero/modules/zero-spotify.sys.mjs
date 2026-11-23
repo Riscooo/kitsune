@@ -13,7 +13,7 @@
  * La web necesita la DRM encendida hasta para elegir dispositivo (sin ella su reproductor no arranca).
  * Si algún día Kitsune lleva la firma de Widevine (kitsune.exe.sig junto al programa), todo esto se apaga solo.
  */
-import { ORIGENES, haceFalta, licencia } from './zero-spotify.mjs';
+import { ORIGENES, esReproductor, haceFalta, licencia } from './zero-spotify.mjs';
 import { prefName } from './zero-config.sys.mjs';
 import { app } from './zero-spotify-app.sys.mjs';
 import { setTimeout } from 'resource://gre/modules/Timer.sys.mjs';
@@ -76,15 +76,26 @@ export function conectar(browser) {
 
 async function intentar(browser) {
   if (!Services.prefs.getBoolPref('media.eme.enabled', false)) return 'sin-drm';
+  if (!esReproductor(browser.currentURI?.spec)) return 'no-va';
   decir(browser, 'conectando');
   const fin = Date.now() + TOPE;
   // La app se abre mientras la web se va preparando.
   let como = null;
   const abriendo = app.asegurar().then(r => { como = r; if (r === 'abierta') decir(browser, 'abriendo'); return r; });
+  const sinApp = abriendo.then(r => (r === 'sin-app' ? r : new Promise(() => {})));
   for (let fallos = 0; Date.now() < fin && browser.isConnected;) {
+    // Si se ha ido a otra web mientras tanto, aquí no hay nada que conectar.
+    if (!esReproductor(browser.currentURI?.spec)) return 'no-ha-ido';
     let dice = 'cargando';
+    const actor = actorDe(browser), espera = como === 'estaba' ? 5000 : 14_000;
     // Si la app se acaba de abrir, la web la espera con la lista de dispositivos abierta (sin abrirla y cerrarla).
-    try { dice = await (actorDe(browser)?.sendQuery('ZeroSpotify:conectar', { equipo: equipo(), espera: como === 'estaba' ? 5000 : 14_000 }) ?? 'cargando'); } catch { /* la página ha cambiado */ }
+    // Con tope: una página guardada para «atrás» no contesta hasta que se vuelve a ella.
+    try {
+      const consulta = actor?.sendQuery('ZeroSpotify:conectar', { equipo: equipo(), espera });
+      consulta?.catch(() => {});
+      if (consulta) dice = await Promise.race([consulta, sinApp, pausa(espera + 16_000).then(() => 'cargando')]);
+    } catch { /* la página ha cambiado */ }
+    if (dice === 'sin-app') { try { actor.sendAsyncMessage('ZeroSpotify:dejar'); } catch { /* la página ha cambiado */ } return dice; }
     if (dice === 'sin-sesion') return dice;
     if (await abriendo === 'sin-app') return 'sin-app';
     if (dice === 'conectado') {
@@ -154,7 +165,8 @@ const observador = {
       if (!dato) return;
       const browser = browserDe(canal);
       if (!antes) { apuntar(`licencia ${dato.sistema}: ${dato.status}`); return; }
-      if (dato.sistema !== 'widevine' || canal.requestMethod !== 'POST' || !browser) return;
+      // Solo su reproductor, a la vista en su pestaña: uno incrustado en otra web no abre la app de nadie.
+      if (dato.sistema !== 'widevine' || canal.requestMethod !== 'POST' || !browser || !esReproductor(browser.currentURI?.spec)) return;
       apuntar('licencia retenida');
       retener(canal, browser);
     } catch (error) { console.error('Kitsune Zero: Spotify', error); }

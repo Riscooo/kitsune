@@ -292,7 +292,8 @@ function stopDrmWait(st) {
 
 /** Lo que dice el controlador de medios de Gecko (lo que suena), en el minipanel. */
 function watchController(win, st) {
-  const update = () => paintMini(win, st);
+  // El mismo siempre: la app de Spotify es una para todas las ventanas, y lo que no se quite se queda hasta cerrar Kitsune.
+  const update = st.pintar ??= () => paintMini(win, st);
   const hook = () => {
     // El zoom va con la web: si cambia de proceso al cargar, se vuelve a poner.
     applyZoom(st);
@@ -442,7 +443,8 @@ export function attach(win, ctx) {
     st.stopApp?.();
     st.stopApp = null;
     win.clearInterval(st.hooking);
-    if (st.controller) for (const name of EVENTS) { try { st.controller.removeEventListener(name, paintMini); } catch { /* ya no está */ } }
+    if (st.controller && st.pintar) for (const name of EVENTS) { try { st.controller.removeEventListener(name, st.pintar); } catch { /* ya no está */ } }
+    st.controller = null;
     st.anchor?.removeAttribute('on'); st.pill.remove(); st.services.remove(); st.mini.remove(); st.panel?.remove();
   });
 

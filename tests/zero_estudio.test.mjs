@@ -127,12 +127,19 @@ test('the calendar is whole weeks from Monday, and the comparison is with the sa
   assert.deepEqual(byMonth(summarize(data, '2026-12-01', 10).days).map(m => m.month), ['2026-11', '2026-12'])
 })
 
-test('bringing a backup never loses anything: the fuller day, the bigger total and the older achievement stay', () => {
+test('bringing a backup never loses anything: the bigger value of each thing, the bigger total and the older achievement stay', () => {
   const here = emptyData(), other = emptyData()
   addTime(here, '2026-11-22', 'a.es', 100); addTime(other, '2026-11-22', 'a.es', 50); addTime(other, '2026-11-21', 'b.es', 10)
   addCount(here, '2026-11-22', 'notas', 2); addCount(other, '2026-11-21', 'notas', 5)
   here.logros = { 'primera-nota': '2026-11-22' }; other.logros = { 'primera-nota': '2026-11-20', rotulador: '2026-11-21' }
-  assert.equal(merge(here, other), 1)
+  here.days['2026-11-22'].pomos = 3
+  other.days['2026-11-22'].hours = Array(24).fill(0).map((_, i) => (i === 9 ? 50 : 0))
+  addTime(other, '2026-11-22', 'c.es', 7)
+  assert.equal(merge(here, other), 2)
+  assert.equal(here.days['2026-11-22'].pomos, 3)
+  assert.equal(here.days['2026-11-22'].sites['c.es'], 7)
+  assert.equal(here.days['2026-11-22'].hours[9], 50)
+  assert.equal(merge(here, other), 0, 'traerla otra vez no cambia nada')
   assert.equal(here.days['2026-11-22'].sites['a.es'], 100)
   assert.equal(here.days['2026-11-21'].sites['b.es'], 10)
   assert.equal(here.total.notas, 5)

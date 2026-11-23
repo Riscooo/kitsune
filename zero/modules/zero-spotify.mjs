@@ -15,6 +15,9 @@ export const haceFalta = ({ os, firmado }) => os === 'WINNT' && !firmado;
 
 export const esSpotify = url => { try { return new URL(String(url)).hostname === 'open.spotify.com'; } catch { return false; } };
 
+/** ¿Es su reproductor? Uno incrustado (/embed) no tiene «Conectar a un dispositivo». */
+export const esReproductor = url => esSpotify(url) && !/^\/(intl-[a-z-]+\/)?embed/i.test(new URL(String(url)).pathname);
+
 /** Lo que contesta el servidor de licencias de Spotify: { sistema, dada, status }, o null si no es una licencia. */
 export function licencia({ host, path, status, method }) {
   if (method === 'OPTIONS' || !/(^|\.)spotify\.com$/.test(String(host ?? ''))) return null;
@@ -28,7 +31,10 @@ const llano = texto => String(texto ?? '').replace(/\s+/g, ' ').trim();
 /** De las filas de «Conectar a un dispositivo» (sus textos), la de este ordenador: la que acaba en su nombre. -1 si no está. */
 export function filaDe(textos, equipo) {
   const nombre = llano(equipo).toLocaleUpperCase();
-  return nombre ? textos.findIndex(texto => llano(texto).toLocaleUpperCase().endsWith(nombre)) : -1;
+  if (!nombre) return -1;
+  // Antes, la que es justo su nombre: «PC» no es «Salón PC».
+  const filas = textos.map(texto => llano(texto).toLocaleUpperCase()), justa = filas.indexOf(nombre);
+  return justa >= 0 ? justa : filas.findIndex(fila => fila.endsWith(nombre));
 }
 
 /** ¿Dice la barra que suena en este ordenador? (en cualquier idioma: solo se mira su nombre) */

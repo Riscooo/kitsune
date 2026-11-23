@@ -308,6 +308,34 @@ try {
   const rec = await js(`const a = mod('zero-notas-almacen.sys.mjs'); Services.prefs.clearUserPref('kitsune.zero.copia.ultima'); const pocas = a.tocaCopia(); const ids = [1, 2, 3, 4, 5].map(n => a.crear({ titulo: 'Nota ' + n })); const si = a.tocaCopia(); a.copiaLuego(); const luego = a.tocaCopia(); for (const i of ids) await a.borrar(i); Services.prefs.clearUserPref('kitsune.zero.copia.luego'); return [pocas, si, luego]`)
   check('Con varias notas y sin copia se recuerda una vez, y se puede dejar para luego', rec[0] === false && rec[1] === true && rec[2] === false, rec)
 
+  // Una nota que no se puede abrir: la copia lo dice, y no cuenta como copia hecha.
+  const rota = await js(`const a = mod('zero-notas-almacen.sys.mjs'), c = mod('zero-cofre.sys.mjs'), { ZeroCopia } = mod('zero-copia.sys.mjs');
+    const id = a.lista('')[0].id, mala = PathUtils.join(c.carpeta(), 'notas', id.slice(0, -1) + (id.at(-1) === 'a' ? 'b' : 'a') + '.cofre'); await a.guardarYa(); await IOUtils.writeUTF8(mala, 'basura'); a._debug.olvidar();
+    const j = await ZeroCopia.juntar({ espacios: [] }); let hecha = null;
+    try { const { KitsuneCopia } = ChromeUtils.importESModule('chrome://browser/content/kitsune-copia.sys.mjs'); Services.prefs.clearUserPref('kitsune.zero.copia.ultima'); const f = PathUtils.join(PathUtils.profileDir, 'rota.kitsune'); await KitsuneCopia.save(win, { path: f, password: 'clave-de-copia', bookmarks: false, tabs: false }); hecha = Services.prefs.prefHasUserValue('kitsune.zero.copia.ultima'); await IOUtils.remove(f); } catch (e) { hecha = String(e); }
+    await IOUtils.remove(mala); a._debug.olvidar(); const bien = await ZeroCopia.juntar({ espacios: [] }); return { faltan: j.faltan, notas: j.notas.length, hecha, bien: bien.faltan }`)
+  check('Si una nota no se puede abrir, la copia lo dice', rota.faltan.join() === 'notas' && rota.notas === 1 && rota.bien.length === 0, rota)
+  if (conCopia) check('…y no calla el recordatorio', rota.hecha === false, rota)
+
+  // ---------------------------------------------------------------- Spotify por la app (sin cuenta: la web y la app, de mentira)
+  const spo = await js(`const s = mod('zero-spotify.sys.mjs'), { app } = mod('zero-spotify-app.sys.mjs'); if (!s.porLaApp()) return null;
+    const eme = Services.prefs.getBoolPref('media.eme.enabled', false), antes = app.asegurar; Services.prefs.setBoolPref('media.eme.enabled', true); let abre = 0; app.asegurar = async () => { abre++; return 'sin-app'; };
+    const web = spec => { const dicho = []; return { dicho, isConnected: true, currentURI: { spec }, browsingContext: { currentWindowGlobal: { getActor: () => ({ sendQuery: () => new Promise(() => {}), sendAsyncMessage: n => dicho.push(n) }) } } }; };
+    const canal = browser => ({ QueryInterface() { return this; }, URI: { host: 'gue1-spclient.spotify.com', filePath: '/widevine-license/v1/audio/license' }, requestMethod: 'POST', loadInfo: { browsingContext: { top: { embedderElement: browser } } }, pasos: [], suspend() { this.pasos.push('retenida'); }, resume() { this.pasos.push('suelta'); }, cancel() { this.pasos.push('cancelada'); } });
+    const pausa = ms => new Promise(r => win.setTimeout(r, ms));
+    try {
+      const t0 = Date.now(), b = web('https://open.spotify.com/'), como = await s.conectar(b), tarda = Date.now() - t0, aperturas = abre;
+      const c1 = canal(web('https://example.com/')), c2 = canal(web('https://open.spotify.com/embed/track/1')), c3 = canal(web('https://open.spotify.com/track/1'));
+      for (const c of [c1, c2, c3]) s._debug.observador.observe(c, 'http-on-modify-request');
+      await pausa(600);
+      return { como, tarda, dicho: b.dicho, ajena: c1.pasos, incrustada: c2.pasos, suya: c3.pasos, abreDeMas: abre - aperturas - 1 };
+    } finally { app.asegurar = antes; Services.prefs.setBoolPref('media.eme.enabled', eme); }`)
+  if (spo) {
+    check('Sin la app de Spotify no se espera: se dice enseguida y la web deja de buscarla', spo.como === 'sin-app' && spo.tarda < 2500 && spo.dicho.join() === 'ZeroSpotify:dejar', spo)
+    check('Un Spotify incrustado en otra web ni se retiene ni abre la app', spo.ajena.length === 0 && spo.incrustada.length === 0 && spo.abreDeMas === 0, spo)
+    check('Lo del reproductor se retiene y siempre se suelta', spo.suya.join() === 'retenida,suelta', spo)
+  }
+
   // ---------------------------------------------------------------- las actualizaciones firmadas
   const firma = await js(`const u = ChromeUtils.importESModule('chrome://browser/content/kitsune-updater.sys.mjs'); if (!u.firmaBuena) return null;
     const p = await crypto.subtle.generateKey({ name: 'Ed25519' }, true, ['sign', 'verify']); const k = new Uint8Array(await crypto.subtle.exportKey('raw', p.publicKey)).toHex(); const s = new Uint8Array(await crypto.subtle.sign({ name: 'Ed25519' }, p.privateKey, new TextEncoder().encode(u.MARCA_FIRMA + 'lista'))).toBase64();

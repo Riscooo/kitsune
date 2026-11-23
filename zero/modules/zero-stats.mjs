@@ -88,12 +88,19 @@ export function addCount(data, day, key, n = 1) {
 export function addSearch(data, day) { dayOf(data, day).searches++; }
 export function addPage(data, day) { dayOf(data, day).pages++; }
 
-/** Junta con lo de otra copia: de cada día se queda el que tenga más tiempo, de los totales el mayor y de los logros el día
- *  más antiguo. Devuelve cuántos días han entrado. */
+/** Junta con lo de otra copia: de cada cosa de cada día se queda el valor mayor (traerla dos veces no cuenta doble, y nada de
+ *  lo de aquí se pierde), de los totales el mayor y de los logros el día más antiguo. Devuelve cuántos días han cambiado. */
 export function merge(data, other) {
-  const seconds = entry => Object.values(entry?.sites ?? {}).reduce((a, b) => a + b, 0) + (entry?.estudio ?? 0);
   let days = 0;
-  for (const [day, entry] of Object.entries(other.days)) if (!data.days[day] || seconds(entry) > seconds(data.days[day])) { data.days[day] = entry; days++; }
+  for (const [day, entry] of Object.entries(other.days)) {
+    const mine = dayOf(data, day), before = JSON.stringify(mine);
+    for (const [site, seconds] of Object.entries(entry.sites)) {
+      if (site in mine.sites || Object.keys(mine.sites).length < MAX_SITES_PER_DAY) mine.sites[site] = Math.max(mine.sites[site] ?? 0, seconds);
+    }
+    for (const key of ['searches', 'pages', ...COUNTERS]) { const n = Math.max(mine[key] ?? 0, entry[key] ?? 0); if (n) mine[key] = n; }
+    if (entry.hours) mine.hours = entry.hours.map((n, i) => Math.max(n, mine.hours?.[i] ?? 0));
+    if (JSON.stringify(mine) !== before) days++;
+  }
   for (const key of COUNTERS) { const n = Math.max(data.total?.[key] ?? 0, other.total?.[key] ?? 0); if (n) { data.total ??= {}; data.total[key] = n; } }
   for (const [id, day] of Object.entries(other.logros ?? {})) { data.logros ??= {}; if (!data.logros[id] || day < data.logros[id]) data.logros[id] = day; }
   return days;

@@ -103,10 +103,10 @@ class ControlApp {
       // Sin nadie mirando no se pregunta qué suena (un «estado» que se quedó en la fila al cerrar el panel).
       if (!this.#usos && orden === 'estado') return this.ahora;
       lazy.clearTimeout(this.#parada);
-      const proc = await this.#lanzar();
       let reloj = null;
-      const tope = new Promise((_, no) => { reloj = lazy.setTimeout(() => no(new Error('no contesta')), 12_000); });
       try {
+        const proc = await this.#lanzar();
+        const tope = new Promise((_, no) => { reloj = lazy.setTimeout(() => no(new Error('no contesta')), 12_000); });
         await proc.stdin.write(`${orden}\n`);
         const dato = limpio(JSON.parse(await Promise.race([this.#linea(proc), tope])));
         this.error = null;

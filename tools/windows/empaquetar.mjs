@@ -27,6 +27,7 @@ const siete = (args, opciones = {}) => execFileSync(SIETE, args, { encoding: 'ut
 const sha = f => crypto.createHash('sha256').update(fs.readFileSync(f)).digest('hex')
 const { release } = JSON.parse(fs.readFileSync(path.join(REPO, 'install/version.json'), 'utf8'))
 const trabajo = arg('--trabajo') ?? fs.mkdtempSync(path.join(os.tmpdir(), 'kitsune-paquete-'))
+if (fs.existsSync(trabajo) && fs.readdirSync(trabajo).some(n => !['antes', 'antes.7z', 'nuevo', 'omni', 'app.7z'].includes(n))) throw new Error(`${trabajo} tiene otras cosas: elige una carpeta vacía`)
 fs.rmSync(trabajo, { recursive: true, force: true })
 fs.mkdirSync(trabajo, { recursive: true })
 fs.mkdirSync(salida, { recursive: true })
@@ -87,7 +88,9 @@ const nombre = `Kitsune-Zero-${release}-Windows-x64.exe`, final = path.join(sali
 fs.writeFileSync(final, Buffer.concat([exe.subarray(0, corte), fs.readFileSync(app)]))
 siete(['t', '-bso0', '-bsp0', final])
 const sumas = path.join(salida, 'SHA256SUMS.txt')
-fs.writeFileSync(sumas, `${sha(final)}  ${nombre}\n`)
+// Si en la carpeta ya hay lista (la de otros paquetes de esta versión), solo cambia la línea de este.
+const otras = fs.existsSync(sumas) ? fs.readFileSync(sumas, 'utf8').split(/\r?\n/).filter(l => l.trim() && l.trim().split(/\s+/)[1] !== nombre) : []
+fs.writeFileSync(sumas, [...otras, `${sha(final)}  ${nombre}`].join('\n') + '\n')
 console.log(`${nombre} · ${(fs.statSync(final).size / 1048576).toFixed(1)} MB · ${viejaVersion} → ${release} · BuildID ${id} → ${siguiente}`)
 console.log(`Cambian ${cambian.length} archivos: ${cambian.join(', ')} (Zero y ${nativos.length} módulos de Kitsune)`)
 try { console.log(execFileSync(process.execPath, [path.join(REPO, 'tools/firmar.mjs'), 'firmar', sumas], { encoding: 'utf8' }).trim()) } catch (error) { console.log(`SIN FIRMAR: ${String(error.stderr ?? error.message).trim()}`) }

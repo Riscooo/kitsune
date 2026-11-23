@@ -12,17 +12,23 @@ import * as rotulador from './zero-rotulador.sys.mjs';
 import * as estudio from './zero-estudio.sys.mjs';
 import * as stats from './zero-stats.sys.mjs';
 
-const intentar = async (que, si, no) => { try { return await si(); } catch (error) { console.error(`Kitsune Zero: copia (${que})`, error); return no; } };
+const intentar = async (que, si, no, faltan = null) => {
+  try { return await si(); } catch (error) { console.error(`Kitsune Zero: copia (${que})`, error); faltan?.push(que); return no; }
+};
 
 export const ZeroCopia = {
   async juntar({ espacios = [] } = {}) {
     const nombre = id => espacios.find(e => e.id === id)?.name ?? '';
+    const faltan = []; // lo que no se ha podido leer: quien guarda la copia lo dice
+    const notas = await intentar('notas', () => almacen.todas(), [], faltan);
+    if (!faltan.length && almacen.cuantasEstropeadas()) faltan.push('notas');
     return {
       version: 1,
-      notas: await intentar('notas', () => almacen.todas(), []),
-      subrayados: await intentar('subrayados', () => rotulador.todos(), {}),
-      estudio: Object.entries(await intentar('estudio', () => estudio.todo(), {})).map(([id, paginas]) => ({ espacio: nombre(id), paginas })),
-      estadisticas: await intentar('estadísticas', () => stats.todo(), null),
+      notas,
+      subrayados: await intentar('subrayados', () => rotulador.todos(), {}, faltan),
+      estudio: Object.entries(await intentar('estudio', () => estudio.todo(), {}, faltan)).map(([id, paginas]) => ({ espacio: nombre(id), paginas })),
+      estadisticas: await intentar('estadisticas', () => stats.todo(), null, faltan),
+      faltan,
     };
   },
 
@@ -36,7 +42,7 @@ export const ZeroCopia = {
       const id = (espacios.find(e => e.name === uno?.espacio) ?? espacios[0])?.id;
       if (id) out.paginas += await intentar('estudio', () => estudio.traer(id, uno.paginas), 0);
     }
-    if (copia.estadisticas) out.dias = await intentar('estadísticas', () => stats.traer(copia.estadisticas), 0);
+    if (copia.estadisticas) out.dias = await intentar('estadisticas', () => stats.traer(copia.estadisticas), 0);
     return out;
   },
 

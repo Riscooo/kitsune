@@ -112,6 +112,13 @@ export function summary(copy) {
 function zeroCopy() {
   try { return ChromeUtils.importESModule('chrome://browser/content/zero/zero-copia.sys.mjs').ZeroCopia; } catch { return null; }
 }
+/** Lo de Zero que se pidió y no ha podido ir en la copia (o que se ha quedado fuera por grande). */
+const ZERO_PARTS = { notas: ['las notas', 'your notes'], subrayados: ['los subrayados', 'your highlights'], estudio: ['el estudio', 'your study pages'], estadisticas: ['las estadísticas', 'your stats'] };
+export function missingZero(copy, wanted) {
+  if (!wanted) return [];
+  const gone = copy.zero ? copy.zero.faltan ?? [] : Object.keys(ZERO_PARTS);
+  return Object.keys(ZERO_PARTS).filter(part => gone.includes(part)).map(part => t(...ZERO_PARTS[part]));
+}
 const zeroSpaces = () => { try { return lazy.spaces.KitsuneSpaces.list().spaces.map(({ id, name }) => ({ id, name })); } catch { return []; } };
 
 /** PlacesUtils.promiseBookmarksTree → las raíces con algo dentro, como las guarda la copia. */
@@ -243,7 +250,7 @@ export const KitsuneCopia = {
   async save(win, { path, password, ...choices }) {
     const copy = await collect(win, choices);
     await IOUtils.writeJSON(path, await encryptCopy(copy, password), { tmpPath: `${path}.tmp` });
-    if (copy.zero) zeroCopy()?.hecha();
+    if (copy.zero && !copy.zero.faltan?.includes('notas')) zeroCopy()?.hecha();
     return copy;
   },
   /** Abre una copia (con su contraseña) y la trae. Devuelve { copy, result }. */
@@ -311,7 +318,9 @@ function buildPanel(win) {
     status.textContent = t('Guardando…', 'Saving…');
     try {
       const copy = await KitsuneCopia.save(win, { path, password: value, ...choices() });
-      status.textContent = t(`Copia guardada: ${summary(copy) || 'vacía'}. Sin su contraseña no se puede abrir.`, `Copy saved: ${summary(copy) || 'empty'}. It cannot be opened without its password.`);
+      const gone = missingZero(copy, choices().zero && zeroCopy()).join(', ');
+      status.textContent = t(`Copia guardada: ${summary(copy) || 'vacía'}. Sin su contraseña no se puede abrir.`, `Copy saved: ${summary(copy) || 'empty'}. It cannot be opened without its password.`)
+        + (gone ? t(` Ojo: no se ha podido guardar ${gone}.`, ` Careful: could not save ${gone}.`) : '');
     } catch (error) {
       status.textContent = t('No se ha podido guardar la copia.', 'The copy could not be saved.');
       Services.console.logStringMessage('Kitsune: copia: ' + error);

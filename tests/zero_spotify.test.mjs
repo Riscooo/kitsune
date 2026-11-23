@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { esSpotify, filaDe, suenaEn, haceFalta, licencia, ORIGENES } from '../zero/modules/zero-spotify.mjs'
+import { esSpotify, esReproductor, filaDe, suenaEn, haceFalta, licencia, ORIGENES } from '../zero/modules/zero-spotify.mjs'
 
 test('it is only needed on Windows, and only while the engine is not signed for Widevine', () => {
   assert.equal(haceFalta({ os: 'WINNT', firmado: false }), true)
@@ -20,6 +20,8 @@ test('this computer is the device whose name ends the row, in any language', () 
   assert.equal(filaDe(rows, 'desktop-abc123'), 1)
   assert.equal(filaDe(rows, 'DESKTOP'), -1)
   assert.equal(filaDe(rows, ''), -1)
+  // El que es justo su nombre gana al que solo acaba igual.
+  assert.equal(filaDe(['Salón PC', 'PC'], 'pc'), 1)
   assert.equal(suenaEn('Cambiar el volumen Reproduciendo en DESKTOP-ABC123', 'DESKTOP-ABC123'), true)
   assert.equal(suenaEn('Cambiar el volumen', 'DESKTOP-ABC123'), false)
   assert.equal(suenaEn('lo que sea', ''), false)
@@ -34,4 +36,10 @@ test('a licence answer is read from its status alone, and nothing else counts as
   assert.equal(at('/melody/v1/license_url'), null)
   assert.equal(at('/playready-license/v1/audio/license', 200, { host: 'notspotify.com' }), null)
   assert.equal(at('/playready-license/v1/audio/license', 200, { host: 'evil-spotify.com.example' }), null)
+})
+
+test('only its own player can hold a license back: never one embedded in another page', () => {
+  for (const url of ['https://open.spotify.com/', 'https://open.spotify.com/intl-es/track/1', 'https://open.spotify.com/search/embed']) assert.equal(esReproductor(url), true, url)
+  for (const url of ['https://open.spotify.com/embed/track/1', 'https://open.spotify.com/intl-es/embed/track/1', 'https://open.spotify.com/embed-podcast/show/1',
+    'https://example.com/?https://open.spotify.com/', 'https://open.spotify.com.example.com/', 'about:blank', null]) assert.equal(esReproductor(url), false, String(url))
 })

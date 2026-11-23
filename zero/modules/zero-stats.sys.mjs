@@ -161,7 +161,11 @@ function stopTracking(win) {
 }
 
 /** Todo lo contado, para la copia de Kitsune; y juntarlo con lo de una. */
-export async function todo() { await load(); return tracker.data; }
+export async function todo() {
+  await load();
+  if (tracker.readOnly) throw new Error('ilegible');
+  return tracker.data;
+}
 export async function traer(valor) {
   await load();
   const days = merge(tracker.data, sanitize(valor));
