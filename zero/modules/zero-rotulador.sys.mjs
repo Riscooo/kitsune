@@ -39,11 +39,15 @@ function cargar() {
   tienda.cargando.catch(error => { console.error('Kitsune Zero: subrayados', error); tienda.cargando = null; });
   return tienda.cargando;
 }
-async function guardarYa() {
+// En fila: quien espera (al cerrar Kitsune) espera también a la que estuviera a medias.
+function guardarYa() {
   clearTimeout(tienda.espera);
-  if (!tienda.tocada || !tienda.datos) return;
-  tienda.tocada = false;
-  try { await cofre.guardar('subrayados', tienda.datos); } catch (error) { tienda.tocada = true; console.error('Kitsune Zero: subrayados', error); }
+  tienda.fila = (tienda.fila ?? Promise.resolve()).then(async () => {
+    if (!tienda.tocada || !tienda.datos) return;
+    tienda.tocada = false;
+    try { await cofre.guardar('subrayados', tienda.datos); } catch (error) { tienda.tocada = true; console.error('Kitsune Zero: subrayados', error); }
+  });
+  return tienda.fila;
 }
 function guardar() {
   tienda.tocada = true;
@@ -225,6 +229,7 @@ export function attach(win, ctx) {
   state.set(win, st);
   registrar();
   st.cleanups.push(dejarActor);
+  win.addEventListener('unload', () => detach(win), { once: true });
   const nombres = { amarillo: t('Subrayar en amarillo', 'Highlight in yellow'), verde: t('Subrayar en verde', 'Highlight in green'), rosa: t('Subrayar en rosa', 'Highlight in pink') };
   st.pildora = el(doc, 'div', { id: 'zero-rotulador', role: 'toolbar', 'aria-label': t('Lo seleccionado', 'Selection') }, [
     ...COLORES.map(color => el(doc, 'button', { type: 'button', class: 'zr-color', 'data-color': color, title: nombres[color], 'aria-label': nombres[color] })),

@@ -212,6 +212,18 @@ try {
   check('Con la suya, sí', await until(() => js(`const st = mod('zero-notas.sys.mjs')._debug.estado(win); return $('#zero-notas').getAttribute('vista') === 'nota' && /célula/.test(st.editor.hoja.textContent)`), 15000).catch(() => false))
   await js(`$('#zero-notas .zn-cerrar').click()`)
   check('Al cerrar el panel se vuelve a cerrar', await until(() => js(`return !mod('zero-notas-almacen.sys.mjs').abiertaAhora(${JSON.stringify(id)})`)).catch(() => false))
+  const two = await js(`const a = mod('zero-notas-almacen.sys.mjs');
+    const otra = win.OpenBrowserWindow({ private: false }); await new Promise(r => otra.addEventListener('load', r, { once: true })); await otra.delayedStartupPromise;
+    for (let i = 0; i < 60 && !otra.document.getElementById('zero-notas'); i++) await new Promise(r => win.setTimeout(r, 100));
+    otra.document.getElementById('zero-notas-boton').click();
+    for (let i = 0; i < 60 && otra.document.getElementById('zero-notas').getAttribute('vista') !== 'cerrada'; i++) await new Promise(r => win.setTimeout(r, 100));
+    const pedia = otra.document.getElementById('zero-notas').getAttribute('vista');
+    await a.abrirNota(${JSON.stringify(id)}, 'clave-larga'); const antes = a.abiertaAhora(${JSON.stringify(id)});
+    otra.close(); await new Promise(r => win.setTimeout(r, 900));
+    return [pedia, antes, a.abiertaAhora(${JSON.stringify(id)})]`)
+  check('Cerrar una ventana vuelve a cerrar su nota con contraseña', two[0] === 'cerrada' && two[1] === true && two[2] === false, two)
+  const race = await js(`const a = mod('zero-notas-almacen.sys.mjs'); const x = a.crear({ titulo: 'Carrera' }); const g = a.guardarYa(x); await a.borrar(x); await g; await new Promise(r => win.setTimeout(r, 900)); return IOUtils.exists(PathUtils.join(Services.dirsvc.get('ProfD', Ci.nsIFile).path, 'kitsune-zero-notas', 'notas', x + '.cofre'))`)
+  check('Una nota borrada mientras se guardaba no reaparece', race === false, race)
   await js(`const a = mod('zero-notas-almacen.sys.mjs'); await a.abrirNota(${JSON.stringify(id)}, 'clave-larga'); await a.quitarContrasena(${JSON.stringify(id)});`)
   const back = await js(`const a = mod('zero-notas-almacen.sys.mjs'); const copia = await a.hacerCopia('copia-1234'); const uno = a.lista('').length; const deshacer = await a.borrar(${JSON.stringify(id)}); const sin = a.lista('').length;
     let mala = ''; try { await a.traerCopia(copia, 'otra-cosa'); } catch (e) { mala = e.message; } const n = await a.traerCopia(copia, 'copia-1234'); return [uno, sin, mala, n, a.lista('').length, /célula/.test(copia)]`)
@@ -307,6 +319,14 @@ try {
   check('Las dos, y sin repetirse', JSON.stringify(urls) === JSON.stringify([`${base}/2`, `${base}/3`]), urls)
   const kept = await js(`const a = mod('zero-notas-almacen.sys.mjs'); await a.cargar(); return a.lista('').map(n => [n.titulo, n.bloques?.length > 2])`)
   check('Y las notas de antes se abren', kept.length === 1 && kept[0][0] === 'Biología' && kept[0][1], kept)
+  // La llave no se puede abrir (otro Windows): nada se pierde, y se puede empezar de cero.
+  await js(`const cofre = mod('zero-cofre.sys.mjs'); $('#zero-notas').hasAttribute('open') && $('#zero-notas .zn-cerrar').click(); await new Promise(r => win.setTimeout(r, 900));
+    await IOUtils.writeJSON(PathUtils.join(cofre.carpeta(), 'llave.json'), { v: 1, data: 'AAAA' }); cofre._debug.olvidar(); mod('zero-notas-almacen.sys.mjs')._debug.olvidar(); $('#zero-notas-boton').click();`)
+  check('Si la llave no abre, el bloc lo dice y no toca nada', await until(() => js(`return $('#zero-notas').getAttribute('vista') === 'sin-llave'`), 12000).catch(() => false) && fs.readdirSync(path.join(dir, 'notas')).length === 1)
+  await js(`const b = $('#zero-notas .zn-v-sin-llave .zn-no'); b.click(); b.click();`)
+  await until(() => js(`return $('#zero-notas').getAttribute('vista') === 'lista'`)).catch(() => {})
+  const old = fs.readdirSync(profile).filter(n => n.startsWith('kitsune-zero-notas.viejo-'))
+  check('Empezar de cero aparta lo de antes entero, sin borrarlo', old.length === 1 && fs.readdirSync(path.join(profile, old[0], 'notas')).length === 1 && await js(`return mod('zero-notas-almacen.sys.mjs').lista('').length`) === 0, old)
   if (process.argv.includes('--spotify')) {
     await go('https://open.spotify.com/').catch(() => {})
     await sleep(2500)

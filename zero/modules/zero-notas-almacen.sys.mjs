@@ -12,13 +12,15 @@ import { setTimeout, clearTimeout } from 'resource://gre/modules/Timer.sys.mjs';
 const lazy = {};
 ChromeUtils.defineESModuleGetters(lazy, { AsyncShutdown: 'resource://gre/modules/AsyncShutdown.sys.mjs' });
 
-const ESPERA = 500;
+const ESPERA = 500, REINTENTO = 5000;
 const notas = new Map();        // id → nota (las cerradas, sin bloques)
 const abiertas = new Map();     // id → { cerradura, bloques }: las que tienen contraseña y están abiertas ahora
 const pendientes = new Map();   // id → temporizador de guardar
+const enCurso = new Map();      // id → la escritura que está a medias (la de una nota, en fila)
 const escuchas = new Set();     // fn(id | null, quien)
 let cargando = null;
 let estropeadas = 0;
+let cerrando = false;
 
 const avisar = (id, quien = null) => { for (const fn of escuchas) { try { fn(id, quien); } catch (error) { console.error('Kitsune Zero: bloc', error); } } };
 export const alCambiar = fn => { escuchas.add(fn); return () => escuchas.delete(fn); };
@@ -33,7 +35,7 @@ export function cargar() {
         if (nota && nota.id === id) notas.set(id, nota); else estropeadas++;
       } catch (error) { estropeadas++; console.error('Kitsune Zero: una nota no se puede abrir', error); }
     }
-    lazy.AsyncShutdown.profileBeforeChange.addBlocker('Kitsune Zero: guardar el bloc', () => guardarYa());
+    lazy.AsyncShutdown.profileBeforeChange.addBlocker('Kitsune Zero: guardar el bloc', () => { cerrando = true; return guardarYa(); });
   })();
   cargando.catch(() => { cargando = null; });
   return cargando;
@@ -52,28 +54,41 @@ export function ver(id) {
 export const lista = consulta => buscar([...notas.values()], consulta).map(n => (n.cerrada ? { ...n, conContrasena: true } : n));
 export const hay = () => notas.size > 0;
 
-async function escribir(id) {
+/** Escribe una nota. Las de una misma nota van en fila, y lo que está a medias se puede esperar (enCurso). */
+function escribir(id) {
   clearTimeout(pendientes.get(id));
   pendientes.delete(id);
-  const nota = notas.get(id);
-  if (!nota) return;
-  const abierta = abiertas.get(id);
-  if (abierta) nota.cerrada = await cerrarConCerradura(abierta.cerradura, abierta.bloques, `nota:${id}`);
-  if (notas.get(id) === nota) await cofre.guardar(`notas/${id}`, nota);
+  const vez = (enCurso.get(id) ?? Promise.resolve()).catch(() => {}).then(async () => {
+    const nota = notas.get(id);
+    if (!nota) return;
+    const abierta = abiertas.get(id);
+    if (abierta) nota.cerrada = await cerrarConCerradura(abierta.cerradura, abierta.bloques, `nota:${id}`);
+    await cofre.guardar(`notas/${id}`, nota, () => notas.get(id) === nota);
+  });
+  enCurso.set(id, vez);
+  const fin = () => { if (enCurso.get(id) === vez) enCurso.delete(id); };
+  vez.then(fin, fin);
+  return vez;
 }
 
-/** Guarda lo que falte (al cerrar Kitsune, o al cerrar el panel). */
-export async function guardarYa(id = null) {
-  const ids = id ? (pendientes.has(id) ? [id] : []) : [...pendientes.keys()];
-  await Promise.all(ids.map(uno => escribir(uno).catch(error => console.error('Kitsune Zero: no se pudo guardar una nota', error))));
-}
-
-function pronto(id) {
-  clearTimeout(pendientes.get(id));
-  pendientes.set(id, setTimeout(() => void escribir(id).catch(error => {
+/** Si no se puede (el disco lleno, un antivirus), se dice y se vuelve a intentar: lo escrito sigue en la memoria. */
+function escribirSeguro(id) {
+  return escribir(id).catch(error => {
     console.error('Kitsune Zero: no se pudo guardar una nota', error);
+    if (notas.has(id) && !cerrando) pronto(id, REINTENTO);
     avisar('error');
-  }), ESPERA));
+  });
+}
+
+/** Guarda lo que falte, y espera a lo que se esté guardando (al cerrar Kitsune, o al cerrar el panel). */
+export async function guardarYa(id = null) {
+  const ids = id ? [id] : [...new Set([...pendientes.keys(), ...enCurso.keys()])];
+  await Promise.all(ids.map(uno => (pendientes.has(uno) ? escribirSeguro(uno) : enCurso.get(uno)?.catch(() => {}))));
+}
+
+function pronto(id, espera = ESPERA) {
+  clearTimeout(pendientes.get(id));
+  pendientes.set(id, setTimeout(() => void escribirSeguro(id), espera));
 }
 
 /** Una nota nueva (no se escribe en el disco hasta que tenga algo). */
@@ -122,9 +137,11 @@ export function anadir(id, bloques) {
 export async function borrar(id) {
   const nota = notas.get(id), abierta = abiertas.get(id);
   if (!nota) return () => {};
+  // Con lo último escrito dentro (para deshacer), y sin nada a medias que la vuelva a crear en el disco.
   if (pendientes.has(id)) await escribir(id).catch(() => {});
   notas.delete(id);
   abiertas.delete(id);
+  await enCurso.get(id)?.catch(() => {});
   await cofre.borrar(`notas/${id}`);
   avisar(id);
   return () => {
@@ -138,7 +155,12 @@ export async function borrar(id) {
 /** Las vacías que se dejaron a medias no se guardan. */
 export function soltar(id) {
   const nota = notas.get(id);
-  if (nota && vacia(nota)) { clearTimeout(pendientes.get(id)); pendientes.delete(id); notas.delete(id); void cofre.borrar(`notas/${id}`).catch(() => {}); avisar(id); }
+  if (!nota || !vacia(nota)) return;
+  clearTimeout(pendientes.get(id));
+  pendientes.delete(id);
+  notas.delete(id);
+  void (async () => { await enCurso.get(id)?.catch(() => {}); if (!notas.has(id)) await cofre.borrar(`notas/${id}`); })().catch(() => {});
+  avisar(id);
 }
 
 // ---------------------------------------------------------------- las que llevan contraseña
@@ -191,6 +213,16 @@ export const abiertaAhora = id => abiertas.has(id);
 
 // ---------------------------------------------------------------- la copia para otro ordenador
 
+/** Empezar de cero, si la llave no se puede abrir (lo de antes se aparta, no se borra). */
+export async function empezarDeCero() {
+  await cofre.empezarDeCero();
+  cargando = null;
+  notas.clear();
+  abiertas.clear();
+  await cargar();
+  avisar(null);
+}
+
 /** Todo el bloc en un archivo cifrado con una contraseña (las notas con contraseña siguen llevando la suya). */
 export async function hacerCopia(contrasena) {
   await cargar();
@@ -221,4 +253,4 @@ export async function traerCopia(texto, contrasena) {
 }
 
 /** Para las pruebas. */
-export const _debug = { notas, abiertas, pendientes, olvidar: () => { cargando = null; notas.clear(); abiertas.clear(); } };
+export const _debug = { notas, abiertas, pendientes, enCurso, olvidar: () => { cargando = null; notas.clear(); abiertas.clear(); } };

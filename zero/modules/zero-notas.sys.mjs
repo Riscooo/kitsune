@@ -22,6 +22,7 @@ const HTML = 'http://www.w3.org/1999/xhtml';
 const P = { lado: 'notas.lado', ancho: 'notas.ancho', ultima: 'notas.ultima' };
 const OLVIDO = 5 * 60_000;
 const state = new WeakMap();
+const ventanas = new Set();
 
 const el = (doc, tag, attrs = {}, kids = []) => {
   const node = doc.createElementNS(HTML, tag);
@@ -90,6 +91,8 @@ async function dejarNota(win, st) {
   recoger(win, st);
   st.id = null;
   await almacen.guardarYa(id);
+  // Abierta también en otra ventana, se queda como está.
+  if ([...ventanas].some(otra => otra !== win && state.get(otra)?.id === id)) return;
   await almacen.cerrarNota(id);
   almacen.soltar(id);
 }
@@ -427,7 +430,9 @@ export function attach(win, ctx) {
   const t = host.t ?? (es => es);
   const st = { host, t, cleanups: [], id: null, editor: null, editorListo: null, alAbrir: new Set(), volver: true, estirando: null };
   state.set(win, st);
+  ventanas.add(win);
   const listen = (target, type, fn, options) => { target.addEventListener(type, fn, options); st.cleanups.push(() => target.removeEventListener(type, fn, options)); };
+  listen(win, 'unload', () => detach(win), { once: true });
 
   const titulo = t('Bloc de notas', 'Notes');
   st.boton = el(doc, 'button', { type: 'button', id: 'zero-notas-boton', class: 'zero-pill', title: `${titulo} (Ctrl+Alt+N)`, 'aria-label': titulo, 'aria-expanded': 'false', 'aria-controls': 'zero-notas' }, [el(doc, 'span', { class: 'zero-notas-icono', 'aria-hidden': 'true' })]);
@@ -460,6 +465,8 @@ export function attach(win, ctx) {
   st.pideNo = el(doc, 'button', { type: 'button', class: 'zn-no' }, [t('Cancelar', 'Cancel')]);
   st.pideForma = el(doc, 'form', { class: 'zn-pide' }, [st.pideTitulo, st.pideTexto, st.clave1, st.clave2, st.pideMal, el(doc, 'div', { class: 'zn-fila' }, [st.pideNo, st.pideBoton])]);
   st.claveForma = el(doc, 'form', { class: 'zn-cerrada' }, [el(doc, 'span', { class: 'zn-candado', 'aria-hidden': 'true' }), el(doc, 'p', {}, [t('Esta nota tiene contraseña.', 'This note has a password.')]), st.clave, st.claveMal, el(doc, 'button', { type: 'submit', class: 'zn-hecho' }, [t('Abrir', 'Open')])]);
+  st.otraVez = el(doc, 'button', { type: 'button', class: 'zn-hecho' }, [t('Volver a intentarlo', 'Try again')]);
+  st.deCero = el(doc, 'button', { type: 'button', class: 'zn-no' }, [t('Empezar de cero', 'Start over')]);
   st.menu = el(doc, 'div', { class: 'zn-menu', role: 'menu' });
   st.dice = el(doc, 'div', { class: 'zn-dice', role: 'status' });
   st.asa = el(doc, 'div', { class: 'zero-ia-grip zero-ia-grip-w', 'aria-hidden': 'true' });
@@ -470,7 +477,10 @@ export function attach(win, ctx) {
     el(doc, 'div', { class: 'zn-vista zn-v-nota' }, [st.hueco, st.barra]),
     el(doc, 'div', { class: 'zn-vista zn-v-cerrada' }, [st.claveForma]),
     el(doc, 'div', { class: 'zn-vista zn-v-pide' }, [st.pideForma]),
-    el(doc, 'div', { class: 'zn-vista zn-v-sin-llave' }, [el(doc, 'p', { class: 'zn-vacia' }, [t('Windows no deja abrir la llave de tus notas en esta cuenta. Siguen guardadas: ábrelas con la cuenta de siempre, o trae una copia desde «⋯» en otro perfil.', 'The system will not open the key to your notes in this account. They are still stored: open them from your usual account, or bring a backup.')])]),
+    el(doc, 'div', { class: 'zn-vista zn-v-sin-llave' }, [el(doc, 'div', { class: 'zn-cerrada' }, [
+      el(doc, 'span', { class: 'zn-candado', 'aria-hidden': 'true' }),
+      el(doc, 'p', {}, [t('El sistema no deja abrir la llave de tus notas (pasa al cambiar de cuenta o reinstalarlo). Siguen guardadas.', 'The system will not open the key to your notes (this happens after changing account or reinstalling). They are still stored.')]),
+      st.otraVez, st.deCero])]),
     st.menu, st.dice,
   ]);
   doc.body.append(st.panel);
@@ -485,6 +495,14 @@ export function attach(win, ctx) {
     void abrir(win, st);
   });
   st.cerrar.addEventListener('click', () => void abrir(win, st, false));
+  st.otraVez.addEventListener('click', () => void abrir(win, st, true));
+  st.deCero.addEventListener('click', async () => {
+    // Dos pasos: el primer clic explica qué pasa con lo de antes.
+    if (!st.deCero.hasAttribute('sure')) { st.deCero.setAttribute('sure', ''); st.deCero.textContent = t('Sí: apartar lo de antes y empezar', 'Yes: set the old notes aside and start'); return; }
+    st.deCero.removeAttribute('sure'); st.deCero.textContent = t('Empezar de cero', 'Start over');
+    try { await almacen.empezarDeCero(); } catch (error) { console.error('Kitsune Zero: bloc', error); return; }
+    void irALista(win, st);
+  });
   st.atras.addEventListener('click', () => void irALista(win, st));
   st.nueva.addEventListener('click', () => void nueva(win, st));
   st.mas.addEventListener('click', () => abrirMenu(win, st));
@@ -538,9 +556,13 @@ export function attach(win, ctx) {
 export function detach(win) {
   const st = state.get(win);
   if (!st) return;
-  if (st.id) recoger(win, st);
-  void almacen.guardarYa();
+  // También al cerrarse la ventana: lo último escrito se recoge y, si la nota lleva contraseña, se vuelve a cerrar.
+  if (st.id) { try { recoger(win, st); } catch (error) { console.error('Kitsune Zero: bloc', error); } }
+  const { id } = st;
   state.delete(win);
+  const enOtra = id && [...ventanas].some(otra => otra !== win && state.get(otra)?.id === id);
+  if (id && !enOtra) void almacen.cerrarNota(id); else void almacen.guardarYa();
+  ventanas.delete(win);
   for (const undo of st.cleanups.reverse()) { try { undo(); } catch { /* ya no estaba */ } }
 }
 

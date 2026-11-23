@@ -45,14 +45,24 @@ const path = () => PathUtils.join(Services.dirsvc.get('ProfD', Ci.nsIFile).path,
 
 async function load() {
   tracker.loading ??= (async () => {
-    try { tracker.data = sanitize(await IOUtils.readJSON(path())); } catch { tracker.data = emptyData(); }
+    try {
+      tracker.data = sanitize(await IOUtils.readJSON(path()));
+    } catch (error) {
+      tracker.data = emptyData();
+      // Si hay archivo y no se entiende, se aparta antes de empezar de nuevo: un año de historial no se pisa.
+      if (!(DOMException.isInstance(error) && error.name === 'NotFoundError')) {
+        console.error('Kitsune Zero: las estadísticas no se pueden leer', error);
+        tracker.readOnly = true;
+        try { await IOUtils.copy(path(), `${path()}.ilegible-${dayKey()}`); tracker.readOnly = false; } catch { /* ni copiarlo: no se guarda nada esta vez */ }
+      }
+    }
     prune(tracker.data, dayKey());
   })();
   return tracker.loading;
 }
 
 async function save() {
-  if (!tracker.dirty || !tracker.data) return;
+  if (!tracker.dirty || !tracker.data || tracker.readOnly) return;
   tracker.dirty = false;
   try { await IOUtils.writeJSON(path(), tracker.data, { tmpPath: `${path()}.tmp` }); } catch { tracker.dirty = true; }
 }
@@ -330,6 +340,7 @@ export function attach(win, ctx) {
   const listen = (target, type, fn, options) => { target.addEventListener(type, fn, options); st.cleanups.push(() => target.removeEventListener(type, fn, options)); };
   startTracking(win, host);
   st.cleanups.push(() => stopTracking(win));
+  listen(win, 'unload', () => detach(win), { once: true });
   ctx.settings?.add(settingsSection(host));
 
   const title = t('Tus estadísticas', 'Your stats');

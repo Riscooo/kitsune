@@ -38,6 +38,8 @@ class ControlApp {
   #escuchas = new Map();
   #reloj = null;
   #usos = 0;
+  #vez = 0;
+  #fallos = 0;
   ahora = { ...limpio(null), portada: '' };
   error = null;
 
@@ -92,6 +94,8 @@ class ControlApp {
   /** Una orden y su respuesta, en fila. */
   pedir(orden) {
     const vez = this.#cola.then(async () => {
+      // Sin nadie mirando no se arranca (una orden que se quedó en la fila al cerrar el panel).
+      if (!this.#usos) return this.ahora;
       const proc = await this.#lanzar();
       let reloj = null;
       const tope = new Promise((_, no) => { reloj = lazy.setTimeout(() => no(new Error('no contesta')), 12_000); });
@@ -99,9 +103,11 @@ class ControlApp {
         await proc.stdin.write(`${orden}\n`);
         const dato = limpio(JSON.parse(await Promise.race([this.#linea(proc), tope])));
         this.error = null;
+        this.#fallos = 0;
         this.ahora = { ...dato, portada: dato.portada ?? (dato.abierta ? this.ahora.portada : '') };
       } catch (error) {
         this.error = error;
+        this.#fallos++;
         this.#parar();
         throw error;
       } finally { lazy.clearTimeout(reloj); }
@@ -122,12 +128,18 @@ class ControlApp {
   /** Mientras alguien lo mira, se pregunta cada poco qué suena; si no, el guion se cierra. */
   usar() {
     this.#usos++;
-    const vuelta = async () => {
-      if (!this.#usos) return;
-      await this.pedir('estado');
-      if (this.#usos) this.#reloj = lazy.setTimeout(vuelta, this.ahora.suena ? 1500 : 3000);
-    };
-    if (this.#usos === 1) void vuelta();
+    if (this.#usos === 1) {
+      const vez = ++this.#vez;
+      const vuelta = async () => {
+        if (!this.#usos || vez !== this.#vez) return;
+        await this.pedir('estado');
+        if (!this.#usos || vez !== this.#vez) return;
+        // Si este Windows no puede (sin los controles multimedia, por ejemplo), cada vez se insiste menos.
+        const espera = this.#fallos ? Math.min(60_000, 3000 * 2 ** Math.min(this.#fallos, 5)) : this.ahora.suena ? 1500 : 3000;
+        this.#reloj = lazy.setTimeout(vuelta, espera);
+      };
+      void vuelta();
+    }
     let suelto = false;
     return () => {
       if (suelto) return;

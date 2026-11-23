@@ -37,11 +37,15 @@ function cargar() {
   tienda.cargando.catch(error => { console.error('Kitsune Zero: estudio', error); tienda.cargando = null; });
   return tienda.cargando;
 }
-async function guardarYa() {
+// En fila: quien espera (al cerrar Kitsune) espera también a la que estuviera a medias.
+function guardarYa() {
   clearTimeout(tienda.espera);
-  if (!tienda.tocada || !tienda.datos) return;
-  tienda.tocada = false;
-  try { await cofre.guardar('estudio', tienda.datos); } catch (error) { tienda.tocada = true; console.error('Kitsune Zero: estudio', error); }
+  tienda.fila = (tienda.fila ?? Promise.resolve()).then(async () => {
+    if (!tienda.tocada || !tienda.datos) return;
+    tienda.tocada = false;
+    try { await cofre.guardar('estudio', tienda.datos); } catch (error) { tienda.tocada = true; console.error('Kitsune Zero: estudio', error); }
+  });
+  return tienda.fila;
 }
 function guardar() {
   tienda.tocada = true;
@@ -73,7 +77,8 @@ const suyas = (st, espacio = espacioActual(st)) => [...st.win.gBrowser.tabs].fil
 
 function estudiando(st, espacio = espacioActual(st)) {
   try {
-    if (!st.host.prefs.getBoolPref(prefName(st.host.prefix, PREFS.focus), true)) return false;
+    st.sinModos = !st.host.prefs.getBoolPref(prefName(st.host.prefix, PREFS.focus), true);
+    if (st.sinModos) return false;
     return JSON.parse(st.host.prefs.getStringPref(prefName(st.host.prefix, MODOS), '') || '{}').profiles?.[espacio]?.mode === 'study';
   } catch { return false; }
 }
@@ -83,8 +88,11 @@ function estadoDe(win, tab) {
   try {
     const s = JSON.parse(win.SessionStore.getTabState(tab));
     for (const clave of ['formdata', 'storage', 'extData', 'image', 'searchMode', 'hidden', 'lastAccessed']) delete s[clave];
-    s.entries = (s.entries ?? []).slice(-12);
-    if (Number.isInteger(s.index)) s.index = Math.min(s.index, s.entries.length);
+    // Las doce últimas hasta la que se está viendo (y las de «adelante» que quepan), con el índice en su sitio.
+    const todas = s.entries ?? [], aqui = Number.isInteger(s.index) ? Math.min(Math.max(s.index, 1), todas.length) : todas.length;
+    const desde = Math.max(0, aqui - 10);
+    s.entries = todas.slice(desde, desde + 12);
+    s.index = aqui - desde;
     return JSON.stringify(s);
   } catch { return ''; }
 }
@@ -96,12 +104,14 @@ function vivas(espacio) {
   const out = [];
   for (const win of ventanas) {
     const st = state.get(win);
-    if (!st) continue;
-    for (const tab of suyas(st, espacio)) {
-      const id = idDe(tab), url = tab.linkedBrowser?.currentURI?.spec ?? '';
-      const direccion = guardable(url) ? url : direccionPendiente(win, tab);
-      if (id && guardable(direccion)) out.push({ id, url: direccion, titulo: tab.label, estado: estadoDe(win, tab) });
-    }
+    if (!st || win.closed) continue;
+    try {
+      for (const tab of suyas(st, espacio)) {
+        const id = idDe(tab), url = tab.linkedBrowser?.currentURI?.spec ?? '';
+        const direccion = guardable(url) ? url : direccionPendiente(win, tab);
+        if (id && guardable(direccion)) out.push({ id, url: direccion, titulo: tab.label, estado: estadoDe(win, tab) });
+      }
+    } catch { /* una ventana que se está cerrando no para a las demás */ }
   }
   return out;
 }
@@ -164,6 +174,8 @@ function colocar(st) {
     const tabs = suyas(st);
     const p = plan(tabs.map(tab => ({ estudio: !!idDe(tab), fijada: false, oculta: tab.hidden, elegida: tab.selected, vista: tab.lastAccessed })), st.en);
     let elegida = p.elegir >= 0 ? tabs[p.elegir] : null;
+    // Sin los modos (o sin Zero) no hay libro con el que volver: nada se queda escondido.
+    if (st.sinModos) { for (const tab of tabs) if (tab.hidden) gBrowser.showTab(tab); return; }
     for (const i of p.mostrar) gBrowser.showTab(tabs[i]);
     if (!elegida && !(gBrowser.selectedTab.pinned && !st.en)) elegida = pestanaNueva(st);
     if (elegida && st.en && !idDe(elegida)) marcar(elegida, idNuevo());
@@ -176,10 +188,9 @@ function colocar(st) {
 
 /** Abre (dormidas) las páginas apuntadas que no estén ya en ninguna ventana. */
 function volver(st, espacio) {
-  const { win } = st;
-  const hay = new Set([...ventanas].flatMap(otra => [...otra.gBrowser.tabs].map(idDe)).filter(Boolean));
+  const hay = new Set();
+  for (const otra of ventanas) { if (otra.closed) continue; try { for (const tab of otra.gBrowser.tabs) if (!tab.closing && idDe(tab)) hay.add(idDe(tab)); } catch { /* cerrándose */ } }
   for (const p of porAbrir(tienda.datos, espacio, hay)) abrirPagina(st, p);
-  void win;
 }
 
 function abrirPagina(st, p, { delante = false } = {}) {
@@ -333,7 +344,9 @@ export function attach(win, ctx) {
   win.gBrowser.addTabsProgressListener(progreso);
   st.cleanups.push(() => win.gBrowser?.removeTabsProgressListener(progreso));
   listen(win, 'SSWindowRestored', () => void mirar(st));
-  listen(win, 'SSWindowClosing', () => { if (st.en) apuntar(espacioActual(st)); });
+  listen(win, 'SSWindowClosing', () => { if (st.en) { apuntar(espacioActual(st)); setBloc(st); } });
+  // La ventana se cierra: nada que recolocar; solo dejar de contar con ella.
+  listen(win, 'unload', () => { state.delete(win); ventanas.delete(win); void guardarYa(); }, { once: true });
 
   // Quitarla del estudio desde la pestaña (la barra de Gecko no se ve en Zero, pero su menú lo usa el raíl).
   const menuPestana = doc.getElementById('tabContextMenu');
@@ -368,7 +381,8 @@ export function attach(win, ctx) {
 export function detach(win) {
   const st = state.get(win);
   if (!st) return;
-  if (st.en) { apuntar(espacioActual(st)); setBloc(st); st.en = false; try { colocar(st); } catch { /* la ventana se cierra */ } }
+  if (st.en) { apuntar(espacioActual(st)); setBloc(st); st.en = false; }
+  if (!win.closed) { st.sinModos = true; try { colocar(st); } catch { /* la ventana se cierra */ } }
   void guardarYa();
   state.delete(win);
   ventanas.delete(win);

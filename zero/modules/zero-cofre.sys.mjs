@@ -16,7 +16,7 @@ const CARPETA = 'kitsune-zero-notas';
 const COPIAS = 7;
 const NOMBRE = /^(notas\/[a-z0-9-]{6,40}|subrayados|estudio)$/;
 let llave = null;
-let copiado = false;
+let copia = null; // la copia de hoy: una para todas las escrituras, que la esperan
 
 export const carpeta = () => PathUtils.join(Services.dirsvc.get('ProfD', Ci.nsIFile).path, CARPETA);
 const ruta = nombre => PathUtils.join(carpeta(), ...`${nombre}.cofre`.split('/'));
@@ -57,11 +57,13 @@ export async function leer(nombre) {
   return abrir(k, sobre, nombre);
 }
 
-export async function guardar(nombre, valor) {
+export async function guardar(nombre, valor, vale = null) {
   if (!NOMBRE.test(nombre)) throw new Error('nombre');
   const k = await abrirCofre();
-  await copiaDelDia();
+  await (copia ??= copiaDelDia());
   const sobre = await cerrar(k, valor, nombre);
+  // Justo antes de escribir: puede haberse borrado mientras tanto.
+  if (vale && !vale()) return;
   await IOUtils.writeJSON(ruta(nombre), sobre, { tmpPath: `${ruta(nombre)}.tmp`, flush: true });
 }
 
@@ -79,19 +81,31 @@ export async function notas() {
 
 /** Antes del primer cambio del día, una copia de todo como estaba (ya cifrado); se quedan las 7 últimas. */
 async function copiaDelDia() {
-  if (copiado) return;
-  copiado = true;
   try {
     const hoy = new Date().toLocaleDateString('sv-SE');
     const copias = PathUtils.join(carpeta(), 'copias'), destino = PathUtils.join(copias, hoy);
     if (await IOUtils.exists(destino)) return;
     const hay = (await IOUtils.getChildren(carpeta())).filter(path => !PathUtils.filename(path).startsWith('copias'));
-    await IOUtils.makeDirectory(destino, { createAncestors: true, permissions: 0o700 });
-    for (const path of hay) if (!path.endsWith('.tmp')) await IOUtils.copy(path, PathUtils.join(destino, PathUtils.filename(path)), { recursive: true });
+    // A un lado y, entera, a su nombre: una copia a medias no cuenta como hecha.
+    const aMedias = `${destino}.tmp`;
+    await IOUtils.remove(aMedias, { recursive: true, ignoreAbsent: true });
+    await IOUtils.makeDirectory(aMedias, { createAncestors: true, permissions: 0o700 });
+    for (const path of hay) if (!path.endsWith('.tmp')) await IOUtils.copy(path, PathUtils.join(aMedias, PathUtils.filename(path)), { recursive: true });
+    await IOUtils.move(aMedias, destino);
     const dias = (await IOUtils.getChildren(copias)).filter(path => /^\d{4}-\d{2}-\d{2}$/.test(PathUtils.filename(path))).sort();
     for (const viejo of dias.slice(0, -COPIAS)) await IOUtils.remove(viejo, { recursive: true });
   } catch (error) { console.error('Kitsune Zero: la copia del bloc', error); }
 }
 
+/** Empezar de cero cuando la llave no se puede abrir: lo de antes se aparta entero (kitsune-zero-notas.viejo-…), no se borra. */
+export async function empezarDeCero() {
+  const aparte = `${carpeta()}.viejo-${new Date().toISOString().slice(0, 19).replace(/\D/g, '')}`;
+  await IOUtils.move(carpeta(), aparte);
+  llave = null;
+  copia = null;
+  await abrirCofre();
+  return aparte;
+}
+
 /** Para las pruebas: olvidar la llave (como al volver a abrir Kitsune). */
-export const _debug = { olvidar: () => { llave = null; copiado = false; } };
+export const _debug = { olvidar: () => { llave = null; copia = null; } };
