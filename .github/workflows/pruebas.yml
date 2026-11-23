@@ -1,0 +1,56 @@
+# Las pruebas, en cada cambio: las de Node en Linux y Windows, y Kitsune Zero con el motor de verdad en Windows.
+name: Pruebas
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: pruebas-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  node:
+    name: Node (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v4
+        with: { persist-credentials: false }
+      - uses: actions/setup-node@v4
+        with: { node-version: 26 }
+      - run: npm test
+
+  motor-windows:
+    name: Kitsune Zero en Windows (motor de verdad)
+    runs-on: windows-latest
+    timeout-minutes: 30
+    # Un escritorio sin tarjeta gráfica no es el de nadie: avisa, pero no bloquea.
+    continue-on-error: true
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+        with: { persist-credentials: false }
+      - uses: actions/setup-node@v4
+        with: { node-version: 26 }
+      - name: El último instalador publicado, con el Zero de este cambio dentro
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force descarga | Out-Null
+          $tag = gh release list --limit 10 --json tagName --jq '.[].tagName' | Select-Object -First 1
+          gh release download $tag --pattern 'Kitsune-Zero-*-Windows-x64.exe' --dir descarga
+          $exe = (Get-ChildItem descarga -Filter *.exe | Select-Object -First 1).FullName
+          node tools/windows/empaquetar.mjs --desde $exe --salida paquete --trabajo $env:RUNNER_TEMP\paquete
+      - name: El bloc, el estudio, el reparto, las estadísticas y la copia
+        shell: pwsh
+        run: node tests/windows/zero_estudio_native.mjs --motor $env:RUNNER_TEMP\paquete\nuevo\core --out resultado
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: { name: capturas, path: resultado, if-no-files-found: ignore, retention-days: 7 }

@@ -35,7 +35,8 @@ la ventana a Zero y la devuelve, con las mismas pestañas. Diseño completo en
     créditos, en `SONIDOS.md`);
   - `zero-reparto`, `zero-notas`, `zero-rotulador` y `zero-estudio`: el bloc de notas cifrado, el subrayador de las webs, el modo
     Estudio y cómo se reparten la web, el bloc y el asistente; con `zero-cofre` (lo cifrado) y `zero-spotify` (que Spotify suene
-    en Windows). Todo en `docs/zero/estudio.md`;
+    en Windows). Todo en `docs/zero/estudio.md`; `zero-copia` (lo de Zero en la Copia de Kitsune) y `zero-bienvenida` (el primer
+    arranque);
   - `zero-media`: lo que suena en otra pestaña, en la isla (aviso, onda, pausa y siguiente), con el
     MediaController de Gecko;
   - `zero-glass`: el cristal en vivo sobre la web y el texto que se adapta (`zero-light.mjs`). Su
