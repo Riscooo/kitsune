@@ -2522,6 +2522,11 @@
 #zero-notas .zn-nota[fijada] { --icono: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M10.5 1.5l4 4-2 .8-2.3 2.3.2 2.9-1.2 1.2-3-3L2.5 13.5l-.7-.7 3.8-3.7-3-3L3.8 5l2.9.1L9 2.9z'/%3E%3C/svg%3E"); }
 #zero-notas .zn-nota[cerrada] { --icono: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M5 7V5a3 3 0 0 1 6 0v2h.500A1.5 1.5 0 0 1 13 8.5v4a1.5 1.5 0 0 1-1.5 1.5h-7A1.5 1.5 0 0 1 3 12.5v-4A1.5 1.5 0 0 1 4.5 7zm1.5 0h3V5a1.5 1.5 0 0 0-3 0z'/%3E%3C/svg%3E"); }
 #zero-notas .zn-vacia { margin: auto; padding: 24px; color: var(--zero-piece-quiet); text-align: center; line-height: 1.5; }
+#zero-notas .zn-recordar { flex: none; display: flex; align-items: center; gap: 8px; margin: 0 14px 12px; padding: 8px 8px 8px 14px; border-radius: 12px; background: var(--zero-piece-hover); font-size: 12px; }
+#zero-notas .zn-recordar > span { flex: 1; min-width: 0; color: var(--zero-piece-quiet); }
+#zero-notas .zn-recordar-si { padding: 5px 12px; border-radius: 999px; background: var(--zero-ia-accent); color: #fff; font-weight: 600; white-space: nowrap; }
+#zero-notas .zn-recordar-no { width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; background: transparent; opacity: .6; }
+#zero-notas .zn-recordar-no::before { content: ""; width: 9px; height: 9px; background: currentColor; mask: url("chrome://global/skin/icons/close.svg") center / contain no-repeat; }
 #zero-notas .zn-aviso { flex: none; margin: 0; padding: 8px 16px 12px; color: var(--zero-piece-quiet); font-size: 11.5px; }
 
 #zero-notas .zn-hoja { flex: 1; min-height: 0; display: flex; }
@@ -2601,7 +2606,23 @@
 #zero-estudio .ze-quitar:hover { opacity: 1 !important; background: var(--zero-piece-hover); }
 #zero-estudio .ze-quitar::before { content: ""; width: 11px; height: 11px; background: currentColor; mask: url("chrome://global/skin/icons/close.svg") center / contain no-repeat; }
 #zero-estudio :is(.ze-ir, .ze-quitar):focus-visible { outline: 2px solid #3a8f74; outline-offset: -2px; border-radius: 10px; }
-@media (prefers-reduced-motion: reduce) { :is(#zero-notas, #zero-rotulador, #zero-estudio), :is(#zero-notas, #zero-rotulador, #zero-estudio) * { transition-duration: 1ms !important; animation: none !important; } }
+/* El primer arranque: una tarjeta junto a lo que cuenta, y un aro alrededor. */
+#zero-bienvenida { position: fixed; inset: 0; z-index: 15; pointer-events: none; opacity: 0; transition: opacity 300ms var(--zero-soft); }
+#zero-bienvenida[open] { opacity: 1; }
+#zero-bienvenida .zb-aro { position: absolute; border-radius: 24px; box-shadow: 0 0 0 2px #3fa383, 0 0 0 100vmax rgba(10, 12, 16, .28); transition: left 420ms var(--zero-calm), top 420ms var(--zero-calm), width 420ms var(--zero-calm), height 420ms var(--zero-calm); }
+#zero-bienvenida .zb-aro[hidden] { display: none; }
+#zero-bienvenida .zb-tarjeta { position: absolute; box-sizing: border-box; width: 320px; padding: 18px 20px 14px; border-radius: 20px; pointer-events: auto; color: var(--zero-piece-text); font: 500 13px/1.5 system-ui, sans-serif; background: rgb(from var(--zero-sheet) r g b / 1); box-shadow: 0 0 0 .5px var(--zero-piece-hover), 0 24px 60px rgba(0, 0, 0, .34); transition: left 420ms var(--zero-calm), top 420ms var(--zero-calm); -moz-window-dragging: no-drag; }
+#zero-bienvenida h4 { margin: 0 0 4px; font: 650 16px system-ui, sans-serif; letter-spacing: -.01em; }
+#zero-bienvenida p { margin: 0 0 16px; color: var(--zero-piece-quiet); }
+#zero-bienvenida .zb-pie { display: flex; align-items: center; gap: 8px; }
+#zero-bienvenida .zb-puntos { flex: 1; display: flex; gap: 5px; }
+#zero-bienvenida .zb-puntos i { width: 6px; height: 6px; border-radius: 50%; background: var(--zero-piece-hover); transition: background-color 240ms; }
+#zero-bienvenida .zb-puntos i[on] { background: #3fa383; }
+#zero-bienvenida button { appearance: none; margin: 0; border: none; padding: 7px 14px; border-radius: 999px; background: transparent; color: var(--zero-piece-quiet); font: 600 12.5px system-ui, sans-serif; cursor: pointer; }
+#zero-bienvenida .zb-seguir { background: #2f7d64; color: #fff; }
+#zero-bienvenida button:focus-visible { outline: 2px solid #3fa383; outline-offset: 2px; }
+#zero-bienvenida button[hidden] { display: none; }
+@media (prefers-reduced-motion: reduce) { :is(#zero-notas, #zero-rotulador, #zero-estudio, #zero-bienvenida), :is(#zero-notas, #zero-rotulador, #zero-estudio, #zero-bienvenida) * { transition-duration: 1ms !important; animation: none !important; } }
 
 /* ---------------------------------------------------------------- la luz y el material (zero-luz) */
 

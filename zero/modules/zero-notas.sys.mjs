@@ -72,6 +72,7 @@ function pintarLista(win, st) {
     fila.toggleAttribute('cerrada', !!nota.conContrasena);
     return fila;
   }));
+  st.recordar.hidden = !almacen.tocaCopia();
   const mal = almacen.cuantasEstropeadas();
   st.aviso.hidden = !mal;
   if (mal) st.aviso.textContent = t(`${mal} no se han podido abrir. Siguen guardadas.`, `${mal} could not be opened. They are still stored.`);
@@ -269,7 +270,7 @@ async function claveDada(win, st) {
     } else if (st.pide === 'copia') {
       const texto = await almacen.hacerCopia(clave);
       const archivo = await elegirArchivo(win, st, true);
-      if (archivo) { await IOUtils.writeUTF8(archivo, texto, { tmpPath: `${archivo}.tmp` }); decir(win, st, t('Copia guardada', 'Backup saved')); }
+      if (archivo) { await IOUtils.writeUTF8(archivo, texto, { tmpPath: `${archivo}.tmp` }); almacen.copiaHecha(); decir(win, st, t('Copia guardada', 'Backup saved')); }
       vista(st, 'lista');
     } else {
       const n = await almacen.traerCopia(st.copia, clave);
@@ -449,6 +450,10 @@ export function attach(win, ctx) {
   st.lista = el(doc, 'div', { class: 'zn-lista', role: 'list', 'aria-label': titulo });
   st.vaciaLista = el(doc, 'p', { class: 'zn-vacia' });
   st.aviso = el(doc, 'p', { class: 'zn-aviso', hidden: 'true' });
+  // Sin copia en mucho tiempo: una línea, y nada más.
+  st.recordarSi = el(doc, 'button', { type: 'button', class: 'zn-recordar-si' }, [t('Hacer copia', 'Back up')]);
+  st.recordarNo = el(doc, 'button', { type: 'button', class: 'zn-recordar-no', title: t('Ahora no', 'Not now'), 'aria-label': t('Ahora no', 'Not now') });
+  st.recordar = el(doc, 'div', { class: 'zn-recordar', hidden: 'true' }, [el(doc, 'span', {}, [t('Tus notas no tienen copia reciente.', 'Your notes have no recent backup.')]), st.recordarSi, st.recordarNo]);
   st.hueco = el(doc, 'div', { class: 'zn-hoja' });
   const herramienta = (orden, es, en) => el(doc, 'button', { type: 'button', class: 'zn-herramienta', 'data-orden': orden, title: t(es, en), 'aria-label': t(es, en) });
   st.barra = el(doc, 'div', { class: 'zn-barra', role: 'toolbar', 'aria-label': t('Formato', 'Format') }, [
@@ -473,7 +478,7 @@ export function attach(win, ctx) {
   st.panel = el(doc, 'section', { id: 'zero-notas', role: 'dialog', 'aria-label': titulo, vista: 'lista' }, [
     st.asa,
     el(doc, 'header', {}, [st.atras, st.nombre, st.titulo, st.nueva, st.mas, st.cerrar]),
-    el(doc, 'div', { class: 'zn-vista zn-v-lista' }, [st.buscar, st.lista, st.vaciaLista, st.aviso]),
+    el(doc, 'div', { class: 'zn-vista zn-v-lista' }, [st.buscar, st.lista, st.vaciaLista, st.recordar, st.aviso]),
     el(doc, 'div', { class: 'zn-vista zn-v-nota' }, [st.hueco, st.barra]),
     el(doc, 'div', { class: 'zn-vista zn-v-cerrada' }, [st.claveForma]),
     el(doc, 'div', { class: 'zn-vista zn-v-pide' }, [st.pideForma]),
@@ -506,6 +511,8 @@ export function attach(win, ctx) {
   st.atras.addEventListener('click', () => void irALista(win, st));
   st.nueva.addEventListener('click', () => void nueva(win, st));
   st.mas.addEventListener('click', () => abrirMenu(win, st));
+  st.recordarSi.addEventListener('click', () => pedirClave(win, st, 'copia'));
+  st.recordarNo.addEventListener('click', () => almacen.copiaLuego());
   st.buscar.addEventListener('input', () => pintarLista(win, st));
   st.lista.addEventListener('click', event => { const id = event.target.closest('.zn-nota')?.dataset.id; if (id) void irANota(win, st, id); });
   st.titulo.addEventListener('input', () => {

@@ -16,7 +16,7 @@
  */
 import { setInterval, clearInterval } from 'resource://gre/modules/Timer.sys.mjs';
 import { prefName } from './zero-config.sys.mjs';
-import { dayKey, emptyData, sanitize, addTime, addSearch, addPage, addCount, prune, summarize, compare, byMonth, calendar, formatDuration, CATEGORIES } from './zero-stats.mjs';
+import { dayKey, emptyData, sanitize, addTime, addSearch, addPage, addCount, merge, prune, summarize, compare, byMonth, calendar, formatDuration, CATEGORIES } from './zero-stats.mjs';
 import { estado, medidas, nuevos } from './zero-logros.mjs';
 
 const HTML = 'http://www.w3.org/1999/xhtml';
@@ -158,6 +158,17 @@ function stopTracking(win) {
   clearInterval(tracker.timer); clearInterval(tracker.saveTimer);
   tracker.timer = tracker.saveTimer = null;
   if (tracker.quit) { try { Services.obs.removeObserver(tracker.quit, 'quit-application-granted'); } catch { /* ya no estaba */ } tracker.quit = null; }
+}
+
+/** Todo lo contado, para la copia de Kitsune; y juntarlo con lo de una. */
+export async function todo() { await load(); return tracker.data; }
+export async function traer(valor) {
+  await load();
+  const days = merge(tracker.data, sanitize(valor));
+  tracker.dirty = true;
+  await save();
+  changed();
+  return days;
 }
 
 /** Borra todo lo contado (desde el panel o los ajustes). */

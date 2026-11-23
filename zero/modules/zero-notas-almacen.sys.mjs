@@ -223,6 +223,16 @@ export async function empezarDeCero() {
   avisar(null);
 }
 
+// La última copia, para recordarla (no sale nada de aquí: solo la fecha).
+const COPIA = 'kitsune.zero.copia.ultima', LUEGO = 'kitsune.zero.copia.luego', MES = 30 * 86_400_000;
+export function copiaHecha() { try { Services.prefs.setStringPref(COPIA, String(Date.now())); } catch { /* sin ajustes */ } avisar(null); }
+export function copiaLuego() { try { Services.prefs.setStringPref(LUEGO, String(Date.now())); } catch { /* sin ajustes */ } avisar(null); }
+/** ¿Toca recordarla? Con unas cuantas notas, y sin copia (o sin decir «luego») en un mes. */
+export function tocaCopia(ahora = Date.now()) {
+  const hora = pref => { try { return Number(Services.prefs.getStringPref(pref, '0')) || 0; } catch { return ahora; } };
+  return notas.size >= 5 && ahora - Math.max(hora(COPIA), hora(LUEGO)) > MES;
+}
+
 /** Todo el bloc en un archivo cifrado con una contraseña (las notas con contraseña siguen llevando la suya). */
 export async function hacerCopia(contrasena) {
   await cargar();
@@ -239,8 +249,21 @@ export async function traerCopia(texto, contrasena) {
   try { archivo = JSON.parse(texto); } catch { throw new Error('copia'); }
   if (archivo?.kitsune !== 'bloc' || archivo.v !== 1) throw new Error('copia');
   const { valor } = await abrirConContrasena(contrasena, archivo.sobre, 'copia');
+  return traerNotas(Array.isArray(valor?.notas) ? valor.notas : []);
+}
+
+/** Todas las notas, como están guardadas (las que llevan contraseña, cerradas), para la copia de Kitsune. */
+export async function todas() {
+  await cargar();
+  await guardarYa();
+  return [...notas.values()];
+}
+
+/** Mete notas de una copia: las que no están se añaden; de las que están, se queda la tocada más tarde. */
+export async function traerNotas(lista) {
+  await cargar();
   let entran = 0;
-  for (const cruda of Array.isArray(valor?.notas) ? valor.notas : []) {
+  for (const cruda of lista) {
     const nota = notaLimpia(cruda);
     if (!nota || (notas.get(nota.id)?.tocada ?? 0) >= nota.tocada) continue;
     abiertas.delete(nota.id);

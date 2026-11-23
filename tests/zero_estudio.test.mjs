@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 import * as E from '../zero/modules/zero-estudio.mjs'
 import { LOGROS, medidas, estado, nuevos } from '../zero/modules/zero-logros.mjs'
-import { emptyData, addTime, addCount, sanitize, lastDays, calendar, compare, byMonth, summarize } from '../zero/modules/zero-stats.mjs'
+import { emptyData, addTime, addCount, merge, sanitize, lastDays, calendar, compare, byMonth, summarize } from '../zero/modules/zero-stats.mjs'
 
 const page = (n, extra = {}) => ({ id: `pag-00000${n}`, url: `https://web${n}.es/`, titulo: `Web ${n}`, ...extra })
 const ids = (data, space = 'e-1') => (data.espacios[space] ?? []).map(p => `${p.id.at(-1)}${p.abierta ? '' : '-'}`).join(' ')
@@ -125,4 +125,16 @@ test('the calendar is whole weeks from Monday, and the comparison is with the sa
   assert.deepEqual(compare(data, '2026-11-23', 1), { antes: 50, cambio: 1 })
   assert.equal(compare(data, '2026-11-22', 1).cambio, null)
   assert.deepEqual(byMonth(summarize(data, '2026-12-01', 10).days).map(m => m.month), ['2026-11', '2026-12'])
+})
+
+test('bringing a backup never loses anything: the fuller day, the bigger total and the older achievement stay', () => {
+  const here = emptyData(), other = emptyData()
+  addTime(here, '2026-11-22', 'a.es', 100); addTime(other, '2026-11-22', 'a.es', 50); addTime(other, '2026-11-21', 'b.es', 10)
+  addCount(here, '2026-11-22', 'notas', 2); addCount(other, '2026-11-21', 'notas', 5)
+  here.logros = { 'primera-nota': '2026-11-22' }; other.logros = { 'primera-nota': '2026-11-20', rotulador: '2026-11-21' }
+  assert.equal(merge(here, other), 1)
+  assert.equal(here.days['2026-11-22'].sites['a.es'], 100)
+  assert.equal(here.days['2026-11-21'].sites['b.es'], 10)
+  assert.equal(here.total.notas, 5)
+  assert.deepEqual(here.logros, { 'primera-nota': '2026-11-20', rotulador: '2026-11-21' })
 })

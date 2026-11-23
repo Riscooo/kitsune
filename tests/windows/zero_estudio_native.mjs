@@ -293,6 +293,32 @@ try {
   const app = await js(`const { app } = mod('zero-spotify-app.sys.mjs'); const dejar = app.usar(); for (let i = 0; i < 80 && app.resto === undefined; i++) await new Promise(r => win.setTimeout(r, 150)); await app.pedir('estado'); const out = { error: app.error ? String(app.error) : null, abierta: app.ahora.abierta, cancion: !!app.ahora.titulo }; dejar(); await new Promise(r => win.setTimeout(r, 300)); out.parado = app.resto === ''; return out`)
   check('El ayudante de la app de Spotify contesta sin errores y se para al dejarlo', app && !app.error && (!app.abierta || app.cancion) && app.parado, app)
 
+  // ---------------------------------------------------------------- la copia de Kitsune, con lo de Zero
+  const conCopia = await js(`try { return !!ChromeUtils.importESModule('chrome://browser/content/kitsune-copia.sys.mjs').KitsuneCopia && /zero-copia/.test(await (await fetch('chrome://browser/content/kitsune-copia.sys.mjs')).text()); } catch { return false }`)
+  const z = await js(`const { ZeroCopia } = mod('zero-copia.sys.mjs'), e = [{ id: 'e-00000000', name: 'General' }]; const j = await ZeroCopia.juntar({ espacios: e }); const a = mod('zero-notas-almacen.sys.mjs'); const id = a.lista('')[0].id; await a.borrar(id);
+    const r = await ZeroCopia.traer(JSON.parse(JSON.stringify(j)), { espacios: e }); const otra = await ZeroCopia.traer(JSON.parse(JSON.stringify(j)), { espacios: e });
+    return { notas: j.notas.length, paginas: j.estudio.map(x => [x.espacio, x.paginas.length]), sub: Object.keys(j.subrayados).length, dias: Object.keys(j.estadisticas.days).length > 50, r, otra, quedan: a.lista('').length, estado: JSON.stringify(j.estudio).includes('"estado"') }`)
+  check('Lo de Zero se junta para la copia y vuelve sin repetirse', z.notas === 1 && z.sub === 1 && z.dias && z.r.notas === 1 && z.otra.notas === 0 && z.otra.subrayados === 0 && z.quedan === 1 && !z.estado, z)
+  check('Traer basura no rompe nada', JSON.stringify(await js(`return mod('zero-copia.sys.mjs').ZeroCopia.traer({ version: 1, notas: [7, { id: '../x' }], subrayados: 'x', estudio: [null], estadisticas: 3 }, { espacios: [] })`)) === JSON.stringify({ notas: 0, subrayados: 0, paginas: 0, dias: 0 }))
+  if (conCopia) {
+    const file = path.join(profile, 'prueba.kitsune')
+    const c1 = await js(`const { KitsuneCopia } = ChromeUtils.importESModule('chrome://browser/content/kitsune-copia.sys.mjs'); await KitsuneCopia.save(win, { path: ${JSON.stringify(file)}, password: 'clave-de-copia', bookmarks: false, tabs: false }); const t = await IOUtils.readUTF8(${JSON.stringify(file)}); const a = mod('zero-notas-almacen.sys.mjs'); await a.borrar(a.lista('')[0].id); const { result } = await KitsuneCopia.load(win, { path: ${JSON.stringify(file)}, password: 'clave-de-copia', bookmarks: false, tabs: false }); return [/lula|biolog/i.test(t), result.notes, a.lista('').length]`)
+    check('La Copia de Kitsune lleva las notas cifradas y las devuelve', c1[0] === false && c1[1] === 1 && c1[2] === 1, c1)
+  }
+  const rec = await js(`const a = mod('zero-notas-almacen.sys.mjs'); Services.prefs.clearUserPref('kitsune.zero.copia.ultima'); const pocas = a.tocaCopia(); const ids = [1, 2, 3, 4, 5].map(n => a.crear({ titulo: 'Nota ' + n })); const si = a.tocaCopia(); a.copiaLuego(); const luego = a.tocaCopia(); for (const i of ids) await a.borrar(i); Services.prefs.clearUserPref('kitsune.zero.copia.luego'); return [pocas, si, luego]`)
+  check('Con varias notas y sin copia se recuerda una vez, y se puede dejar para luego', rec[0] === false && rec[1] === true && rec[2] === false, rec)
+
+  // ---------------------------------------------------------------- las actualizaciones firmadas
+  const firma = await js(`const u = ChromeUtils.importESModule('chrome://browser/content/kitsune-updater.sys.mjs'); if (!u.firmaBuena) return null;
+    const p = await crypto.subtle.generateKey({ name: 'Ed25519' }, true, ['sign', 'verify']); const k = new Uint8Array(await crypto.subtle.exportKey('raw', p.publicKey)).toHex(); const s = new Uint8Array(await crypto.subtle.sign({ name: 'Ed25519' }, p.privateKey, new TextEncoder().encode(u.MARCA_FIRMA + 'lista'))).toBase64();
+    return [await u.firmaBuena('lista', s, [k]), await u.firmaBuena('otra', s, [k]), await u.firmaBuena('lista', s), u.CLAVES.length]`)
+  if (firma) check('El actualizador comprueba la firma con el motor de verdad', firma[0] === true && firma[1] === false && firma[2] === false && firma[3] === 2, firma)
+
+  // ---------------------------------------------------------------- el primer arranque
+  await js(`const b = mod('zero-bienvenida.sys.mjs'); const st = b._debug.estado(win); if (st) b._debug.abrir(win);`)
+  const bv = await js(`const b = mod('zero-bienvenida.sys.mjs'); return !!b._debug.estado(win)`)
+  check('Quien ya conoce Zero no ve la bienvenida', bv === false)
+
   // ---------------------------------------------------------------- cerrar Kitsune y volver
   await js(`await mod('zero-estudio.sys.mjs')._debug.guardarYa();`)
   const errors = await js(`return win.__errores`)

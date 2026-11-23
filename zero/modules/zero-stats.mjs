@@ -88,6 +88,17 @@ export function addCount(data, day, key, n = 1) {
 export function addSearch(data, day) { dayOf(data, day).searches++; }
 export function addPage(data, day) { dayOf(data, day).pages++; }
 
+/** Junta con lo de otra copia: de cada día se queda el que tenga más tiempo, de los totales el mayor y de los logros el día
+ *  más antiguo. Devuelve cuántos días han entrado. */
+export function merge(data, other) {
+  const seconds = entry => Object.values(entry?.sites ?? {}).reduce((a, b) => a + b, 0) + (entry?.estudio ?? 0);
+  let days = 0;
+  for (const [day, entry] of Object.entries(other.days)) if (!data.days[day] || seconds(entry) > seconds(data.days[day])) { data.days[day] = entry; days++; }
+  for (const key of COUNTERS) { const n = Math.max(data.total?.[key] ?? 0, other.total?.[key] ?? 0); if (n) { data.total ??= {}; data.total[key] = n; } }
+  for (const [id, day] of Object.entries(other.logros ?? {})) { data.logros ??= {}; if (!data.logros[id] || day < data.logros[id]) data.logros[id] = day; }
+  return days;
+}
+
 /** Quita los días de hace más de `keep`. */
 export function prune(data, today, keep = KEEP_DAYS) {
   const oldest = lastDays(today, keep)[0];

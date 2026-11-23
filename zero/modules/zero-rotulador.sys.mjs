@@ -59,6 +59,23 @@ function guardar() {
   }
 }
 
+/** Todos, para la copia de Kitsune. */
+export async function todos() { await cargar(); return tienda.datos ?? {}; }
+/** Suma los de una copia (los que ya estén, una vez). Devuelve cuántos han entrado. */
+export async function traer(valor) {
+  await cargar();
+  const otros = subrayadosLimpios(valor);
+  let entran = 0;
+  for (const [url, lista] of Object.entries(otros)) {
+    const ya = tienda.datos[url] ?? [];
+    const nuevos = lista.filter(s => !ya.some(y => y.id === s.id));
+    entran += nuevos.length;
+    if (nuevos.length) tienda.datos[url] = [...ya, ...nuevos];
+  }
+  if (entran) { guardar(); await guardarYa(); }
+  return entran;
+}
+
 // ---------------------------------------------------------------- el actor
 
 const ventanaDe = actor => {

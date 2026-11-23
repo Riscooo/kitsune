@@ -33,6 +33,7 @@ import * as reparto from './zero-reparto.sys.mjs';
 import * as notas from './zero-notas.sys.mjs';
 import * as rotulador from './zero-rotulador.sys.mjs';
 import * as estudio from './zero-estudio.sys.mjs';
+import * as bienvenida from './zero-bienvenida.sys.mjs';
 
 const SHEET = 'chrome://browser/content/zero/zero.css';
 const REMEMBER = 'kitsune-zero';
@@ -41,7 +42,7 @@ let host = null;
 // La lámina va la primera (detrás de todo, y así recibe ya la primera foto del marco); el cristal en
 // vivo, el último: se pone detrás de las piezas que ya están. El reparto, antes que los paneles que coloca. La luz y el material, antes que el marco: el marco
 // elige el fondo y el modo (claro u oscuro) con lo que ellos digan.
-const pieces = [pane, luz, frame, island, rail, grab, profiles, shortcuts, stats, music, audio, mark, reparto, notas, asistente, rotulador, estudio, pomodoro, silence, sounds, downloads, media, glass];
+const pieces = [pane, luz, frame, island, rail, grab, profiles, shortcuts, stats, music, audio, mark, reparto, notas, asistente, rotulador, estudio, pomodoro, silence, sounds, downloads, media, glass, bienvenida];
 const decorated = new WeakSet();
 const starting = new WeakSet(); // ventanas que ya esperan a terminar de arrancar
 const early = new WeakSet();    // ventanas que ya se pintan en Zero y esperan a sus piezas

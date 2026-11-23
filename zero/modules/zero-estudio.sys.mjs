@@ -9,7 +9,7 @@
  * - Al entrar se abre el bloc, si es lo que se dejó abierto la última vez.
  */
 import { prefName, PREFS } from './zero-config.sys.mjs';
-import { limpia, anotar, quitar, porAbrir, plan, guardable } from './zero-estudio.mjs';
+import { limpia, anotar, quitar, porAbrir, plan, guardable, MAXIMO } from './zero-estudio.mjs';
 import { idNuevo } from './zero-notas.mjs';
 import * as cofre from './zero-cofre.sys.mjs';
 import * as notas from './zero-notas.sys.mjs';
@@ -55,6 +55,21 @@ function guardar() {
     tienda.alCerrar = true;
     ChromeUtils.importESModule('resource://gre/modules/AsyncShutdown.sys.mjs').AsyncShutdown.profileBeforeChange.addBlocker('Kitsune Zero: guardar el estudio', () => guardarYa());
   }
+}
+
+/** Las páginas de cada perfil, para la copia de Kitsune (sin por dónde iba cada una: es de este ordenador). */
+export async function todo() {
+  await cargar();
+  return Object.fromEntries(Object.entries(tienda.datos.espacios).map(([id, lista]) => [id, lista.map(({ estado, ...p }) => p)]));
+}
+/** Suma páginas a un perfil, cerradas: vuelven al entrar en Estudio. Devuelve cuántas. */
+export async function traer(espacio, paginas) {
+  await cargar();
+  const ya = tienda.datos.espacios[espacio] ?? [];
+  const nuevas = (limpia({ espacios: { [espacio]: paginas } }).espacios[espacio] ?? []).filter(p => !ya.some(y => y.id === p.id || y.url === p.url));
+  const sitio = Math.max(0, MAXIMO - ya.length), entran = nuevas.slice(0, sitio).map(({ estado, ...p }) => ({ ...p, abierta: false }));
+  if (entran.length) { tienda.datos = { v: 1, espacios: { ...tienda.datos.espacios, [espacio]: [...ya, ...entran] } }; guardar(); await guardarYa(); }
+  return entran.length;
 }
 
 // ---------------------------------------------------------------- las pestañas
