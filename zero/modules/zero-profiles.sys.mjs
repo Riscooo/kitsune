@@ -16,10 +16,13 @@
  * webs vetadas, sonidos): de serie, currar enciende pomodoro y silencio y chill los apaga; lo que se cambia
  * estando en un modo se queda en ese modo. Al cambiar de perfil se pone el suyo.
  *
- * - kitsune.zero.modes: { profiles: { id: { mode, work: {…}, chill: {…} } } }.
+ * El tercero, «Estudio» (Risco, 23-11), además guarda sus páginas: zero-estudio. Otro clic en él las enseña.
+ *
+ * - kitsune.zero.modes: { profiles: { id: { mode, work: {…}, chill: {…}, study: {…} } } }.
  * - kitsune.zero.profiles.images: { id: url } (la imagen de cada perfil; pequeña, en data:).
  */
 import { PREFS, prefName } from './zero-config.sys.mjs';
+import * as estudio from './zero-estudio.sys.mjs';
 
 const HTML = 'http://www.w3.org/1999/xhtml';
 const MODES_PREF = 'modes';
@@ -30,6 +33,8 @@ const KEYS = Object.freeze([PREFS.pomodoro, PREFS.pomodoroPreset, PREFS.silence,
 const DEFAULTS = Object.freeze({
   work: { [PREFS.pomodoro]: true, [PREFS.silence]: true, [PREFS.sounds]: false },
   chill: { [PREFS.pomodoro]: false, [PREFS.silence]: false, [PREFS.sounds]: false },
+  // Estudio (Risco, 23-11): en silencio y con sus páginas (zero-estudio); el pomodoro, si se enciende.
+  study: { [PREFS.pomodoro]: false, [PREFS.silence]: true, [PREFS.sounds]: false },
 });
 const state = new WeakMap();
 // Como los espacios de Kitsune: sus seis tintas, hasta nueve y unos iconos a mano (o su inicial).
@@ -312,7 +317,7 @@ export function attach(win, ctx) {
   // El modo: dos botones (Risco, 15-10: «en vez de un slider, dos botones, uno con una luna y otro para trabajar»).
   const modeButton = (mode, label) => el(doc, 'button', { type: 'button', 'data-mode': mode, 'aria-pressed': 'false', 'aria-label': label, title: label });
   st.mode = el(doc, 'div', { id: 'zero-mode', class: 'zero-pill', role: 'group', 'aria-label': t('Modo', 'Mode') },
-    [modeButton('work', t('Currar', 'Work')), modeButton('chill', t('Chill', 'Chill'))]);
+    [modeButton('work', t('Currar', 'Work')), modeButton('chill', t('Chill', 'Chill')), modeButton('study', t('Estudio', 'Study'))]);
   // Tu perfil encima del buscador de la pestaña nueva (Dani, 15-10; en la variante «Sobrio», zero.css).
   st.identityImage = el(doc, 'img', { alt: '', hidden: 'true' });
   st.identityGlyph = el(doc, 'span', { class: 'zero-empty-profile-glyph', 'aria-hidden': 'true' });
@@ -356,6 +361,7 @@ export function attach(win, ctx) {
   st.mode.addEventListener('click', event => {
     const mode = event.target.closest('button[data-mode]')?.dataset.mode;
     if (mode && mode !== modeOf(st, profilesOf(win, st).current)) setMode(win, st, mode);
+    else if (mode === 'study') estudio.alPulsar(win);
   });
 
   // La ficha: lo que se cambia, al momento; uno nuevo, al pulsar «Crear» (o Intro).

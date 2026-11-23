@@ -22,6 +22,7 @@
  */
 import { prefName } from './zero-config.sys.mjs';
 import { fitMusic, MUSIC_MIN_WIDTH } from './zero-music-fit.mjs';
+import { conPlayReady } from './zero-spotify.sys.mjs';
 
 const HTML = 'http://www.w3.org/1999/xhtml';
 const SERVICE_PREF = 'music.service';
@@ -195,6 +196,8 @@ function allowAutoplay(url) {
   } catch { /* una dirección sin origen */ }
 }
 
+const esSpotify = st => { try { return new URL(st.serviceUrl).hostname === 'open.spotify.com'; } catch { return false; } };
+
 /** La DRM que pide la web del panel: apagada, la barra para activarla; sin Widevine (Gecko ya lo está
  *  descargando), la barra lo dice y la web se recarga al quedar instalado; lista (cuando la web crea sus claves),
  *  sin barra. */
@@ -222,6 +225,8 @@ function enableDrm(st) {
   if (Services.prefs.getPrefType('media.gmp-widevinecdm.enabled') && !Services.prefs.getBoolPref('media.gmp-widevinecdm.enabled')) {
     Services.prefs.setBoolPref('media.gmp-widevinecdm.enabled', true);
   }
+  // Spotify en Windows va con la DRM del sistema (zero-spotify): no hay nada que descargar.
+  if (esSpotify(st) && conPlayReady()) { showDrm(st, null); st.browser?.reload(); return; }
   showDrm(st, 'installing');
   reloadWhenInstalled(st);
 }

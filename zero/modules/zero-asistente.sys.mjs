@@ -25,6 +25,8 @@ import { validar, combinar, crearReproductor, catalogo } from './zero-lobo.mjs';
 import { iniciarServidor, datosParaClaudeCode } from './zero-ia-mcp.sys.mjs';
 import { buscarClaude, SesionClaude } from './zero-ia-claude.sys.mjs';
 import { herramientasDe } from './zero-ia-herramientas.sys.mjs';
+import * as reparto from './zero-reparto.sys.mjs';
+import * as notas from './zero-notas.sys.mjs';
 
 const HTML = 'http://www.w3.org/1999/xhtml';
 const LOBO = 'chrome://browser/content/zero/lobo.json';
@@ -177,16 +179,22 @@ function forma(win, st) {
   return { side, shape, width, height };
 }
 
+/** Cómo quiere estar (para zero-reparto, que coloca la web, el bloc y este panel). */
+function paraReparto(win, st) {
+  if (!st.panel.hasAttribute('open')) return null;
+  const { side, shape, width, height } = st.arrastre?.forma ?? forma(win, st);
+  return { lado: side === 'left' ? 'izq' : 'der', forma: { corner: 'esquina', tab: 'pestana' }[shape] ?? 'columna', ancho: width, alto: height };
+}
+
 /** Pone el panel donde y como toca; en columna y abierto, la web le deja sitio (al acabar de estirarlo, no en cada
  *  fotograma: cambiar el tamaño de la web es caro). */
 function colocar(win, st, { vivo = false } = {}) {
-  const { side, shape, width, height } = st.arrastre?.forma ?? forma(win, st);
+  const { side, shape, width } = st.arrastre?.forma ?? forma(win, st);
   const panel = st.panel, root = win.document.documentElement;
   panel.setAttribute('side', side);
   panel.setAttribute('shape', shape);
-  panel.style.width = shape === 'tab' ? '' : `${width}px`;
-  panel.style.height = shape === 'corner' ? `${height}px` : '';
   const abierto = panel.hasAttribute('open');
+  reparto.colocar(win, { vivo });
   if (!vivo) {
     root.toggleAttribute('zero-ia-open', abierto && shape === 'column');
     root.setAttribute('zero-ia-side', side);
@@ -204,6 +212,7 @@ function estirable(win, st) {
     st.arrastre = { eje, x: event.clientX, y: event.clientY, inicio, forma: { ...inicio }, id: event.pointerId, asa: event.currentTarget };
     try { event.currentTarget.setPointerCapture(event.pointerId); } catch { /* sin captura */ }
     st.panel.setAttribute('resizing', '');
+    reparto.tirar(win, 'ia');
   };
   const mover = event => {
     const a = st.arrastre;
@@ -218,6 +227,7 @@ function estirable(win, st) {
     if (!a || (event.pointerId !== undefined && event.pointerId !== a.id)) return;
     st.arrastre = null;
     st.panel.removeAttribute('resizing');
+    reparto.tirar(win, null, Math.round(a.forma.width));
     setPref(st.host, P.width, String(Math.round(a.forma.width)));
     if (a.forma.shape === 'corner') setPref(st.host, P.height, String(Math.round(a.forma.height)));
     colocar(win, st);
@@ -234,6 +244,7 @@ function abrir(win, st, abierto = !st.panel.hasAttribute('open')) {
   st.panel.toggleAttribute('open', abierto);
   st.boton.setAttribute('aria-expanded', String(abierto));
   st.boton.toggleAttribute('open', abierto);
+  if (abierto) reparto.delante(win, 'ia');
   colocar(win, st);
   if (abierto) {
     st.grande.empezar();
@@ -273,6 +284,14 @@ function burbuja(win, st, quien, texto = '') {
   const cuerpo = el(doc, 'div', { class: 'zero-ia-text' });
   const nodo = el(doc, 'div', { class: `zero-ia-msg zero-ia-${quien}`, role: quien === 'claude' ? 'article' : null }, [cuerpo]);
   const mensaje = { quien, texto, nodo, cuerpo, herramientas: null };
+  if (quien === 'claude') {
+    // Lo que dice, al bloc (Risco, 23-11: «cuando estuve con la ia me di cuenta de que nos vendría muy bien un block de
+    // notas»). Solo va en esta dirección: el asistente no ve las notas.
+    const label = st.host.t('Guardar en el bloc', 'Save to notes');
+    const guardar = el(doc, 'button', { type: 'button', class: 'zero-ia-guardar', title: label, 'aria-label': label });
+    guardar.addEventListener('click', () => void notas.guardar(win, mensaje.texto));
+    nodo.append(guardar);
+  }
   st.mensajes.push(mensaje);
   st.panel.setAttribute('chatting', '');
   st.log.append(nodo);
@@ -611,6 +630,8 @@ export function attach(win, ctx) {
   ]);
   doc.body.append(st.panel);
   st.cleanups.push(() => { st.boton.remove(); st.panel.remove(); });
+  st.cleanups.push(reparto.registrar(win, 'ia', { panel: st.panel, forma: () => paraReparto(win, st), ancho: px => setPref(host, P.width, px) }));
+  st.panel.addEventListener('pointerdown', () => reparto.delante(win, 'ia'));
   pintarBoton(st);
 
   st.icono = loboEn(win, st.iconoCanvas, 'icono', 1);
@@ -630,7 +651,11 @@ export function attach(win, ctx) {
   st.cleanups.push(() => { st.icono.parar(); st.grande.parar(); });
 
   // Lo que se pulsa.
-  st.boton.addEventListener('click', () => abrir(win, st));
+  st.boton.addEventListener('click', () => {
+    // Con el panel detrás del bloc (en una ventana baja, a turnos), el botón lo trae delante.
+    if (st.panel.hasAttribute('open') && st.panel.hasAttribute('oculto')) { reparto.delante(win, 'ia'); reparto.colocar(win); return; }
+    abrir(win, st);
+  });
   st.cerrar.addEventListener('click', () => abrir(win, st, false));
   st.nueva.addEventListener('click', () => nuevaConversacion(win, st));
   st.lado.addEventListener('click', () => setPref(host, P.side, forma(win, st).side === 'right' ? 'left' : 'right'));
