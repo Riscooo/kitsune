@@ -33,6 +33,9 @@ la ventana a Zero y la devuelve, con las mismas pestañas. Diseño completo en
     (las reglas, puras, en `zero-silence.mjs`);
   - `zero-sounds`: los sonidos CC0 por capas (el mezclador, puro, en `zero-sounds.mjs`; los
     créditos, en `SONIDOS.md`);
+  - `zero-reparto`, `zero-notas`, `zero-rotulador` y `zero-estudio`: el bloc de notas cifrado, el subrayador de las webs, el modo
+    Estudio y cómo se reparten la web, el bloc y el asistente; con `zero-cofre` (lo cifrado) y `zero-spotify` (que Spotify suene
+    en Windows). Todo en `docs/zero/estudio.md`;
   - `zero-media`: lo que suena en otra pestaña, en la isla (aviso, onda, pausa y siguiente), con el
     MediaController de Gecko;
   - `zero-glass`: el cristal en vivo sobre la web y el texto que se adapta (`zero-light.mjs`). Su
@@ -44,7 +47,7 @@ la ventana a Zero y la devuelve, con las mismas pestañas. Diseño completo en
   Y dos pequeños que usan el raíl y la isla: `zero-who`, de qué usuario (contenedor) es una pestaña, y
   `zero-icon`, si un favicon es claro sobre transparente (para darle un fondo oscuro).
   `zero-dock.mjs`, `zero-light.mjs`, `zero-music-fit.mjs`, `zero-pomodoro.mjs`, `zero-silence.mjs`,
-  `zero-sounds.mjs`, `zero-lobo.mjs`, `zero-stats.mjs`, `zero-sol.mjs`, `zero-material.mjs`, `zero-ia-texto.mjs`, `zero-ia-flujo.mjs`, `zero-ia-protocolo.mjs` y
+  `zero-sounds.mjs`, `zero-lobo.mjs`, `zero-stats.mjs`, `zero-logros.mjs`, `zero-cofre.mjs`, `zero-notas.mjs`, `zero-reparto.mjs`, `zero-estudio.mjs`, `zero-spotify.mjs`, `zero-sol.mjs`, `zero-material.mjs`, `zero-ia-texto.mjs`, `zero-ia-flujo.mjs`, `zero-ia-protocolo.mjs` y
   `zero-config.sys.mjs` son puros y se prueban con Node. Los `zero-ia-*` y `zero-asistente` son el asistente (ver
   «El asistente», abajo). El pomodoro, el silencio y los sonidos son
   opcionales y vienen apagados.

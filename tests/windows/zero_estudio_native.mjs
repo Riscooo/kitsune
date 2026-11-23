@@ -2,7 +2,7 @@
  * ventana, el modo Estudio (sus páginas vuelven, también tras cerrar Kitsune), las estadísticas a pantalla completa y los
  * logros, y qué DRM se ofrece a Spotify.
  *
- *   node tests/windows/zero_estudio_native.mjs --motor <carpeta con kitsune.exe> [--out <carpeta>] [--spotify]
+ *   node tests/windows/zero_estudio_native.mjs --motor <carpeta con kitsune.exe> [--out <carpeta>] [--spotify] [--claro]
  *
  * El motor puede ser uno publicado con el Zero de este repositorio dentro (tools/windows/parchear-motor.ps1). Usa un perfil
  * nuevo y no toca el de la persona. Con --spotify entra en open.spotify.com (hace falta red).
@@ -45,6 +45,7 @@ const PREFS = {
   'browser.startup.homepage': 'about:blank', 'kitsune.privacy.requested': 'comodo', 'media.eme.enabled': true, 'browser.tabs.warnOnClose': false,
   'extensions.torlauncher.x': false, 'network.trr.mode': 5,
 }
+if (process.argv.includes('--claro')) Object.assign(PREFS, { 'kitsune.zero.light.mode': 'fixed', 'kitsune.zero.light.period': 'dia', 'kitsune.zero.light.scheme': 'light' })
 let port = 3100 + Math.floor(Math.random() * 300)
 const profile = makeProfile({ ...PREFS, 'marionette.port': port })
 let child = null, c = null
