@@ -1,10 +1,13 @@
-import test from 'node:test'
+import nodeTest from 'node:test'
 import assert from 'node:assert/strict'
 import { spawnSync } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
 import * as core from '../install/home-extension/api/core.sys.mjs'
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url))
+// Las que comparan con el servidor de Linux necesitan su Python (las que llaman a python()).
+const conPython = process.platform !== 'win32' && spawnSync('python3', ['--version']).status === 0
+const test = (name, run) => nodeTest(name, { skip: !conPython && /\bpython\(/.test(String(run)) ? 'compara con el servidor de Linux' : false }, run)
 
 // Lo mismo, por el servidor de Linux: así el inicio integrado no se aparta de él.
 function python(script, input) {

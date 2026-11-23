@@ -1,7 +1,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { compareReleases, newerRelease, platformFor, releaseLabel, productDownloads, shouldAsk, FIRST_CHECK_MS, CHECK_EVERY_MS, RETRY_MS } from '../install/native/kitsune-updates.sys.mjs'
-import { expectedSha256, hex, linuxPackage, platformOf, releasePackage, windowsScript, windowsAdminScript, windowsAdminParameters } from '../install/native/kitsune-updater.sys.mjs'
+import { CLAVES, MARCA_FIRMA, firmaBuena, expectedSha256, hex, linuxPackage, platformOf, releasePackage, windowsScript, windowsAdminScript, windowsAdminParameters } from '../install/native/kitsune-updater.sys.mjs'
 
 test('releases order betas before the final version and compare numbers, not text', () => {
   assert.equal(compareReleases('0.7.0-beta.3', '0.7.0-beta.2'), 1)
@@ -50,6 +50,23 @@ test('Linux only updates itself from the release package on GitHub, with its SHA
   // En las pruebas, el mismo camino pero en 127.0.0.1.
   const local = 'http://127.0.0.1:4000/v0.9.0/Kitsune-0.9.0-Linux-x86_64.tar.xz'
   assert.equal(linuxPackage({ url: local, release: '0.9.0' }, '0.9.0', 'http://127.0.0.1:4000').sums, 'http://127.0.0.1:4000/v0.9.0/SHA256SUMS.txt')
+})
+
+test('only a list signed with one of the two keys is accepted, and only that list', async () => {
+  const pair = await crypto.subtle.generateKey({ name: 'Ed25519' }, true, ['sign', 'verify'])
+  const other = await crypto.subtle.generateKey({ name: 'Ed25519' }, true, ['sign', 'verify'])
+  const hexOf = async key => Buffer.from(await crypto.subtle.exportKey('raw', key)).toString('hex')
+  const sign = async (text, key) => Buffer.from(await crypto.subtle.sign({ name: 'Ed25519' }, key, new TextEncoder().encode(text))).toString('base64')
+  const keys = [await hexOf(pair.publicKey), 'f'.repeat(64)], list = 'a  Kitsune-0.8.0-Windows-x64.exe\n'
+  const good = await sign(MARCA_FIRMA + list, pair.privateKey)
+  assert.equal(await firmaBuena(list, good + '\n', keys), true)
+  assert.equal(await firmaBuena(list + 'x', good, keys), false)
+  assert.equal(await firmaBuena(list, await sign(MARCA_FIRMA + list, other.privateKey), keys), false)
+  assert.equal(await firmaBuena(list, await sign(list, pair.privateKey), keys), false)
+  for (const bad of ['', null, 'no es base64 %%', 'AAAA', good.slice(0, 40)]) assert.equal(await firmaBuena(list, bad, keys), false)
+  assert.equal(CLAVES.length, 2)
+  for (const key of CLAVES) assert.match(key, /^[0-9a-f]{64}$/)
+  assert.notEqual(CLAVES[0], CLAVES[1])
 })
 
 test('the expected SHA-256 is the one listed for exactly that file name', () => {

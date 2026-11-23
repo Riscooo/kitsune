@@ -28,7 +28,6 @@ import { iniciarServidor, datosParaClaudeCode } from './zero-ia-mcp.sys.mjs';
 import { buscarClaude, SesionClaude } from './zero-ia-claude.sys.mjs';
 import { herramientasDe } from './zero-ia-herramientas.sys.mjs';
 import * as reparto from './zero-reparto.sys.mjs';
-import * as notas from './zero-notas.sys.mjs';
 import { herramientasDeNavegar } from './zero-ia-navegar.sys.mjs';
 import { INSTRUCCIONES_NAVEGAR } from './zero-ia-navegar.mjs';
 import { INSTRUCCIONES as INSTRUCCIONES_MCP } from './zero-ia-protocolo.mjs';
@@ -294,7 +293,7 @@ function burbuja(win, st, quien, texto = '') {
     // notas»). Solo va en esta dirección: el asistente no ve las notas.
     const label = st.host.t('Guardar en el bloc', 'Save to notes');
     const guardar = el(doc, 'button', { type: 'button', class: 'zero-ia-guardar', title: label, 'aria-label': label });
-    guardar.addEventListener('click', () => void notas.guardar(win, mensaje.texto));
+    guardar.addEventListener('click', () => void ChromeUtils.importESModule(new URL('./zero-notas.sys.mjs', import.meta.url).href).guardar(win, mensaje.texto));
     nodo.append(guardar);
   }
   st.mensajes.push(mensaje);

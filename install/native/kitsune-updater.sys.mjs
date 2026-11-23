@@ -3,8 +3,10 @@
  * Cuando kitsune-updates.sys.mjs ve una versión más nueva, aquí se prepara:
  *  1. se descargan su paquete y su SHA256SUMS.txt, solo de las versiones de Riscooo/kitsune
  *     en GitHub;
- *  2. el paquete tiene que dar el SHA-256 de esa lista; si no, se borra y queda el aviso de
- *     siempre, con «Descargar»;
+ *  2. la lista tiene que llevar la firma de Kitsune (SHA256SUMS.txt.firma, Ed25519, hecha con
+ *     tools/firmar.mjs) y el paquete tiene que dar su SHA-256; si no, se borra y queda el aviso de
+ *     siempre, con «Descargar». La firma no depende de GitHub: quien entrase en la cuenta podría
+ *     subir otro paquete y otra lista, pero no firmarla;
  *  3. se deja en la carpeta de caché (en Linux, ya descomprimido) y se marca como listo;
  *  4. al cerrar Kitsune se instala, así un Kitsune abierto nunca mezcla dos versiones:
  *     - Linux (el paquete de instalar.sh, en ~/.local/share/kitsune): su instalar.sh, que
@@ -25,6 +27,11 @@
  */
 const GITHUB = 'https://github.com/Riscooo/kitsune/releases/download';
 const RELEASE = /^\d{1,4}\.\d{1,4}\.\d{1,4}(?:-beta\.\d{1,4})?$/;
+/** Las claves públicas que valen (Ed25519, en hexadecimal): la de siempre y la de reserva. Las privadas no están aquí ni en
+ *  GitHub (ver tools/firmar.mjs). */
+export const CLAVES = Object.freeze(['8b7fe858a931fe4def5005e43371381ea2dd3a6f86f21d15ce160744d451026f', 'b262c328205a2c70172df3219bdc3a34e288b080e1f13883c622eb84bd07c445']);
+/** Lo que se firma empieza por esto: una firma de otra cosa no vale para una lista. */
+export const MARCA_FIRMA = 'kitsune-sha256sums-v1\n';
 const READY = 'listo.json';
 // Windows: el instalador corre cuando Kitsune ya se ha cerrado, así que si ha ido bien solo se sabe en la próxima
 // apertura. Esta marca dice que se intentó; si entonces sigue la versión vieja, esa versión ya no se intenta sola
@@ -63,6 +70,21 @@ export function expectedSha256(text, name) {
     if (match && match[2] === name) return match[1];
   }
   return null;
+}
+
+/** ¿Lleva esta lista la firma de Kitsune? (`firma`, en base64) */
+export async function firmaBuena(texto, firma, claves = CLAVES, crypto = globalThis.crypto) {
+  let bytes;
+  try { bytes = Uint8Array.fromBase64(String(firma ?? '').trim()); } catch { return false; }
+  if (bytes.length !== 64) return false;
+  const datos = new TextEncoder().encode(MARCA_FIRMA + String(texto ?? ''));
+  for (const clave of claves) {
+    try {
+      const publica = await crypto.subtle.importKey('raw', Uint8Array.fromHex(clave), { name: 'Ed25519' }, false, ['verify']);
+      if (await crypto.subtle.verify({ name: 'Ed25519' }, publica, bytes, datos)) return true;
+    } catch { /* otra clave */ }
+  }
+  return false;
 }
 
 /** Los bytes de nsICryptoHash.finish(false) en hexadecimal. */
@@ -379,8 +401,13 @@ export const KitsuneUpdater = {
     await IOUtils.remove(folder, { recursive: true, ignoreAbsent: true });
     await IOUtils.makeDirectory(folder, { createAncestors: true, permissions: 0o700 });
     try {
-      const response = await fetch(found.sums, { credentials: 'omit', cache: 'no-store', referrerPolicy: 'no-referrer' });
-      const expected = response.ok ? expectedSha256(await response.text(), found.name) : null;
+      const ask = address => fetch(address, { credentials: 'omit', cache: 'no-store', referrerPolicy: 'no-referrer' });
+      const response = await ask(found.sums);
+      const sums = response.ok ? await response.text() : '';
+      const signature = await ask(`${found.sums}.firma`).then(answer => (answer.ok ? answer.text() : ''), () => '');
+      // Las pruebas (solo contra 127.0.0.1) van sin firma.
+      if (!testing() && !await firmaBuena(sums, signature)) throw new Error('La lista de la versión no lleva la firma de Kitsune.');
+      const expected = expectedSha256(sums, found.name);
       if (!expected) throw new Error('La versión no trae el SHA-256 de su paquete.');
       const archive = PathUtils.join(folder, found.name);
       await modules().Downloads.fetch(found.archive, archive);

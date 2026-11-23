@@ -262,7 +262,9 @@ test('dark controls set the scheme variable, and the background is a file inside
   const digest = 'cd'.repeat(32);
   const withImage = api.nativeCss(api.validate(controlV3({ background: digest })));
   const urls = [...withImage.matchAll(/url\("(file:[^"]+)"\)/g)].map(match => match[1]);
-  assert.deepEqual(urls, [`file:///temporary-kitsune-profile/profile/chrome/kitsune-background-${digest}.jpg`]);
+  // En Windows, la dirección del archivo lleva la unidad (file:///C:/…).
+  assert.equal(urls.length, 1);
+  assert.equal(urls[0].replace(/^file:\/\/\/[A-Za-z]:\//, 'file:///'), `file:///temporary-kitsune-profile/profile/chrome/kitsune-background-${digest}.jpg`);
   assert.doesNotMatch(withImage, /https?:/);
 });
 
