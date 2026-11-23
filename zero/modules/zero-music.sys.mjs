@@ -18,14 +18,13 @@
  * - La DRM (Risco, 22-10: con Spotify no sonaba nada): está apagada hasta que una web la pide, y la barra
  *   «Activar DRM» de Gecko solo sale en las pestañas. Si la pide la web del panel, el panel saca la suya (lo
  *   dice zero-drm-child); su botón la activa como el de Gecko, y cuando Widevine está instalado la web se recarga.
- * - En Windows, lo que se pone en la web de Spotify suena por su app (zero-spotify): el panel la conecta solo, y el
- *   minipanel lleva la app.
+ * - En Windows, lo que se pone en la web de Spotify suena por su app (zero-spotify), y el minipanel lleva la app.
  * Va en Windows, macOS y Linux.
  */
 import { prefName } from './zero-config.sys.mjs';
 import { fitMusic, MUSIC_MIN_WIDTH } from './zero-music-fit.mjs';
 import { esSpotify } from './zero-spotify.mjs';
-import { porLaApp, conectar } from './zero-spotify.sys.mjs';
+import { porLaApp, conectar, alEstado, tocar } from './zero-spotify.sys.mjs';
 import { app as appSpotify } from './zero-spotify-app.sys.mjs';
 
 const HTML = 'http://www.w3.org/1999/xhtml';
@@ -133,7 +132,9 @@ function drive(st, name) {
   const c = st?.controller;
   try {
     // Gecko 158 pide el motivo de la pausa (las versiones que no lo piden no lo miran).
-    if (name === 'play') { if (c.isPlaying) c.pause('user'); else c.play(); }
+    // Con la app de Spotify cerrada no hay a quién darle: se toca en la web, que la abre y se conecta.
+    if (name === 'play' && conApp(st) && !c.isActive) tocar(st.browser);
+    else if (name === 'play') { if (c.isPlaying) c.pause('user'); else c.play(); }
     else if (name === 'next') c.nextTrack();
     else if (name === 'prev') c.prevTrack();
   } catch { /* aún no suena nada */ }
@@ -171,7 +172,7 @@ function ensurePanel(win, st, service) {
     st.panel.querySelector('.zero-music-change').addEventListener('click', () => { show(win, st, 'closed'); openServices(win, st); });
     st.drmButton.addEventListener('click', () => {
       if (st.drmView === 'sin-app') win.openTrustedLinkIn('https://www.spotify.com/download/', 'tab');
-      else if (st.drmView === 'no-ha-ido') void conectarApp(win, st);
+      else if (st.drmView === 'no-ha-ido') void conectar(st.browser);
       else enableDrm(st);
     });
     st.panel.append(resizeEdge(win, st));
@@ -194,8 +195,6 @@ function ensurePanel(win, st, service) {
   allowAutoplay(service.url);
   browser.loadURI(Services.io.newURI(service.url), { triggeringPrincipal: Services.scriptSecurityManager.getSystemPrincipal() });
   watchController(win, st);
-  st.appState = null;
-  if (conApp(st)) win.setTimeout(() => { if (st.browser === browser) void conectarApp(win, st); }, 1500);
 }
 
 /** El reproductor que se ha elegido suena sin un clic dentro de su web. Con el autoplay con sonido bloqueado (lo de
@@ -218,13 +217,11 @@ function drmStatus(st, status) {
   else if (status === 'cdm-not-installed') { showDrm(st, 'installing'); reloadWhenInstalled(st); }
   else if (status === 'available' || status === 'cdm-created') {
     if (st.drmView === 'off' || st.drmView === 'installing') showDrm(st, null);
-    // Con la DRM recién encendida, la web de Spotify ya puede conectarse con su app.
-    if (conApp(st) && st.appState === 'sin-drm') { st.appState = null; const { win, browser } = st; win.setTimeout(() => { if (st.browser === browser) void conectarApp(win, st); }, 3000); }
   }
 }
 
-/** 'off' (apagada: el aviso y su botón), 'installing' (solo el aviso), lo de la app de Spotify ('abriendo', 'sin-app',
- *  'no-ha-ido') o null (sin barra). */
+/** 'off' (apagada: el aviso y su botón), 'installing' (solo el aviso), lo de la app de Spotify ('conectando', 'abriendo',
+ *  'sin-app', 'no-ha-ido') o null (sin barra). */
 function showDrm(st, view) {
   st.drm.hidden = !view;
   st.drmView = view;
@@ -233,7 +230,8 @@ function showDrm(st, view) {
   const [text, button] = {
     off: [t(`${name} necesita la DRM (contenido protegido) para sonar.`, `${name} needs DRM (protected content) to play.`), t('Activar DRM', 'Enable DRM')],
     installing: [t('Instalando la DRM (Widevine)…', 'Installing DRM (Widevine)…'), null],
-    abriendo: [t('Abriendo la app de Spotify…', 'Opening the Spotify app…'), null],
+    conectando: [t('Conectando con la app de Spotify…', 'Connecting to the Spotify app…'), null],
+    abriendo: [t('Abriendo la app de Spotify: tarda unos segundos…', 'Opening the Spotify app: it takes a few seconds…'), null],
     'sin-app': [t('Para que suene hace falta la app de Spotify (vale la gratuita).', 'To play, you need the Spotify app (the free one works).'), t('Descargarla', 'Get it')],
     'no-ha-ido': [t('No he podido conectar con la app de Spotify.', 'Could not connect to the Spotify app.'), t('Reintentar', 'Try again')],
   }[view];
@@ -242,22 +240,17 @@ function showDrm(st, view) {
   st.drmButton.hidden = !button;
 }
 
-/** Conecta la web de Spotify del panel con su app; sin la sesión iniciada, espera a que se inicie. */
-async function conectarApp(win, st) {
-  const { browser } = st;
-  if (!conApp(st) || !browser || st.connecting) return;
-  st.connecting = true;
-  let state = 'no-ha-ido';
-  try {
-    if (['abriendo', 'sin-app', 'no-ha-ido'].includes(st.drmView)) showDrm(st, null);
-    state = await conectar(browser, { alEstado: view => { if (st.browser === browser) showDrm(st, view); } });
-  } catch (error) { console.error('Kitsune Zero: Spotify', error); }
-  st.connecting = false;
-  if (st.browser !== browser) return;
-  st.appState = state;
-  st.appAt = Date.now();
-  if (state === 'sin-drm') { if (!st.drmView) showDrm(st, 'off'); }
-  else showDrm(st, state === 'sin-app' || state === 'no-ha-ido' ? state : null);
+/** Cómo va la conexión de una web de Spotify con su app: en la barra del panel o, si es una pestaña, en la isla. */
+function appStatus(win, st, browser, como) {
+  if (browser !== st.browser) {
+    if ((browser.documentGlobal ?? browser.ownerGlobal) !== win || win.gBrowser?.selectedBrowser !== browser) return;
+    const [text, detail] = { abriendo: [st.t('Abriendo la app de Spotify…', 'Opening the Spotify app…'), ''], 'sin-app': ['Spotify', st.t('Para que suene hace falta su app', 'To play, its app is needed')],
+      'no-ha-ido': ['Spotify', st.t('No he podido conectar con su app', 'Could not connect to its app')] }[como] ?? [];
+    if (text) st.island?.alert(text, detail, 4200);
+    return;
+  }
+  if (['conectando', 'abriendo', 'sin-app', 'no-ha-ido'].includes(como)) showDrm(st, como);
+  else if (['conectando', 'abriendo', 'sin-app', 'no-ha-ido'].includes(st.drmView)) showDrm(st, null);
 }
 
 /** El ayudante de la app, solo mientras se ve el minipanel. */
@@ -303,8 +296,6 @@ function watchController(win, st) {
   const hook = () => {
     // El zoom va con la web: si cambia de proceso al cargar, se vuelve a poner.
     applyZoom(st);
-    // Sin la sesión de Spotify iniciada, se mira de vez en cuando si ya lo está.
-    if (st.appState === 'sin-sesion' && st.view === 'open' && Date.now() - st.appAt > 5000) void conectarApp(win, st);
     const controller = controllerOf(st);
     if (controller === st.controller) return;
     if (st.controller) for (const name of EVENTS) st.controller.removeEventListener(name, update);
@@ -423,7 +414,7 @@ export function attach(win, ctx) {
   const dock = doc.getElementById('zero-dock');
   if (!dock) return;
   const t = host.t ?? (es => es);
-  const st = { win, host, t, cleanups: [], view: 'closed' };
+  const st = { host, t, cleanups: [], view: 'closed', island: ctx.island };
   state.set(win, st);
   const listen = (target, type, fn, options) => { target.addEventListener(type, fn, options); st.cleanups.push(() => target.removeEventListener(type, fn, options)); };
 
@@ -455,6 +446,7 @@ export function attach(win, ctx) {
     st.anchor?.removeAttribute('on'); st.pill.remove(); st.services.remove(); st.mini.remove(); st.panel?.remove();
   });
 
+  st.cleanups.push(alEstado((browser, como) => appStatus(win, st, browser, como)));
   st.button.addEventListener('click', () => openMusic(win, st.button));
   st.services.addEventListener('click', event => {
     const button = event.target.closest('[data-service]');

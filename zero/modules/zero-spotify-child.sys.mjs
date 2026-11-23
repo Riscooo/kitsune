@@ -1,6 +1,6 @@
 /* Kitsune Zero · Spotify en Windows, la parte que vive en su web (ver zero-spotify.mjs).
  *
- * Solo hace algo cuando Kitsune se lo pide (ZeroSpotify:conectar): pulsa «Conectar a un dispositivo» y elige este ordenador,
+ * Solo hace algo cuando Kitsune se lo pide (ZeroSpotify:conectar, o tocar): pulsa «Conectar a un dispositivo» y elige este ordenador,
  * como haría la persona, para que lo que se ponga en la web suene por la app de Spotify. No lee nada más de la página.
  */
 import { filaDe, suenaEn } from './zero-spotify.mjs';
@@ -14,7 +14,7 @@ export class KitsuneZeroSpotifyChild extends JSWindowActorChild {
   }
 
   /** 'sin-sesion' | 'cargando' | 'conectado' | 'no-esta' (la app no está abierta aún) | 'no-ha-ido'. */
-  async conectar(equipo) {
+  async conectar(equipo, espera) {
     const doc = this.document, $ = s => doc.querySelector(s);
     if ($('[data-testid="login-button"]')) return 'sin-sesion';
     const barra = () => $('[data-testid="now-playing-bar"]');
@@ -35,7 +35,7 @@ export class KitsuneZeroSpotifyChild extends JSWindowActorChild {
     const yaAbierto = filas().length > 0;
     if (!yaAbierto) boton.click();
     let fila = null;
-    await this.hasta(() => { const f = filas(), i = filaDe(f.map(e => e.textContent), equipo); fila = f[i] ?? null; return fila; }, 3500);
+    await this.hasta(() => { const f = filas(), i = filaDe(f.map(e => e.textContent), equipo); fila = f[i] ?? null; return fila; }, espera);
     let estado = 'no-esta';
     if (fila) {
       (fila.querySelector('button, [role="button"]') ?? fila).click();
@@ -47,9 +47,10 @@ export class KitsuneZeroSpotifyChild extends JSWindowActorChild {
   }
 
   async receiveMessage({ name, data }) {
+    if (name === 'ZeroSpotify:tocar') { this.document.querySelector('[data-testid="control-button-playpause"]')?.click(); return null; }
     if (name !== 'ZeroSpotify:conectar') return null;
     // De una en una.
-    this.vez = (this.vez ?? Promise.resolve()).catch(() => {}).then(() => this.conectar(String(data?.equipo ?? '')));
+    this.vez = (this.vez ?? Promise.resolve()).catch(() => {}).then(() => this.conectar(String(data?.equipo ?? ''), Math.min(20_000, Number(data?.espera) || 3500)));
     return this.vez;
   }
 }

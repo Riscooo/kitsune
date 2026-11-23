@@ -321,7 +321,7 @@ try {
     await go('https://open.spotify.com/').catch(() => {})
     await sleep(2500)
     // Sin sesión no hay nada que conectar, y se dice.
-    check('En la web de Spotify sin sesión iniciada no se toca nada', await js(`return mod('zero-spotify.sys.mjs').conectar(win.gBrowser.selectedBrowser)`) === 'sin-sesion')
+    check('En la web de Spotify sin sesión iniciada no se toca nada', await js(`return mod('zero-spotify.sys.mjs').conectar(win.gBrowser.selectedBrowser)`) === 'sin-sesion' && await js(`return mod('zero-spotify.sys.mjs')._debug.estado.en`))
   }
 } catch (error) {
   let mas = null

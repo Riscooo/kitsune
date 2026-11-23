@@ -57,10 +57,15 @@ Comprobado el 23-11-2026 con Gecko 159.0.1, `web-player.d977a0e9.js` y una cuent
 3. **Connect: funciona.** La web elige y la app de Spotify de este ordenador suena. Medido con el nivel de audio de Windows (no con
    los controles multimedia, que también dicen «suena» cuando la app solo refleja lo que pone la web).
 
-Cómo va: `conectar(browser)` pulsa «Conectar a un dispositivo» (el botón que sigue a la cola, sin depender del idioma) y elige la fila
-que acaba en el nombre del ordenador. El panel lo hace al abrirse, y en cualquier pestaña cuando el servidor niega una licencia: la
-canción sigue por la app en un par de segundos. Si la app está cerrada se abre minimizada; si no está instalada, el panel lo dice.
-Con la DRM apagada (Estricto) la web no deja ni elegir dispositivo: sale el «Activar DRM» de siempre, una vez.
+Cómo va: cuando la web pide la licencia de Widevine (porque va a poner ella la canción), Kitsune **retiene esa petición** antes de que
+salga, abre la app si está cerrada, pulsa «Conectar a un dispositivo» (el botón que sigue a la cola, sin depender del idioma), elige la
+fila que acaba en el nombre del ordenador y le da a reproducir si no suena ya. La petición retenida no se cancela al momento: la web
+la daría por fallida y saltaría de canción; al pasar a la app la deja ella sola. Si no se puede conectar, se suelta (403, como antes).
+Hacerlo tras el 403 no valía: con la app cerrada (unos 15 s) la web saltaba varias canciones y se quedaba muda (Risco, 23-11).
+
+Medido en el panel, de tocar a sonar: 16 s con la app cerrada (o si se cierra a mitad) y 7 s abierta; ya conectado, al momento. Abrir la
+web no abre la app ni le quita la música a otro dispositivo. Con la DRM apagada (Estricto) la web no deja ni elegir dispositivo: sale
+el «Activar DRM» de siempre, una vez.
 
 Como el sonido no sale de la web, el minipanel y el panel de sonido se llevan con los controles multimedia de Windows
 (`zero-spotify-app`, un PowerShell que vive mientras hace falta). La Web API y el Web Playback SDK piden Premium.
