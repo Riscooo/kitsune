@@ -24,7 +24,15 @@ while ($true) {
   $r = @{ ok = $false; abierta = $false }
   try {
     $partes = $linea.Trim().Split(' ')
-    if ($partes[0] -eq 'abrir') { Start-Process 'spotify:'; $r.ok = $true }
+    if ($partes[0] -eq 'asegurar') {
+      # Que la app este abierta (minimizada): sin ella no hay por donde sonar.
+      $r.instalada = $true
+      $r.estaba = [bool](Get-Process -Name Spotify -ErrorAction SilentlyContinue)
+      if (-not $r.estaba) {
+        if (Test-Path 'Registry::HKEY_CLASSES_ROOT\spotify') { Start-Process 'spotify:' -WindowStyle Minimized } else { $r.instalada = $false }
+      }
+      $r.ok = $true
+    }
     else {
       $s = $todas.GetSessions() | Where-Object { $_.SourceAppUserModelId -like '*Spotify*' } | Select-Object -First 1
       if ($s) {

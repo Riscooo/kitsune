@@ -1,20 +1,19 @@
 /* Kitsune Zero · Spotify en Windows, la parte pura (sin Gecko).
  *
- * Por qué no sonaba: en Windows, Spotify solo da licencias de Widevine a navegadores con la firma de Google (VMP), y
- * Kitsune no la tiene (ni se puede poner la de otro: sería hacerse pasar por él). Spotify elige Widevine porque Kitsune
- * lo ofrece, su servidor contesta 403 y el reproductor se salta las canciones. Pero el reproductor web de Spotify admite
- * también PlayReady, la DRM que trae Windows, con su propio servidor de licencias: la usa cuando no hay Widevine. Así que
- * a Spotify, y solo a Spotify, no se le ofrece el Widevine que iba a rechazar.
+ * Por qué su web no suena en Kitsune (comprobado con una cuenta el 23-11-2026; ver docs/zero/estudio.md): en Windows, el
+ * servidor de licencias de Spotify contesta 403 a un Widevine sin la firma de Google (VMP), y 404 a PlayReady, que ya no
+ * sirve para música. La firma hay que pedírsela a Google; ponerse la de otro navegador sería hacerse pasar por él.
+ *
+ * Lo que sí: Spotify Connect, de la propia Spotify. Se busca y se elige en su web, dentro de Kitsune, y el sonido lo pone
+ * su app en este ordenador, con la cuenta de cada uno. Nada se salta: es la app oficial la que reproduce.
  */
 
-/** Las webs (y sus marcos: los reproductores incrustados) a las que no se ofrece Widevine. */
 export const ORIGENES = Object.freeze(['https://open.spotify.com/*']);
 
 /** ¿Hace falta? Solo en Windows y mientras el motor no lleve su firma de Widevine (kitsune.exe.sig). */
 export const haceFalta = ({ os, firmado }) => os === 'WINNT' && !firmado;
 
-/** ¿Es de Widevine ese sistema de claves? */
-export const esWidevine = sistema => /^com\.widevine\./.test(String(sistema ?? ''));
+export const esSpotify = url => { try { return new URL(String(url)).hostname === 'open.spotify.com'; } catch { return false; } };
 
 /** Lo que contesta el servidor de licencias de Spotify: { sistema, dada, status }, o null si no es una licencia. */
 export function licencia({ host, path, status, method }) {
@@ -23,3 +22,14 @@ export function licencia({ host, path, status, method }) {
   if (!tipo) return null;
   return { sistema: tipo[1], dada: status >= 200 && status < 300, status };
 }
+
+const llano = texto => String(texto ?? '').replace(/\s+/g, ' ').trim();
+
+/** De las filas de «Conectar a un dispositivo» (sus textos), la de este ordenador: la que acaba en su nombre. -1 si no está. */
+export function filaDe(textos, equipo) {
+  const nombre = llano(equipo).toLocaleUpperCase();
+  return nombre ? textos.findIndex(texto => llano(texto).toLocaleUpperCase().endsWith(nombre)) : -1;
+}
+
+/** ¿Dice la barra que suena en este ordenador? (en cualquier idioma: solo se mira su nombre) */
+export const suenaEn = (texto, equipo) => { const nombre = llano(equipo).toLocaleUpperCase(); return !!nombre && llano(texto).toLocaleUpperCase().endsWith(nombre); };

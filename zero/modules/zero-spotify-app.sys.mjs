@@ -1,9 +1,8 @@
-/* Kitsune Zero · la app de Spotify, desde el panel de la música (Windows).
+/* Kitsune Zero · la app de Spotify de este ordenador (Windows): que esté abierta, qué suena y sus botones.
  *
- * Risco (23-11): «quiero que investigues a fondo una manera de conseguir que Spotify funcione, porque alguna 100 % debe de
- * haber sin pagar». Esta no depende de ninguna DRM ni de la API de Spotify (que pide Premium): suena la app oficial, con
- * cuenta gratis o de pago, y Kitsune la lleva con los controles multimedia de Windows (System Media Transport Controls),
- * los mismos que usan las teclas del teclado: qué suena, la portada, pausa, siguiente, anterior y avanzar.
+ * La web de Spotify elige y la app suena (zero-spotify). Como el sonido no sale de la web, el controlador de medios de Gecko
+ * no sabe nada: el minipanel y el panel de sonido se llevan con los controles multimedia de Windows (System Media Transport
+ * Controls), los mismos de las teclas del teclado. Ni la API de Spotify (que pide Premium) ni ninguna DRM.
  *
  * Lo hace un PowerShell del sistema que solo vive mientras se usa (zero-spotify-app.ps1): se le manda una orden por línea
  * y contesta un JSON. Hacia el panel, esto se comporta como el controlador de medios de Gecko (isPlaying, getMetadata…).
@@ -24,7 +23,7 @@ export function limpio(dato) {
   const numero = v => (Number.isFinite(v) && v >= 0 ? Math.min(v, 100_000) : 0);
   return {
     abierta: dato?.abierta === true, titulo: texto(dato?.titulo), artista: texto(dato?.artista), album: texto(dato?.album), suena: dato?.suena === true,
-    dura: numero(dato?.dura), va: numero(dato?.va),
+    dura: numero(dato?.dura), va: numero(dato?.va), instalada: dato?.instalada === true, estaba: dato?.estaba === true,
     puede: { siguiente: dato?.puede?.siguiente === true, anterior: dato?.puede?.anterior === true, ir: dato?.puede?.ir === true },
     ...(typeof dato?.portada === 'string' && (dato.portada === '' || /^data:image\/(png|jpeg);base64,[A-Za-z0-9+/=]+$/.test(dato.portada)) ? { portada: dato.portada } : {}),
   };
@@ -40,6 +39,7 @@ class ControlApp {
   #usos = 0;
   #vez = 0;
   #fallos = 0;
+  #parada = null;
   ahora = { ...limpio(null), portada: '' };
   error = null;
 
@@ -52,7 +52,13 @@ class ControlApp {
   nextTrack() { void this.pedir('siguiente'); }
   prevTrack() { void this.pedir('anterior'); }
   seekTo(segundos) { void this.pedir(`ir ${Math.max(0, Number(segundos) || 0).toFixed(1)}`); }
-  abrir() { void this.pedir('abrir').then(() => lazy.setTimeout(() => void this.pedir('estado'), 2500)); }
+  /** Abre la app (minimizada) si no lo está: 'estaba', 'abierta' o 'sin-app' (no está instalada). */
+  async asegurar() {
+    let dato = null;
+    await this.pedir('asegurar', d => { dato = d; });
+    // Si el ayudante no contesta, se sigue como si estuviera: lo dirá la propia web.
+    return !dato || dato.estaba ? 'estaba' : dato.instalada ? 'abierta' : 'sin-app';
+  }
   addEventListener(tipo, fn) { if (!this.#escuchas.has(tipo)) this.#escuchas.set(tipo, new Set()); this.#escuchas.get(tipo).add(fn); }
   removeEventListener(tipo, fn) { this.#escuchas.get(tipo)?.delete(fn); }
   #avisar() { for (const fns of this.#escuchas.values()) for (const fn of fns) { try { fn(); } catch { /* un panel cerrado */ } } }
@@ -91,11 +97,12 @@ class ControlApp {
     }
   }
 
-  /** Una orden y su respuesta, en fila. */
-  pedir(orden) {
+  /** Una orden y su respuesta, en fila. Con `alDato`, la respuesta es suya (no es lo que suena). */
+  pedir(orden, alDato = null) {
     const vez = this.#cola.then(async () => {
-      // Sin nadie mirando no se arranca (una orden que se quedó en la fila al cerrar el panel).
-      if (!this.#usos) return this.ahora;
+      // Sin nadie mirando no se pregunta qué suena (un «estado» que se quedó en la fila al cerrar el panel).
+      if (!this.#usos && orden === 'estado') return this.ahora;
+      lazy.clearTimeout(this.#parada);
       const proc = await this.#lanzar();
       let reloj = null;
       const tope = new Promise((_, no) => { reloj = lazy.setTimeout(() => no(new Error('no contesta')), 12_000); });
@@ -104,13 +111,18 @@ class ControlApp {
         const dato = limpio(JSON.parse(await Promise.race([this.#linea(proc), tope])));
         this.error = null;
         this.#fallos = 0;
+        if (alDato) { alDato(dato); return this.ahora; }
         this.ahora = { ...dato, portada: dato.portada ?? (dato.abierta ? this.ahora.portada : '') };
       } catch (error) {
         this.error = error;
         this.#fallos++;
         this.#parar();
         throw error;
-      } finally { lazy.clearTimeout(reloj); }
+      } finally {
+        lazy.clearTimeout(reloj);
+        // Una orden suelta: el ayudante no se queda.
+        if (!this.#usos) this.#parada = lazy.setTimeout(() => { if (!this.#usos) this.#parar(); }, 8000);
+      }
       this.#avisar();
       return this.ahora;
     });

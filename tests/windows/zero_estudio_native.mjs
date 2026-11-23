@@ -1,6 +1,6 @@
 /* Kitsune Zero en Windows, con el motor de verdad: el bloc (cifrado, contraseñas, editor), el rotulador, el reparto de la
  * ventana, el modo Estudio (sus páginas vuelven, también tras cerrar Kitsune), las estadísticas a pantalla completa y los
- * logros, y qué DRM se ofrece a Spotify.
+ * logros, y el ayudante de la app de Spotify.
  *
  *   node tests/windows/zero_estudio_native.mjs --motor <carpeta con kitsune.exe> [--out <carpeta>] [--spotify] [--claro]
  *
@@ -289,19 +289,9 @@ try {
   await js(`win.dispatchEvent(new win.KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))`)
   check('Esc las cierra', await until(() => box('zero-stats').then(b => !b.open)).catch(() => false))
 
-  // ---------------------------------------------------------------- la app de Spotify en el panel (solo mira: no da a nada)
-  await js(`win.__elegir = id => { const m = mod('zero-music.sys.mjs'); $('#zero-music-pill .zero-music').click(); return !!doc.querySelector('#zero-music-services [data-service="' + id + '"]'); }`)
-  check('La lista de música ofrece la app de Spotify', await js(`return win.__elegir('spotify-app')`))
-  await js(`$('#zero-music-services [data-service="spotify-app"]').click()`)
-  await until(() => js(`const a = mod('zero-spotify-app.sys.mjs').app; return $('#zero-music').hasAttribute('open') && !!$('#zero-music .zero-music-app')`))
-  const app = await until(() => js(`const a = mod('zero-spotify-app.sys.mjs').app; return a.resto !== undefined && (a.ahora.abierta || a.error || win.__vez > 12) ? { abierta: a.ahora.abierta, error: a.error ? String(a.error) : null, cancion: !!a.ahora.titulo, portada: a.ahora.portada.length, texto: $('#zero-music .zero-app-text b').textContent } : ((win.__vez = (win.__vez ?? 0) + 1), null)`), 20000).catch(() => null)
-  check('El panel dice lo que hay en la app (o que se abra), sin errores', app && !app.error && app.texto.length > 2 && (!app.abierta || app.cancion), app)
-  await sleep(600); await shot('10-spotify-app')
-  await js(`$('#zero-music .zero-music-minimize').click()`); await sleep(400)
-  check('Y el minipanel también', await js(`return $('#zero-mini').hasAttribute('open') && $('#zero-mini .zero-mini-title').textContent.length > 1`))
-  await js(`$('#zero-mini .zero-mini-close').click()`)
-  await js(`await new Promise(r => win.setTimeout(r, 600))`)
-  check('Al cerrarlo, el ayudante se para', await js(`const a = mod('zero-spotify-app.sys.mjs').app; return a.resto === ''`))
+  // ---------------------------------------------------------------- la app de Spotify (solo mira: no da a nada)
+  const app = await js(`const { app } = mod('zero-spotify-app.sys.mjs'); const dejar = app.usar(); for (let i = 0; i < 80 && app.resto === undefined; i++) await new Promise(r => win.setTimeout(r, 150)); await app.pedir('estado'); const out = { error: app.error ? String(app.error) : null, abierta: app.ahora.abierta, cancion: !!app.ahora.titulo }; dejar(); await new Promise(r => win.setTimeout(r, 300)); out.parado = app.resto === ''; return out`)
+  check('El ayudante de la app de Spotify contesta sin errores y se para al dejarlo', app && !app.error && (!app.abierta || app.cancion) && app.parado, app)
 
   // ---------------------------------------------------------------- cerrar Kitsune y volver
   await js(`await mod('zero-estudio.sys.mjs')._debug.guardarYa();`)
@@ -330,15 +320,8 @@ try {
   if (process.argv.includes('--spotify')) {
     await go('https://open.spotify.com/').catch(() => {})
     await sleep(2500)
-    const eme = await content(`return navigator.requestMediaKeySystemAccess('com.widevine.alpha', [{ initDataTypes: ['cenc'], audioCapabilities: [{ contentType: 'audio/mp4; codecs="mp4a.40.2"' }] }]).then(() => 'widevine', e => e.name)`)
-    const pr = await content(`return navigator.requestMediaKeySystemAccess('com.microsoft.playready.recommendation.3000', [{ initDataTypes: ['cenc'], audioCapabilities: [{ contentType: 'audio/mp4; codecs="mp4a.40.2"' }] }]).then(a => a.createMediaKeys()).then(() => 'playready', e => e.name + ' ' + e.message)`)
-    check('A Spotify se le ofrece la DRM de Windows y no Widevine', eme === 'NotSupportedError' && pr === 'playready', { eme, pr })
-    await js(`Services.prefs.setStringPref('kitsune.zero.music.service', 'spotify'); $('#zero-music-pill .zero-music').click()`)
-    await until(() => js(`return !!$('#zero-music .zero-music-player')`))
-    await js(`for (const fn of mod('zero-spotify.sys.mjs')._debug.estado.escuchas) fn({ sistema: 'playready', dada: false, status: 403 })`)
-    check('Si Spotify niega la licencia, el panel ofrece su app', await js(`const d = $('#zero-music .zero-music-drm'); return !d.hidden && /app/i.test(d.querySelector('button').textContent)`))
-    await js(`$('#zero-music .zero-music-drm button').click()`)
-    check('Y con un clic se pasa a ella', await until(() => js(`return !!$('#zero-music .zero-music-app') && !$('#zero-music .zero-music-player')`)).catch(() => false))
+    // Sin sesión no hay nada que conectar, y se dice.
+    check('En la web de Spotify sin sesión iniciada no se toca nada', await js(`return mod('zero-spotify.sys.mjs').conectar(win.gBrowser.selectedBrowser)`) === 'sin-sesion')
   }
 } catch (error) {
   let mas = null

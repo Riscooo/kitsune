@@ -1,22 +1,55 @@
 /* Kitsune Zero · Spotify en Windows, la parte que vive en su web (ver zero-spotify.mjs).
  *
- * Antes de que corra nada de la página, su navigator.requestMediaKeySystemAccess dice que no hay Widevine (en Windows
- * Kitsune no lleva la firma que Spotify le pide, así que para él no lo hay). Lo demás, PlayReady incluido, va al de Gecko
- * tal cual. No lee nada de la página.
+ * Solo hace algo cuando Kitsune se lo pide (ZeroSpotify:conectar): pulsa «Conectar a un dispositivo» y elige este ordenador,
+ * como haría la persona, para que lo que se ponga en la web suene por la app de Spotify. No lee nada más de la página.
  */
-import { esWidevine } from './zero-spotify.mjs';
+import { filaDe, suenaEn } from './zero-spotify.mjs';
 
 export class KitsuneZeroSpotifyChild extends JSWindowActorChild {
-  handleEvent(event) {
-    if (event.type !== 'DOMWindowCreated') return;
-    const win = this.contentWindow;
-    if (!win?.Navigator) return;
-    const proto = Cu.waiveXrays(win).Navigator.prototype;
-    const deGecko = proto.requestMediaKeySystemAccess;
-    if (typeof deGecko !== 'function') return; // una página sin cifrar: no hay DRM
-    Cu.exportFunction(function requestMediaKeySystemAccess(sistema, opciones) {
-      if (esWidevine(sistema)) return win.Promise.reject(new win.DOMException('Key system is unsupported', 'NotSupportedError'));
-      return deGecko.call(Cu.waiveXrays(this), sistema, opciones);
-    }, proto, { defineAs: 'requestMediaKeySystemAccess' });
+  esperar(ms) { return new Promise(listo => this.contentWindow.setTimeout(listo, ms)); }
+
+  async hasta(fn, ms) {
+    for (let t = 0; t < ms; t += 150) { const algo = fn(); if (algo) return algo; await this.esperar(150); }
+    return fn();
+  }
+
+  /** 'sin-sesion' | 'cargando' | 'conectado' | 'no-esta' (la app no está abierta aún) | 'no-ha-ido'. */
+  async conectar(equipo) {
+    const doc = this.document, $ = s => doc.querySelector(s);
+    if ($('[data-testid="login-button"]')) return 'sin-sesion';
+    const barra = () => $('[data-testid="now-playing-bar"]');
+    if (!barra()) return 'cargando';
+    const conectado = () => suenaEn(barra()?.textContent, equipo);
+    // «Conectando a…» también acaba en su nombre: se espera a que la barra deje de cambiar (el tiempo no cuenta).
+    const quieto = async () => {
+      const texto = () => (barra()?.textContent ?? '').replace(/\d+:\d+/g, '');
+      for (let i = 0, antes = null, igual = 0; i < 20 && igual < 6; i++) { const ahora = texto(); igual = ahora === antes ? igual + 1 : 0; antes = ahora; await this.esperar(350); }
+      return conectado();
+    };
+    if (conectado()) return (await quieto()) ? 'conectado' : 'cargando';
+    // «Conectar a un dispositivo» va justo después de la cola; así no depende del idioma.
+    const botones = [...barra().querySelectorAll('button')], cola = botones.indexOf($('[data-testid="control-button-queue"]'));
+    const boton = cola >= 0 ? botones[cola + 1] : null;
+    if (!boton) return 'cargando';
+    const filas = () => [...doc.querySelectorAll('[data-testid^="device-picker-row"]')];
+    const yaAbierto = filas().length > 0;
+    if (!yaAbierto) boton.click();
+    let fila = null;
+    await this.hasta(() => { const f = filas(), i = filaDe(f.map(e => e.textContent), equipo); fila = f[i] ?? null; return fila; }, 3500);
+    let estado = 'no-esta';
+    if (fila) {
+      (fila.querySelector('button, [role="button"]') ?? fila).click();
+      estado = (await this.hasta(conectado, 6000)) && (await quieto()) ? 'conectado' : 'no-ha-ido';
+    }
+    // El panel de dispositivos se queda como estaba.
+    if (!yaAbierto && filas().length) boton.click();
+    return estado;
+  }
+
+  async receiveMessage({ name, data }) {
+    if (name !== 'ZeroSpotify:conectar') return null;
+    // De una en una.
+    this.vez = (this.vez ?? Promise.resolve()).catch(() => {}).then(() => this.conectar(String(data?.equipo ?? '')));
+    return this.vez;
   }
 }

@@ -47,23 +47,25 @@ Pruebas: `tests/zero_{notas,reparto,estudio,stats,spotify}.test.mjs` y, con el m
 
 ## Spotify en Windows
 
-Lo comprobado el 23-11-2026 con Gecko 159.0.1 y `web-player.d977a0e9.js`:
+Comprobado el 23-11-2026 con Gecko 159.0.1, `web-player.d977a0e9.js` y una cuenta iniciada:
 
-1. Sin la firma de Widevine de Google (VMP), los servidores que la exigen contestan 403 en Windows. Les pasa a Zen, Floorp o
-   Waterfox, y el síntoma es el mismo: canciones que se saltan. La licencia hay que pedírsela a Google.
-2. El reproductor web de Spotify prueba `com.widevine.alpha`, `com.microsoft.playready.recommendation.3000`,
-   `com.microsoft.playready.recommendation`…, y coge el primero que haya; PlayReady tiene su servidor de licencias.
-3. Gecko da PlayReady en Windows, pero con una lista de webs de Mozilla (`media.eme.mfcdm.origin-filter.enabled` = 4). Con 0, la web
-   de Spotify crea las claves (`createMediaKeys`) con las dos variantes.
+1. **Widevine: 403.** Sin la firma de Google (VMP), `widevine-license/v1/audio/license` lo niega. Les pasa a Zen, Floorp o Waterfox;
+   el síntoma es el mismo: canciones que se saltan.
+2. **PlayReady: 404.** El reproductor aún lo lleva en el código, y Gecko puede crearlo en Windows (con
+   `media.eme.mfcdm.origin-filter.enabled` = 0 y los niveles `SW_SECURE_*` traducidos a `2000`), pero
+   `playready-license/v1/audio/license/<archivo>` contesta 404 también con los datos PlayReady que da la propia Spotify. Se quitó.
+3. **Connect: funciona.** La web elige y la app de Spotify de este ordenador suena. Medido con el nivel de audio de Windows (no con
+   los controles multimedia, que también dicen «suena» cuando la app solo refleja lo que pone la web).
 
-Por eso Zero abre esa lista y, solo en `open.spotify.com`, dice que no hay Widevine. **Falta por confirmar** que su servidor dé la
-licencia con una cuenta iniciada (`kitsune.zero.music.diagnostico` apunta el código en `kitsune-zero-musica.log`).
+Cómo va: `conectar(browser)` pulsa «Conectar a un dispositivo» (el botón que sigue a la cola, sin depender del idioma) y elige la fila
+que acaba en el nombre del ordenador. El panel lo hace al abrirse, y en cualquier pestaña cuando el servidor niega una licencia: la
+canción sigue por la app en un par de segundos. Si la app está cerrada se abre minimizada; si no está instalada, el panel lo dice.
+Con la DRM apagada (Estricto) la web no deja ni elegir dispositivo: sale el «Activar DRM» de siempre, una vez.
 
-No se usan los binarios firmados de Firefox: sería hacerse pasar por él ante Google, no se puede distribuir y se rompe con cada
-Gecko.
+Como el sonido no sale de la web, el minipanel y el panel de sonido se llevan con los controles multimedia de Windows
+(`zero-spotify-app`, un PowerShell que vive mientras hace falta). La Web API y el Web Playback SDK piden Premium.
 
-La red de seguridad, que no depende de nada de eso, es la app: los controles multimedia de Windows
-(`GlobalSystemMediaTransportControlsSessionManager`) dan la canción, la portada, la posición y los botones de la app oficial, con
-cualquier cuenta. La Web API y el Web Playback SDK piden Premium.
+Lo único que haría sonar la web sola es la licencia de Widevine, que da Google a quien la pide. No se usan los binarios firmados de
+Firefox: sería hacerse pasar por él ante Google, no se puede distribuir y se rompe con cada Gecko.
 
 Rareza: `Subprocess` de Gecko con `stderr: 'ignore'` no arranca el proceso en Windows; se lee y se tira.
